@@ -1,0 +1,11 @@
+{
+    "type": "hostmanager",
+    "hostnum": 2222,
+    "hostmanagers": {
+        "hostmanager": {
+            "ip": "127.0.0.1",
+            "port": 10001
+        }
+    },
+    "allow_startup_server_num": 2
+}

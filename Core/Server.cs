@@ -1,4 +1,4 @@
-namespace Core
+namespace LPS.Core
 {
     public class Server
     {
