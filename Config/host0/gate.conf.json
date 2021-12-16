@@ -1,0 +1,6 @@
+{
+    "type": "gate",
+    "protocal": "tcp",
+    "hostnum": 1111,
+    "gatenum": 2
+}

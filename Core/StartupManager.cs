@@ -38,7 +38,6 @@ namespace LPS.Core
                     default:
                         throw new Exception($"Wrong Config File {path}.");
                 }
-
             }
             else
             {

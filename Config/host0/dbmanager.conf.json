@@ -1,0 +1,12 @@
+{
+    "type": "dbmanager",
+    "hostnum": 2222,
+    "dbtype": "rockdb",
+    "dbconfig": {
+        "ip": "127.0.0.1",
+        "port": 12001,
+        "username": "demo",
+        "password": "123456",
+        "collection": "demo"
+    }
+}
