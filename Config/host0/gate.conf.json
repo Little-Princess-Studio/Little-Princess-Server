@@ -2,5 +2,14 @@
     "type": "gate",
     "protocal": "tcp",
     "hostnum": 1111,
-    "gatenum": 2
+    "gates": {
+        "gate0" : {
+            "ip": "127.0.0.1",
+            "port": 11001
+        },
+        "gate1": {
+            "ip": "127.0.0.1",
+            "port": 11011
+        }
+    }
 }

@@ -1,8 +1,10 @@
-using System.IO;
 using System;
-using LPS.Core.Rpc;
-using Newtonsoft.Json.Linq;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
+using LPS.Core.Debug;
+using Newtonsoft.Json.Linq;
 
 namespace LPS.Core
 {
@@ -24,16 +26,16 @@ namespace LPS.Core
                 switch (type)
                 {
                     case "hostmanager":
-                        HandleHostManagerConf(json);
+                        HandleHostManagerConf(path, json);
                         break;
                     case "dbmanager":
-                        HandleDBManagerConf(json);
+                        HandleDBManagerConf(path, json);
                         break;
                     case "gate":
-                        HandleGateConf(json);
+                        HandleGateConf(path, json);
                         break;
                     case "server":
-                        HandleServerConf(json);
+                        HandleServerConf(path, json);
                         break;
                     default:
                         throw new Exception($"Wrong Config File {path}.");
@@ -45,24 +47,53 @@ namespace LPS.Core
             }
         }
 
-        private static void HandleDBManagerConf(JObject json)
+        private static void HandleDBManagerConf(string path, JObject json)
         {
-            Console.WriteLine("startup dbmanager");
+            Logger.Info("startup dbmanager");
         }
 
-        private static void HandleGateConf(JObject json)
+        private static void HandleGateConf(string path, JObject json)
         {
-            Console.WriteLine("startup gates");
+            Logger.Info("startup gates");
+
+            var dict = json["gates"].ToObject<Dictionary<string, JToken>>();
+
+            string relativePath = String.Empty;
+
+            // Linux need to remove .dll suffix to start process
+            if (Environment.OSVersion.Platform == PlatformID.Unix)
+            {
+                var dirName = Path.GetDirectoryName(Path.GetRelativePath(Directory.GetCurrentDirectory(), System.Reflection.Assembly.GetExecutingAssembly().Location));
+                var exeName = System.Reflection.Assembly.GetExecutingAssembly().GetName().Name;
+                relativePath = Path.Join(dirName, exeName);
+            }
+            else
+            {
+                // todo: test execute the process on windows
+            }
+
+            foreach (var name in dict.Keys)
+            {
+                Logger.Info($"startup {name}");
+
+                var procStartInfo = new ProcessStartInfo()
+                {
+                    FileName = relativePath,
+                    Arguments = $"subproc --confpath {path} --childname {name}",
+                    UseShellExecute = false,
+                };
+                Process.Start(procStartInfo);
+            }
         }
 
-        private static void HandleHostManagerConf(JObject json)
+        private static void HandleHostManagerConf(string path, JObject json)
         {
-            Console.WriteLine("startup hostmanager");
+            Logger.Info("startup hostmanager");
         }
 
-        private static void HandleServerConf(JObject json)
+        private static void HandleServerConf(string path, JObject json)
         {
-            Console.WriteLine("startup servers");
+            Logger.Info("startup servers");
         }
 
     }
