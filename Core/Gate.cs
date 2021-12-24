@@ -61,6 +61,8 @@ namespace LPS.Core
                 var ipe = new IPEndPoint(ipa, hostManagerPort_);
                 // todo: auto select net protocal later
                 socketToHostManager_ = new Socket(ipe.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+
+                Logger.Debug($"Connect to hostmanager: {hostManagerIP_}:{hostManagerPort_}");
                 socketToHostManager_.Connect(ipe);
 
                 if (!socketToHostManager_.Connected)
@@ -140,8 +142,10 @@ namespace LPS.Core
                         break;
                     }
 
+                    var msg = System.Text.Encoding.Default.GetString(buf, 0, len);
+
                     // print recv msg here
-                    Logger.Info($"got msg: {seg.Array}");
+                    Logger.Info($"got msg: {msg}");
                 }
 
                 Logger.Debug("Connection Closed.");
@@ -172,11 +176,11 @@ namespace LPS.Core
         {
             Logger.Debug($"Start gate at {this.MailBox.IP}:{this.MailBox.Port}");
 
-            sandboxIOToHost_.Run();
+            // sandboxIOToHost_.Run();
             sandBoxIOToClient_.Run();
 
             // gate main thread will stuck here
-            sandboxIOToHost_.WaitForExit();
+            // sandboxIOToHost_.WaitForExit();
             sandBoxIOToClient_.WaitForExit();
         }
     }
