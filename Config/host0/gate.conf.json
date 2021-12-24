@@ -2,6 +2,12 @@
     "type": "gate",
     "protocal": "tcp",
     "hostnum": 1111,
+
+    "hostmanager": {
+        "ip": "127.0.0.1",
+        "port": 10001    
+    },
+
     "gates": {
         "gate0" : {
             "ip": "127.0.0.1",

@@ -1,4 +1,4 @@
-namespace LPS.Core.Rpc
+namespace LPS.Core.RPC
 {
     public class MailBox
     {
@@ -13,6 +13,11 @@ namespace LPS.Core.Rpc
             this.Port = port;
             this.HostNum = hostnum;
             this.LocalThreadID = localThreadID;
+        }
+
+        public override string ToString()
+        {
+            return $"{this.IP} {this.Port} {this.HostNum} {this.LocalThreadID}";
         }
     }
 }

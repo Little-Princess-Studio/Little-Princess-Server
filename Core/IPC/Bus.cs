@@ -6,6 +6,8 @@ namespace LPS.Core.IPC
     {
         private ConcurrentQueue<Message> m_msgQueue;
 
+        public bool Empty => m_msgQueue.IsEmpty;
+
         public void AppendMessage(Message msg)
         {
             m_msgQueue.Enqueue(msg);

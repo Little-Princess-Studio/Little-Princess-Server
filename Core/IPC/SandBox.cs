@@ -1,27 +1,36 @@
-using System.Threading;
 using System;
+using System.Threading;
 
 namespace LPS.Core.IPC
 {
     // Every thread work int a isolate sandbox
     public class SandBox
     {
-        private Thread m_thread = null;
+        private Thread thread_ = null;
 
-        public int ThreadID => m_thread is null ? throw new Exception("SandBox is empty.") : m_thread.ManagedThreadId;
+        public int ThreadID => thread_ is null ? throw new Exception("SandBox is empty.") : thread_.ManagedThreadId;
 
-        static void Init()
+        private Action action_;
+
+        private SandBox() { }
+
+        public static SandBox Create(Action action)
         {
-           // TODO: use threadpool
+            var sandbox = new SandBox
+            {
+                action_ = action
+            };
+
+            return sandbox;
         }
 
-        void Run(Action action)
+        public void Run()
         {
-            m_thread = new Thread(() =>
+            thread_ = new Thread(() =>
             {
                 try
                 {
-                    action();
+                    action_();
                 }
                 catch (ThreadInterruptedException) 
                 {
@@ -32,12 +41,17 @@ namespace LPS.Core.IPC
                     Console.WriteLine($"Exception happend in SandBox: {ex.Message}");
                 }
             });
-            m_thread.Start();
+            thread_.Start();
         }
 
-        void Interrupt()
+        public void WaitForExit()
         {
-            m_thread.Interrupt();
+            thread_.Join();
+        }
+
+        public void Interrupt()
+        {
+            thread_.Interrupt();
         }
     }
 }

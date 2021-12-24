@@ -9,8 +9,8 @@ namespace DistServer
     [Verb("startup", HelpText = "Startup with a set of path")]
     class StartUpOptions
     {
-        [Option('p', "pathes", Required = false, HelpText = "Set startup config pathes.")]
-        public List<string> Pathes { get; set; } = new List<string>();
+        [Option('p', "pathes", Required = true, HelpText = "Set startup config pathes.")]
+        public List<string> Pathes { get; set; }
     }
 
     [Verb("bydefault", HelpText = "Startup by default")]
@@ -21,11 +21,14 @@ namespace DistServer
     [Verb("subproc", HelpText = "Startup sub process")]
     public class SubProcOptions
     {
-        [Option("confpath", Required = false, HelpText = "Set up the child process file path")]
-        public string ConfPath { get; set; } = String.Empty;
+        [Option("type", Required = true, HelpText = "Set up the child process type")]
+        public string Type { get; set; }
 
-        [Option("childname", Required = false, HelpText = "Set up the child process name in conf")]
-        public string ChildName { get; set; } = String.Empty;
+        [Option("confpath", Required = true, HelpText = "Set up the child process file path")]
+        public string ConfPath { get; set; }
+
+        [Option("childname", Required = true, HelpText = "Set up the child process name in conf")]
+        public string ChildName { get; set; }
     }
 
     class Program
@@ -33,33 +36,48 @@ namespace DistServer
         static void Main(string[] args)
         {
             Parser.Default.ParseArguments<StartUpOptions, ByDefaultOptions, SubProcOptions>(args)
-                    .MapResult(
-                        (StartUpOptions opts) => { 
-                            Logger.Init("startup");
-                            Logger.Info("Start up with config files");
-                            foreach (var path in opts.Pathes)
-                            {
-                                Logger.Info($"Parsing Config {path}");
-                                StartupManager.FromConfig(path);
-                            }
-                            return true;
-                        },
-                        (ByDefaultOptions opts) => {
-                            Logger.Init("startup");
-                            Logger.Info("Start up by default");
-                            StartupByDefault();
-                            return true;
-                        },
-                        (SubProcOptions opts) => {
-                            Logger.Init(opts.ChildName);
-                            Logger.Info($"start {opts.ChildName}");
-                            return true;
-                        },
-                        errs => {
-                            Logger.Warn("Wrong cmd params");
-                            return false;
+                .MapResult(
+                    (StartUpOptions opts) =>
+                    {
+                        Logger.Init("startup");
+                        Logger.Info("Start up with config files");
+                        foreach (var path in opts.Pathes)
+                        {
+                            Logger.Info($"Parsing Config {path}");
+                            StartupManager.FromConfig(path);
                         }
-                    );
+                        Logger.Info("Start up succ");
+                        return true;
+                    },
+                    (ByDefaultOptions opts) =>
+                    {
+                        Logger.Init("startup");
+                        Logger.Info("Start up by default");
+                        StartupByDefault();
+                        Logger.Info("Start up succ");
+                        return true;
+                    },
+                    (SubProcOptions opts) =>
+                    {
+                        Logger.Init(opts.ChildName);
+                        Logger.Info($"start {opts.ChildName} {opts.Type} {opts.ConfPath}");
+
+                        try
+                        {
+                            StartupManager.StartUp(opts.Type, opts.ChildName, opts.ConfPath);
+                        }
+                        catch (Exception ex)
+                        {
+                            Logger.Error(ex, $"Unhandled Error");
+                        }
+                        return true;
+                    },
+                    errs =>
+                    {
+                        Logger.Warn("Wrong cmd params");
+                        return false;
+                    }
+                );
         }
 
         private static void StartupByDefault()
