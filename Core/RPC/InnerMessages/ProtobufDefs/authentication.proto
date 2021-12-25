@@ -1,0 +1,8 @@
+syntax = "proto3";
+
+package LSP.Core.RPC.InnerMessages;
+ 
+message Authentication {
+  string Content = 1;
+  string Ciphertext = 2;
+}

@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package LSP.Core.RPC.InnerMessages;
+ 
+message CreateMailBox {
+  string ID = 1;
+  string IP = 2;
+  uint32 Port = 3;
+  uint32 HostNum = 4;
+  uint32 LocalThreadID = 5;
+}

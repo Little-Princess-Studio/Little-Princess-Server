@@ -27,9 +27,13 @@ namespace LPS.Core.RPC.InnerMessages
             /*
             How to handler TCP stream raw data to Package:
 
-            1. if tail_+len-1 >= current len, double current buf, copy buf[head..tail] to new[0..bodylen], buf = new, tail_ = tail_ - head_, head_ = 0
+            1. if tail_+len-1 >= current len
+                if bodylen + len >= current len
+                    double current buf, copy buf[head..tail] to new[0..bodylen], buf = new, tail_ = tail_ - head_, head_ = 0
+                else
+                    copy buf[head_..tail_] to buf[0..bodylen], head_ = 0, tail_ = bodylen
 
-            2. copy incomeBuffer[0..len] to buf[tail_..tail+len] tail_ = tail_+len
+            2. copy incomeBuffer[0..len] to buf[tail_..tail+len]
 
             3. if bodylen < header, do nothing, wait next data
                 else
@@ -39,23 +43,34 @@ namespace LPS.Core.RPC.InnerMessages
                     if bodylen > header.package_len then get package from buf[head..head+header.package_len], set head = head + header.package_len
             */
 
-            if (tail_+len-1>= curBufLen)
+            if (tail_+len > curBufLen)
             {
-                while (tail_+len-1>= curBufLen)
+                if (BodyLen + len > curBufLen)
                 {
-                    // repeat double size
-                    curBufLen <<= 1;
-                    Logger.Debug($"{tail_} + {len} - 1 = {tail_ + len - 1} >= {curBufLen}, double the buf");
+                    while (tail_+len-1>= curBufLen)
+                    {
+                        // repeat double size
+                        curBufLen <<= 1;
+                        Logger.Debug($"{tail_} + {len} - 1 = {tail_ + len - 1} >= {curBufLen}, double the buf");
+                    }
+
+                    byte[] newBuffer = new byte[curBufLen];
+
+                    // copy current data buf[head...tail] -> new[0...tail-head]
+                    Buffer.BlockCopy(buffer_, head_, newBuffer, 0, BodyLen);
+                    buffer_ = newBuffer;
+
+                    tail_ = BodyLen;
+                    head_ = 0;
+                }
+                else
+                {
+                    Buffer.BlockCopy(buffer_, head_, buffer_, 0, BodyLen);
+
+                    tail_ = BodyLen;
+                    head_ = 0;
                 }
 
-                byte[] newBuffer = new byte[curBufLen];
-
-                // copy current data buf[head...tail] -> new[0...tail-head]
-                Buffer.BlockCopy(buffer_, head_, newBuffer, 0, BodyLen);
-                buffer_ = newBuffer;
-
-                tail_ = BodyLen;
-                head_ = 0;
             }
 
             // copy incomeBuffer to buf [tail_..tail_+len]
@@ -70,7 +85,7 @@ namespace LPS.Core.RPC.InnerMessages
             }
             else
             {
-                var pkgLen = BitConverter.ToUInt16(buffer_, 0);
+                var pkgLen = BitConverter.ToUInt16(buffer_, head_);
 
                 if (BodyLen == pkgLen)
                 {                   
@@ -100,8 +115,8 @@ namespace LPS.Core.RPC.InnerMessages
 
         private Package GetPackage()
         {
-            int pos = 0;
-            var pkgLen = BitConverter.ToUInt16(buffer_, 0);
+            int pos = head_;
+            var pkgLen = BitConverter.ToUInt16(buffer_, pos);
             pos += 2;
             var pkgID = BitConverter.ToUInt32(buffer_, pos);
             pos += 4;
@@ -115,6 +130,12 @@ namespace LPS.Core.RPC.InnerMessages
             pkg.Header.ID = pkgID;
             pkg.Header.Version = pkgVersion;
             pkg.Header.Type = pkgType;
+
+            pkg.Body = new byte[pkgLen - HeaderLen];
+
+            Buffer.BlockCopy(buffer_, head_ + HeaderLen, pkg.Body, 0, pkgLen - HeaderLen);
+
+            Logger.Debug("get pkg len: {pkgLen}, id: {pkgID}, version: {pkgVersion}, type: {pkgType}");
 
             return pkg;
         }

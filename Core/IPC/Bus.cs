@@ -1,21 +1,52 @@
 using System.Collections.Concurrent;
+using LPS.Core.Debug;
 
 namespace LPS.Core.IPC
 {
     public class Bus
     {
-        private ConcurrentQueue<Message> m_msgQueue;
+        private readonly ConcurrentQueue<Message> msgQueue_ = new();
+        private readonly Dispatcher dispatcher_;
 
-        public bool Empty => m_msgQueue.IsEmpty;
+        private Bus() { }
+
+        public Bus(Dispatcher dispatcher_)
+        {
+            this.dispatcher_ = dispatcher_;
+        }
+
+        public bool Empty => msgQueue_.IsEmpty;
 
         public void AppendMessage(Message msg)
         {
-            m_msgQueue.Enqueue(msg);
+            msgQueue_.Enqueue(msg);
         }
 
         public bool TryDeque(out Message msg)
         {
-            return m_msgQueue.TryDequeue(out msg);
+            return msgQueue_.TryDequeue(out msg);
+        }
+
+        public void Pump()
+        {
+            if (this.Empty)
+            {
+                return;
+            }
+
+            bool succ = this.TryDeque(out var msg);
+
+            if (!succ)
+            {
+                return;
+            }
+
+            do
+            {
+                Logger.Debug($"pump msg {msg.Key}");
+                dispatcher_.Dispatch(msg.Key, msg.args);
+                succ = this.TryDeque(out msg);
+            } while (succ && !this.Empty);
         }
     }
 }

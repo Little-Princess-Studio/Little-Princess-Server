@@ -1,5 +1,7 @@
 using System;
+using System.Net;
 using System.Runtime.InteropServices;
+using Google.Protobuf;
 
 namespace LPS.Core.RPC.InnerMessages
 {
@@ -39,23 +41,26 @@ namespace LPS.Core.RPC.InnerMessages
     {
         public PackageHeader Header = default;
         public byte[] Body = null;
+
+        public override string ToString()
+        {
+            return $"{Header.Length} {Header.ID} {Header.Version} {Header.Type}";
+        }
     }
 
     public static class PackageHelper
     {
-        public static Package MakePackage<T>(T protoBufObj)
+        private static class MessageParserWrapper<T> where T : IMessage<T>, new ()
         {
-            return default;
+            private static readonly MessageParser<T> parser_ = new(() => new T());
+
+            public static MessageParser<T> Get() => parser_;
         }
 
-        public static Package GetPackageFromRaw<T>(ArraySegment<byte> rawData)
+        public static T GetProtoBufObject<T>(in Package package) where T : IMessage<T>, new ()
         {
-            return default;
-        }
-
-        public static T GetProtoBufObject<T>(Package package)
-        {
-            return default;
+            var parser = MessageParserWrapper<T>.Get();
+            return parser.ParseFrom(package.Body);
         }
     }
 }

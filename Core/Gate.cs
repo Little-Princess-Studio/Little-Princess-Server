@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using LPS.Core.Debug;
 using LPS.Core.IPC;
 using LPS.Core.RPC;
+using LPS.Core.RPC.InnerMessages;
 
 namespace LPS.Core
 {
@@ -40,12 +41,17 @@ namespace LPS.Core
 
         private readonly List<Task> socketTasks_ = new ();
 
-        private readonly Bus bus_ = new ();
+        private Task busPumpTask_;
+
+        private readonly Bus bus_ = new (Dispatcher.Default);
+
+        private readonly Dictionary<Socket, MailBox> mapSocketToMailBox_ = new ();
+        private readonly Dictionary<string, Socket> mapIDToSocket = new ();
 
         public Gate(string name, string ip, int port, int hostnum, string hostManagerIP, int hostManagerPort)
         {
             this.Name = name;
-            this.MailBox = new MailBox(ip, port, hostnum, -1);
+            this.MailBox = new MailBox(name, ip, port, hostnum, 0);
 
             hostManagerIP_ = hostManagerIP;
             hostManagerPort_ = hostManagerPort;
@@ -106,6 +112,11 @@ namespace LPS.Core
                 throw;
             }
 
+            busPumpTask_ = new Task(() =>
+            {
+                this.PumpMessageHandler();
+            });
+
             while (!stopFlag_)
             {
                 var clientSocket = socketToClient_.Accept();
@@ -127,10 +138,20 @@ namespace LPS.Core
             socketTasks_.ForEach(task => task.Wait());
         }
 
+        private void PumpMessageHandler()
+        {
+            while (!stopFlag_)
+            {
+                this.bus_.Pump();
+            }
+        }
+
         private async void HandleGateMessage(Socket socket)
         {
             var buf = new byte[512];
             var seg = new ArraySegment<byte>(buf);
+            var messageBuf = new MessageBuffer();
+
             try
             {
                 while (!stopFlag_)
@@ -142,10 +163,16 @@ namespace LPS.Core
                         break;
                     }
 
-                    var msg = System.Text.Encoding.Default.GetString(buf, 0, len);
+                    // var msg = System.Text.Encoding.Default.GetString(buf, 0, len);
+                    // Logger.Info($"got msg: {msg}");
 
-                    // print recv msg here
-                    Logger.Info($"got msg: {msg}");
+                    if (messageBuf.TryRecieveFromRaw(seg.Array, seg.Count, out var pkg))
+                    {
+                        Logger.Debug($"get package: {pkg}");
+
+                        var msg = new Message(pkg.Header.ID, new object[] { pkg });
+                        bus_.AppendMessage(msg);
+                    }
                 }
 
                 Logger.Debug("Connection Closed.");
