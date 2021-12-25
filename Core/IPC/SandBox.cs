@@ -1,5 +1,6 @@
 using System;
 using System.Threading;
+using LPS.Core.Debug;
 
 namespace LPS.Core.IPC
 {
@@ -32,13 +33,13 @@ namespace LPS.Core.IPC
                 {
                     action_();
                 }
-                catch (ThreadInterruptedException) 
+                catch (ThreadInterruptedException ex) 
                 {
-                    Console.WriteLine("Sandbox thread interupted.");
+                    Logger.Error(ex, "Sandbox thread interupted.");
                 }
                 catch (System.Exception ex)
                 {
-                    Console.WriteLine($"Exception happend in SandBox: {ex.Message}");
+                    Logger.Error(ex, $"Exception happend in SandBox");
                 }
             });
             thread_.Start();

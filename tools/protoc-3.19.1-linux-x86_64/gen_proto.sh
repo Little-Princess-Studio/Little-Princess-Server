@@ -1,5 +1,8 @@
-cd bin
+#!bin/sh
 
-for %%F in (..\..\..\Core\RPC\InnerMessages\ProtobufDefs\*.proto) do (
-    .\protoc.exe %%~nxF --proto_path=..\..\..\Core\RPC\InnerMessages\ProtobufDefs --csharp_out=..\..\..\Core\RPC\InnerMessages\ProtobufDefs
-)
+cd bin
+chmod 755 protoc
+
+DEF_FILE_DIR=../../../Core/RPC/InnerMessages/ProtobufDefs
+
+ls $DEF_FILE_DIR | grep .proto | xargs -I filename ./protoc filename --proto_path=$DEF_FILE_DIR --csharp_out=$DEF_FILE_DIR

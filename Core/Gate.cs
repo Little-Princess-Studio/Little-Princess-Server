@@ -152,8 +152,8 @@ namespace LPS.Core
             }
             catch (Exception ex)
             {
-                Logger.Error(ex, "Read socket data failed");
-                throw;
+                var ipEndPoint = (IPEndPoint)socket.RemoteEndPoint;
+                Logger.Error(ex, $"Read socket data failed, socket will close {ipEndPoint.Address} {ipEndPoint.Port}");
             }
 
             try
@@ -163,7 +163,6 @@ namespace LPS.Core
             catch (Exception ex)
             {
                 Logger.Error(ex, "Close socket failed");
-                throw;
             }
         }
 

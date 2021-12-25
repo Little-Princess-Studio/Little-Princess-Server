@@ -7,7 +7,7 @@ using Newtonsoft.Json.Linq;
 
 namespace LPS.Core
 {
-    public class StartupManager
+    public static class StartupManager
     {
         private static JObject GetJson(string path)
         {
