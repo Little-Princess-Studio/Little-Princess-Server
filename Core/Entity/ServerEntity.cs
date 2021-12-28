@@ -2,9 +2,9 @@ using LPS.Core.Rpc;
 
 namespace LPS.Core.Entity
 {
-    public class UniqueEntity : BaseEntity
+    internal class ServerEntity : UniqueEntity
     {
-        public UniqueEntity()
+        public ServerEntity()
         {
             
         }

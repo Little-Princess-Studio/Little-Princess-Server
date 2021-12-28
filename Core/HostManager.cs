@@ -1,4 +1,4 @@
-using LPS.Core.RPC;
+using LPS.Core.Rpc;
 
 namespace LPS.Core
 {

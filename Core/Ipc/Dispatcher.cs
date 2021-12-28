@@ -1,15 +1,16 @@
 using System;
 using System.Collections.Generic;
+using LPS.Core.Debug;
 
-namespace LPS.Core.IPC
+namespace LPS.Core.Ipc
 {
     public class Dispatcher
     {
         public static readonly Dispatcher Default = new();
 
-        public Dictionary<object, List<Action<object[]>>> callbacks_ = new();
+        public Dictionary<object, List<Action<object>>> callbacks_ = new();
 
-        public void Register(IComparable key, Action<object[]> callback)
+        public void Register(IComparable key, Action<object> callback)
         {
             if (callbacks_.ContainsKey(key))
             {
@@ -21,7 +22,7 @@ namespace LPS.Core.IPC
             }
         }
 
-        public void Unregiser(IComparable key, Action<object[]> callback)
+        public void Unregiser(IComparable key, Action<object> callback)
         {
             if (callbacks_.ContainsKey(key))
             {
@@ -34,10 +35,10 @@ namespace LPS.Core.IPC
             }
         }
 
-        public void Dispatch(IComparable key, params object[] args)
+        public void Dispatch(IComparable key, object args)
         {
             if (callbacks_.ContainsKey(key))
-            {
+            {   
                 callbacks_[key].ForEach(cb => cb.Invoke(args));
             }
         }

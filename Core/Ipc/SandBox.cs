@@ -2,7 +2,7 @@ using System;
 using System.Threading;
 using LPS.Core.Debug;
 
-namespace LPS.Core.IPC
+namespace LPS.Core.Ipc
 {
     // Every thread work int a isolate sandbox
     public class SandBox

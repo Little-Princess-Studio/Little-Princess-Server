@@ -9,7 +9,7 @@ using pb = global::Google.Protobuf;
 using pbc = global::Google.Protobuf.Collections;
 using pbr = global::Google.Protobuf.Reflection;
 using scg = global::System.Collections.Generic;
-namespace LSP.Core.RPC.InnerMessages {
+namespace LPS.Core.Rpc.InnerMessages {
 
   /// <summary>Holder for reflection information generated from create_mailbox.proto</summary>
   public static partial class CreateMailboxReflection {
@@ -24,14 +24,14 @@ namespace LSP.Core.RPC.InnerMessages {
     static CreateMailboxReflection() {
       byte[] descriptorData = global::System.Convert.FromBase64String(
           string.Concat(
-            "ChRjcmVhdGVfbWFpbGJveC5wcm90bxIaTFNQLkNvcmUuUlBDLklubmVyTWVz",
-            "c2FnZXMiXQoNQ3JlYXRlTWFpbEJveBIKCgJJRBgBIAEoCRIKCgJJUBgCIAEo",
-            "CRIMCgRQb3J0GAMgASgNEg8KB0hvc3ROdW0YBCABKA0SFQoNTG9jYWxUaHJl",
-            "YWRJRBgFIAEoDWIGcHJvdG8z"));
+            "ChRjcmVhdGVfbWFpbGJveC5wcm90bxIaTFBTLkNvcmUuUnBjLklubmVyTWVz",
+            "c2FnZXMaDW1haWxib3gucHJvdG8iRQoNQ3JlYXRlTWFpbEJveBI0CgdNYWls",
+            "Ym94GAEgASgLMiMuTFBTLkNvcmUuUnBjLklubmVyTWVzc2FnZXMuTWFpbEJv",
+            "eGIGcHJvdG8z"));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
-          new pbr::FileDescriptor[] { },
+          new pbr::FileDescriptor[] { global::LPS.Core.Rpc.InnerMessages.MailboxReflection.Descriptor, },
           new pbr::GeneratedClrTypeInfo(null, null, new pbr::GeneratedClrTypeInfo[] {
-            new pbr::GeneratedClrTypeInfo(typeof(global::LSP.Core.RPC.InnerMessages.CreateMailBox), global::LSP.Core.RPC.InnerMessages.CreateMailBox.Parser, new[]{ "ID", "IP", "Port", "HostNum", "LocalThreadID" }, null, null, null, null)
+            new pbr::GeneratedClrTypeInfo(typeof(global::LPS.Core.Rpc.InnerMessages.CreateMailBox), global::LPS.Core.Rpc.InnerMessages.CreateMailBox.Parser, new[]{ "Mailbox" }, null, null, null, null)
           }));
     }
     #endregion
@@ -52,7 +52,7 @@ namespace LSP.Core.RPC.InnerMessages {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::LSP.Core.RPC.InnerMessages.CreateMailboxReflection.Descriptor.MessageTypes[0]; }
+      get { return global::LPS.Core.Rpc.InnerMessages.CreateMailboxReflection.Descriptor.MessageTypes[0]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -72,11 +72,7 @@ namespace LSP.Core.RPC.InnerMessages {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public CreateMailBox(CreateMailBox other) : this() {
-      iD_ = other.iD_;
-      iP_ = other.iP_;
-      port_ = other.port_;
-      hostNum_ = other.hostNum_;
-      localThreadID_ = other.localThreadID_;
+      mailbox_ = other.mailbox_ != null ? other.mailbox_.Clone() : null;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -86,63 +82,15 @@ namespace LSP.Core.RPC.InnerMessages {
       return new CreateMailBox(this);
     }
 
-    /// <summary>Field number for the "ID" field.</summary>
-    public const int IDFieldNumber = 1;
-    private string iD_ = "";
+    /// <summary>Field number for the "Mailbox" field.</summary>
+    public const int MailboxFieldNumber = 1;
+    private global::LPS.Core.Rpc.InnerMessages.MailBox mailbox_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public string ID {
-      get { return iD_; }
+    public global::LPS.Core.Rpc.InnerMessages.MailBox Mailbox {
+      get { return mailbox_; }
       set {
-        iD_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
-      }
-    }
-
-    /// <summary>Field number for the "IP" field.</summary>
-    public const int IPFieldNumber = 2;
-    private string iP_ = "";
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public string IP {
-      get { return iP_; }
-      set {
-        iP_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
-      }
-    }
-
-    /// <summary>Field number for the "Port" field.</summary>
-    public const int PortFieldNumber = 3;
-    private uint port_;
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public uint Port {
-      get { return port_; }
-      set {
-        port_ = value;
-      }
-    }
-
-    /// <summary>Field number for the "HostNum" field.</summary>
-    public const int HostNumFieldNumber = 4;
-    private uint hostNum_;
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public uint HostNum {
-      get { return hostNum_; }
-      set {
-        hostNum_ = value;
-      }
-    }
-
-    /// <summary>Field number for the "LocalThreadID" field.</summary>
-    public const int LocalThreadIDFieldNumber = 5;
-    private uint localThreadID_;
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public uint LocalThreadID {
-      get { return localThreadID_; }
-      set {
-        localThreadID_ = value;
+        mailbox_ = value;
       }
     }
 
@@ -161,11 +109,7 @@ namespace LSP.Core.RPC.InnerMessages {
       if (ReferenceEquals(other, this)) {
         return true;
       }
-      if (ID != other.ID) return false;
-      if (IP != other.IP) return false;
-      if (Port != other.Port) return false;
-      if (HostNum != other.HostNum) return false;
-      if (LocalThreadID != other.LocalThreadID) return false;
+      if (!object.Equals(Mailbox, other.Mailbox)) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -173,11 +117,7 @@ namespace LSP.Core.RPC.InnerMessages {
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override int GetHashCode() {
       int hash = 1;
-      if (ID.Length != 0) hash ^= ID.GetHashCode();
-      if (IP.Length != 0) hash ^= IP.GetHashCode();
-      if (Port != 0) hash ^= Port.GetHashCode();
-      if (HostNum != 0) hash ^= HostNum.GetHashCode();
-      if (LocalThreadID != 0) hash ^= LocalThreadID.GetHashCode();
+      if (mailbox_ != null) hash ^= Mailbox.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -196,25 +136,9 @@ namespace LSP.Core.RPC.InnerMessages {
     #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       output.WriteRawMessage(this);
     #else
-      if (ID.Length != 0) {
+      if (mailbox_ != null) {
         output.WriteRawTag(10);
-        output.WriteString(ID);
-      }
-      if (IP.Length != 0) {
-        output.WriteRawTag(18);
-        output.WriteString(IP);
-      }
-      if (Port != 0) {
-        output.WriteRawTag(24);
-        output.WriteUInt32(Port);
-      }
-      if (HostNum != 0) {
-        output.WriteRawTag(32);
-        output.WriteUInt32(HostNum);
-      }
-      if (LocalThreadID != 0) {
-        output.WriteRawTag(40);
-        output.WriteUInt32(LocalThreadID);
+        output.WriteMessage(Mailbox);
       }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
@@ -226,25 +150,9 @@ namespace LSP.Core.RPC.InnerMessages {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
-      if (ID.Length != 0) {
+      if (mailbox_ != null) {
         output.WriteRawTag(10);
-        output.WriteString(ID);
-      }
-      if (IP.Length != 0) {
-        output.WriteRawTag(18);
-        output.WriteString(IP);
-      }
-      if (Port != 0) {
-        output.WriteRawTag(24);
-        output.WriteUInt32(Port);
-      }
-      if (HostNum != 0) {
-        output.WriteRawTag(32);
-        output.WriteUInt32(HostNum);
-      }
-      if (LocalThreadID != 0) {
-        output.WriteRawTag(40);
-        output.WriteUInt32(LocalThreadID);
+        output.WriteMessage(Mailbox);
       }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
@@ -256,20 +164,8 @@ namespace LSP.Core.RPC.InnerMessages {
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public int CalculateSize() {
       int size = 0;
-      if (ID.Length != 0) {
-        size += 1 + pb::CodedOutputStream.ComputeStringSize(ID);
-      }
-      if (IP.Length != 0) {
-        size += 1 + pb::CodedOutputStream.ComputeStringSize(IP);
-      }
-      if (Port != 0) {
-        size += 1 + pb::CodedOutputStream.ComputeUInt32Size(Port);
-      }
-      if (HostNum != 0) {
-        size += 1 + pb::CodedOutputStream.ComputeUInt32Size(HostNum);
-      }
-      if (LocalThreadID != 0) {
-        size += 1 + pb::CodedOutputStream.ComputeUInt32Size(LocalThreadID);
+      if (mailbox_ != null) {
+        size += 1 + pb::CodedOutputStream.ComputeMessageSize(Mailbox);
       }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
@@ -283,20 +179,11 @@ namespace LSP.Core.RPC.InnerMessages {
       if (other == null) {
         return;
       }
-      if (other.ID.Length != 0) {
-        ID = other.ID;
-      }
-      if (other.IP.Length != 0) {
-        IP = other.IP;
-      }
-      if (other.Port != 0) {
-        Port = other.Port;
-      }
-      if (other.HostNum != 0) {
-        HostNum = other.HostNum;
-      }
-      if (other.LocalThreadID != 0) {
-        LocalThreadID = other.LocalThreadID;
+      if (other.mailbox_ != null) {
+        if (mailbox_ == null) {
+          Mailbox = new global::LPS.Core.Rpc.InnerMessages.MailBox();
+        }
+        Mailbox.MergeFrom(other.Mailbox);
       }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
@@ -314,23 +201,10 @@ namespace LSP.Core.RPC.InnerMessages {
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
           case 10: {
-            ID = input.ReadString();
-            break;
-          }
-          case 18: {
-            IP = input.ReadString();
-            break;
-          }
-          case 24: {
-            Port = input.ReadUInt32();
-            break;
-          }
-          case 32: {
-            HostNum = input.ReadUInt32();
-            break;
-          }
-          case 40: {
-            LocalThreadID = input.ReadUInt32();
+            if (mailbox_ == null) {
+              Mailbox = new global::LPS.Core.Rpc.InnerMessages.MailBox();
+            }
+            input.ReadMessage(Mailbox);
             break;
           }
         }
@@ -349,23 +223,10 @@ namespace LSP.Core.RPC.InnerMessages {
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
           case 10: {
-            ID = input.ReadString();
-            break;
-          }
-          case 18: {
-            IP = input.ReadString();
-            break;
-          }
-          case 24: {
-            Port = input.ReadUInt32();
-            break;
-          }
-          case 32: {
-            HostNum = input.ReadUInt32();
-            break;
-          }
-          case 40: {
-            LocalThreadID = input.ReadUInt32();
+            if (mailbox_ == null) {
+              Mailbox = new global::LPS.Core.Rpc.InnerMessages.MailBox();
+            }
+            input.ReadMessage(Mailbox);
             break;
           }
         }

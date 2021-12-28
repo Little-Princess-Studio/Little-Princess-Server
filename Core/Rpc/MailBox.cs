@@ -1,4 +1,4 @@
-namespace LPS.Core.RPC
+namespace LPS.Core.Rpc
 {
     public class MailBox
     {

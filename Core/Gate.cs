@@ -1,13 +1,20 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
+using System.Security.Cryptography;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Google.Protobuf;
 using LPS.Core.Debug;
-using LPS.Core.IPC;
-using LPS.Core.RPC;
-using LPS.Core.RPC.InnerMessages;
+using LPS.Core.Ipc;
+using LPS.Core.Rpc;
+using LPS.Core.Rpc.InnerMessages;
+
+using TcpClient = LPS.Core.Rpc.TcpClient;
 
 namespace LPS.Core
 {
@@ -21,193 +28,124 @@ namespace LPS.Core
     /// </summary>
     public class Gate
     {
-        public readonly string name_;
-
-        public MailBox MailBox { get; private set; }
-
         public string Name { get; private set; }
+        public string IP { get; private set; }
+        public int Port { get; private set; }
+        public int HostNum { get; private set; }
+        private readonly TcpServer tcpGateServer_;
+        private readonly TcpClient[] tcpClientsToServer_;
 
-        private readonly string hostManagerIP_;
-        private readonly  int hostManagerPort_;
+        private readonly Random rand_ = new Random();
 
-        private readonly SandBox sandboxIOToHost_;
-        
-        private readonly SandBox sandBoxIOToClient_; 
-
-        private bool stopFlag_ = false;
-
-        private Socket socketToHostManager_;
-        private Socket socketToClient_;
-
-        private readonly List<Task> socketTasks_ = new ();
-
-        private Task busPumpTask_;
-
-        private readonly Bus bus_ = new (Dispatcher.Default);
-
-        private readonly Dictionary<Socket, MailBox> mapSocketToMailBox_ = new ();
-        private readonly Dictionary<string, Socket> mapIDToSocket = new ();
-
-        public Gate(string name, string ip, int port, int hostnum, string hostManagerIP, int hostManagerPort)
+        public Gate(string name, string ip, int port, int hostnum, string hostManagerIP, int hostManagerPort, Tuple<string, int>[] servers)
         {
             this.Name = name;
-            this.MailBox = new MailBox(name, ip, port, hostnum, 0);
+            this.IP = ip;
+            this.Port = port;
+            this.HostNum = hostnum;
 
-            hostManagerIP_ = hostManagerIP;
-            hostManagerPort_ = hostManagerPort;
-
-            sandboxIOToHost_ = SandBox.Create(this.HostIOHandler);
-            sandBoxIOToClient_ = SandBox.Create(this.GateIOHandler);
-        }
-
-        private void HostIOHandler()
-        {
-            try {
-                var ipa = IPAddress.Parse(hostManagerIP_);
-                var ipe = new IPEndPoint(ipa, hostManagerPort_);
-                // todo: auto select net protocal later
-                socketToHostManager_ = new Socket(ipe.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
-
-                Logger.Debug($"Connect to hostmanager: {hostManagerIP_}:{hostManagerPort_}");
-                socketToHostManager_.Connect(ipe);
-
-                if (!socketToHostManager_.Connected)
-                {
-                    socketToHostManager_ = null;
-                    var e = new Exception($"Target {this.MailBox} cannot be connected.");
-                    Logger.Fatal(e, $"Target {this.MailBox} cannot be connected.");
-                    throw e;
-                }
-            }
-            catch (Exception)
+            tcpGateServer_ = new(ip, port);
+            tcpGateServer_.OnInit = () =>
             {
-                throw;
-            }
-
-            // wait for message from hostmanager
-            while (!stopFlag_)
-            {
-                Thread.Sleep(1);
-            }
-        }
-
-        private void GateIOHandler()
-        {
-            try
-            {
-                Logger.Debug($"Start gate server {MailBox.IP} {MailBox.Port}");
-
-                var ipa = IPAddress.Parse(MailBox.IP);
-                var ipe = new IPEndPoint(ipa, MailBox.Port);
-
-                socketToClient_ = new Socket(ipa.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
-
-                socketToClient_.Bind(ipe);
-                socketToClient_.Listen(int.MaxValue);
-
-                Logger.Debug("Listen succ");
-            }
-            catch (Exception)
-            {
-                throw;
-            }
-
-            busPumpTask_ = new Task(() =>
-            {
-                this.PumpMessageHandler();
-            });
-
-            while (!stopFlag_)
-            {
-                var clientSocket = socketToClient_.Accept();
-
-                var ipEndPoint = (IPEndPoint)clientSocket.RemoteEndPoint;
-                
-                Logger.Debug($"New socket got {ipEndPoint.Address}:{ipEndPoint.Port}");
-
-                var task = new Task(() =>
-                {
-                    this.HandleGateMessage(clientSocket);
-                });
-
-                socketTasks_.Add(task);
-                task.Start();
-            }
-
-            // wait each task end
-            socketTasks_.ForEach(task => task.Wait());
-        }
-
-        private void PumpMessageHandler()
-        {
-            while (!stopFlag_)
-            {
-                this.bus_.Pump();
-            }
-        }
-
-        private async void HandleGateMessage(Socket socket)
-        {
-            var buf = new byte[512];
-            var seg = new ArraySegment<byte>(buf);
-            var messageBuf = new MessageBuffer();
-
-            try
-            {
-                while (!stopFlag_)
-                {
-                    var len = await socket.ReceiveAsync(seg, SocketFlags.None);
-
-                    if (len < 1)
+                this.RegisterServerMessageHandlers();
+                tcpClientsToServer_[rand_.Next(tcpClientsToServer_.Length)].Send(
+                    new CreateEntity()
                     {
-                        break;
+                        CreateType = CreateType.Manual,
+                        EntityClassName = "InnerClass",
                     }
+                );
+            };
+            tcpGateServer_.OnDispose = this.UnregisterServerMessageHandlers;
 
-                    // var msg = System.Text.Encoding.Default.GetString(buf, 0, len);
-                    // Logger.Info($"got msg: {msg}");
-
-                    if (messageBuf.TryRecieveFromRaw(seg.Array, seg.Count, out var pkg))
-                    {
-                        Logger.Debug($"get package: {pkg}");
-
-                        var msg = new Message(pkg.Header.ID, new object[] { pkg });
-                        bus_.AppendMessage(msg);
-                    }
-                }
-
-                Logger.Debug("Connection Closed.");
-            }
-            catch (Exception ex)
+            // connect to each server
+            tcpClientsToServer_ = new TcpClient[servers.Length];
+            int idx = 0;
+            foreach (var (serverIP, serverPort) in servers)
             {
-                var ipEndPoint = (IPEndPoint)socket.RemoteEndPoint;
-                Logger.Error(ex, $"Read socket data failed, socket will close {ipEndPoint.Address} {ipEndPoint.Port}");
+                tcpClientsToServer_[idx] = new TcpClient(serverIP, serverPort);
+                ++idx;
             }
 
-            try
-            {
-                socket.Close();
-            }
-            catch (Exception ex)
-            {
-                Logger.Error(ex, "Close socket failed");
-            }
+            //todo: connect to hostmanager
+        }
+
+        private void RegisterServerMessageHandlers()
+        {
+            tcpGateServer_.RegisterMessageHandler(PackageType.Authentication, this.HandleAuthentication);
+            tcpGateServer_.RegisterMessageHandler(PackageType.CreateMailBox, this.HandleCreateMailBox);
+            tcpGateServer_.RegisterMessageHandler(PackageType.EntityRpc, this.HandleEntityRpc);
+        }
+
+        private void UnregisterServerMessageHandlers()
+        {
+            tcpGateServer_.UnregisterMessageHandler(PackageType.Authentication, this.HandleAuthentication);
+            tcpGateServer_.UnregisterMessageHandler(PackageType.CreateMailBox, this.HandleCreateMailBox);
+            tcpGateServer_.UnregisterMessageHandler(PackageType.EntityRpc, this.HandleEntityRpc);
         }
 
         public void Stop()
         {
-            stopFlag_ = true;
+            Array.ForEach(tcpClientsToServer_, client => client.Stop());
+            this.tcpGateServer_.Stop();
         }
 
         public void Loop()
         {
-            Logger.Debug($"Start gate at {this.MailBox.IP}:{this.MailBox.Port}");
+            Logger.Debug($"Start gate at {this.IP}:{this.Port}");
+            this.tcpGateServer_.Run();
 
-            // sandboxIOToHost_.Run();
-            sandBoxIOToClient_.Run();
+            Array.ForEach(tcpClientsToServer_, client => client.Run());
 
             // gate main thread will stuck here
-            // sandboxIOToHost_.WaitForExit();
-            sandBoxIOToClient_.WaitForExit();
+            this.tcpGateServer_.WaitForExit();
         }
+
+        private void HandleAuthentication(object arg)
+        {
+            (var msg, var conn) = arg as Tuple<IMessage, Connection>;
+
+            var auth = msg as Authentication;
+
+            // TODO: Cache the rsa object
+            var rsa = RSA.Create();
+            var pem = File.ReadAllText("./Config/demo.key").ToCharArray();
+            rsa.ImportFromPem(pem);
+            var byteData = Convert.FromBase64String(auth.Ciphertext);
+            var decryptedBytes = rsa.Decrypt(byteData, RSAEncryptionPadding.Pkcs1);
+            var decryptedData = Encoding.UTF8.GetString(decryptedBytes);
+
+            Logger.Info($"Got auth req {auth.Content}, {auth.Ciphertext}");
+            Logger.Info($"Got decrypted content: {decryptedData}");
+
+            // auth succ
+            if (decryptedData == auth.Content)
+            {
+                Logger.Info("Auth succ");
+                // todo: notify server to create mailbox
+
+                // server_mb = randomSelect(servers)
+                // [var mailbox] = await RPC.Call(server_mb, "CreateUntrusted", content) as Tuple<MailBox>
+                // Send("CreateMailBox")
+            }
+            else
+            {
+                Logger.Info("Auth failed");
+                conn.DisConnect();
+                conn.TokenSource.Cancel();
+            }
+
+        }
+
+        private void HandleCreateMailBox(object arg)
+        {
+
+        }
+
+        private void HandleEntityRpc(object arg)
+        {
+
+        }
+
     }
 }

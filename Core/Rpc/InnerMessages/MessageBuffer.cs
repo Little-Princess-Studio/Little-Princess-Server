@@ -1,31 +1,27 @@
 using System;
-using System.ComponentModel.DataAnnotations;
-using System.Linq.Expressions;
-using System.Runtime.InteropServices;
-using Google.Protobuf.WellKnownTypes;
 using LPS.Core.Debug;
 
-namespace LPS.Core.RPC.InnerMessages
+namespace LPS.Core.Rpc.InnerMessages
 {
     public class MessageBuffer
     {
         // initial 4k buffer to recv network messages
-        const int MaxLength = 4096;
-        const int HeaderLen = 8;
+        const int InitBufLength = 2048;
+        private static readonly int HeaderLen = PackageHeader.Size;
 
         private int head_ = 0;
         private int tail_ = 0;
 
         private int BodyLen=> tail_ - head_;
 
-        private int curBufLen = MaxLength;
+        private int curBufLen = InitBufLength;
 
-        private byte[] buffer_ = new byte[MaxLength];
+        private byte[] buffer_ = new byte[InitBufLength];
 
         public bool TryRecieveFromRaw(byte[] incomeBuffer, int len, out Package pkg)
         {
             /*
-            How to handler TCP stream raw data to Package:
+            How to handle TCP stream raw data to Package:
 
             1. if tail_+len-1 >= current len
                 if bodylen + len >= current len
@@ -49,9 +45,9 @@ namespace LPS.Core.RPC.InnerMessages
                 {
                     while (tail_+len-1>= curBufLen)
                     {
+                        Logger.Debug($"{tail_} + {len} - 1 = {tail_ + len - 1} >= {curBufLen}, double the buf");
                         // repeat double size
                         curBufLen <<= 1;
-                        Logger.Debug($"{tail_} + {len} - 1 = {tail_ + len - 1} >= {curBufLen}, double the buf");
                     }
 
                     byte[] newBuffer = new byte[curBufLen];
@@ -67,6 +63,8 @@ namespace LPS.Core.RPC.InnerMessages
                 {
                     Buffer.BlockCopy(buffer_, head_, buffer_, 0, BodyLen);
 
+                    // Logger.Debug($"move to head {head_} {BodyLen}");
+
                     tail_ = BodyLen;
                     head_ = 0;
                 }
@@ -79,7 +77,7 @@ namespace LPS.Core.RPC.InnerMessages
 
             if (BodyLen < HeaderLen)
             {
-                Logger.Debug("bodylen < header len");
+                // Logger.Debug("bodylen < header len");
                 pkg = default;
                 return false;
             }
@@ -87,24 +85,26 @@ namespace LPS.Core.RPC.InnerMessages
             {
                 var pkgLen = BitConverter.ToUInt16(buffer_, head_);
 
+                // Logger.Debug($"bodylen={BodyLen}, pkglen={pkgLen}"); 
+
                 if (BodyLen == pkgLen)
                 {                   
-                    Logger.Debug("bodylen == pkgLen");
-                    head_ = tail_ = 0;
+                    // Logger.Debug("bodylen == pkgLen");
                     pkg = GetPackage();
+                    head_ = tail_ = 0;
                     return true;
                 }
                 else if (BodyLen < pkgLen)
                 {
-                    Logger.Debug("bodylen < pkgLen");
+                    // Logger.Debug("bodylen < pkgLen");
                     pkg = default;
                     return false;
                 }
                 else if (BodyLen > pkgLen)
                 {
-                    Logger.Debug("bodylen > pkgLen");
-                    head_ += pkgLen;
+                    // Logger.Debug("bodylen > pkgLen");
                     pkg = GetPackage();
+                    head_ += pkgLen;
                     return true;
                 }
             }
@@ -126,6 +126,8 @@ namespace LPS.Core.RPC.InnerMessages
 
             var pkg = new Package();
 
+            // Logger.Debug($"get pkg len: {pkgLen}, id: {pkgID}, version: {pkgVersion}, type: {pkgType}");
+
             pkg.Header.Length = pkgLen;
             pkg.Header.ID = pkgID;
             pkg.Header.Version = pkgVersion;
@@ -133,9 +135,9 @@ namespace LPS.Core.RPC.InnerMessages
 
             pkg.Body = new byte[pkgLen - HeaderLen];
 
-            Buffer.BlockCopy(buffer_, head_ + HeaderLen, pkg.Body, 0, pkgLen - HeaderLen);
+            // Logger.Debug($"buffer_ size: {buffer_.Length}, {head_ + HeaderLen}, {pkgLen - HeaderLen}");
 
-            Logger.Debug("get pkg len: {pkgLen}, id: {pkgID}, version: {pkgVersion}, type: {pkgType}");
+            Buffer.BlockCopy(buffer_, head_ + HeaderLen, pkg.Body, 0, pkgLen - HeaderLen);
 
             return pkg;
         }

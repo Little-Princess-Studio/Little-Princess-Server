@@ -1,7 +1,7 @@
 using System.Collections.Concurrent;
 using LPS.Core.Debug;
 
-namespace LPS.Core.IPC
+namespace LPS.Core.Ipc
 {
     public class Bus
     {
@@ -43,8 +43,7 @@ namespace LPS.Core.IPC
 
             do
             {
-                Logger.Debug($"pump msg {msg.Key}");
-                dispatcher_.Dispatch(msg.Key, msg.args);
+                dispatcher_.Dispatch(msg.Key, msg.arg);
                 succ = this.TryDeque(out msg);
             } while (succ && !this.Empty);
         }

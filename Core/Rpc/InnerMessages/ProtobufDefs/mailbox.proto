@@ -1,0 +1,10 @@
+syntax = "proto3";
+
+package LPS.Core.Rpc.InnerMessages;
+
+message MailBox {
+    string ID = 1;
+    string IP = 2;
+    uint32 Port = 3;
+    uint32 HostNum = 4;  
+}

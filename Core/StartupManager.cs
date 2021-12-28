@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.Metrics;
 using System.IO;
+using System.Linq;
 using LPS.Core.Debug;
 using Newtonsoft.Json.Linq;
 
@@ -79,9 +81,17 @@ namespace LPS.Core
             StartSubProcess(type, name, confFilePath, relativePath);
         }
 
-        private static void HandleServerConf(string type, string path, JObject json)
+        private static void HandleServerConf(string type, string confFilePath, JObject json)
         {
             Logger.Info("startup servers");
+
+            var dict = json["servers"].ToObject<Dictionary<string, JToken>>();
+
+            var relativePath = GetBinPath();
+            foreach (var name in dict.Keys)
+            {
+                StartSubProcess(type, name, confFilePath, relativePath);
+            }
         }
 
         private static void StartSubProcess(string type, string name, string confFilePath, string binaryPath)
@@ -129,6 +139,7 @@ namespace LPS.Core
                     StartUpGate(name, confFilePath);
                     break;
                 case "server":
+                    StartUpServer(name, confFilePath);
                     break;
                 default:
                     throw new Exception($"Wrong Config File {type} {name} {confFilePath}.");
@@ -149,9 +160,38 @@ namespace LPS.Core
             var hostManagerIP= hostManagerInfo["ip"].ToString();
             var hostManagerPort = Convert.ToInt32(hostManagerInfo["port"].ToString());
 
+            #region get servers' ip/port
+            var serverJson = GetJson(json["server_conf"].ToString());
+            var dict = serverJson["servers"].ToObject<Dictionary<string, JToken>>();
+
+            var servers = dict.Select(pair => Tuple.Create(
+                pair.Value["ip"].ToString(),
+                pair.Value["port"].ToObject<int>())).ToArray();
+            #endregion
+
             Logger.Debug($"Startup Gate {name} at {ip}:{port}");
-            var gate = new Gate(name, ip, port, hostnum, hostManagerIP, hostManagerPort);
+            var gate = new Gate(name, ip, port, hostnum, hostManagerIP, hostManagerPort, servers);
             gate.Loop();
+        } 
+
+        private static void StartUpServer(string name, string confFilePath)
+        {
+            var json = GetJson(confFilePath);
+
+            var hostnum = Convert.ToInt32(json["hostnum"].ToString());
+
+            var serverInfo = json["servers"][name];
+            var ip = serverInfo["ip"].ToString();
+            var port = Convert.ToInt32(serverInfo["port"].ToString());
+
+            var hostManagerInfo = json["hostmanager"];
+            var hostManagerIP= hostManagerInfo["ip"].ToString();
+            var hostManagerPort = Convert.ToInt32(hostManagerInfo["port"].ToString());
+
+            Logger.Debug($"Startup Server {name} at {ip}:{port}");
+            var server = new Server(name, ip, port, hostnum, hostManagerIP, hostManagerPort);
+
+            server.Loop();
         }
 
     }
