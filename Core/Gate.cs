@@ -45,10 +45,27 @@ namespace LPS.Core
             this.HostNum = hostnum;
 
             tcpGateServer_ = new(ip, port);
-            tcpGateServer_.OnInit = () =>
-            {
-                this.RegisterMessageFromServerHandlers();
+            tcpGateServer_.OnInit = this.RegisterMessageFromServerHandlers;
+            tcpGateServer_.OnDispose = this.UnregisterMessageFromServerHandlers;
 
+            // connect to each server
+            tcpClientsToServer_ = new TcpClient[servers.Length];
+            var idx = 0;
+            foreach (var (serverIP, serverPort) in servers)
+            {
+                var tmpIdx = idx;
+                var client = new TcpClient(serverIP, serverPort)
+                {
+                    OnInit = () => this.ReigsterGateMessageHandlers(tmpIdx),
+                    OnDispose = () => this.UnregisterGateMessageHandlers(tmpIdx),
+                };
+                tcpClientsToServer_[idx] = client;
+                ++idx;
+            }
+
+            tcpClientsToServer_[0].OnInit = () =>
+            {
+                this.ReigsterGateMessageHandlers(0);
                 tcpClientsToServer_[0].Send(
                     new CreateEntity()
                     {
@@ -57,21 +74,6 @@ namespace LPS.Core
                     }
                 );
             };
-            tcpGateServer_.OnDispose = this.UnregisterMessageFromServerHandlers;
-
-            // connect to each server
-            tcpClientsToServer_ = new TcpClient[servers.Length];
-            int idx = 0;
-            foreach (var (serverIP, serverPort) in servers)
-            {
-                var client = new TcpClient(serverIP, serverPort)
-                {
-                    OnInit = () => this.ReigsterGateMessageHandlers(idx),
-                    OnDispose = () => this.UnregisterGateMessageHandlers(idx)
-                };
-                tcpClientsToServer_[idx] = client;
-                ++idx;
-            }
 
             //todo: connect to hostmanager
         }
@@ -89,7 +91,7 @@ namespace LPS.Core
 
         private void HandleAuthenticationFromClient(object arg)
         {
-                (var msg, var conn, var _) = arg as Tuple<IMessage, Connection, UInt32>;
+            (var msg, var conn, var _) = arg as Tuple<IMessage, Connection, UInt32>;
 
             var auth = msg as Authentication;
 
@@ -127,6 +129,8 @@ namespace LPS.Core
         #region register client message
         private void ReigsterGateMessageHandlers(int idx)
         {
+            Logger.Debug($"ReigsterGateMessageHandlers: {idx}");
+
             var client = tcpClientsToServer_[idx];
             var createMailBoxHandler = (object arg) => this.HandleEntityMailBoxFromServer(client, arg);
             tcpClientsActions_[Tuple.Create(idx, PackageType.EntityMailBox)] = createMailBoxHandler;

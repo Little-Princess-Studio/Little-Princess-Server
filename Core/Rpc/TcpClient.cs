@@ -2,6 +2,7 @@ using System;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
+using System.Threading.Tasks;
 using Google.Protobuf;
 using LPS.Core.Debug;
 using LPS.Core.Ipc;
@@ -78,6 +79,16 @@ namespace LPS.Core.Rpc
                 throw;
             }
 
+            this.OnInit?.Invoke();
+
+            #region init bus pump task
+            var busPumpTask = new Task(() =>
+            {
+                this.PumpMessageHandler();
+            });
+            busPumpTask.Start();
+            #endregion
+
             var cancellationTokenSource = new CancellationTokenSource();
             var conn = Connection.Create(this.Socket, cancellationTokenSource);
             conn.Connect();
@@ -86,6 +97,24 @@ namespace LPS.Core.Rpc
             {
                 this.HandleMessage(conn);
                 Thread.Sleep(30);
+            }
+
+            this.OnDispose?.Invoke();
+        }
+
+        private void PumpMessageHandler()
+        {
+            try
+            {
+                while (!stopFlag_)
+                {
+                    this.bus_.Pump();
+                    Thread.Sleep(30);
+                }
+            }
+            catch (Exception e)
+            {
+                Logger.Error(e, "Pump message failed.");
             }
         }
 

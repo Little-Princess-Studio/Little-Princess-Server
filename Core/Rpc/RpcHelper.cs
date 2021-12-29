@@ -44,6 +44,8 @@ namespace LPS.Core.Rpc
                         var arg = Tuple.Create(pb, conn, pkg.Header.ID);
                         var msg = new Message(type, arg);
 
+                        Logger.Info($"msg recv: {msg.Key}");
+
                         onGotMessage(msg);
                     }
                 }
