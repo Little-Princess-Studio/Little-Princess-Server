@@ -44,21 +44,7 @@ namespace LPS.Core.Rpc.InnerMessages
     {
         public PackageHeader Header;
         public byte[] Body;
-
-        public static Package FromProtoBuf<T>(T protobufObj) where T : IMessage<T>, new ()
-        {
-            var pkg = new Package();
-            var bytes = protobufObj.ToByteArray();
-
-            pkg.Header.Length = (UInt16)(PackageHeader.Size + bytes.Length);
-            pkg.Header.Version = 0x0001;
-            pkg.Header.ID = 0;
-            pkg.Header.Type = (UInt16)PackageHelper.GetPackageType<T>();
-            pkg.Body = bytes;
-
-            return pkg;
-        }
-        
+       
         public byte[] ToBytes()
         {
             byte[] bytes = new byte[this.Header.Length];
@@ -94,7 +80,7 @@ namespace LPS.Core.Rpc.InnerMessages
     public enum PackageType
     {
         Authentication = 0,
-        CreateMailBox,
+        EntityMailBox,
         EntityRpc,
         CreateEntity,
     }
@@ -105,14 +91,15 @@ namespace LPS.Core.Rpc.InnerMessages
         private static readonly Dictionary<PackageType, CreateIMessage> Type2ProBuf = new()
         {
             { PackageType.Authentication, (in Package pkg) => GetProtoBufObject<Authentication>(pkg) },
-            { PackageType.CreateMailBox, (in Package pkg) => GetProtoBufObject<CreateMailBox>(pkg) },
             { PackageType.CreateEntity, (in Package pkg) => GetProtoBufObject<CreateEntity>(pkg) },
+            { PackageType.EntityMailBox, (in Package pkg) => GetProtoBufObject<EntityMailBox>(pkg) },
         };
 
         private static readonly Dictionary<Type, PackageType> Type2Enum = new()
         {
             { typeof(Authentication), PackageType.Authentication },
             { typeof(CreateEntity), PackageType.CreateEntity },
+            { typeof(EntityMailBox), PackageType.EntityMailBox },
         };
 
         private static class MessageParserWrapper<T> where T : IMessage<T>, new ()
@@ -136,6 +123,20 @@ namespace LPS.Core.Rpc.InnerMessages
         public static PackageType GetPackageType<T>() where T: IMessage<T>, new()
         {
             return Type2Enum[typeof(T)];
+        }
+
+        public static Package FromProtoBuf<T>(T protobufObj, uint id) where T : IMessage<T>, new ()
+        {
+            var pkg = new Package();
+            var bytes = protobufObj.ToByteArray();
+
+            pkg.Header.Length = (UInt16)(PackageHeader.Size + bytes.Length);
+            pkg.Header.Version = 0x0001;
+            pkg.Header.ID = id;
+            pkg.Header.Type = (UInt16)PackageHelper.GetPackageType<T>();
+            pkg.Body = bytes;
+
+            return pkg;
         }
     }
 }

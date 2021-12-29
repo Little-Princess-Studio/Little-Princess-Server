@@ -21,7 +21,6 @@ namespace LPS.Core.Rpc
         private readonly SandBox sandboxIO_;
         private readonly Bus bus_;
         private readonly Dispatcher msgDispacher_;
-
 #nullable enable
         public Socket? Socket { get; private set; }
         public Action? OnInit { get; set; }

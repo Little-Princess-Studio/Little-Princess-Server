@@ -2,6 +2,6 @@ syntax = "proto3";
 import "mailbox.proto";
 package LPS.Core.Rpc.InnerMessages;
  
-message CreateMailBox {
+message EntityMailBox {
   MailBox Mailbox = 1;
 }

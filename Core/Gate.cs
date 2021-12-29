@@ -34,8 +34,8 @@ namespace LPS.Core
         public int HostNum { get; private set; }
         private readonly TcpServer tcpGateServer_;
         private readonly TcpClient[] tcpClientsToServer_;
-
-        private readonly Random rand_ = new Random();
+        private readonly Dictionary<Tuple<int, PackageType>, Action<object>> tcpClientsActions_ = new();
+        private readonly Random rand_ = new();
 
         public Gate(string name, string ip, int port, int hostnum, string hostManagerIP, int hostManagerPort, Tuple<string, int>[] servers)
         {
@@ -47,63 +47,49 @@ namespace LPS.Core
             tcpGateServer_ = new(ip, port);
             tcpGateServer_.OnInit = () =>
             {
-                this.RegisterServerMessageHandlers();
-                tcpClientsToServer_[rand_.Next(tcpClientsToServer_.Length)].Send(
+                this.RegisterMessageFromServerHandlers();
+
+                tcpClientsToServer_[0].Send(
                     new CreateEntity()
                     {
                         CreateType = CreateType.Manual,
-                        EntityClassName = "InnerClass",
+                        EntityClassName = "None",
                     }
                 );
             };
-            tcpGateServer_.OnDispose = this.UnregisterServerMessageHandlers;
+            tcpGateServer_.OnDispose = this.UnregisterMessageFromServerHandlers;
 
             // connect to each server
             tcpClientsToServer_ = new TcpClient[servers.Length];
             int idx = 0;
             foreach (var (serverIP, serverPort) in servers)
             {
-                tcpClientsToServer_[idx] = new TcpClient(serverIP, serverPort);
+                var client = new TcpClient(serverIP, serverPort)
+                {
+                    OnInit = () => this.ReigsterGateMessageHandlers(idx),
+                    OnDispose = () => this.UnregisterGateMessageHandlers(idx)
+                };
+                tcpClientsToServer_[idx] = client;
                 ++idx;
             }
 
             //todo: connect to hostmanager
         }
 
-        private void RegisterServerMessageHandlers()
+        #region register server message
+        private void RegisterMessageFromServerHandlers()
         {
-            tcpGateServer_.RegisterMessageHandler(PackageType.Authentication, this.HandleAuthentication);
-            tcpGateServer_.RegisterMessageHandler(PackageType.CreateMailBox, this.HandleCreateMailBox);
-            tcpGateServer_.RegisterMessageHandler(PackageType.EntityRpc, this.HandleEntityRpc);
+            tcpGateServer_.RegisterMessageHandler(PackageType.Authentication, this.HandleAuthenticationFromClient);
         }
 
-        private void UnregisterServerMessageHandlers()
+        private void UnregisterMessageFromServerHandlers()
         {
-            tcpGateServer_.UnregisterMessageHandler(PackageType.Authentication, this.HandleAuthentication);
-            tcpGateServer_.UnregisterMessageHandler(PackageType.CreateMailBox, this.HandleCreateMailBox);
-            tcpGateServer_.UnregisterMessageHandler(PackageType.EntityRpc, this.HandleEntityRpc);
+            tcpGateServer_.UnregisterMessageHandler(PackageType.Authentication, this.HandleAuthenticationFromClient);
         }
 
-        public void Stop()
+        private void HandleAuthenticationFromClient(object arg)
         {
-            Array.ForEach(tcpClientsToServer_, client => client.Stop());
-            this.tcpGateServer_.Stop();
-        }
-
-        public void Loop()
-        {
-            Logger.Debug($"Start gate at {this.IP}:{this.Port}");
-            this.tcpGateServer_.Run();
-
-            Array.ForEach(tcpClientsToServer_, client => client.Run());
-
-            // gate main thread will stuck here
-            this.tcpGateServer_.WaitForExit();
-        }
-
-        private void HandleAuthentication(object arg)
-        {
-            (var msg, var conn) = arg as Tuple<IMessage, Connection>;
+                (var msg, var conn, var _) = arg as Tuple<IMessage, Connection, UInt32>;
 
             var auth = msg as Authentication;
 
@@ -136,15 +122,52 @@ namespace LPS.Core
             }
 
         }
+        #endregion
 
-        private void HandleCreateMailBox(object arg)
+        #region register client message
+        private void ReigsterGateMessageHandlers(int idx)
         {
+            var client = tcpClientsToServer_[idx];
+            var createMailBoxHandler = (object arg) => this.HandleEntityMailBoxFromServer(client, arg);
+            tcpClientsActions_[Tuple.Create(idx, PackageType.EntityMailBox)] = createMailBoxHandler;
 
+            client.RegisterMessageHandler(PackageType.EntityMailBox, createMailBoxHandler);
         }
 
-        private void HandleEntityRpc(object arg)
+        private void UnregisterGateMessageHandlers(int idx)
         {
+            var client = tcpClientsToServer_[idx];
+            client.UnregisterMessageHandler(
+                PackageType.EntityMailBox,
+                tcpClientsActions_[Tuple.Create(idx, PackageType.EntityMailBox)]);
+        }
 
+        private void HandleEntityMailBoxFromServer(TcpClient client, object arg)
+        {
+            (var msg, var _, var _) = arg as Tuple<IMessage, Connection, UInt32>;
+
+            var createMailBox = msg as EntityMailBox;
+
+            Logger.Info($"{createMailBox.Mailbox.ID} {createMailBox.Mailbox.IP} {createMailBox.Mailbox.Port} {createMailBox.Mailbox.HostNum}");
+        }
+
+        #endregion
+
+        public void Stop()
+        {
+            Array.ForEach(tcpClientsToServer_, client => client.Stop());
+            this.tcpGateServer_.Stop();
+        }
+
+        public void Loop()
+        {
+            Logger.Debug($"Start gate at {this.IP}:{this.Port}");
+            this.tcpGateServer_.Run();
+
+            Array.ForEach(tcpClientsToServer_, client => client.Run());
+
+            // gate main thread will stuck here
+            this.tcpGateServer_.WaitForExit();
         }
 
     }

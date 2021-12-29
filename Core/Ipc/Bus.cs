@@ -45,7 +45,7 @@ namespace LPS.Core.Ipc
             {
                 dispatcher_.Dispatch(msg.Key, msg.arg);
                 succ = this.TryDeque(out msg);
-            } while (succ && !this.Empty);
+            } while (succ);
         }
     }
 }

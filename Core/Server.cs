@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Google.Protobuf;
+using Google.Protobuf.WellKnownTypes;
 using LPS.Core.Debug;
 using LPS.Core.Entity;
 using LPS.Core.Rpc;
@@ -21,6 +23,8 @@ namespace LPS.Core
         private ServerEntity entity_;
         // private Dictionary<MailBox, BaseEntity> entitiesMap_ = new();
         private TcpServer tcpServer_;
+
+        private static readonly Random random_ = new Random();
 
         public Server(string name, string ip, int port, int hostnum, string hostManagerIP, int hostManagerPort)
         {
@@ -69,13 +73,44 @@ namespace LPS.Core
         {
         }
 
+        public static string RandomString(int length)
+        {
+            const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+            return new string(Enumerable.Repeat(chars, length)
+                .Select(s => s[random_.Next(s.Length)]).ToArray());
+        }
+
         private void HandleCreateEntity(object arg)
         {
-            (var msg, var _) = arg as Tuple<IMessage, Connection>;
+            (var msg, var conn, var id) = arg as Tuple<IMessage, Connection, UInt32>;
 
             var createEntity = msg as CreateEntity;
+            var socket = conn.Socket;
 
             Logger.Info($"create entity: {createEntity.CreateType}, {createEntity.EntityClassName}");
+
+            // todo: move this quest to hostmanager
+            switch (createEntity.CreateType) {
+                case CreateType.Local:
+                    break;
+                case CreateType.Anywhere:
+                    break;
+                case CreateType.Manual:
+                    var newID = RandomString(16);
+                    var entityMailBox = new EntityMailBox
+                    {
+                        Mailbox = new Rpc.InnerMessages.MailBox()
+                        {
+                            IP = "",
+                            Port = 0,
+                            HostNum = (uint)this.HostNum,
+                            ID = newID,
+                        }
+                    };
+                    var pkg = PackageHelper.FromProtoBuf(entityMailBox, id);
+                    socket.Send(pkg.ToBytes());
+                    break;
+            }
         }
     }
 }

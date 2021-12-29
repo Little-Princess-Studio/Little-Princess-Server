@@ -38,12 +38,10 @@ namespace LPS.Core.Rpc
 
                     if (messageBuf.TryRecieveFromRaw(buf, len, out var pkg))
                     {
-                        Logger.Debug($"get package: {pkg}");
-
                         var type = (PackageType)pkg.Header.Type;
 
                         var pb = PackageHelper.GetProtoBufObjectByType(type, pkg);
-                        var arg = Tuple.Create(pb, conn);
+                        var arg = Tuple.Create(pb, conn, pkg.Header.ID);
                         var msg = new Message(type, arg);
 
                         onGotMessage(msg);

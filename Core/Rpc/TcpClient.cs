@@ -22,8 +22,9 @@ namespace LPS.Core.Rpc
         private readonly string targetIP_;
         private readonly int targetPort_;
         private bool stopFlag_;
-
         private const int ConnectRetryMaxTimes = 10;
+        private readonly TokenSequence<uint> tokenSequence_ = new();
+        private uint idCounter_ = 0;
 
         public TcpClient(string targetIP, int targetPort)
         {
@@ -97,10 +98,17 @@ namespace LPS.Core.Rpc
                 null);
         }
 
-        public void Send<T>(T msg) where T : IMessage<T>, new()
+        public void Send<T>(T msg, bool reentry=true) where T : IMessage<T>, new()
         {
             try {
-                var pkg = Package.FromProtoBuf(msg);
+                var id = idCounter_++;
+
+                if (!reentry)
+                {
+                    tokenSequence_.Enqueue(id);
+                }
+
+                var pkg = PackageHelper.FromProtoBuf(msg, id);
                 this.Socket.Send(pkg.ToBytes());
             }
             catch (Exception e)
@@ -131,6 +139,16 @@ namespace LPS.Core.Rpc
             {
                 this.Socket.Close();
             }
+        }
+
+        public void RegisterMessageHandler(IComparable key, Action<object> callback)
+        {
+            this.msgDispacher_.Register(key, callback);
+        }
+
+        public void UnregisterMessageHandler(IComparable key, Action<object> callback)
+        {
+            this.msgDispacher_.Unregiser(key, callback);
         }
     }
 }

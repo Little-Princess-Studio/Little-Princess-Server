@@ -41,6 +41,10 @@ namespace LPS.Core.Ipc
             {   
                 callbacks_[key].ForEach(cb => cb.Invoke(args));
             }
+            else
+            {
+                Logger.Warn($"{key} not registered.");
+            }
         }
     }
 }

@@ -10,7 +10,7 @@ namespace LPS.Core.Entity
         {
         }
 
-        public void RegisterRPCMethods()
+        public void RegisterRpcMethods()
         {
 
         }
