@@ -4,23 +4,18 @@ using LPS.Core.Rpc;
 namespace LPS.Core.Entity
 {
     abstract public class BaseEntity {
-        public MailBox MailBox { get; private set; }
+        public MailBox MailBox { get; protected set; }
 
         public BaseEntity()
         {
         }
 
-        public void RegisterRpcMethods()
-        {
-
-        }
-
-        public async Task<object> Call(MailBox targetMailBox, object[] args)
+        public async Task<object> Call(MailBox targetMailBox, params object[] args)
         {
             return null;
         }
 
-        public async Task<object[]> CallMultiple(MailBox[] targetMailBox, object[] args)
+        public async Task<object[]> CallMultiple(MailBox[] targetMailBox, params object[] args)
         {
             return null;
         }

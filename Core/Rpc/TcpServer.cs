@@ -1,11 +1,15 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
+using Google.Protobuf;
 using LPS.Core.Debug;
 using LPS.Core.Ipc;
+using LPS.Core.Rpc.InnerMessages;
 
 namespace LPS.Core.Rpc
 {
@@ -21,11 +25,15 @@ namespace LPS.Core.Rpc
         private readonly SandBox sandboxIO_;
         private readonly Bus bus_;
         private readonly Dispatcher msgDispacher_;
+        private readonly ConcurrentQueue<Tuple<IMessage, UInt32, Connection>> sendQueue_ = new();
 #nullable enable
         public Socket? Socket { get; private set; }
         public Action? OnInit { get; set; }
         public Action? OnDispose { get; set; }
 #nullable disable
+        private Dictionary<Socket, Connection> socketToConn_ = new();
+
+        public Connection[] AllConnections => socketToConn_.Values.ToArray();
 
         public TcpServer(string ip, int port)
         {
@@ -94,6 +102,14 @@ namespace LPS.Core.Rpc
             busPumpTask.Start();
             #endregion
 
+            #region init send queue task
+            var sendQueueTask = new Task(() =>
+            {
+                this.SendQueueMessageHandler();
+            });
+            sendQueueTask.Start();
+            #endregion
+
             #region message loop
             while (!stopFlag_)
             {
@@ -112,6 +128,9 @@ namespace LPS.Core.Rpc
 
                 var cancelTokenSource = new CancellationTokenSource();
                 var conn = Connection.Create(clientSocket, cancelTokenSource);
+
+                socketToConn_[clientSocket] = conn;
+
                 conn.Connect();
 
                 var task = new Task(() =>
@@ -139,6 +158,8 @@ namespace LPS.Core.Rpc
             this.OnDispose?.Invoke();
         }
 
+        public MailBox GetMailBox(Socket socket) => socketToConn_[socket].MailBox;
+
         private void PumpMessageHandler()
         {
             try
@@ -146,12 +167,50 @@ namespace LPS.Core.Rpc
                 while (!stopFlag_)
                 {
                     this.bus_.Pump();
-                    Thread.Sleep(30);
+                    Thread.Sleep(0);
                 }
             }
             catch (Exception e)
             {
                 Logger.Error(e, "Pump message failed.");
+            }
+        }
+
+        private void SendQueueMessageHandler()
+        {
+            while (!stopFlag_)
+            {
+                if (!sendQueue_.IsEmpty)
+                {
+                    var res = sendQueue_.TryDequeue(out var tp);
+                    if (res)
+                    {
+                        (var msg, var id, var conn) = tp;
+                        var pkg = PackageHelper.FromProtoBuf(msg, id);
+                        var socket = conn.Socket;
+                        try
+                        {
+                            socket.Send(pkg.ToBytes());
+                        }
+                        catch (Exception e)
+                        {
+                            Logger.Error(e, "Send msg failed.");
+                            conn.TokenSource.Cancel();
+                        }
+                    }
+                }
+                Thread.Sleep(0);
+            }
+        }
+
+        public void Send(IMessage msg, Connection conn, UInt32 id)
+        {
+            try {
+                sendQueue_.Enqueue(Tuple.Create(msg, id, conn));
+            }
+            catch (Exception e)
+            {
+                Logger.Error(e, "Send Error.");
             }
         }
 

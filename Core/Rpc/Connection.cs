@@ -18,10 +18,12 @@ namespace LPS.Core.Rpc
         public ConnectStatus Status { get; private set; }
         public Socket Socket { get; private set; }
         public CancellationTokenSource TokenSource { get; private set; }
-
+#nullable enable
+        public MailBox? MailBox { get; set; }
+#nullable disable
         private Connection() { }
 
-        public static Connection Create(Socket socket, CancellationTokenSource tokenSource)
+        internal static Connection Create(Socket socket, CancellationTokenSource tokenSource)
         {
             var newConnection = new Connection
             {

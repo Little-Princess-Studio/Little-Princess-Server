@@ -6,9 +6,9 @@ namespace LPS.Core.Entity
 {
     internal class ServerEntity : UniqueEntity
     {
-        public ServerEntity()
+        public ServerEntity(MailBox mailbox)
         {
-            
+            this.MailBox = mailbox;
         }
 
         [RpcMethod(Authority.All)]

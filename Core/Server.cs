@@ -24,6 +24,8 @@ namespace LPS.Core
         // private Dictionary<MailBox, BaseEntity> entitiesMap_ = new();
         private TcpServer tcpServer_;
 
+        private Connection[] gateConnections_ => tcpServer_.AllConnections;
+
         private static readonly Random random_ = new Random();
 
         public Server(string name, string ip, int port, int hostnum, string hostManagerIP, int hostManagerPort)
@@ -40,7 +42,7 @@ namespace LPS.Core
             hostManagerIP_ = hostManagerIP;
             hostManagerPort_ = hostManagerPort;
 
-            this.entity_ = new ServerEntity();
+            entity_ = new ServerEntity(new Rpc.MailBox(RandomString(16), ip, port, hostnum));
         }
 
         public void Stop()
@@ -61,19 +63,21 @@ namespace LPS.Core
         {
             tcpServer_.RegisterMessageHandler(PackageType.EntityRpc, this.HandleEntityRpc);
             tcpServer_.RegisterMessageHandler(PackageType.CreateEntity, this.HandleCreateEntity);
+            tcpServer_.RegisterMessageHandler(PackageType.ExchangeMailBox, this.HandleExchangeMailBox);
         }
 
         private void UnregisterServerMessageHandlers()
         {
             tcpServer_.UnregisterMessageHandler(PackageType.EntityRpc, this.HandleEntityRpc);
             tcpServer_.UnregisterMessageHandler(PackageType.CreateEntity, this.HandleCreateEntity);
+            tcpServer_.UnregisterMessageHandler(PackageType.ExchangeMailBox, this.HandleExchangeMailBox);
         }
 
         private void HandleEntityRpc(object arg)
         {
         }
 
-        public static string RandomString(int length)
+        private static string RandomString(int length)
         {
             const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
             return new string(Enumerable.Repeat(chars, length)
@@ -90,14 +94,15 @@ namespace LPS.Core
             Logger.Info($"create entity: {createEntity.CreateType}, {createEntity.EntityClassName}");
 
             // todo: move this quest to hostmanager
-            switch (createEntity.CreateType) {
+            switch (createEntity.CreateType)
+            {
                 case CreateType.Local:
                     break;
                 case CreateType.Anywhere:
                     break;
                 case CreateType.Manual:
                     var newID = RandomString(16);
-                    var entityMailBox = new EntityMailBox
+                    var entityMailBox = new CreateEntityRes
                     {
                         Mailbox = new Rpc.InnerMessages.MailBox()
                         {
@@ -111,6 +116,27 @@ namespace LPS.Core
                     socket.Send(pkg.ToBytes());
                     break;
             }
+        }
+
+        private void HandleExchangeMailBox(object arg)
+        {
+            (var msg, var conn, var id) = arg as Tuple<IMessage, Connection, UInt32>;
+
+            var gateMailBox = (msg as ExchangeMailBox).Mailbox;
+            var socket = conn.Socket;
+
+            Logger.Info(
+                $"exchange mailbox: {gateMailBox.ID} {gateMailBox.IP} {gateMailBox.Port} {gateMailBox.HostNum}");
+
+            conn.MailBox = RpcHelper.PbMailBoxToRpcMailBox(gateMailBox);
+
+            var res = new ExchangeMailBoxRes()
+            {
+                Mailbox = RpcHelper.RpcMailBoxToPbMailBox(entity_.MailBox),
+            };
+
+            var pkg = PackageHelper.FromProtoBuf(res, id);
+            socket.Send(pkg.ToBytes());
         }
     }
 }

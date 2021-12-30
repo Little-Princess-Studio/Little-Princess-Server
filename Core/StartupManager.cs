@@ -5,6 +5,7 @@ using System.Diagnostics.Metrics;
 using System.IO;
 using System.Linq;
 using LPS.Core.Debug;
+using LPS.Core.Rpc;
 using Newtonsoft.Json.Linq;
 
 namespace LPS.Core
@@ -148,6 +149,8 @@ namespace LPS.Core
 
         private static void StartUpGate(string name, string confFilePath)
         {
+            RpcHelper.ScanRpcMethods("LPS.Core.Entity");
+
             var json = GetJson(confFilePath);
 
             var hostnum = Convert.ToInt32(json["hostnum"].ToString());
@@ -176,6 +179,8 @@ namespace LPS.Core
 
         private static void StartUpServer(string name, string confFilePath)
         {
+            RpcHelper.ScanRpcMethods("LPS.Core.Entity");
+
             var json = GetJson(confFilePath);
 
             var hostnum = Convert.ToInt32(json["hostnum"].ToString());

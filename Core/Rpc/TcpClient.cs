@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
@@ -16,15 +17,17 @@ namespace LPS.Core.Rpc
         public Socket? Socket { get; private set; }
         public Action? OnInit { get; set; }
         public Action? OnDispose { get; set; }
+        public MailBox? MailBox { get; set; }
 #nullable disable
         private readonly SandBox sandboxIO_;
         private readonly Bus bus_;
         private readonly Dispatcher msgDispacher_;
         private readonly string targetIP_;
         private readonly int targetPort_;
+        private readonly TokenSequence<uint> tokenSequence_ = new();
+        private readonly ConcurrentQueue<Tuple<IMessage, bool>> sendQueue_ = new();
         private bool stopFlag_;
         private const int ConnectRetryMaxTimes = 10;
-        private readonly TokenSequence<uint> tokenSequence_ = new();
         private uint idCounter_ = 0;
 
         public TcpClient(string targetIP, int targetPort)
@@ -89,6 +92,14 @@ namespace LPS.Core.Rpc
             busPumpTask.Start();
             #endregion
 
+            #region init send queue task
+            var sendQueueTask = new Task(() =>
+            {
+                this.SendQueueMessageHandler();
+            });
+            sendQueueTask.Start();
+            #endregion
+
             var cancellationTokenSource = new CancellationTokenSource();
             var conn = Connection.Create(this.Socket, cancellationTokenSource);
             conn.Connect();
@@ -96,9 +107,10 @@ namespace LPS.Core.Rpc
             while (!stopFlag_)
             {
                 this.HandleMessage(conn);
-                Thread.Sleep(30);
+                Thread.Sleep(0);
             }
 
+            cancellationTokenSource.Cancel();
             this.OnDispose?.Invoke();
         }
 
@@ -109,7 +121,7 @@ namespace LPS.Core.Rpc
                 while (!stopFlag_)
                 {
                     this.bus_.Pump();
-                    Thread.Sleep(30);
+                    Thread.Sleep(0);
                 }
             }
             catch (Exception e)
@@ -127,18 +139,45 @@ namespace LPS.Core.Rpc
                 null);
         }
 
-        public void Send<T>(T msg, bool reentry=true) where T : IMessage<T>, new()
+        private void SendQueueMessageHandler()
+        {
+            while (!stopFlag_)
+            {
+                if (!sendQueue_.IsEmpty)
+                {
+                    var res = sendQueue_.TryDequeue(out var tp);
+                    if (res)
+                    {
+                        (var msg, var reentry) = tp;
+
+                        var id = idCounter_++;
+                        if (!reentry)
+                        {
+                            tokenSequence_.Enqueue(id);
+                        }
+
+                        var pkg = PackageHelper.FromProtoBuf(msg, id);
+                        
+                        try
+                        {
+                            this.Socket.Send(pkg.ToBytes());
+                        }
+                        catch (Exception e)
+                        {
+                            // TODO: try reconnect
+                            Logger.Error(e, "Send msg failed.");
+                            this.Stop();
+                        }
+                    }
+                }
+                Thread.Sleep(0);
+            }
+        }
+
+        public void Send(IMessage msg, bool reentry=true)
         {
             try {
-                var id = idCounter_++;
-
-                if (!reentry)
-                {
-                    tokenSequence_.Enqueue(id);
-                }
-
-                var pkg = PackageHelper.FromProtoBuf(msg, id);
-                this.Socket.Send(pkg.ToBytes());
+                sendQueue_.Enqueue(Tuple.Create(msg, reentry));
             }
             catch (Exception e)
             {

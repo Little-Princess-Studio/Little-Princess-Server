@@ -1,1 +1,50 @@
 syntax = "proto3";
+import "mailbox.proto";
+import "google/protobuf/any.proto";
+package LPS.Core.Rpc.InnerMessages;
+
+
+message IntArg
+{
+    sint32 PayLoad = 1;
+}
+
+message FloatArg
+{
+    float PayLoad = 1;
+}
+
+message StringArg
+{
+    string PayLoad = 1;
+}
+
+message MailBoxArg
+{
+    MailBox PayLoad = 1;
+}
+
+message ListArg
+{
+    repeated google.protobuf.Any PayLoad = 1;
+}
+
+message DictWithStringKeyArg
+{
+    map<string, google.protobuf.Any> PayLoad = 1;
+}
+
+message DictWithIntKeyArg
+{
+    map<sint32, google.protobuf.Any> PayLoad = 1;
+}
+
+message NullArg
+{
+}
+
+message EntityRpc {
+    MailBox EntityMailBox = 1;
+    string MethodName = 2;
+    repeated google.protobuf.Any Args = 3;
+};

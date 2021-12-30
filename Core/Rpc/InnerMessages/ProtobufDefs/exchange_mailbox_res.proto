@@ -1,0 +1,7 @@
+syntax = "proto3";
+import "mailbox.proto";
+package LPS.Core.Rpc.InnerMessages;
+ 
+message ExchangeMailBoxRes {
+  MailBox Mailbox = 1;
+}

@@ -10,6 +10,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Google.Protobuf;
 using LPS.Core.Debug;
+using LPS.Core.Entity;
 using LPS.Core.Ipc;
 using LPS.Core.Rpc;
 using LPS.Core.Rpc.InnerMessages;
@@ -36,6 +37,7 @@ namespace LPS.Core
         private readonly TcpClient[] tcpClientsToServer_;
         private readonly Dictionary<Tuple<int, PackageType>, Action<object>> tcpClientsActions_ = new();
         private readonly Random rand_ = new();
+        private ServerEntity entity_;
 
         public Gate(string name, string ip, int port, int hostnum, string hostManagerIP, int hostManagerPort, Tuple<string, int>[] servers)
         {
@@ -56,7 +58,10 @@ namespace LPS.Core
                 var tmpIdx = idx;
                 var client = new TcpClient(serverIP, serverPort)
                 {
-                    OnInit = () => this.ReigsterGateMessageHandlers(tmpIdx),
+                    OnInit = () =>
+                    {
+                        this.ReigsterGateMessageHandlers(tmpIdx);
+                    },
                     OnDispose = () => this.UnregisterGateMessageHandlers(tmpIdx),
                 };
                 tcpClientsToServer_[idx] = client;
@@ -71,7 +76,8 @@ namespace LPS.Core
                     {
                         CreateType = CreateType.Manual,
                         EntityClassName = "None",
-                    }
+                    },
+                    false
                 );
             };
 
@@ -132,27 +138,63 @@ namespace LPS.Core
             Logger.Debug($"ReigsterGateMessageHandlers: {idx}");
 
             var client = tcpClientsToServer_[idx];
-            var createMailBoxHandler = (object arg) => this.HandleEntityMailBoxFromServer(client, arg);
-            tcpClientsActions_[Tuple.Create(idx, PackageType.EntityMailBox)] = createMailBoxHandler;
 
-            client.RegisterMessageHandler(PackageType.EntityMailBox, createMailBoxHandler);
+            var createMailBoxHandler = (object arg) => this.HandleCreateEntityResFromServer(client, arg);
+            tcpClientsActions_[Tuple.Create(idx, PackageType.CreateEntityRes)] = createMailBoxHandler;
+
+            var requireMailBoxHandler = (object arg) => this.HandleExchangeMailBoxResFromServer(client, arg);
+            tcpClientsActions_[Tuple.Create(idx, PackageType.ExchangeMailBoxRes)] = requireMailBoxHandler;
+
+            client.RegisterMessageHandler(PackageType.CreateEntityRes, createMailBoxHandler);
+            client.RegisterMessageHandler(PackageType.ExchangeMailBoxRes, requireMailBoxHandler);
         }
 
         private void UnregisterGateMessageHandlers(int idx)
         {
             var client = tcpClientsToServer_[idx];
             client.UnregisterMessageHandler(
-                PackageType.EntityMailBox,
-                tcpClientsActions_[Tuple.Create(idx, PackageType.EntityMailBox)]);
+                PackageType.CreateEntityRes,
+                tcpClientsActions_[Tuple.Create(idx, PackageType.CreateEntityRes)]);
+
+            client.UnregisterMessageHandler(
+                PackageType.ExchangeMailBoxRes,
+                tcpClientsActions_[Tuple.Create(idx, PackageType.ExchangeMailBoxRes)]);
         }
 
-        private void HandleEntityMailBoxFromServer(TcpClient client, object arg)
+        private void HandleCreateEntityResFromServer(TcpClient client, object arg)
         {
             (var msg, var _, var _) = arg as Tuple<IMessage, Connection, UInt32>;
 
-            var createMailBox = msg as EntityMailBox;
+            var createEntityRes = (msg as CreateEntityRes).Mailbox;
 
-            Logger.Info($"{createMailBox.Mailbox.ID} {createMailBox.Mailbox.IP} {createMailBox.Mailbox.Port} {createMailBox.Mailbox.HostNum}");
+            Logger.Info($"mailbox {createEntityRes.ID} {createEntityRes.IP} {createEntityRes.Port} {createEntityRes.HostNum}");
+
+            var serverEntityMailBox = new Rpc.MailBox(createEntityRes.ID, this.IP, this.Port, this.HostNum);
+            entity_ = new ServerEntity(serverEntityMailBox);
+
+            Logger.Info($"gate entity create succ");
+
+            Array.ForEach(tcpClientsToServer_, c =>
+            {
+                c.Send(new ExchangeMailBox()
+                {
+                    Mailbox = RpcHelper.RpcMailBoxToPbMailBox(serverEntityMailBox),
+                });
+            });
+        }
+
+        private void HandleExchangeMailBoxResFromServer(TcpClient client, object arg)
+        {
+            (var msg, var conn, var _) = arg as Tuple<IMessage, Connection, UInt32>;
+
+            var serverMailBox = (msg as ExchangeMailBoxRes).Mailbox;
+
+            var serverEntityMailBox = RpcHelper.PbMailBoxToRpcMailBox(serverMailBox);
+
+            conn.MailBox = serverEntityMailBox;
+            client.MailBox = serverEntityMailBox;
+
+            Logger.Info($"server mailbox: {serverEntityMailBox}");
         }
 
         #endregion

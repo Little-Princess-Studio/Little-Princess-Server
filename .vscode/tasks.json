@@ -3,6 +3,7 @@
     "tasks": [
         {
             "label": "build",
+            "dependsOrder": "sequence",
             "dependsOn": [
                 "kill_process",
                 "build_lps"
@@ -10,13 +11,13 @@
         },
         {
             "label": "kill_process",
-            "command": "sh",
-            "type": "process",
-            "args": [
-                "./scripts/force_stop_server.sh"
-            ],
-            "problemMatcher": "$msCompile"
-        },
+            "command": "./scripts/force_stop_server.sh",
+            "type": "shell",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+              }
+            },
         {
             "label": "build_lps",
             "command": "dotnet",

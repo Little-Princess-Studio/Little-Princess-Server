@@ -1,8 +1,13 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Collections.Immutable;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
+using System.Reflection;
 using System.Threading.Tasks;
+using Google.Protobuf;
 using LPS.Core.Debug;
 using LPS.Core.Entity;
 using LPS.Core.Ipc;
@@ -12,7 +17,17 @@ namespace LPS.Core.Rpc
 {
     public static class RpcHelper
     {
+        public static Rpc.MailBox PbMailBoxToRpcMailBox(InnerMessages.MailBox mb) => new(mb.ID, mb.IP, (int)mb.Port, (int)mb.HostNum);
 
+        public static InnerMessages.MailBox RpcMailBoxToPbMailBox(Rpc.MailBox mb) => new()
+        {
+            ID = mb.ID,
+            IP = mb.IP,
+            Port = (uint)mb.Port,
+            HostNum = (uint)mb.HostNum
+        };
+
+        private static readonly Dictionary<Type, Dictionary<string, MethodInfo>> rpcMethodInfo_ = new();
 #nullable enable
         public static async Task HandleMessage(
             Connection conn,
@@ -88,6 +103,224 @@ namespace LPS.Core.Rpc
         public static async Task<DistributeEntity> CreateEntityAnywhere()
         {
             return null;
+        }
+
+        #region Rpc method registration and validation
+        public static void ScanRpcMethods(string namespacName)
+        {
+            var types = Assembly.GetExecutingAssembly().GetTypes()
+                    .Where(type => type.IsClass && type.Namespace == namespacName)
+                    .Select(type => type)
+                    .ToList();
+
+            Logger.Info(
+                "Init Rpc Types: ",
+                string.Join(',', types.Select(type => type.Name).ToList())
+            );
+
+            types.ForEach(
+                (type) =>
+                {
+                    var rpcMethods = type.GetMethods()
+                                        .Where(method => method.IsDefined(typeof(RpcMethodAttribute)))
+                                        .Select(method => method)
+                                        .ToDictionary(method => method.Name);
+
+                    var rpcArgValidation = rpcMethods.Values.All(
+                                            methodInfo =>
+                                            {
+                                                var argTypes = methodInfo.GetGenericArguments();
+                                                var valid = ValidateArgs(argTypes);
+
+                                                if (!valid)
+                                                {
+                                                    Logger.Warn($@"Invalid rpc method declaration: 
+                                                        {methodInfo.ReturnType.Name} {methodInfo.Name}({string.Join(',', argTypes.Select(type => type.Name))})");
+                                                }
+
+                                                return valid;
+                                            });
+
+                    if (!rpcArgValidation)
+                    {
+                        var e = new Exception("Error when registering rpc methods.");
+                        Logger.Fatal(e, "");
+
+                        throw e;
+                    }
+
+                    if (rpcMethods.Count > 0)
+                    {
+                        Logger.Info($"{type.Name} register {string.Join(',', rpcMethods.Select(m => m.Key).ToList())}");
+                        rpcMethodInfo_[type] = rpcMethods;
+                    }
+                }
+            );
+        }
+
+        private static bool ValidateArgs(Type[] args) => args.All(type => ValidateSingleArgType(type));
+
+        private static bool ValidateSingleArgType(Type type)
+        {
+            if (type == typeof(int)
+                || type == typeof(float)
+                || type == typeof(string)
+                || type == typeof(MailBox))
+            {
+                return true;
+            }
+            else if (type.IsGenericType)
+            {
+                if (type.GetGenericTypeDefinition() == typeof(Dictionary<,>))
+                {
+                    var keyType = type.GetGenericArguments()[0];
+                    var valueType = type.GetGenericArguments()[1];
+
+                    return (keyType == typeof(string)
+                            || valueType == typeof(int))
+                            && ValidateSingleArgType(valueType);
+                }
+                else if (type.GetGenericTypeDefinition() == typeof(List<>))
+                {
+                    var elemType = type.GetGenericArguments()[0];
+                    return ValidateSingleArgType(elemType);
+                }
+            }
+
+            return false;
+        }
+        #endregion
+
+
+        #region Rpc serialization     
+        private static IMessage RpcListToProtoBuf(object list)
+        {
+            var itor = (IEnumerable)list;
+            var elemList = itor.Cast<object>().ToList();
+
+            if (elemList.Count == 0)
+            {
+                return new NullArg();
+            }
+
+            var msg = new ListArg();
+
+            foreach (var elem in elemList)
+            {
+                msg.PayLoad.Add(
+                    Google.Protobuf.WellKnownTypes.Any.Pack(RpcArgToProtobuf(elem)));
+            }
+
+            return msg;
+        }
+
+        private static IMessage RpcDictArgToProtoBuf(object dict)
+        {
+            var itor = (IEnumerable)dict;
+            var kvList = itor.Cast<object>().ToList();
+
+            if (kvList.Count == 0)
+            {
+                return new NullArg();
+            }
+
+            var firstElem = kvList.First();
+            var kvPairType = firstElem.GetType();
+            var keyType = kvPairType.GetProperty("Key").GetValue(firstElem).GetType();
+
+            if (keyType == typeof(int))
+            {
+                var realDict = kvList.ToDictionary(
+                                    px => (int)px.GetType().GetProperty("Key").GetValue(px),
+                                    pv => pv.GetType().GetProperty("Value").GetValue(pv));
+
+                var msg = new DictWithIntKeyArg();
+
+                foreach (var pair in realDict)
+                {
+                    msg.PayLoad.Add(
+                        pair.Key,
+                        Google.Protobuf.WellKnownTypes.Any.Pack(RpcArgToProtobuf(pair.Value)));
+                }
+
+                return msg;
+            }
+            else
+            {
+                var realDict = kvList.ToDictionary(
+                                    px => px.GetType().GetProperty("Key").GetValue(px) as string,
+                                    pv => pv.GetType().GetProperty("Value").GetValue(pv));
+
+                var msg = new DictWithStringKeyArg();
+
+                foreach (var pair in realDict)
+                {
+                    msg.PayLoad.Add(
+                        pair.Key,
+                        Google.Protobuf.WellKnownTypes.Any.Pack(RpcArgToProtobuf(pair.Value)));
+                }
+
+                return msg;
+            }
+        }
+
+        private static IMessage RpcArgToProtobuf(object obj)
+        {
+            var type = obj.GetType();
+            return obj switch
+            {
+                null => new NullArg(),
+                int => new IntArg() { PayLoad = (int)obj },
+                float => new FloatArg() { PayLoad = (float)obj },
+                string => new StringArg() { PayLoad = (string)obj },
+                MailBox => new MailBoxArg() { PayLoad = RpcMailBoxToPbMailBox((Rpc.MailBox)obj) },
+                _ when type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Dictionary<,>) => RpcDictArgToProtoBuf(obj),
+                _ when type.IsGenericType && type.GetGenericTypeDefinition() == typeof(List<>) => RpcListArgToProtoBuf(obj),
+                _ => throw new Exception($"Invalid Rpc arg type: {type.Name}")
+            };
+        }
+        #endregion
+
+        #region Rpc deserialization    
+        private static object[] ProtobufToRpcArgList(EntityRpc entityRpc)
+        {
+            var argArray = new object[entityRpc.Args.Count];
+
+            return argArray;
+        }
+         
+        private static object ProtobufToRpcArg(Google.Protobuf.WellKnownTypes.Any protoArg)
+        {
+            return null;
+        }
+        #endregion
+
+        public static Task<object> Call(Action<IMessage> send, string rpcMethodName, MailBox target, params object[] args)
+        {
+            var promise = new Task<object>(() =>
+            {
+                var rpc = new EntityRpc()
+                {
+                    EntityMailBox = new()
+                    {
+                        ID = target.ID,
+                        IP = target.IP,
+                        Port = (uint)target.Port,
+                        HostNum = (uint)target.HostNum,
+                    },
+                    MethodName = rpcMethodName,
+                };
+
+                Array.ForEach(args, arg =>
+                {
+                    rpc.Args.Add(Google.Protobuf.WellKnownTypes.Any.Pack(RpcArgToProtobuf(arg)));
+                });
+
+                send(rpc);
+                return null;
+            });
+
+            return promise;
         }
     }
 }
