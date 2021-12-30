@@ -282,16 +282,67 @@ namespace LPS.Core.Rpc
         #endregion
 
         #region Rpc deserialization    
-        private static object[] ProtobufToRpcArgList(EntityRpc entityRpc)
+        private static object ListProtoBufToRpcArg(ListArg arg, Type argType)
         {
-            var argArray = new object[entityRpc.Args.Count];
+            var list = (IList)Activator.CreateInstance(argType);
 
-            return argArray;
+            foreach (var arg in arg.PayLoad)
+            {
+                var obj = ProtobufToRpcArg(arg, argType);
+                list.Add(obj);
+            }
+
+            return list;
         }
-         
-        private static object ProtobufToRpcArg(Google.Protobuf.WellKnownTypes.Any protoArg)
+
+        private static object DictProtoBufToRpcArg(DictWithStringKeyArg arg, Type argType)
         {
-            return null;
+            var dict = (IDictionary)Activator.CreateInstance(argType);
+            var valueType = argType.GetGenericArguments()[1];
+
+            foreach (var pair in arg.PayLoad)
+            {
+                dict[pair.Key] = ProtobufToRpcArg(pair.Value, valueType);
+            }
+
+            return dict;
+        }
+
+        private static object DictProtoBufToRpcArg(DictWithIntKeyArg arg, Type argType)
+        {
+            var dict = (IDictionary)Activator.CreateInstance(argType);
+            var valueType = argType.GetGenericArguments()[1];
+
+            foreach (var pair in arg.PayLoad)
+            {
+                dict[pair.Key] = ProtobufToRpcArg(pair.Value, valueType);
+            }
+
+            return dict;
+        }
+
+        private static object[] ProtobufArgsToRpcArgList(EntityRpc entityRpc, MethodInfo methodInfo)
+        {
+            var methodArguments = methodInfo.GetGenericArguments();
+            return entityRpc.Args.Select((elem, index) => ProtobufToRpcArg(elem, methodArguments[index])).ToArray();
+        }
+
+        private static object ProtobufToRpcArg(Google.Protobuf.WellKnownTypes.Any arg, Type argType)
+        {
+            object obj = arg switch
+            {
+                _ when arg.Is(NullArg.Descriptor) => null,
+                _ when arg.Is(IntArg.Descriptor) => arg.Unpack<IntArg>().PayLoad,
+                _ when arg.Is(FloatArg.Descriptor) => arg.Unpack<FloatArg>().PayLoad,
+                _ when arg.Is(StringArg.Descriptor) => arg.Unpack<StringArg>().PayLoad,
+                _ when arg.Is(MailBoxArg.Descriptor) => PbMailBoxToRpcMailBox(arg.Unpack<MailBoxArg>().PayLoad),
+                _ when arg.Is(DictWithStringKeyArg.Descriptor) => DictProtoBufToRpcArg(arg.Unpack<DictWithStringKeyArg>(), argType),
+                _ when arg.Is(DictWithIntKeyArg.Descriptor) => DictProtoBufToRpcArg(arg.Unpack<DictWithIntKeyArg>(), argType),
+                _ when arg.Is(ListArg.Descriptor) => ListProtoBufToRpcArg(arg.Unpack<ListArg>(), argType),
+                _ => throw new Exception($"Invalid Rpc arg type: {arg.TypeUrl}"),
+            };
+
+            return obj;
         }
         #endregion
 
