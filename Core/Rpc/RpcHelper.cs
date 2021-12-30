@@ -282,11 +282,11 @@ namespace LPS.Core.Rpc
         #endregion
 
         #region Rpc deserialization    
-        private static object ListProtoBufToRpcArg(ListArg arg, Type argType)
+        private static object ListProtoBufToRpcArg(ListArg args, Type argType)
         {
             var list = (IList)Activator.CreateInstance(argType);
 
-            foreach (var arg in arg.PayLoad)
+            foreach (var arg in args.PayLoad)
             {
                 var obj = ProtobufToRpcArg(arg, argType);
                 list.Add(obj);

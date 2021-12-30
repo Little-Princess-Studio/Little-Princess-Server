@@ -16,7 +16,7 @@ namespace LPS.Core.Entity
         [RpcMethod(Authority.All)]
         public void Echo(string msg)
         {
-            Logger.Info("Echo Echo Echo");
+            Logger.Info($"Echo Echo Echo {msg}");
         }
 
         [RpcMethod(Authority.ServerOnly)]
