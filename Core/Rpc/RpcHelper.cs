@@ -193,7 +193,7 @@ namespace LPS.Core.Rpc
 
 
         #region Rpc serialization     
-        private static IMessage RpcListToProtoBuf(object list)
+        private static IMessage RpcListArgToProtoBuf(object list)
         {
             var itor = (IEnumerable)list;
             var elemList = itor.Cast<object>().ToList();
