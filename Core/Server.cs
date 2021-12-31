@@ -1,8 +1,7 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Google.Protobuf;
-using Google.Protobuf.WellKnownTypes;
 using LPS.Core.Debug;
 using LPS.Core.Entity;
 using LPS.Core.Rpc;
@@ -20,13 +19,14 @@ namespace LPS.Core
         private readonly string hostManagerIP_;
         private readonly int hostManagerPort_;
 
-        private ServerEntity entity_;
+        private readonly ServerEntity entity_;
+
         // private Dictionary<MailBox, BaseEntity> entitiesMap_ = new();
-        private TcpServer tcpServer_;
+        private readonly TcpServer tcpServer_;
 
-        private Connection[] gateConnections_ => tcpServer_.AllConnections;
+        private Connection[] GateConnections => tcpServer_.AllConnections;
 
-        private static readonly Random random_ = new Random();
+        private static readonly Random Random = new Random();
 
         public Server(string name, string ip, int port, int hostnum, string hostManagerIP, int hostManagerPort)
         {
@@ -35,14 +35,67 @@ namespace LPS.Core
             this.Port = port;
             this.HostNum = hostnum;
 
-            tcpServer_ = new(ip, port);
-            tcpServer_.OnInit = this.RegisterServerMessageHandlers;
-            tcpServer_.OnDispose = this.UnregisterServerMessageHandlers;
+            tcpServer_ = new(ip, port)
+            {
+                OnInit = this.RegisterServerMessageHandlers,
+                OnDispose = this.UnregisterServerMessageHandlers
+            };
 
             hostManagerIP_ = hostManagerIP;
             hostManagerPort_ = hostManagerPort;
 
-            entity_ = new ServerEntity(new Rpc.MailBox(RandomString(16), ip, port, hostnum));
+            entity_ = new(new Rpc.MailBox(RandomString(16), ip, port, hostnum),
+                entityRpc =>
+                {
+                    // send this rpc to gate
+                    var targetMailBox = entityRpc.EntityMailBox;
+
+                    if (targetMailBox.ID == this.entity_!.MailBox!.ID
+                        && targetMailBox.IP == this.entity_.MailBox.IP
+                        && targetMailBox.Port == this.entity_.MailBox.Port
+                        && targetMailBox.HostNum == this.entity_.MailBox.HostNum)
+                    {
+                        this.CallLocalEntity(this.entity_, entityRpc);
+                    }
+                    // todo: call local entity
+                    else
+                    {
+                        // redirect to gate
+                        this.tcpServer_.Send(entityRpc, GateConnections[0]);
+                    }
+                });
+        }
+
+        private void CallLocalEntity(BaseEntity entity, EntityRpc entityRpc)
+        {
+            var methodInfo = RpcHelper.GetRpcMethodArgTypes(entity.GetType(), entityRpc.MethodName);
+            var argTypes = methodInfo.GetGenericArguments();
+            var args = entityRpc.Args
+                .Select((arg, index) => RpcHelper.ProtobufToRpcArg(arg, argTypes[index]))
+                .ToArray();
+
+            var res = methodInfo.Invoke(entity, args);
+            var senderMailBox = entityRpc.SenderMailBox;
+
+            if (res == null)
+            {
+                entity.Send(RpcHelper.PbMailBoxToRpcMailBox(senderMailBox), "OnResult", res);
+                return;
+            }
+
+            if (methodInfo.ReturnType.IsGenericType &&
+                methodInfo.ReturnType.GetGenericTypeDefinition() == typeof(Task<>))
+            {
+                void Send(dynamic t) =>
+                    entity.Send(RpcHelper.PbMailBoxToRpcMailBox(senderMailBox), "OnResult", t.Result);
+
+                dynamic task = res;
+                task.ContinueWith((Action<dynamic>) Send);
+            }
+            else
+            {
+                entity.Send(RpcHelper.PbMailBoxToRpcMailBox(senderMailBox), "OnResult", res);
+            }
         }
 
         public void Stop()
@@ -81,14 +134,14 @@ namespace LPS.Core
         {
             const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
             return new string(Enumerable.Repeat(chars, length)
-                .Select(s => s[random_.Next(s.Length)]).ToArray());
+                .Select(s => s[Random.Next(s.Length)]).ToArray());
         }
 
         private void HandleCreateEntity(object arg)
         {
-            (var msg, var conn, var id) = arg as Tuple<IMessage, Connection, UInt32>;
+            var (msg, conn, id) = (arg as Tuple<IMessage, Connection, UInt32>)!;
 
-            var createEntity = msg as CreateEntity;
+            var createEntity = (msg as CreateEntity)!;
             var socket = conn.Socket;
 
             Logger.Info($"create entity: {createEntity.CreateType}, {createEntity.EntityClassName}");
@@ -108,7 +161,7 @@ namespace LPS.Core
                         {
                             IP = "",
                             Port = 0,
-                            HostNum = (uint)this.HostNum,
+                            HostNum = (uint) this.HostNum,
                             ID = newID,
                         }
                     };
@@ -120,9 +173,9 @@ namespace LPS.Core
 
         private void HandleExchangeMailBox(object arg)
         {
-            (var msg, var conn, var id) = arg as Tuple<IMessage, Connection, UInt32>;
+            var (msg, conn, id) = (arg as Tuple<IMessage, Connection, UInt32>)!;
 
-            var gateMailBox = (msg as ExchangeMailBox).Mailbox;
+            var gateMailBox = (msg as ExchangeMailBox)!.Mailbox;
             var socket = conn.Socket;
 
             Logger.Info(
@@ -132,7 +185,7 @@ namespace LPS.Core
 
             var res = new ExchangeMailBoxRes()
             {
-                Mailbox = RpcHelper.RpcMailBoxToPbMailBox(entity_.MailBox),
+                Mailbox = RpcHelper.RpcMailBoxToPbMailBox(entity_.MailBox!),
             };
 
             var pkg = PackageHelper.FromProtoBuf(res, id);

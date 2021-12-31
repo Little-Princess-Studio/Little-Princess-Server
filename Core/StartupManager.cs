@@ -99,12 +99,27 @@ namespace LPS.Core
         {
             Logger.Info($"startup {name}");
 
-            var procStartInfo = new ProcessStartInfo()
+            ProcessStartInfo procStartInfo;
+            if (Environment.OSVersion.Platform == PlatformID.Unix)
             {
-                FileName = binaryPath,
-                Arguments = $"subproc --type {type} --confpath {confFilePath} --childname {name}",
-                UseShellExecute = false,
-            };
+                procStartInfo = new ProcessStartInfo()
+                {
+                    FileName = binaryPath,
+                    Arguments = $"subproc --type {type} --confpath {confFilePath} --childname {name}",
+                    UseShellExecute = true,
+                };
+            }
+            else
+            {
+                procStartInfo = new ProcessStartInfo()
+                {
+                    FileName = "dotnet",
+                    Arguments = $"{binaryPath} subproc --type {type} --confpath {confFilePath} --childname {name}",
+                    UseShellExecute = true,
+                    CreateNoWindow = true,
+                };
+            }
+            
             Process.Start(procStartInfo);
         }
 

@@ -8,7 +8,7 @@ namespace LPS.Core.Ipc
     {
         public static readonly Dispatcher Default = new();
 
-        public Dictionary<object, List<Action<object>>> callbacks_ = new();
+        private readonly Dictionary<object, List<Action<object>>> callbacks_ = new();
 
         public void Register(IComparable key, Action<object> callback)
         {
@@ -22,7 +22,7 @@ namespace LPS.Core.Ipc
             }
         }
 
-        public void Unregiser(IComparable key, Action<object> callback)
+        public void Unregister(IComparable key, Action<object> callback)
         {
             if (callbacks_.ContainsKey(key))
             {

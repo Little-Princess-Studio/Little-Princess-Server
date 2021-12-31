@@ -216,7 +216,7 @@ namespace LPS.Core.Rpc
 
         public void UnregisterMessageHandler(IComparable key, Action<object> callback)
         {
-            this.msgDispacher_.Unregiser(key, callback);
+            this.msgDispacher_.Unregister(key, callback);
         }
     }
 }

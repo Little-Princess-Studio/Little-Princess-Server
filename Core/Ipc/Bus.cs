@@ -1,5 +1,4 @@
 using System.Collections.Concurrent;
-using LPS.Core.Debug;
 
 namespace LPS.Core.Ipc
 {
@@ -8,23 +7,21 @@ namespace LPS.Core.Ipc
         private readonly ConcurrentQueue<Message> msgQueue_ = new();
         private readonly Dispatcher dispatcher_;
 
-        private Bus() { }
-
-        public Bus(Dispatcher dispatcher_)
+        public Bus(Dispatcher dispatcher)
         {
-            this.dispatcher_ = dispatcher_;
+            this.dispatcher_ = dispatcher;
         }
 
-        public bool Empty => msgQueue_.IsEmpty;
+        private bool Empty => msgQueue_.IsEmpty;
 
         public void AppendMessage(Message msg)
         {
             msgQueue_.Enqueue(msg);
         }
 
-        public bool TryDeque(out Message msg)
+        private bool TryDeque(out Message msg)
         {
-            return msgQueue_.TryDequeue(out msg);
+            return msgQueue_.TryDequeue(out msg!);
         }
 
         public void Pump()

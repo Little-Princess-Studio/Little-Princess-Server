@@ -1,7 +1,6 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
@@ -17,9 +16,9 @@ namespace LPS.Core.Rpc
 {
     public static class RpcHelper
     {
-        public static Rpc.MailBox PbMailBoxToRpcMailBox(InnerMessages.MailBox mb) => new(mb.ID, mb.IP, (int)mb.Port, (int)mb.HostNum);
+        public static MailBox PbMailBoxToRpcMailBox(InnerMessages.MailBox mb) => new(mb.ID, mb.IP, (int)mb.Port, (int)mb.HostNum);
 
-        public static InnerMessages.MailBox RpcMailBoxToPbMailBox(Rpc.MailBox mb) => new()
+        public static InnerMessages.MailBox RpcMailBoxToPbMailBox(MailBox mb) => new()
         {
             ID = mb.ID,
             IP = mb.IP,
@@ -27,14 +26,12 @@ namespace LPS.Core.Rpc
             HostNum = (uint)mb.HostNum
         };
 
-        private static readonly Dictionary<Type, Dictionary<string, MethodInfo>> rpcMethodInfo_ = new();
-#nullable enable
+        private static readonly Dictionary<Type, Dictionary<string, MethodInfo>> RpcMethodInfo = new();
         public static async Task HandleMessage(
             Connection conn,
             Func<bool> stopCondition,
             Action<Message> onGotMessage,
             Action? onExitLoop)
-#nullable disable
         {
             var buf = new byte[512];
             var messageBuf = new MessageBuffer();
@@ -69,13 +66,13 @@ namespace LPS.Core.Rpc
             }
             catch (OperationCanceledException ex)
             {
-                var ipEndPoint = (IPEndPoint)socket.RemoteEndPoint;
-                Logger.Error(ex, $"IO Task canceled {ipEndPoint.Address} {ipEndPoint.Port}");
+                var ipEndPoint = socket.RemoteEndPoint as IPEndPoint;
+                Logger.Error(ex, $"IO Task canceled {ipEndPoint!.Address} {ipEndPoint.Port}");
             }
             catch (Exception ex)
             {
-                var ipEndPoint = (IPEndPoint)socket.RemoteEndPoint;
-                Logger.Error(ex, $"Read socket data failed, socket will close {ipEndPoint.Address} {ipEndPoint.Port}");
+                var ipEndPoint = socket.RemoteEndPoint as IPEndPoint;
+                Logger.Error(ex, $"Read socket data failed, socket will close {ipEndPoint!.Address} {ipEndPoint.Port}");
             }
 
             // connections_.Remove(conn);
@@ -95,7 +92,7 @@ namespace LPS.Core.Rpc
             }
         }
 
-        public static async Task<MailBox> CreateEntityLocally(string EntityClassName, Dictionary<string, object> desc)
+        public static async Task<MailBox> CreateEntityLocally(string entityClassName, Dictionary<string, object> desc)
         {
             return null;
         }
@@ -135,7 +132,8 @@ namespace LPS.Core.Rpc
                                                     if (!valid)
                                                     {
                                                         Logger.Warn($@"Invalid rpc method declaration: 
-                                                            {methodInfo.ReturnType.Name} {methodInfo.Name}({string.Join(',', argTypes.Select(type => type.Name))})");
+                                                            {methodInfo.ReturnType.Name} {methodInfo.Name}
+                                                            ({string.Join(',', argTypes.Select(t => t.Name))})");
                                                     }
 
                                                     return valid;
@@ -152,20 +150,21 @@ namespace LPS.Core.Rpc
                     if (rpcMethods.Count > 0)
                     {
                         Logger.Info($"{type.Name} register {string.Join(',', rpcMethods.Select(m => m.Key).ToList())}");
-                        rpcMethodInfo_[type] = rpcMethods;
+                        RpcMethodInfo[type] = rpcMethods;
                     }
                 }
             );
         }
 
-        private static bool ValidateArgs(Type[] args) => args.All(type => ValidateSingleArgType(type));
+        private static bool ValidateArgs(Type[] args) => args.All(ValidateSingleArgType);
 
         private static bool ValidateSingleArgType(Type type)
         {
             if (type == typeof(int)
                 || type == typeof(float)
                 || type == typeof(string)
-                || type == typeof(MailBox))
+                || type == typeof(MailBox)
+                || type == typeof(bool))
             {
                 return true;
             }
@@ -191,11 +190,10 @@ namespace LPS.Core.Rpc
         }
         #endregion
 
-
-        #region Rpc serialization     
+        #region Rpc serialization
         private static IMessage RpcListArgToProtoBuf(object list)
         {
-            var itor = (IEnumerable)list;
+            var itor = list as IEnumerable;
             var elemList = itor.Cast<object>().ToList();
 
             if (elemList.Count == 0)
@@ -216,7 +214,7 @@ namespace LPS.Core.Rpc
 
         private static IMessage RpcDictArgToProtoBuf(object dict)
         {
-            var itor = (IEnumerable)dict;
+            var itor = dict as IEnumerable;
             var kvList = itor.Cast<object>().ToList();
 
             if (kvList.Count == 0)
@@ -224,15 +222,14 @@ namespace LPS.Core.Rpc
                 return new NullArg();
             }
 
-            var firstElem = kvList.First();
-            var kvPairType = firstElem.GetType();
-            var keyType = kvPairType.GetProperty("Key").GetValue(firstElem).GetType();
-
+            dynamic firstElem = kvList.First();
+            var keyType = firstElem.Key.GetType();
+            
             if (keyType == typeof(int))
             {
                 var realDict = kvList.ToDictionary(
-                                    px => (int)px.GetType().GetProperty("Key").GetValue(px),
-                                    pv => pv.GetType().GetProperty("Value").GetValue(pv));
+                                    kv => (int)((dynamic)kv).Key,
+                                    kv => (object)((dynamic)kv).Value);
 
                 var msg = new DictWithIntKeyArg();
 
@@ -248,8 +245,8 @@ namespace LPS.Core.Rpc
             else
             {
                 var realDict = kvList.ToDictionary(
-                                    px => px.GetType().GetProperty("Key").GetValue(px) as string,
-                                    pv => pv.GetType().GetProperty("Value").GetValue(pv));
+                    kv => (string)((dynamic)kv).Key,
+                    kv => (object)((dynamic)kv).Value);
 
                 var msg = new DictWithStringKeyArg();
 
@@ -264,16 +261,21 @@ namespace LPS.Core.Rpc
             }
         }
 
-        private static IMessage RpcArgToProtobuf(object obj)
+        private static IMessage RpcArgToProtobuf(object? obj)
         {
+            if (obj == null)
+            {
+                return new NullArg();
+            }
+            
             var type = obj.GetType();
             return obj switch
             {
-                null => new NullArg(),
-                int => new IntArg() { PayLoad = (int)obj },
-                float => new FloatArg() { PayLoad = (float)obj },
-                string => new StringArg() { PayLoad = (string)obj },
-                MailBox => new MailBoxArg() { PayLoad = RpcMailBoxToPbMailBox((Rpc.MailBox)obj) },
+                bool b => new BoolArg() { PayLoad = b },
+                int i => new IntArg() { PayLoad = i },
+                float f => new FloatArg() { PayLoad = f },
+                string s => new StringArg() { PayLoad = s },
+                MailBox m => new MailBoxArg() { PayLoad = RpcMailBoxToPbMailBox(m) },
                 _ when type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Dictionary<,>) => RpcDictArgToProtoBuf(obj),
                 _ when type.IsGenericType && type.GetGenericTypeDefinition() == typeof(List<>) => RpcListArgToProtoBuf(obj),
                 _ => throw new Exception($"Invalid Rpc arg type: {type.Name}")
@@ -284,52 +286,54 @@ namespace LPS.Core.Rpc
         #region Rpc deserialization    
         private static object ListProtoBufToRpcArg(ListArg args, Type argType)
         {
-            var list = (IList)Activator.CreateInstance(argType);
+            var list = Activator.CreateInstance(argType) as IList;
 
             foreach (var arg in args.PayLoad)
             {
                 var obj = ProtobufToRpcArg(arg, argType);
-                list.Add(obj);
+                list!.Add(obj);
             }
 
-            return list;
+            return list!;
         }
 
         private static object DictProtoBufToRpcArg(DictWithStringKeyArg arg, Type argType)
         {
-            var dict = (IDictionary)Activator.CreateInstance(argType);
+            var dict = Activator.CreateInstance(argType) as IDictionary;
             var valueType = argType.GetGenericArguments()[1];
 
             foreach (var pair in arg.PayLoad)
             {
-                dict[pair.Key] = ProtobufToRpcArg(pair.Value, valueType);
+                dict![pair.Key] = ProtobufToRpcArg(pair.Value, valueType);
             }
 
-            return dict;
+            return dict!;
         }
 
         private static object DictProtoBufToRpcArg(DictWithIntKeyArg arg, Type argType)
         {
-            var dict = (IDictionary)Activator.CreateInstance(argType);
+            var dict = Activator.CreateInstance(argType) as IDictionary;
             var valueType = argType.GetGenericArguments()[1];
 
             foreach (var pair in arg.PayLoad)
             {
-                dict[pair.Key] = ProtobufToRpcArg(pair.Value, valueType);
+                dict![pair.Key] = ProtobufToRpcArg(pair.Value, valueType);
             }
 
-            return dict;
+            return dict!;
         }
 
-        private static object[] ProtobufArgsToRpcArgList(EntityRpc entityRpc, MethodInfo methodInfo)
+        private static object?[] ProtobufArgsToRpcArgList(EntityRpc entityRpc, MethodInfo methodInfo)
         {
             var methodArguments = methodInfo.GetGenericArguments();
-            return entityRpc.Args.Select((elem, index) => ProtobufToRpcArg(elem, methodArguments[index])).ToArray();
+            return entityRpc.Args
+                .Select((elem, index) => ProtobufToRpcArg(elem, methodArguments[index]))
+                .ToArray();
         }
 
-        private static object ProtobufToRpcArg(Google.Protobuf.WellKnownTypes.Any arg, Type argType)
+        public static object? ProtobufToRpcArg(Google.Protobuf.WellKnownTypes.Any arg, Type argType)
         {
-            object obj = arg switch
+            object? obj = arg switch
             {
                 _ when arg.Is(NullArg.Descriptor) => null,
                 _ when arg.Is(IntArg.Descriptor) => arg.Unpack<IntArg>().PayLoad,
@@ -346,32 +350,28 @@ namespace LPS.Core.Rpc
         }
         #endregion
 
-        public static Task<object> Call(Action<IMessage> send, string rpcMethodName, MailBox target, params object[] args)
+        public static EntityRpc  BuildRpcMessage(
+            uint rpcID, string rpcMethodName, MailBox sender, MailBox target, params object?[] args)
         {
-            var promise = new Task<object>(() =>
+            var rpc = new EntityRpc()
             {
-                var rpc = new EntityRpc()
-                {
-                    EntityMailBox = new()
-                    {
-                        ID = target.ID,
-                        IP = target.IP,
-                        Port = (uint)target.Port,
-                        HostNum = (uint)target.HostNum,
-                    },
-                    MethodName = rpcMethodName,
-                };
+                RpcID = rpcID,
+                SenderMailBox = RpcMailBoxToPbMailBox(sender),
+                EntityMailBox = RpcMailBoxToPbMailBox(target),
+                MethodName = rpcMethodName,
+            };
 
-                Array.ForEach(args, arg =>
-                {
-                    rpc.Args.Add(Google.Protobuf.WellKnownTypes.Any.Pack(RpcArgToProtobuf(arg)));
-                });
-
-                send(rpc);
-                return null;
+            Array.ForEach(args, arg =>
+            {
+                rpc.Args.Add(Google.Protobuf.WellKnownTypes.Any.Pack(RpcArgToProtobuf(arg)));
             });
 
-            return promise;
+            return rpc;
+        }
+
+        public static MethodInfo GetRpcMethodArgTypes(Type type, string rpcMethodName)
+        {
+            return RpcMethodInfo[type][rpcMethodName];
         }
     }
 }

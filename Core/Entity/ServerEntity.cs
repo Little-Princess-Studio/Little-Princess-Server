@@ -1,14 +1,16 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 using LPS.Core.Debug;
 using LPS.Core.Rpc;
+using LPS.Core.Rpc.InnerMessages;
+using MailBox = LPS.Core.Rpc.MailBox;
 
 namespace LPS.Core.Entity
 {
     internal class ServerEntity : UniqueEntity
     {
-        public ServerEntity(MailBox mailbox)
+        public ServerEntity(MailBox mailbox, Action<EntityRpc> send): base(send)
         {
             this.MailBox = mailbox;
         }

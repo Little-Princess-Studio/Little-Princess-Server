@@ -3,6 +3,10 @@ import "mailbox.proto";
 import "google/protobuf/any.proto";
 package LPS.Core.Rpc.InnerMessages;
 
+message BoolArg
+{
+    bool PayLoad = 1;
+}
 
 message IntArg
 {
@@ -44,7 +48,9 @@ message NullArg
 }
 
 message EntityRpc {
-    MailBox EntityMailBox = 1;
-    string MethodName = 2;
-    repeated google.protobuf.Any Args = 3;
+    uint32 RpcID = 1;
+    MailBox SenderMailBox = 2;
+    MailBox EntityMailBox = 3;
+    string MethodName = 4;
+    repeated google.protobuf.Any Args = 5;
 };

@@ -20,28 +20,30 @@ namespace LPS.Core.Rpc
     {
         public string IP { get; private set; }
         public int Port { get; private set; }
-        private bool stopFlag_ = false;
+        
+        private bool stopFlag_;
         private readonly Dictionary<Connection, Task> connections_ = new();
         private readonly SandBox sandboxIO_;
         private readonly Bus bus_;
-        private readonly Dispatcher msgDispacher_;
-        private readonly ConcurrentQueue<Tuple<IMessage, UInt32, Connection>> sendQueue_ = new();
+        private readonly Dispatcher msgDispatcher_;
 #nullable enable
         public Socket? Socket { get; private set; }
         public Action? OnInit { get; set; }
         public Action? OnDispose { get; set; }
 #nullable disable
-        private Dictionary<Socket, Connection> socketToConn_ = new();
+        private readonly Dictionary<Socket, Connection> socketToConn_ = new();
 
         public Connection[] AllConnections => socketToConn_.Values.ToArray();
-
+        private readonly ConcurrentQueue<(Connection, IMessage)> sendQueue_ = new();
+        private uint serverEntityPackageId_;
+        
         public TcpServer(string ip, int port)
         {
             this.IP = ip;
             this.Port = port;
 
-            msgDispacher_ = new Dispatcher();
-            bus_ = new Bus(msgDispacher_);
+            msgDispatcher_ = new Dispatcher();
+            bus_ = new Bus(msgDispatcher_);
 
             sandboxIO_ = SandBox.Create(this.IOHandler);
         }
@@ -62,51 +64,40 @@ namespace LPS.Core.Rpc
             this.stopFlag_ = true;
             try
             {
-                this.Socket.Shutdown(SocketShutdown.Both);
+                this.Socket?.Shutdown(SocketShutdown.Both);
             }
             finally
             {
-                this.Socket.Close();
+                this.Socket?.Close();
             }
         }
 
         private void IOHandler()
         {
             #region listen port
-            try
-            {
-                Logger.Debug($"Start server {this.IP} {this.Port}");
 
-                var ipa = IPAddress.Parse(this.IP);
-                var ipe = new IPEndPoint(ipa, this.Port);
+            Logger.Debug($"Start server {this.IP} {this.Port}");
 
-                this.Socket = new Socket(ipa.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
-                this.Socket.Bind(ipe);
-                this.Socket.Listen(int.MaxValue);
+            var ipa = IPAddress.Parse(this.IP);
+            var ipe = new IPEndPoint(ipa, this.Port);
 
-                Logger.Debug("Listen succ");
-            }
-            catch (Exception)
-            {
-                throw;
-            }
+            this.Socket = new Socket(ipa.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+            this.Socket.Bind(ipe);
+            this.Socket.Listen(int.MaxValue);
+
+            Logger.Debug("Listen succ");
+
             #endregion
 
             this.OnInit?.Invoke();
 
             #region init bus pump task
-            var busPumpTask = new Task(() =>
-            {
-                this.PumpMessageHandler();
-            });
+            var busPumpTask = new Task(this.PumpMessageHandler);
             busPumpTask.Start();
             #endregion
 
             #region init send queue task
-            var sendQueueTask = new Task(() =>
-            {
-                this.SendQueueMessageHandler();
-            });
+            var sendQueueTask = new Task(this.SendQueueMessageHandler);
             sendQueueTask.Start();
             #endregion
 
@@ -115,7 +106,7 @@ namespace LPS.Core.Rpc
             {
                 Socket clientSocket;
                 try {
-                    clientSocket = this.Socket.Accept();
+                    clientSocket = this.Socket!.Accept();
                 }
                 catch (Exception e)
                 {
@@ -123,7 +114,7 @@ namespace LPS.Core.Rpc
                     break;
                 }
 
-                var ipEndPoint = (IPEndPoint)clientSocket.RemoteEndPoint;
+                var ipEndPoint = (clientSocket.RemoteEndPoint as IPEndPoint)!;
                 Logger.Debug($"New socket got {ipEndPoint.Address}:{ipEndPoint.Port}");
 
                 var cancelTokenSource = new CancellationTokenSource();
@@ -185,7 +176,8 @@ namespace LPS.Core.Rpc
                     var res = sendQueue_.TryDequeue(out var tp);
                     if (res)
                     {
-                        (var msg, var id, var conn) = tp;
+                        var (conn, msg) = tp;
+                        var id = serverEntityPackageId_++;
                         var pkg = PackageHelper.FromProtoBuf(msg, id);
                         var socket = conn.Socket;
                         try
@@ -203,10 +195,10 @@ namespace LPS.Core.Rpc
             }
         }
 
-        public void Send(IMessage msg, Connection conn, UInt32 id)
+        public void Send(IMessage msg, Connection conn)
         {
             try {
-                sendQueue_.Enqueue(Tuple.Create(msg, id, conn));
+                sendQueue_.Enqueue((conn, msg));
             }
             catch (Exception e)
             {
@@ -225,13 +217,12 @@ namespace LPS.Core.Rpc
 
         public void RegisterMessageHandler(IComparable key, Action<object> callback)
         {
-            this.msgDispacher_.Register(key, callback);
+            this.msgDispatcher_.Register(key, callback);
         }
 
         public void UnregisterMessageHandler(IComparable key, Action<object> callback)
         {
-            this.msgDispacher_.Unregiser(key, callback);
+            this.msgDispatcher_.Unregister(key, callback);
         }
-
     }
 }

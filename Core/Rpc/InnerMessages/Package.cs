@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Net;
 using System.Runtime.InteropServices;
 using Google.Protobuf;
 
@@ -30,14 +29,6 @@ namespace LPS.Core.Rpc.InnerMessages
         public UInt16 Type;
 
         public static readonly int Size = Marshal.SizeOf<PackageHeader>();
-
-        public PackageHeader(ushort length, uint id, ushort version, ushort type)
-        {
-            Length = length;
-            ID = id;
-            Version = version;
-            Type = type;
-        }
     }
 
     public struct Package
@@ -97,6 +88,7 @@ namespace LPS.Core.Rpc.InnerMessages
             { PackageType.CreateEntityRes, (in Package pkg) => GetProtoBufObject<CreateEntityRes>(pkg) },
             { PackageType.ExchangeMailBox, (in Package pkg) => GetProtoBufObject<ExchangeMailBox>(pkg) },
             { PackageType.ExchangeMailBoxRes, (in Package pkg) => GetProtoBufObject<ExchangeMailBoxRes>(pkg) },
+            { PackageType.EntityRpc, (in Package pkg) => GetProtoBufObject<EntityRpc>(pkg) },
         };
 
         private static readonly Dictionary<Type, PackageType> Type2Enum = new()
@@ -106,16 +98,17 @@ namespace LPS.Core.Rpc.InnerMessages
             { typeof(CreateEntityRes), PackageType.CreateEntityRes },
             { typeof(ExchangeMailBox), PackageType.ExchangeMailBox },
             { typeof(ExchangeMailBoxRes), PackageType.ExchangeMailBoxRes },
+            { typeof(EntityRpc), PackageType.EntityRpc },
         };
 
         private static class MessageParserWrapper<T> where T : IMessage<T>, new ()
         {
-            private static readonly MessageParser<T> parser_ = new(() => new T());
+            private static readonly MessageParser<T> Parser = new(() => new T());
 
-            public static MessageParser<T> Get() => parser_;
+            public static MessageParser<T> Get() => Parser;
         }
 
-        public static T GetProtoBufObject<T>(in Package package) where T : IMessage<T>, new ()
+        private static T GetProtoBufObject<T>(in Package package) where T : IMessage<T>, new ()
         {
             var parser = MessageParserWrapper<T>.Get();
             return parser.ParseFrom(package.Body);
@@ -126,9 +119,9 @@ namespace LPS.Core.Rpc.InnerMessages
             return Type2ProBuf[type].Invoke(package);
         }
 
-        public static PackageType GetPackageType<T>() => Type2Enum[typeof(T)];
+        private static PackageType GetPackageType<T>() => Type2Enum[typeof(T)];
 
-        public static PackageType GetPackageType(Type type) => Type2Enum[type];
+        private static PackageType GetPackageType(Type type) => Type2Enum[type];
 
         public static Package FromProtoBuf<T>(T protobufObj, uint id) where T : IMessage<T>, new ()
         {
