@@ -106,10 +106,10 @@ namespace LPS.Core.Rpc
         }
 
         #region Rpc method registration and validation
-        public static void ScanRpcMethods(string namespacName)
+        public static void ScanRpcMethods(string namespaceName)
         {
             var types = Assembly.GetExecutingAssembly().GetTypes()
-                    .Where(type => type.IsClass && type.Namespace == namespacName)
+                    .Where(type => type.IsClass && type.Namespace == namespaceName)
                     .Select(type => type)
                     .ToList();
 
@@ -127,19 +127,19 @@ namespace LPS.Core.Rpc
                                         .ToDictionary(method => method.Name);
 
                     var rpcArgValidation = rpcMethods.Values.All(
-                                            methodInfo =>
-                                            {
-                                                var argTypes = methodInfo.GetGenericArguments();
-                                                var valid = ValidateArgs(argTypes);
-
-                                                if (!valid)
+                                                methodInfo =>
                                                 {
-                                                    Logger.Warn($@"Invalid rpc method declaration: 
-                                                        {methodInfo.ReturnType.Name} {methodInfo.Name}({string.Join(',', argTypes.Select(type => type.Name))})");
-                                                }
+                                                    var argTypes = methodInfo.GetGenericArguments();
+                                                    var valid = ValidateArgs(argTypes);
 
-                                                return valid;
-                                            });
+                                                    if (!valid)
+                                                    {
+                                                        Logger.Warn($@"Invalid rpc method declaration: 
+                                                            {methodInfo.ReturnType.Name} {methodInfo.Name}({string.Join(',', argTypes.Select(type => type.Name))})");
+                                                    }
+
+                                                    return valid;
+                                                });
 
                     if (!rpcArgValidation)
                     {
