@@ -1,12 +1,16 @@
 using System;
 using System.Linq;
-using System.Threading.Tasks;
 using Google.Protobuf;
 using LPS.Core.Debug;
 using LPS.Core.Entity;
 using LPS.Core.Rpc;
 using LPS.Core.Rpc.InnerMessages;
 
+
+/*
+ * Each server instance has connections to every gates, rpc message from server's entity will ben sent to gate and
+ * redirect to target server instance. 
+ */
 namespace LPS.Core
 {
     public class Server
@@ -55,7 +59,7 @@ namespace LPS.Core
                         && targetMailBox.Port == this.entity_.MailBox.Port
                         && targetMailBox.HostNum == this.entity_.MailBox.HostNum)
                     {
-                        this.CallLocalEntity(this.entity_, entityRpc);
+                        RpcHelper.CallLocalEntity(this.entity_, entityRpc);
                     }
                     // todo: call local entity
                     else
@@ -65,39 +69,7 @@ namespace LPS.Core
                     }
                 });
         }
-
-        private void CallLocalEntity(BaseEntity entity, EntityRpc entityRpc)
-        {
-            var methodInfo = RpcHelper.GetRpcMethodArgTypes(entity.GetType(), entityRpc.MethodName);
-            var argTypes = methodInfo.GetGenericArguments();
-            var args = entityRpc.Args
-                .Select((arg, index) => RpcHelper.ProtobufToRpcArg(arg, argTypes[index]))
-                .ToArray();
-
-            var res = methodInfo.Invoke(entity, args);
-            var senderMailBox = entityRpc.SenderMailBox;
-
-            if (res == null)
-            {
-                entity.Send(RpcHelper.PbMailBoxToRpcMailBox(senderMailBox), "OnResult", res);
-                return;
-            }
-
-            if (methodInfo.ReturnType.IsGenericType &&
-                methodInfo.ReturnType.GetGenericTypeDefinition() == typeof(Task<>))
-            {
-                void Send(dynamic t) =>
-                    entity.Send(RpcHelper.PbMailBoxToRpcMailBox(senderMailBox), "OnResult", t.Result);
-
-                dynamic task = res;
-                task.ContinueWith((Action<dynamic>) Send);
-            }
-            else
-            {
-                entity.Send(RpcHelper.PbMailBoxToRpcMailBox(senderMailBox), "OnResult", res);
-            }
-        }
-
+        
         public void Stop()
         {
             this.tcpServer_.Stop();
@@ -128,6 +100,25 @@ namespace LPS.Core
 
         private void HandleEntityRpc(object arg)
         {
+            var (msg, conn, _) = (arg as Tuple<IMessage, Connection, UInt32>)!;
+            var entityRpc = (msg as EntityRpc)!;
+
+            var targetMailBox = entityRpc.EntityMailBox;
+
+            if (targetMailBox.ID == this.entity_!.MailBox!.ID
+                && targetMailBox.IP == this.entity_.MailBox.IP
+                && targetMailBox.Port == this.entity_.MailBox.Port
+                && targetMailBox.HostNum == this.entity_.MailBox.HostNum)
+            {
+                Logger.Debug($"Call server entity: {entityRpc.MethodName}");
+                RpcHelper.CallLocalEntity(this.entity_, entityRpc);
+            }
+            // todo: call local entity
+            else
+            {
+                // redirect to gate
+                this.tcpServer_.Send(entityRpc, GateConnections[0]);
+            }
         }
 
         private static string RandomString(int length)

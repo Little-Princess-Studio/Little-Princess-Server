@@ -33,6 +33,11 @@ message ListArg
     repeated google.protobuf.Any PayLoad = 1;
 }
 
+message TupleArg
+{
+    repeated google.protobuf.Any PayLoad = 1;
+}
+
 message DictWithStringKeyArg
 {
     map<string, google.protobuf.Any> PayLoad = 1;

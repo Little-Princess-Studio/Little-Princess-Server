@@ -35,7 +35,7 @@ namespace LPS.Core.Entity
         public async void Echo3(MailBox mb)
         {
             Logger.Info($"Got mailbox {mb}");
-            await this.Call(mb, "Hello, LPS");
+            // await this.Call(mb, "Hello, LPS");
         }
     }
 }

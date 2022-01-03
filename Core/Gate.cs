@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -30,7 +31,7 @@ namespace LPS.Core
         public int HostNum { get; private set; }
         private readonly TcpServer tcpGateServer_;
         private readonly TcpClient[] tcpClientsToServer_;
-        private readonly Dictionary<(int, PackageType), Action<object>> tcpClientsActions_ = new();
+        private readonly ConcurrentDictionary<(int, PackageType), Action<object>> tcpClientsActions_ = new();
         private ServerEntity? entity_;
 
         public Gate(string name, string ip, int port, int hostnum, string hostManagerIP, int hostManagerPort,
@@ -55,7 +56,7 @@ namespace LPS.Core
                 var tmpIdx = idx;
                 var client = new TcpClient(serverIP, serverPort)
                 {
-                    OnInit = () => { this.ReigsterGateMessageHandlers(tmpIdx); },
+                    OnInit = () => this.RegisterGateMessageHandlers(tmpIdx),
                     OnDispose = () => this.UnregisterGateMessageHandlers(tmpIdx),
                 };
                 tcpClientsToServer_[idx] = client;
@@ -64,7 +65,7 @@ namespace LPS.Core
 
             tcpClientsToServer_[0].OnInit = () =>
             {
-                this.ReigsterGateMessageHandlers(0);
+                this.RegisterGateMessageHandlers(0);
                 tcpClientsToServer_[0].Send(
                     new CreateEntity()
                     {
@@ -135,10 +136,8 @@ namespace LPS.Core
 
         #region register client message
 
-        private void ReigsterGateMessageHandlers(int idx)
+        private void RegisterGateMessageHandlers(int idx)
         {
-            Logger.Debug($"ReigsterGateMessageHandlers: {idx}");
-
             var client = tcpClientsToServer_[idx];
 
             var createMailBoxHandler = (object arg) => this.HandleCreateEntityResFromServer(client, arg);
@@ -152,7 +151,7 @@ namespace LPS.Core
 
             client.RegisterMessageHandler(PackageType.CreateEntityRes, createMailBoxHandler);
             client.RegisterMessageHandler(PackageType.ExchangeMailBoxRes, requireMailBoxHandler);
-            client.RegisterMessageHandler(PackageType.ExchangeMailBoxRes, entityRpcHandler);
+            client.RegisterMessageHandler(PackageType.EntityRpc, entityRpcHandler);
         }
 
         private void UnregisterGateMessageHandlers(int idx)
@@ -193,7 +192,7 @@ namespace LPS.Core
             {
                 Mailbox = RpcHelper.RpcMailBoxToPbMailBox(serverEntityMailBox),
             };
-            Array.ForEach(tcpClientsToServer_, c => { c.Send(exchangeMailBox); });
+            Array.ForEach(tcpClientsToServer_, c => c.Send(exchangeMailBox));
         }
 
         private TcpClient FindServerOfEntity(MailBox targetMailBox)
@@ -218,18 +217,35 @@ namespace LPS.Core
             Logger.Debug("Try to call Echo method by mailbox");
 
             var res = entity_!.Call(serverEntityMailBox, "Echo", "Hello");
-            res.Wait();
-
-            Logger.Info($"Echo Res {res.Result}");
+            res.ContinueWith(t => Logger.Info($"Echo Res Callback"));
         }
 
         private void HandleEntityRpcFromServer(TcpClient client, object arg)
         {
+            Logger.Info("HandleEntityRpcFromServer");
             var (msg, conn, _) = (arg as Tuple<IMessage, Connection, UInt32>)!;
             var entityRpc = (msg as EntityRpc)!;
 
-            var serverClient = this.FindServerOfEntity(entityRpc.EntityMailBox);
-            serverClient.Send(entityRpc);
+            var targetEntityMailBox = entityRpc.EntityMailBox!;
+
+            Logger.Info($"{targetEntityMailBox.IP} {targetEntityMailBox.Port} {targetEntityMailBox.ID}"+ 
+            $"{targetEntityMailBox.HostNum}");
+            Logger.Info($"{entity_.MailBox.IP} {entity_.MailBox.Port} {entity_.MailBox.ID}"+ 
+                        $"{entity_.MailBox.HostNum}");
+            
+            if (targetEntityMailBox.IP == entity_!.MailBox!.IP &&
+                targetEntityMailBox.Port == entity_.MailBox.Port &&
+                targetEntityMailBox.ID == entity_.MailBox.ID &&
+                targetEntityMailBox.HostNum == entity_.MailBox.HostNum)
+            {
+                Logger.Debug($"Call gate entity: {entityRpc.MethodName}");
+                RpcHelper.CallLocalEntity(this.entity_, entityRpc);
+            }
+            else
+            {
+                // var serverClient = this.FindServerOfEntity(entityRpc.EntityMailBox);
+                // serverClient.Send(entityRpc);
+            }
         }
 
         #endregion

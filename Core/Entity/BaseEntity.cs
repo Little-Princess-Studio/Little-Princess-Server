@@ -10,8 +10,10 @@ namespace LPS.Core.Entity
     public abstract class BaseEntity {
         public MailBox? MailBox { get; protected init; }
 
-        private static readonly Dictionary<uint, Action<object>> RpcDict = new ();
+        private static readonly Dictionary<uint, (Action<object>, Type)> RpcDict = new ();
+        private static readonly Dictionary<uint, Action> RpcBlankDict = new ();
 
+        
         private readonly Action<EntityRpc> send_;
 
         private uint rpcID_;
@@ -28,27 +30,59 @@ namespace LPS.Core.Entity
             send_.Invoke(rpcMsg);
         }
         
-        public Task<object> Call(MailBox targetMailBox, string rpcMethodName, params object?[] args)
+        public void SendWithRpcID(uint rpcID, MailBox targetMailBox, string rpcMethodName, params object?[] args)
+        {
+            var rpcMsg = RpcHelper.BuildRpcMessage(rpcID, rpcMethodName,  this.MailBox!, targetMailBox, args);
+            send_.Invoke(rpcMsg);
+        }
+        
+        public Task Call(MailBox targetMailBox, string rpcMethodName, params object?[] args)
         {
             var id = rpcID_++;
             var rpcMsg = RpcHelper.BuildRpcMessage(id, rpcMethodName,  this.MailBox!, targetMailBox, args);
             
-            var source = new TaskCompletionSource<object>();
+            var source = new TaskCompletionSource();
 
-            RpcDict[id] = CallBack; 
+            RpcBlankDict[id] = () => source.TrySetResult(); 
             send_.Invoke(rpcMsg);
 
             return source.Task;
-            
-            void CallBack(object res)
-            {
-                source.TrySetResult(res);
-            }
         }
 
-        public void RpcAsyncCallBack(uint rpcID, object res)
+        public Task<T> Call<T>(MailBox targetMailBox, string rpcMethodName, params object?[] args)
         {
-            RpcDict[rpcID].Invoke(res);
+            var id = rpcID_++;
+            var rpcMsg = RpcHelper.BuildRpcMessage(id, rpcMethodName,  this.MailBox!, targetMailBox, args);
+            
+            var source = new TaskCompletionSource<T>();
+
+            RpcDict[id] = (res => source.TrySetResult((T)res), typeof(T)); 
+            send_.Invoke(rpcMsg);
+
+            return source.Task;
+        }
+
+        // OnResult is a special rpc method with special parameter
+        [RpcMethod(Authority.All)]
+        public void OnResult(EntityRpc entityRpc)
+        {
+            var rpcID = entityRpc.RpcID;
+            RpcAsyncCallBack(rpcID, entityRpc);
+        }
+
+        private void RpcAsyncCallBack(uint rpcID, EntityRpc entityRpc)
+        {
+            if (RpcDict.ContainsKey(rpcID))
+            {
+                var (callback, returnType) = RpcDict[rpcID];
+                var rpcArg = RpcHelper.ProtobufToRpcArg(entityRpc.Args[0], returnType);
+                callback.Invoke(rpcArg!);
+            }
+            else
+            {
+                var callback = RpcBlankDict[rpcID];
+                callback.Invoke();
+            }
         }
     }
 }
