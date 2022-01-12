@@ -86,7 +86,7 @@ namespace LPS.Core
                 this.RegisterGateMessageHandlers(0);
 
                 // var client = tcpClientsToServer_[0];
-               var client = RandomServerClient();
+                var client = RandomServerClient();
 
                 client.Send(
                     new CreateEntity()
@@ -163,7 +163,8 @@ namespace LPS.Core
                 Logger.Info("Auth succ");
                 // todo: notify server to create mailbox
 
-                // server_mb = randomSelect(servers)
+                var serverMailBox = RandomServerClient().MailBox;
+
                 // [var mailbox] = await RPC.Call(server_mb, "CreateUntrusted", content) as Tuple<MailBox>
                 // Send("CreateMailBox")
             }
@@ -251,12 +252,16 @@ namespace LPS.Core
                 $"mailbox {createEntityRes.ID} {createEntityRes.IP} {createEntityRes.Port} {createEntityRes.HostNum}");
 
             var serverEntityMailBox = new Rpc.MailBox(createEntityRes.ID, this.IP, this.Port, this.HostNum);
-            entity_ = new ServerEntity(serverEntityMailBox, entityRpc =>
-            {
-                var targetMailBox = entityRpc.EntityMailBox;
-                var clientToServer = FindServerOfEntity(targetMailBox);
-                clientToServer.Send(entityRpc);
-            });
+            entity_ = new(serverEntityMailBox,
+                (id, entityClassName, jsonDesc) => throw new Exception("Cannot create entity on gate."))
+                {
+                    OnSend = entityRpc =>
+                    {
+                        var targetMailBox = entityRpc.EntityMailBox;
+                        var clientToServer = FindServerOfEntity(targetMailBox);
+                        clientToServer.Send(entityRpc);
+                    },
+                };
 
             Logger.Info($"gate entity create succ");
 
@@ -390,7 +395,7 @@ namespace LPS.Core
                     {
                         client.Pump();
                     }
-                    
+
                     foreach (var client in tcpClientsToOtherGate_)
                     {
                         client.Pump();
@@ -422,7 +427,7 @@ namespace LPS.Core
         {
             Logger.Debug($"Start gate at {this.IP}:{this.Port}");
             tcpGateServer_.Run();
-            
+
             Array.ForEach(tcpClientsToServer_, client => client.Run());
             Array.ForEach(tcpClientsToOtherGate_, client => client.Run());
 

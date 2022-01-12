@@ -1,4 +1,5 @@
 using System;
+using LPS.Core.Database;
 using LPS.Core.Debug;
 using LPS.Core.Rpc;
 
@@ -44,6 +45,11 @@ namespace LPS.Core
         public void Loop()
         {
             Logger.Debug($"Start dbmanager at {this.IP}:{this.Port}");
+
+            // Logger.Info("$Clear global cache...");
+            // DbHelper.FastGlobalCache.Clear().Wait();
+            // Logger.Info("$Clear global cache complete.");
+
             tcpDbManagerServer_.Run();
             
             tcpDbManagerServer_.WaitForExit();

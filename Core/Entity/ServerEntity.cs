@@ -1,18 +1,23 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
+using LPS.Core.Database;
 using LPS.Core.Debug;
 using LPS.Core.Rpc;
-using LPS.Core.Rpc.InnerMessages;
 using MailBox = LPS.Core.Rpc.MailBox;
 
 namespace LPS.Core.Entity
 {
+    [EntityClass]
     internal class ServerEntity : UniqueEntity
     {
-        public ServerEntity(MailBox mailbox, Action<EntityRpc> send): base(send)
+        private readonly Action<string, string, MailBox> onCreateEntity_;
+
+        public ServerEntity(MailBox mailbox, Action<string, string, MailBox> onCreateEntity)
         {
             this.MailBox = mailbox;
+            onCreateEntity_ = onCreateEntity;
         }
 
         [RpcMethod(Authority.All)]
@@ -36,6 +41,29 @@ namespace LPS.Core.Entity
         {
             Logger.Info($"Got mailbox {mb}");
             // await this.Call(mb, "Hello, LPS");
+        }
+
+        [RpcMethod(Authority.ServerOnly)]
+        public async Task<MailBox> CreateEntity(string entityClassName, string jsonDesc)
+        {
+            var newId = await DbHelper.GenerateNewGlobalId();
+
+            var newMailBox = new MailBox(
+                newId, this.MailBox!.IP,
+                this.MailBox.Port,
+                this.MailBox!.HostNum);
+
+            try
+            {
+                onCreateEntity_?.Invoke(entityClassName, jsonDesc, newMailBox);
+            }
+            catch(Exception e)
+            {
+                Logger.Error(e, "Create entity failed.");
+                throw;
+            }
+
+            return newMailBox;
         }
     }
 }

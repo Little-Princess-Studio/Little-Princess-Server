@@ -1,14 +1,15 @@
-using System;
 using LPS.Core.Rpc;
-using LPS.Core.Rpc.InnerMessages;
 
 namespace LPS.Core.Entity
 {
+    [EntityClass]
     public class DistributeEntity : BaseEntity
     {
-        public DistributeEntity(Action<EntityRpc> send) : base(send)
+        public Rpc.MailBox? GateMailBox { get; set; }
+
+        public DistributeEntity(string desc)
         {
-            
+
         }
     }
 }

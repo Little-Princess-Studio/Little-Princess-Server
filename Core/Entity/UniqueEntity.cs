@@ -1,11 +1,11 @@
-using System;
-using LPS.Core.Rpc.InnerMessages;
+using LPS.Core.Rpc;
 
 namespace LPS.Core.Entity
 {
+    [EntityClass]
     public class UniqueEntity : BaseEntity
     {
-        public UniqueEntity(Action<EntityRpc> send) : base(send)
+        public UniqueEntity()
         {
             
         }

@@ -239,6 +239,7 @@ namespace LPS.Core
         private static void StartUpServer(string name, string confFilePath)
         {
             RpcHelper.ScanRpcMethods("LPS.Core.Entity");
+            RpcHelper.ScanRpcMethods("LPS.Logic.Entities");
             DbHelper.Initialize().Wait();
 
             var json = GetJson(confFilePath);

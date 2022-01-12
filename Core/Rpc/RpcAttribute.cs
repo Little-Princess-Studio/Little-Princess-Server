@@ -20,4 +20,19 @@ namespace LPS.Core.Rpc
         }
     }
 
+    [AttributeUsage(AttributeTargets.Class, AllowMultiple = false, Inherited = true)]
+    public class RpcJsonTypeAttribute : Attribute
+    {
+    }
+
+    [AttributeUsage(AttributeTargets.Class, AllowMultiple = false, Inherited = true)]
+    public class EntityClassAttribute : Attribute
+    {
+        public string Name;
+
+        public EntityClassAttribute(string name = "")
+        {
+            this.Name = name;
+        }
+    }
 }

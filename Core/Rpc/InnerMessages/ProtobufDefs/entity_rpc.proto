@@ -52,6 +52,11 @@ message NullArg
 {
 }
 
+message JsonArg
+{
+    string PayLoad = 1;
+}
+
 message EntityRpc {
     uint32 RpcID = 1;
     MailBox SenderMailBox = 2;

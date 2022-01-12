@@ -11,7 +11,7 @@ namespace LPS.Core.Database.GlobalCache
 
         public Task<bool> Initialize()
         {
-            string connectString = "127.0.0.1:6379,password=,defaultDatabase=demo";
+            string connectString = "127.0.0.1:6379,password=,defaultDatabase=0";
 
             Logger.Info($"Connecting to redis with {connectString}");
 
@@ -33,8 +33,10 @@ namespace LPS.Core.Database.GlobalCache
         // user should clearly know what the db client is and do costume opertaion on it.
         public object GetNativeClient() => RedisHelper.Instance;
 
-        public Task<bool> Set(string key, int val)  => RedisHelper.SetAsync(key, val);
-        public Task<int> Get(string key) => RedisHelper.GetAsync<int>(key);
+        public Task<long> Incr(string key) => RedisHelper.IncrByAsync(key);
+
+        public Task<bool> Set(string key, long val)  => RedisHelper.SetAsync(key, val);
+        public Task<long> Get(string key) => RedisHelper.GetAsync<long>(key);
         public Task<bool> Set(string key, string val) => RedisHelper.SetAsync(key, val);
         Task<string> IGlobalCache<string>.Get(string key) => RedisHelper.GetAsync<string>(key);
     }

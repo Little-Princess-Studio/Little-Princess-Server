@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Google.Protobuf;
+using LPS.Core.Database;
 using LPS.Core.Debug;
 using LPS.Core.Entity;
 using LPS.Core.Rpc;
@@ -23,13 +24,12 @@ namespace LPS.Core
 
         private readonly string hostManagerIP_;
         private readonly int hostManagerPort_;
-        private readonly ServerEntity entity_;
-        // private Dictionary<MailBox, BaseEntity> entitiesMap_ = new();
+        private ServerEntity? entity_;
+        private readonly Dictionary<string, DistributeEntity> localEntityDict_ = new();
         private readonly TcpServer tcpServer_;
         private Connection[] GateConnections => tcpServer_.AllConnections;
         private static readonly Random Random = new Random();
-        private Dictionary<string, BaseEntity> localEntityDict_ = new();
-        
+
 
         public Server(string name, string ip, int port, int hostnum, string hostManagerIP, int hostManagerPort)
         {
@@ -48,34 +48,73 @@ namespace LPS.Core
             hostManagerPort_ = hostManagerPort;
 
             // how server entity send msg
-            entity_ = new(new Rpc.MailBox(RandomString(16), ip, port, hostnum),
-                entityRpc =>
-                {
-                    // send this rpc to gate
-                    var targetMailBox = entityRpc.EntityMailBox;
+            DbHelper.GenerateNewGlobalId().ContinueWith(task =>
+            {
+                var newID = task.Result;
+                entity_ = new(
+                    new(newID, ip, port, hostnum),
+                    (entityClassName, jsonDesc, mailBox) =>
+                    {
+                        var entity = RpcHelper.CreateEntityLocally(entityClassName, jsonDesc);
+                        entity.MailBox = mailBox;
+                        localEntityDict_[mailBox.ID] = entity;
+                        Logger.Info($"Server register entity with mailbox {mailBox}");
+                    })
+                    {
+                        OnSend = entityRpc =>
+                        {
+                                // send this rpc to gate
+                            var targetMailBox = entityRpc.EntityMailBox;
 
-                    // send to self
-                    if (targetMailBox.ID == this.entity_!.MailBox!.ID
-                        && targetMailBox.IP == this.entity_.MailBox.IP
-                        && targetMailBox.Port == this.entity_.MailBox.Port
-                        && targetMailBox.HostNum == this.entity_.MailBox.HostNum)
-                    {
-                        RpcHelper.CallLocalEntity(this.entity_, entityRpc);
-                    }
-                    // send to local entity
-                    else if (localEntityDict_.ContainsKey(entityRpc.EntityMailBox.ID))
-                    {
-                        var entity = localEntityDict_[entityRpc.EntityMailBox.ID];
-                        RpcHelper.CallLocalEntity(entity, entityRpc);
-                    }
-                    else
-                    {
-                        // redirect to gate
-                        this.tcpServer_.Send(entityRpc, GateConnections[0]);
-                    }
-                });
+                            // send to self
+                            if (targetMailBox.ID == this.entity_!.MailBox!.ID
+                                && targetMailBox.IP == this.entity_.MailBox.IP
+                                && targetMailBox.Port == this.entity_.MailBox.Port
+                                && targetMailBox.HostNum == this.entity_.MailBox.HostNum)
+                            {
+                                try
+                                {
+                                    RpcHelper.CallLocalEntity(this.entity_, entityRpc);
+                                }
+                                catch(RpcTimeOutException e)
+                                {
+                                    e.Who.RemoveRpcRecord(e.RpcID);
+                                    Logger.Error(e, "Rpc time out");
+                                }
+                                catch(Exception e)
+                                {
+                                    Logger.Error(e, "Exception happend when call local entity");
+                                }
+                            }
+                            // send to local entity
+                            else if (localEntityDict_.ContainsKey(entityRpc.EntityMailBox.ID))
+                            {
+                                var entity = localEntityDict_[entityRpc.EntityMailBox.ID];
+
+                                try
+                                {
+                                    RpcHelper.CallLocalEntity(entity, entityRpc);
+                                }
+                                catch(RpcTimeOutException e)
+                                {
+                                    e.Who.RemoveRpcRecord(e.RpcID);
+                                    Logger.Error(e, "Rpc time out");
+                                }
+                                catch(Exception e)
+                                {
+                                    Logger.Error(e, "Exception happend when call local entity");
+                                }
+                            }
+                            else
+                            {
+                                // redirect to gate
+                                this.tcpServer_.Send(entityRpc, GateConnections[0]);
+                            }
+                        },
+                    };
+            });
         }
-        
+
         public void Stop()
         {
             this.tcpServer_.Stop();
@@ -130,12 +169,12 @@ namespace LPS.Core
             }
         }
 
-        private static string RandomString(int length)
-        {
-            const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-            return new string(Enumerable.Repeat(chars, length)
-                .Select(s => s[Random.Next(s.Length)]).ToArray());
-        }
+        // private static string RandomString(int length)
+        // {
+        //     const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        //     return new string(Enumerable.Repeat(chars, length)
+        //         .Select(s => s[Random.Next(s.Length)]).ToArray());
+        // }
 
         private void HandleCreateEntity(object arg)
         {
@@ -154,19 +193,22 @@ namespace LPS.Core
                 case CreateType.Anywhere:
                     break;
                 case CreateType.Manual:
-                    var newID = RandomString(16);
-                    var entityMailBox = new CreateEntityRes
+                    DbHelper.GenerateNewGlobalId().ContinueWith(task =>
                     {
-                        Mailbox = new Rpc.InnerMessages.MailBox()
+                        var newID = task.Result;
+                        var entityMailBox = new CreateEntityRes
                         {
-                            IP = "",
-                            Port = 0,
-                            HostNum = (uint) this.HostNum,
-                            ID = newID,
-                        }
-                    };
-                    var pkg = PackageHelper.FromProtoBuf(entityMailBox, id);
-                    socket.Send(pkg.ToBytes());
+                            Mailbox = new Rpc.InnerMessages.MailBox()
+                            {
+                                IP = "",
+                                Port = 0,
+                                HostNum = (uint)this.HostNum,
+                                ID = newID,
+                            }
+                        };
+                        var pkg = PackageHelper.FromProtoBuf(entityMailBox, id);
+                        socket.Send(pkg.ToBytes());
+                    });
                     break;
             }
         }

@@ -40,12 +40,12 @@ namespace LPS.Core.Rpc.InnerMessages {
             "MjouTFBTLkNvcmUuUnBjLklubmVyTWVzc2FnZXMuRGljdFdpdGhJbnRLZXlB",
             "cmcuUGF5TG9hZEVudHJ5GkQKDFBheUxvYWRFbnRyeRILCgNrZXkYASABKBES",
             "IwoFdmFsdWUYAiABKAsyFC5nb29nbGUucHJvdG9idWYuQW55OgI4ASIJCgdO",
-            "dWxsQXJnIt4BCglFbnRpdHlScGMSDQoFUnBjSUQYASABKA0SOgoNU2VuZGVy",
-            "TWFpbEJveBgCIAEoCzIjLkxQUy5Db3JlLlJwYy5Jbm5lck1lc3NhZ2VzLk1h",
-            "aWxCb3gSOgoNRW50aXR5TWFpbEJveBgDIAEoCzIjLkxQUy5Db3JlLlJwYy5J",
-            "bm5lck1lc3NhZ2VzLk1haWxCb3gSEgoKTWV0aG9kTmFtZRgEIAEoCRISCgpO",
-            "b3RpZnlPbmx5GAUgASgIEiIKBEFyZ3MYBiADKAsyFC5nb29nbGUucHJvdG9i",
-            "dWYuQW55YgZwcm90bzM="));
+            "dWxsQXJnIhoKB0pzb25BcmcSDwoHUGF5TG9hZBgBIAEoCSLeAQoJRW50aXR5",
+            "UnBjEg0KBVJwY0lEGAEgASgNEjoKDVNlbmRlck1haWxCb3gYAiABKAsyIy5M",
+            "UFMuQ29yZS5ScGMuSW5uZXJNZXNzYWdlcy5NYWlsQm94EjoKDUVudGl0eU1h",
+            "aWxCb3gYAyABKAsyIy5MUFMuQ29yZS5ScGMuSW5uZXJNZXNzYWdlcy5NYWls",
+            "Qm94EhIKCk1ldGhvZE5hbWUYBCABKAkSEgoKTm90aWZ5T25seRgFIAEoCBIi",
+            "CgRBcmdzGAYgAygLMhQuZ29vZ2xlLnByb3RvYnVmLkFueWIGcHJvdG8z"));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { global::LPS.Core.Rpc.InnerMessages.MailboxReflection.Descriptor, global::Google.Protobuf.WellKnownTypes.AnyReflection.Descriptor, },
           new pbr::GeneratedClrTypeInfo(null, null, new pbr::GeneratedClrTypeInfo[] {
@@ -59,6 +59,7 @@ namespace LPS.Core.Rpc.InnerMessages {
             new pbr::GeneratedClrTypeInfo(typeof(global::LPS.Core.Rpc.InnerMessages.DictWithStringKeyArg), global::LPS.Core.Rpc.InnerMessages.DictWithStringKeyArg.Parser, new[]{ "PayLoad" }, null, null, null, new pbr::GeneratedClrTypeInfo[] { null, }),
             new pbr::GeneratedClrTypeInfo(typeof(global::LPS.Core.Rpc.InnerMessages.DictWithIntKeyArg), global::LPS.Core.Rpc.InnerMessages.DictWithIntKeyArg.Parser, new[]{ "PayLoad" }, null, null, null, new pbr::GeneratedClrTypeInfo[] { null, }),
             new pbr::GeneratedClrTypeInfo(typeof(global::LPS.Core.Rpc.InnerMessages.NullArg), global::LPS.Core.Rpc.InnerMessages.NullArg.Parser, null, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::LPS.Core.Rpc.InnerMessages.JsonArg), global::LPS.Core.Rpc.InnerMessages.JsonArg.Parser, new[]{ "PayLoad" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::LPS.Core.Rpc.InnerMessages.EntityRpc), global::LPS.Core.Rpc.InnerMessages.EntityRpc.Parser, new[]{ "RpcID", "SenderMailBox", "EntityMailBox", "MethodName", "NotifyOnly", "Args" }, null, null, null, null)
           }));
     }
@@ -1884,6 +1885,195 @@ namespace LPS.Core.Rpc.InnerMessages {
 
   }
 
+  public sealed partial class JsonArg : pb::IMessage<JsonArg>
+  #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      , pb::IBufferMessage
+  #endif
+  {
+    private static readonly pb::MessageParser<JsonArg> _parser = new pb::MessageParser<JsonArg>(() => new JsonArg());
+    private pb::UnknownFieldSet _unknownFields;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static pb::MessageParser<JsonArg> Parser { get { return _parser; } }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static pbr::MessageDescriptor Descriptor {
+      get { return global::LPS.Core.Rpc.InnerMessages.EntityRpcReflection.Descriptor.MessageTypes[10]; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    pbr::MessageDescriptor pb::IMessage.Descriptor {
+      get { return Descriptor; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public JsonArg() {
+      OnConstruction();
+    }
+
+    partial void OnConstruction();
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public JsonArg(JsonArg other) : this() {
+      payLoad_ = other.payLoad_;
+      _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public JsonArg Clone() {
+      return new JsonArg(this);
+    }
+
+    /// <summary>Field number for the "PayLoad" field.</summary>
+    public const int PayLoadFieldNumber = 1;
+    private string payLoad_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string PayLoad {
+      get { return payLoad_; }
+      set {
+        payLoad_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override bool Equals(object other) {
+      return Equals(other as JsonArg);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool Equals(JsonArg other) {
+      if (ReferenceEquals(other, null)) {
+        return false;
+      }
+      if (ReferenceEquals(other, this)) {
+        return true;
+      }
+      if (PayLoad != other.PayLoad) return false;
+      return Equals(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override int GetHashCode() {
+      int hash = 1;
+      if (PayLoad.Length != 0) hash ^= PayLoad.GetHashCode();
+      if (_unknownFields != null) {
+        hash ^= _unknownFields.GetHashCode();
+      }
+      return hash;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override string ToString() {
+      return pb::JsonFormatter.ToDiagnosticString(this);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void WriteTo(pb::CodedOutputStream output) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      output.WriteRawMessage(this);
+    #else
+      if (PayLoad.Length != 0) {
+        output.WriteRawTag(10);
+        output.WriteString(PayLoad);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(output);
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
+      if (PayLoad.Length != 0) {
+        output.WriteRawTag(10);
+        output.WriteString(PayLoad);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(ref output);
+      }
+    }
+    #endif
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public int CalculateSize() {
+      int size = 0;
+      if (PayLoad.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(PayLoad);
+      }
+      if (_unknownFields != null) {
+        size += _unknownFields.CalculateSize();
+      }
+      return size;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void MergeFrom(JsonArg other) {
+      if (other == null) {
+        return;
+      }
+      if (other.PayLoad.Length != 0) {
+        PayLoad = other.PayLoad;
+      }
+      _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void MergeFrom(pb::CodedInputStream input) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      input.ReadRawMessage(this);
+    #else
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+        switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
+            break;
+          case 10: {
+            PayLoad = input.ReadString();
+            break;
+          }
+        }
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+        switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
+            break;
+          case 10: {
+            PayLoad = input.ReadString();
+            break;
+          }
+        }
+      }
+    }
+    #endif
+
+  }
+
   public sealed partial class EntityRpc : pb::IMessage<EntityRpc>
   #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       , pb::IBufferMessage
@@ -1898,7 +2088,7 @@ namespace LPS.Core.Rpc.InnerMessages {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::LPS.Core.Rpc.InnerMessages.EntityRpcReflection.Descriptor.MessageTypes[10]; }
+      get { return global::LPS.Core.Rpc.InnerMessages.EntityRpcReflection.Descriptor.MessageTypes[11]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]

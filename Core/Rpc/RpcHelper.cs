@@ -12,6 +12,7 @@ using LPS.Core.Debug;
 using LPS.Core.Entity;
 using LPS.Core.Ipc;
 using LPS.Core.Rpc.InnerMessages;
+using Newtonsoft.Json;
 
 namespace LPS.Core.Rpc
 {
@@ -29,6 +30,7 @@ namespace LPS.Core.Rpc
         };
 
         private static readonly Dictionary<Type, Dictionary<string, MethodInfo>> RpcMethodInfo = new();
+        private static readonly Dictionary<string, Type> EntityClassMap = new();
 
         public static async Task HandleMessage(
             Connection conn,
@@ -95,9 +97,19 @@ namespace LPS.Core.Rpc
             }
         }
 
-        public static async Task<MailBox> CreateEntityLocally(string entityClassName, Dictionary<string, object> desc)
+        public static DistributeEntity CreateEntityLocally(string entityClassName, string desc)
         {
-            return null;
+            if (EntityClassMap.ContainsKey(entityClassName))
+            {
+                var entityClass = EntityClassMap[entityClassName];
+                if (entityClass.IsSubclassOf(typeof(DistributeEntity)))
+                {
+                    var obj = (Activator.CreateInstance(entityClass, desc) as DistributeEntity)!;
+                    return obj;
+                }
+                throw new Exception($"Invalid class {entityClassName}, only DistributeEntity and its subclass can be created by CreateEntityLocally.");
+            }
+            throw new Exception($"Invalid entity class name {entityClassName}");
         }
 
         public static async Task<DistributeEntity> CreateEntityAnywhere()
@@ -110,9 +122,22 @@ namespace LPS.Core.Rpc
         public static void ScanRpcMethods(string namespaceName)
         {
             var types = Assembly.GetExecutingAssembly().GetTypes()
-                .Where(type => type.IsClass && type.Namespace == namespaceName)
+                .Where(type => type.IsClass && type.Namespace == namespaceName && type.IsDefined(typeof(EntityClassAttribute)))
                 .Select(type => type)
                 .ToList();
+
+            types.ForEach(type =>
+            {
+                if (type.BaseType != typeof(BaseEntity))
+                {
+                    throw new Exception($"Invalid entity class {type}, entity class must inherit from BaseEntity class.");
+                }
+
+                var attrName = type.GetCustomAttribute<EntityClassAttribute>()!.Name;
+                var regName = attrName == "" ? attrName : type.Name;
+                EntityClassMap[regName] = type;
+                Logger.Info($"Register entity pair : {regName} {type}");
+            });
 
             Logger.Info(
                 "Init Rpc Types: ",
@@ -153,7 +178,7 @@ namespace LPS.Core.Rpc
                             }
                             else
                             {
-                                if (methodInfo.Name == "OnResult")
+                                if (methodInfo.Name != "OnResult")
                                 {
                                     valid = ValidateRpcType(returnType);
                                 }
@@ -199,6 +224,10 @@ namespace LPS.Core.Rpc
                 || type == typeof(string)
                 || type == typeof(MailBox)
                 || type == typeof(bool))
+            {
+                return true;
+            }
+            else if (type.IsDefined(typeof(RpcJsonTypeAttribute)))
             {
                 return true;
             }
@@ -325,6 +354,7 @@ namespace LPS.Core.Rpc
                 float f => new FloatArg() {PayLoad = f},
                 string s => new StringArg() {PayLoad = s},
                 MailBox m => new MailBoxArg() {PayLoad = RpcMailBoxToPbMailBox(m)},
+                _ when type.IsDefined(typeof(RpcJsonTypeAttribute)) => new JsonArg() {PayLoad = JsonConvert.SerializeObject(obj)},
                 _ when type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Dictionary<,>) =>
                     RpcDictArgToProtoBuf(obj),
                 _ when type.IsGenericType && type.GetGenericTypeDefinition() == typeof(List<>) =>
@@ -408,6 +438,7 @@ namespace LPS.Core.Rpc
                 _ when arg.Is(FloatArg.Descriptor) => arg.Unpack<FloatArg>().PayLoad,
                 _ when arg.Is(StringArg.Descriptor) => arg.Unpack<StringArg>().PayLoad,
                 _ when arg.Is(MailBoxArg.Descriptor) => PbMailBoxToRpcMailBox(arg.Unpack<MailBoxArg>().PayLoad),
+                _ when arg.Is(JsonArg.Descriptor) => JsonConvert.DeserializeObject(arg.Unpack<JsonArg>().PayLoad, argType),
                 _ when arg.Is(TupleArg.Descriptor) => TupleProtoBufToRpcArg(arg.Unpack<TupleArg>(), argType),
                 _ when arg.Is(DictWithStringKeyArg.Descriptor) => DictProtoBufToRpcArg(
                     arg.Unpack<DictWithStringKeyArg>(), argType),
@@ -461,7 +492,16 @@ namespace LPS.Core.Rpc
                 .Select((arg, index) => ProtobufToRpcArg(arg, argTypes[index]))
                 .ToArray();
 
-            var res = methodInfo.Invoke(entity, args);
+            object res;
+            try
+            {
+                res = methodInfo.Invoke(entity, args);
+            }
+            catch (Exception e)
+            {
+                Logger.Error(e, "Failed to call rpc method.");
+                return;
+            }
 
             // do not callback if rpc is notify-only
             if (entityRpc.NotifyOnly)

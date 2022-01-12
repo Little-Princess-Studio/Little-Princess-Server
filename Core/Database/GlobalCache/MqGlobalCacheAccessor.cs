@@ -19,12 +19,17 @@ namespace LPS.Core.Database.GlobalCache
             throw new System.NotImplementedException();
         }
 
+        public Task<long> Incr(string key)
+        {
+            throw new System.NotImplementedException();
+        }
+
         public Task<bool> Initialize()
         {
             throw new System.NotImplementedException();
         }
 
-        public Task<bool> Set(string key, int val)
+        public Task<bool> Set(string key, long val)
         {
             throw new System.NotImplementedException();
         }
@@ -35,6 +40,11 @@ namespace LPS.Core.Database.GlobalCache
         }
 
         Task<string> IGlobalCache<string>.Get(string key)
+        {
+            throw new System.NotImplementedException();
+        }
+
+        Task<long> IGlobalCache<long>.Get(string key)
         {
             throw new System.NotImplementedException();
         }
