@@ -40,11 +40,12 @@ namespace LPS.Core.Rpc.InnerMessages {
             "MjouTFBTLkNvcmUuUnBjLklubmVyTWVzc2FnZXMuRGljdFdpdGhJbnRLZXlB",
             "cmcuUGF5TG9hZEVudHJ5GkQKDFBheUxvYWRFbnRyeRILCgNrZXkYASABKBES",
             "IwoFdmFsdWUYAiABKAsyFC5nb29nbGUucHJvdG9idWYuQW55OgI4ASIJCgdO",
-            "dWxsQXJnIsoBCglFbnRpdHlScGMSDQoFUnBjSUQYASABKA0SOgoNU2VuZGVy",
+            "dWxsQXJnIt4BCglFbnRpdHlScGMSDQoFUnBjSUQYASABKA0SOgoNU2VuZGVy",
             "TWFpbEJveBgCIAEoCzIjLkxQUy5Db3JlLlJwYy5Jbm5lck1lc3NhZ2VzLk1h",
             "aWxCb3gSOgoNRW50aXR5TWFpbEJveBgDIAEoCzIjLkxQUy5Db3JlLlJwYy5J",
-            "bm5lck1lc3NhZ2VzLk1haWxCb3gSEgoKTWV0aG9kTmFtZRgEIAEoCRIiCgRB",
-            "cmdzGAUgAygLMhQuZ29vZ2xlLnByb3RvYnVmLkFueWIGcHJvdG8z"));
+            "bm5lck1lc3NhZ2VzLk1haWxCb3gSEgoKTWV0aG9kTmFtZRgEIAEoCRISCgpO",
+            "b3RpZnlPbmx5GAUgASgIEiIKBEFyZ3MYBiADKAsyFC5nb29nbGUucHJvdG9i",
+            "dWYuQW55YgZwcm90bzM="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { global::LPS.Core.Rpc.InnerMessages.MailboxReflection.Descriptor, global::Google.Protobuf.WellKnownTypes.AnyReflection.Descriptor, },
           new pbr::GeneratedClrTypeInfo(null, null, new pbr::GeneratedClrTypeInfo[] {
@@ -58,7 +59,7 @@ namespace LPS.Core.Rpc.InnerMessages {
             new pbr::GeneratedClrTypeInfo(typeof(global::LPS.Core.Rpc.InnerMessages.DictWithStringKeyArg), global::LPS.Core.Rpc.InnerMessages.DictWithStringKeyArg.Parser, new[]{ "PayLoad" }, null, null, null, new pbr::GeneratedClrTypeInfo[] { null, }),
             new pbr::GeneratedClrTypeInfo(typeof(global::LPS.Core.Rpc.InnerMessages.DictWithIntKeyArg), global::LPS.Core.Rpc.InnerMessages.DictWithIntKeyArg.Parser, new[]{ "PayLoad" }, null, null, null, new pbr::GeneratedClrTypeInfo[] { null, }),
             new pbr::GeneratedClrTypeInfo(typeof(global::LPS.Core.Rpc.InnerMessages.NullArg), global::LPS.Core.Rpc.InnerMessages.NullArg.Parser, null, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::LPS.Core.Rpc.InnerMessages.EntityRpc), global::LPS.Core.Rpc.InnerMessages.EntityRpc.Parser, new[]{ "RpcID", "SenderMailBox", "EntityMailBox", "MethodName", "Args" }, null, null, null, null)
+            new pbr::GeneratedClrTypeInfo(typeof(global::LPS.Core.Rpc.InnerMessages.EntityRpc), global::LPS.Core.Rpc.InnerMessages.EntityRpc.Parser, new[]{ "RpcID", "SenderMailBox", "EntityMailBox", "MethodName", "NotifyOnly", "Args" }, null, null, null, null)
           }));
     }
     #endregion
@@ -1921,6 +1922,7 @@ namespace LPS.Core.Rpc.InnerMessages {
       senderMailBox_ = other.senderMailBox_ != null ? other.senderMailBox_.Clone() : null;
       entityMailBox_ = other.entityMailBox_ != null ? other.entityMailBox_.Clone() : null;
       methodName_ = other.methodName_;
+      notifyOnly_ = other.notifyOnly_;
       args_ = other.args_.Clone();
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
@@ -1979,10 +1981,22 @@ namespace LPS.Core.Rpc.InnerMessages {
       }
     }
 
+    /// <summary>Field number for the "NotifyOnly" field.</summary>
+    public const int NotifyOnlyFieldNumber = 5;
+    private bool notifyOnly_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool NotifyOnly {
+      get { return notifyOnly_; }
+      set {
+        notifyOnly_ = value;
+      }
+    }
+
     /// <summary>Field number for the "Args" field.</summary>
-    public const int ArgsFieldNumber = 5;
+    public const int ArgsFieldNumber = 6;
     private static readonly pb::FieldCodec<global::Google.Protobuf.WellKnownTypes.Any> _repeated_args_codec
-        = pb::FieldCodec.ForMessage(42, global::Google.Protobuf.WellKnownTypes.Any.Parser);
+        = pb::FieldCodec.ForMessage(50, global::Google.Protobuf.WellKnownTypes.Any.Parser);
     private readonly pbc::RepeatedField<global::Google.Protobuf.WellKnownTypes.Any> args_ = new pbc::RepeatedField<global::Google.Protobuf.WellKnownTypes.Any>();
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
@@ -2009,6 +2023,7 @@ namespace LPS.Core.Rpc.InnerMessages {
       if (!object.Equals(SenderMailBox, other.SenderMailBox)) return false;
       if (!object.Equals(EntityMailBox, other.EntityMailBox)) return false;
       if (MethodName != other.MethodName) return false;
+      if (NotifyOnly != other.NotifyOnly) return false;
       if(!args_.Equals(other.args_)) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
@@ -2021,6 +2036,7 @@ namespace LPS.Core.Rpc.InnerMessages {
       if (senderMailBox_ != null) hash ^= SenderMailBox.GetHashCode();
       if (entityMailBox_ != null) hash ^= EntityMailBox.GetHashCode();
       if (MethodName.Length != 0) hash ^= MethodName.GetHashCode();
+      if (NotifyOnly != false) hash ^= NotifyOnly.GetHashCode();
       hash ^= args_.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
@@ -2056,6 +2072,10 @@ namespace LPS.Core.Rpc.InnerMessages {
         output.WriteRawTag(34);
         output.WriteString(MethodName);
       }
+      if (NotifyOnly != false) {
+        output.WriteRawTag(40);
+        output.WriteBool(NotifyOnly);
+      }
       args_.WriteTo(output, _repeated_args_codec);
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
@@ -2083,6 +2103,10 @@ namespace LPS.Core.Rpc.InnerMessages {
         output.WriteRawTag(34);
         output.WriteString(MethodName);
       }
+      if (NotifyOnly != false) {
+        output.WriteRawTag(40);
+        output.WriteBool(NotifyOnly);
+      }
       args_.WriteTo(ref output, _repeated_args_codec);
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
@@ -2105,6 +2129,9 @@ namespace LPS.Core.Rpc.InnerMessages {
       }
       if (MethodName.Length != 0) {
         size += 1 + pb::CodedOutputStream.ComputeStringSize(MethodName);
+      }
+      if (NotifyOnly != false) {
+        size += 1 + 1;
       }
       size += args_.CalculateSize(_repeated_args_codec);
       if (_unknownFields != null) {
@@ -2136,6 +2163,9 @@ namespace LPS.Core.Rpc.InnerMessages {
       }
       if (other.MethodName.Length != 0) {
         MethodName = other.MethodName;
+      }
+      if (other.NotifyOnly != false) {
+        NotifyOnly = other.NotifyOnly;
       }
       args_.Add(other.args_);
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
@@ -2175,7 +2205,11 @@ namespace LPS.Core.Rpc.InnerMessages {
             MethodName = input.ReadString();
             break;
           }
-          case 42: {
+          case 40: {
+            NotifyOnly = input.ReadBool();
+            break;
+          }
+          case 50: {
             args_.AddEntriesFrom(input, _repeated_args_codec);
             break;
           }
@@ -2216,7 +2250,11 @@ namespace LPS.Core.Rpc.InnerMessages {
             MethodName = input.ReadString();
             break;
           }
-          case 42: {
+          case 40: {
+            NotifyOnly = input.ReadBool();
+            break;
+          }
+          case 50: {
             args_.AddEntriesFrom(ref input, _repeated_args_codec);
             break;
           }

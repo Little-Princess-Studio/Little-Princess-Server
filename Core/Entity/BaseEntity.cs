@@ -23,27 +23,28 @@ namespace LPS.Core.Entity
             send_ = send;
         }
 
-        public void Send(MailBox targetMailBox, string rpcMethodName, params object?[] args)
+        public void Send(MailBox targetMailBox, string rpcMethodName, bool notifyOnly, params object?[] args)
         {
             var id = rpcID_++;
-            var rpcMsg = RpcHelper.BuildRpcMessage(id, rpcMethodName,  this.MailBox!, targetMailBox, args);
+            var rpcMsg = RpcHelper.BuildRpcMessage(id, rpcMethodName,  this.MailBox!, targetMailBox, notifyOnly, args);
             send_.Invoke(rpcMsg);
         }
         
-        public void SendWithRpcID(uint rpcID, MailBox targetMailBox, string rpcMethodName, params object?[] args)
+        public void SendWithRpcID(uint rpcID, MailBox targetMailBox, string rpcMethodName, bool notifyOnly, params object?[] args)
         {
-            var rpcMsg = RpcHelper.BuildRpcMessage(rpcID, rpcMethodName,  this.MailBox!, targetMailBox, args);
+            var rpcMsg = RpcHelper.BuildRpcMessage(rpcID, rpcMethodName,  this.MailBox!, targetMailBox, notifyOnly, args);
             send_.Invoke(rpcMsg);
         }
         
+        // BaseEntity.Call/Call<T> will return a promise 
+        // which always wait for remote git a callback and give caller a async result.
         public Task Call(MailBox targetMailBox, string rpcMethodName, params object?[] args)
         {
             var id = rpcID_++;
-            var rpcMsg = RpcHelper.BuildRpcMessage(id, rpcMethodName,  this.MailBox!, targetMailBox, args);
+            var rpcMsg = RpcHelper.BuildRpcMessage(id, rpcMethodName,  this.MailBox!, targetMailBox, false, args);
             
             var source = new TaskCompletionSource();
             RpcBlankDict[id] = () => source.TrySetResult();
-
             send_.Invoke(rpcMsg);
 
             return source.Task;
@@ -52,14 +53,21 @@ namespace LPS.Core.Entity
         public Task<T> Call<T>(MailBox targetMailBox, string rpcMethodName, params object?[] args)
         {
             var id = rpcID_++;
-            var rpcMsg = RpcHelper.BuildRpcMessage(id, rpcMethodName,  this.MailBox!, targetMailBox, args);
+            var rpcMsg = RpcHelper.BuildRpcMessage(id, rpcMethodName,  this.MailBox!, targetMailBox, false, args);
             
             var source = new TaskCompletionSource<T>();
-
             RpcDict[id] = (res => source.TrySetResult((T)res), typeof(T)); 
             send_.Invoke(rpcMsg);
 
             return source.Task;
+        }
+
+        // BaseEntity.Notify will not return any promise and only send rpc message to remote
+        public void Notify(MailBox targetMailBox, string rpcMethodName, params object?[] args)
+        {
+            var id = rpcID_++;
+            var rpcMsg = RpcHelper.BuildRpcMessage(id, rpcMethodName,  this.MailBox!, targetMailBox, true, args);
+            send_.Invoke(rpcMsg);
         }
 
         // OnResult is a special rpc method with special parameter
@@ -77,11 +85,13 @@ namespace LPS.Core.Entity
                 var (callback, returnType) = RpcDict[rpcID];
                 var rpcArg = RpcHelper.ProtobufToRpcArg(entityRpc.Args[0], returnType);
                 callback.Invoke(rpcArg!);
+                RpcDict.Remove(rpcID);
             }
             else
             {
                 var callback = RpcBlankDict[rpcID];
                 callback.Invoke();
+                RpcBlankDict.Remove(rpcID);
             }
         }
     }

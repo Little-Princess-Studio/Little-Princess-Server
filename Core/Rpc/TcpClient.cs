@@ -54,13 +54,10 @@ namespace LPS.Core.Rpc
 
                 var ipa = IPAddress.Parse(targetIP_);
                 var ipe = new IPEndPoint(ipa, targetPort_);
-                // todo: auto select net protocal later
                 this.Socket = new Socket(ipe.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
 
                 Logger.Debug($"Connect to: {targetIP_}:{targetPort_}");
-
                 // repeat trying to connect
-
                 int retryTimes = 0;
                 while (!this.Socket.Connected && !stopFlag_ && retryTimes <= ConnectRetryMaxTimes)
                 {

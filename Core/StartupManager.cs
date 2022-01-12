@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Diagnostics.Metrics;
 using System.IO;
 using System.Linq;
+using LPS.Core.Database;
 using LPS.Core.Debug;
 using LPS.Core.Rpc;
 using Newtonsoft.Json.Linq;
@@ -58,6 +59,10 @@ namespace LPS.Core
         private static void HandleDBManagerConf(string type, string confFilePath, JObject json)
         {
             Logger.Info("startup dbmanager");
+
+            var name = "dbmanager";
+            var relativePath = GetBinPath();
+            StartSubProcess(type, name, confFilePath, relativePath);
         }
 
         private static void HandleGateConf(string type, string confFilePath, JObject json)
@@ -136,7 +141,6 @@ namespace LPS.Core
             }
             else
             {
-                // todo: test execute the process on windows
                 relativePath = Path.GetRelativePath(Directory.GetCurrentDirectory(), System.Reflection.Assembly.GetExecutingAssembly().Location);
             }
 
@@ -150,6 +154,7 @@ namespace LPS.Core
                 case "hostmanager":
                     break;
                 case "dbmanager":
+                    StartUpManager(name, confFilePath);
                     break;
                 case "gate":
                     StartUpGate(name, confFilePath);
@@ -162,9 +167,38 @@ namespace LPS.Core
             }
         }
 
+        private static void StartUpManager(string name, string confFilePath)
+        {
+            DbHelper.Initialize().Wait();
+
+            var json = GetJson(confFilePath);
+
+            var hostnum = Convert.ToInt32(json["hostnum"]!.ToString());
+
+            var ip = json["ip"]!.ToString();
+            var port = json["port"]!.ToObject<int>();
+
+            var hostManagerInfo = json["hostmanager"]!;
+            var hostManagerIP= hostManagerInfo["ip"]!.ToString();
+            var hostManagerPort = Convert.ToInt32(hostManagerInfo["port"]!.ToString());
+
+            var globalcacheType = json["globalcache"]!["dbtype"]!.ToString();
+            var globalcacheConfig = json["globalcache"]!["dbconfig"]!;
+            var globalcacheIp = globalcacheConfig["ip"]!.ToString();
+            var globalcachePort = globalcacheConfig["port"]!.ToObject<int>();
+            var globalcacheDefaultDb = globalcacheConfig["defaultdb"]!.ToString();
+
+            var globalCacheInfo = Tuple.Create(globalcacheIp, globalcachePort, globalcacheDefaultDb);
+
+            Logger.Debug($"Startup DbManager {name} at {ip}:{port}");
+            var dbManager = new DbManager(ip, port, hostnum, hostManagerIP, hostManagerPort, globalCacheInfo);
+            dbManager.Loop();
+        }
+
         private static void StartUpGate(string name, string confFilePath)
         {
             RpcHelper.ScanRpcMethods("LPS.Core.Entity");
+            DbHelper.Initialize().Wait();
 
             var json = GetJson(confFilePath);
 
@@ -205,6 +239,7 @@ namespace LPS.Core
         private static void StartUpServer(string name, string confFilePath)
         {
             RpcHelper.ScanRpcMethods("LPS.Core.Entity");
+            DbHelper.Initialize().Wait();
 
             var json = GetJson(confFilePath);
 

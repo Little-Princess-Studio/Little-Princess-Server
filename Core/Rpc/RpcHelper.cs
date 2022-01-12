@@ -79,7 +79,6 @@ namespace LPS.Core.Rpc
                 Logger.Error(ex, $"Read socket data failed, socket will close {ipEndPoint!.Address} {ipEndPoint.Port}");
             }
 
-            // connections_.Remove(conn);
             onExitLoop?.Invoke();
 
             try
@@ -404,10 +403,12 @@ namespace LPS.Core.Rpc
             object? obj = arg switch
             {
                 _ when arg.Is(NullArg.Descriptor) => null,
+                _ when arg.Is(BoolArg.Descriptor) => arg.Unpack<BoolArg>().PayLoad,
                 _ when arg.Is(IntArg.Descriptor) => arg.Unpack<IntArg>().PayLoad,
                 _ when arg.Is(FloatArg.Descriptor) => arg.Unpack<FloatArg>().PayLoad,
                 _ when arg.Is(StringArg.Descriptor) => arg.Unpack<StringArg>().PayLoad,
                 _ when arg.Is(MailBoxArg.Descriptor) => PbMailBoxToRpcMailBox(arg.Unpack<MailBoxArg>().PayLoad),
+                _ when arg.Is(TupleArg.Descriptor) => TupleProtoBufToRpcArg(arg.Unpack<TupleArg>(), argType),
                 _ when arg.Is(DictWithStringKeyArg.Descriptor) => DictProtoBufToRpcArg(
                     arg.Unpack<DictWithStringKeyArg>(), argType),
                 _ when arg.Is(DictWithIntKeyArg.Descriptor) => DictProtoBufToRpcArg(arg.Unpack<DictWithIntKeyArg>(),
@@ -422,7 +423,7 @@ namespace LPS.Core.Rpc
         #endregion
 
         public static EntityRpc BuildRpcMessage(
-            uint rpcID, string rpcMethodName, MailBox sender, MailBox target, params object?[] args)
+            uint rpcID, string rpcMethodName, MailBox sender, MailBox target, bool notifyOnly, params object?[] args)
         {
             var rpc = new EntityRpc()
             {
@@ -430,10 +431,11 @@ namespace LPS.Core.Rpc
                 SenderMailBox = RpcMailBoxToPbMailBox(sender),
                 EntityMailBox = RpcMailBoxToPbMailBox(target),
                 MethodName = rpcMethodName,
+                NotifyOnly = notifyOnly,
             };
 
             Array.ForEach(args,
-                arg => { rpc.Args.Add(Google.Protobuf.WellKnownTypes.Any.Pack(RpcArgToProtobuf(arg))); });
+                arg => rpc.Args.Add(Google.Protobuf.WellKnownTypes.Any.Pack(RpcArgToProtobuf(arg))));
 
             return rpc;
         }
@@ -447,6 +449,7 @@ namespace LPS.Core.Rpc
         {
             var methodInfo = GetRpcMethodArgTypes(entity.GetType(), entityRpc.MethodName);
 
+            // OnResult is a special rpc method.
             if (entityRpc.MethodName == "OnResult")
             {
                 methodInfo.Invoke(entity, new object?[] {entityRpc});
@@ -459,6 +462,13 @@ namespace LPS.Core.Rpc
                 .ToArray();
 
             var res = methodInfo.Invoke(entity, args);
+
+            // do not callback if rpc is notify-only
+            if (entityRpc.NotifyOnly)
+            {
+                return;
+            }
+
             var senderMailBox = entityRpc.SenderMailBox;
 
             if (res != null && methodInfo.ReturnType.IsGenericType &&
@@ -470,6 +480,7 @@ namespace LPS.Core.Rpc
                         entityRpc.RpcID,
                         PbMailBoxToRpcMailBox(senderMailBox),
                         "OnResult",
+                        true,
                         t.Result);
                 
                 // for Dict/List/Tuple Type
@@ -478,6 +489,7 @@ namespace LPS.Core.Rpc
                         entityRpc.RpcID,
                         PbMailBoxToRpcMailBox(senderMailBox),
                         "OnResult",
+                        true,
                         t.Result);
                 
                 switch (res)
@@ -530,7 +542,7 @@ namespace LPS.Core.Rpc
             }
             else
             {
-                entity.SendWithRpcID(entityRpc.RpcID, PbMailBoxToRpcMailBox(senderMailBox), "OnResult", res);
+                entity.SendWithRpcID(entityRpc.RpcID, PbMailBoxToRpcMailBox(senderMailBox), "OnResult", true, res);
             }
         }
     }

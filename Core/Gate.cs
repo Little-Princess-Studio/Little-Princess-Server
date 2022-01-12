@@ -421,7 +421,7 @@ namespace LPS.Core
         public void Loop()
         {
             Logger.Debug($"Start gate at {this.IP}:{this.Port}");
-            this.tcpGateServer_.Run();
+            tcpGateServer_.Run();
             
             Array.ForEach(tcpClientsToServer_, client => client.Run());
             Array.ForEach(tcpClientsToOtherGate_, client => client.Run());
@@ -448,8 +448,6 @@ namespace LPS.Core
 
             otherGatesReadyCountdownEvent_.Wait();
             Logger.Debug("waiting completed");
-
-            // todo: wait for other gate ready
 
             Logger.Debug("Try to call Echo method by mailbox");
             Array.ForEach(tcpClientsToServer_, client =>
