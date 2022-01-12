@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using LPS.Core.Debug;
 using LPS.Core.Rpc;
 using LPS.Core.Rpc.InnerMessages;
 using MailBox = LPS.Core.Rpc.MailBox;
@@ -10,9 +11,8 @@ namespace LPS.Core.Entity
     public abstract class BaseEntity {
         public MailBox? MailBox { get; protected init; }
 
-        private static readonly Dictionary<uint, (Action<object>, Type)> RpcDict = new ();
-        private static readonly Dictionary<uint, Action> RpcBlankDict = new ();
-
+        private readonly Dictionary<uint, (Action<object>, Type)> RpcDict = new ();
+        private readonly Dictionary<uint, Action> RpcBlankDict = new ();
         
         private readonly Action<EntityRpc> send_;
 
@@ -42,8 +42,8 @@ namespace LPS.Core.Entity
             var rpcMsg = RpcHelper.BuildRpcMessage(id, rpcMethodName,  this.MailBox!, targetMailBox, args);
             
             var source = new TaskCompletionSource();
+            RpcBlankDict[id] = () => source.TrySetResult();
 
-            RpcBlankDict[id] = () => source.TrySetResult(); 
             send_.Invoke(rpcMsg);
 
             return source.Task;

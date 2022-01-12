@@ -76,6 +76,7 @@ namespace LPS.Core.Rpc.InnerMessages
         CreateEntity,
         ExchangeMailBox,
         ExchangeMailBoxRes,
+        Control,
     }
 
     public static class PackageHelper
@@ -89,6 +90,7 @@ namespace LPS.Core.Rpc.InnerMessages
             { PackageType.ExchangeMailBox, (in Package pkg) => GetProtoBufObject<ExchangeMailBox>(pkg) },
             { PackageType.ExchangeMailBoxRes, (in Package pkg) => GetProtoBufObject<ExchangeMailBoxRes>(pkg) },
             { PackageType.EntityRpc, (in Package pkg) => GetProtoBufObject<EntityRpc>(pkg) },
+            { PackageType.Control, (in Package pkg) => GetProtoBufObject<Control>(pkg) },
         };
 
         private static readonly Dictionary<Type, PackageType> Type2Enum = new()
@@ -99,6 +101,7 @@ namespace LPS.Core.Rpc.InnerMessages
             { typeof(ExchangeMailBox), PackageType.ExchangeMailBox },
             { typeof(ExchangeMailBoxRes), PackageType.ExchangeMailBoxRes },
             { typeof(EntityRpc), PackageType.EntityRpc },
+            { typeof(Control), PackageType.Control },
         };
 
         private static class MessageParserWrapper<T> where T : IMessage<T>, new ()

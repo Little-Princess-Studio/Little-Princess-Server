@@ -19,6 +19,42 @@ namespace LPS.Core.Rpc
         {
             return $"Mailbox: {this.ID} {this.IP} {this.Port} {this.HostNum}";
         }
-        
+
+        public bool CompareOnlyID(MailBox other)
+        {
+            return this.ID == other.ID;
+        }
+
+        public bool CompareOnlyID(InnerMessages.MailBox other)
+        {
+            return this.ID == other.ID;
+        }
+
+        public bool CompareFull(MailBox other)
+        {
+            return this.ID == other.ID
+                && this.IP == other.IP
+                && this.Port == other.Port
+                && this.HostNum == other.HostNum;
+        }
+
+        public bool CompareFull(InnerMessages.MailBox other)
+        {
+            return this.ID == other.ID
+                && this.IP == other.IP
+                && this.Port == other.Port
+                && this.HostNum == other.HostNum;
+        }
+
+        public bool CompareOnlyAddress(InnerMessages.MailBox other)
+        {
+            return this.IP == other.IP && this.Port == other.Port;
+        }
+
+        public bool CompareOnlyAddress(MailBox other)
+        {
+            return this.IP == other.IP && this.Port == other.Port;
+        }
+
     }
 }

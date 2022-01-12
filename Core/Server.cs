@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using Google.Protobuf;
 using LPS.Core.Debug;
@@ -22,15 +23,13 @@ namespace LPS.Core
 
         private readonly string hostManagerIP_;
         private readonly int hostManagerPort_;
-
         private readonly ServerEntity entity_;
-
         // private Dictionary<MailBox, BaseEntity> entitiesMap_ = new();
         private readonly TcpServer tcpServer_;
-
         private Connection[] GateConnections => tcpServer_.AllConnections;
-
         private static readonly Random Random = new Random();
+        private Dictionary<string, BaseEntity> localEntityDict_ = new();
+        
 
         public Server(string name, string ip, int port, int hostnum, string hostManagerIP, int hostManagerPort)
         {
@@ -48,12 +47,14 @@ namespace LPS.Core
             hostManagerIP_ = hostManagerIP;
             hostManagerPort_ = hostManagerPort;
 
+            // how server entity send msg
             entity_ = new(new Rpc.MailBox(RandomString(16), ip, port, hostnum),
                 entityRpc =>
                 {
                     // send this rpc to gate
                     var targetMailBox = entityRpc.EntityMailBox;
 
+                    // send to self
                     if (targetMailBox.ID == this.entity_!.MailBox!.ID
                         && targetMailBox.IP == this.entity_.MailBox.IP
                         && targetMailBox.Port == this.entity_.MailBox.Port
@@ -61,7 +62,12 @@ namespace LPS.Core
                     {
                         RpcHelper.CallLocalEntity(this.entity_, entityRpc);
                     }
-                    // todo: call local entity
+                    // send to local entity
+                    else if (localEntityDict_.ContainsKey(entityRpc.EntityMailBox.ID))
+                    {
+                        var entity = localEntityDict_[entityRpc.EntityMailBox.ID];
+                        RpcHelper.CallLocalEntity(entity, entityRpc);
+                    }
                     else
                     {
                         // redirect to gate
@@ -98,12 +104,15 @@ namespace LPS.Core
             tcpServer_.UnregisterMessageHandler(PackageType.ExchangeMailBox, this.HandleExchangeMailBox);
         }
 
+        // how server handle entity rpc
         private void HandleEntityRpc(object arg)
         {
             var (msg, conn, _) = (arg as Tuple<IMessage, Connection, UInt32>)!;
             var entityRpc = (msg as EntityRpc)!;
 
             var targetMailBox = entityRpc.EntityMailBox;
+
+            Logger.Info($"HandleEntityRpc.entityRpc.rpcID = {entityRpc.RpcID}");
 
             if (targetMailBox.ID == this.entity_!.MailBox!.ID
                 && targetMailBox.IP == this.entity_.MailBox.IP

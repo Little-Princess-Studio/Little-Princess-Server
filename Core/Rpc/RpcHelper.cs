@@ -48,6 +48,7 @@ namespace LPS.Core.Rpc
 
                     if (len < 1)
                     {
+                        Logger.Info("Remote close the connection.");
                         break;
                     }
 
@@ -59,13 +60,13 @@ namespace LPS.Core.Rpc
                         var arg = Tuple.Create(pb, conn, pkg.Header.ID);
                         var msg = new Message(type, arg);
 
-                        Logger.Info($"msg recv: {msg.Key}");
+                        Logger.Info($"msg recv: {pb}");
 
                         onGotMessage(msg);
                     }
                 }
 
-                Logger.Debug("Connection Closed.");
+                Logger.Debug($"Connection Closed. {conn.Status} {!stopCondition()}");
             }
             catch (OperationCanceledException ex)
             {
@@ -444,7 +445,7 @@ namespace LPS.Core.Rpc
         
         public static void CallLocalEntity(BaseEntity entity, EntityRpc entityRpc)
         {
-            var methodInfo = RpcHelper.GetRpcMethodArgTypes(entity.GetType(), entityRpc.MethodName);
+            var methodInfo = GetRpcMethodArgTypes(entity.GetType(), entityRpc.MethodName);
 
             if (entityRpc.MethodName == "OnResult")
             {
@@ -453,9 +454,8 @@ namespace LPS.Core.Rpc
             }
             
             var argTypes = methodInfo.GetParameters().Select(info => info.GetType()).ToArray();
-            Logger.Debug($"rpc method arg types: {string.Join(',', argTypes.Select(arg => arg.Name))}");
             var args = entityRpc.Args
-                .Select((arg, index) => RpcHelper.ProtobufToRpcArg(arg, argTypes[index]))
+                .Select((arg, index) => ProtobufToRpcArg(arg, argTypes[index]))
                 .ToArray();
 
             var res = methodInfo.Invoke(entity, args);
@@ -468,7 +468,7 @@ namespace LPS.Core.Rpc
                 void Send<T>(Task<T> t) =>
                     entity.SendWithRpcID(
                         entityRpc.RpcID,
-                        RpcHelper.PbMailBoxToRpcMailBox(senderMailBox),
+                        PbMailBoxToRpcMailBox(senderMailBox),
                         "OnResult",
                         t.Result);
                 
@@ -476,7 +476,7 @@ namespace LPS.Core.Rpc
                 void SendDynamic(dynamic t) =>
                     entity.SendWithRpcID(
                         entityRpc.RpcID,
-                        RpcHelper.PbMailBoxToRpcMailBox(senderMailBox),
+                        PbMailBoxToRpcMailBox(senderMailBox),
                         "OnResult",
                         t.Result);
                 
@@ -530,7 +530,7 @@ namespace LPS.Core.Rpc
             }
             else
             {
-                entity.Send(RpcHelper.PbMailBoxToRpcMailBox(senderMailBox), "OnResult", res);
+                entity.SendWithRpcID(entityRpc.RpcID, PbMailBoxToRpcMailBox(senderMailBox), "OnResult", res);
             }
         }
     }

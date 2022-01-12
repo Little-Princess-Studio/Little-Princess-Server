@@ -44,6 +44,7 @@ namespace LPS.Core.Ipc
             else
             {
                 Logger.Warn($"{key} not registered.");
+                // throw new Exception($"{key} not registered.");
             }
         }
     }

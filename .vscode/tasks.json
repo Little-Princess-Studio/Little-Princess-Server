@@ -11,10 +11,10 @@
         },
         {
             "label": "kill_process",
-            "command": "./scripts/force_stop_server.sh",
+            "command": "cd scripts && ./force_stop_server.sh",
             "type": "shell",
             "presentation": {
-                "reveal": "always",
+                "reveal": "silent",
                 "panel": "new"
               }
             },

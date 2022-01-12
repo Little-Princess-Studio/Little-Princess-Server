@@ -17,6 +17,7 @@ namespace LPS.Core.Rpc
         public Socket? Socket { get; private set; }
         public Action? OnInit { get; set; }
         public Action? OnDispose { get; set; }
+        public Action? OnConnected { get; set; }
         public MailBox? MailBox { get; set; }
 #nullable disable
         private readonly SandBox sandboxIO_;
@@ -25,15 +26,19 @@ namespace LPS.Core.Rpc
         private readonly string targetIP_;
         private readonly int targetPort_;
         private readonly TokenSequence<uint> tokenSequence_ = new();
-        private readonly ConcurrentQueue<Tuple<IMessage, bool>> sendQueue_ = new();
+        private readonly ConcurrentQueue<Tuple<TcpClient, IMessage, bool>> sendQueue_;
         private bool stopFlag_;
         private const int ConnectRetryMaxTimes = 10;
         private uint idCounter_ = 0;
 
-        public TcpClient(string targetIP, int targetPort)
+        public string TargetIP => targetIP_;
+        public int TargetPort => targetPort_;
+
+        public TcpClient(string targetIP, int targetPort, ConcurrentQueue<Tuple<TcpClient, IMessage, bool>> sendQueue)
         {
             targetIP_ = targetIP;
             targetPort_ = targetPort;
+            sendQueue_ = sendQueue;
 
             msgDispacher_ = new Dispatcher();
             bus_ = new Bus(msgDispacher_);
@@ -41,10 +46,12 @@ namespace LPS.Core.Rpc
             sandboxIO_ = SandBox.Create(this.IOHandler);
         }
 
-        private void IOHandler()
+        private async Task IOHandler()
         {
             try
             {
+                this.OnInit?.Invoke();
+
                 var ipa = IPAddress.Parse(targetIP_);
                 var ipe = new IPEndPoint(ipa, targetPort_);
                 // todo: auto select net protocal later
@@ -79,26 +86,12 @@ namespace LPS.Core.Rpc
             }
             catch (Exception)
             {
+                this.OnDispose?.Invoke();
                 throw;
             }
 
-            this.OnInit?.Invoke();
-
-            #region init bus pump task
-            var busPumpTask = new Task(() =>
-            {
-                this.PumpMessageHandler();
-            });
-            busPumpTask.Start();
-            #endregion
-
-            #region init send queue task
-            var sendQueueTask = new Task(() =>
-            {
-                this.SendQueueMessageHandler();
-            });
-            sendQueueTask.Start();
-            #endregion
+            Logger.Info("Connect to server succ.");
+            OnConnected?.Invoke();
 
             var cancellationTokenSource = new CancellationTokenSource();
             var conn = Connection.Create(this.Socket, cancellationTokenSource);
@@ -106,31 +99,15 @@ namespace LPS.Core.Rpc
 
             while (!stopFlag_)
             {
-                this.HandleMessage(conn);
-                Thread.Sleep(0);
+                await this.HandleMessage(conn);
+                Thread.Sleep(1);
             }
 
             cancellationTokenSource.Cancel();
             this.OnDispose?.Invoke();
         }
 
-        private void PumpMessageHandler()
-        {
-            try
-            {
-                while (!stopFlag_)
-                {
-                    this.bus_.Pump();
-                    Thread.Sleep(0);
-                }
-            }
-            catch (Exception e)
-            {
-                Logger.Error(e, "Pump message failed.");
-            }
-        }
-
-        private async void HandleMessage(Connection conn)
+        private async Task HandleMessage(Connection conn)
         {
             await RpcHelper.HandleMessage(
                 conn,
@@ -139,51 +116,20 @@ namespace LPS.Core.Rpc
                 null);
         }
 
-        private void SendQueueMessageHandler()
-        {
-            while (!stopFlag_)
-            {
-                if (!sendQueue_.IsEmpty)
-                {
-                    var res = sendQueue_.TryDequeue(out var tp);
-                    if (res)
-                    {
-                        (var msg, var reentry) = tp;
-
-                        var id = idCounter_++;
-                        if (!reentry)
-                        {
-                            tokenSequence_.Enqueue(id);
-                        }
-
-                        var pkg = PackageHelper.FromProtoBuf(msg, id);
-                        
-                        try
-                        {
-                            this.Socket.Send(pkg.ToBytes());
-                        }
-                        catch (Exception e)
-                        {
-                            // TODO: try reconnect
-                            Logger.Error(e, "Send msg failed.");
-                            this.Stop();
-                        }
-                    }
-                }
-                Thread.Sleep(0);
-            }
-        }
+        public uint GenerateMsgID() => idCounter_++;
 
         public void Send(IMessage msg, bool reentry=true)
         {
             try {
-                sendQueue_.Enqueue(Tuple.Create(msg, reentry));
+                sendQueue_.Enqueue(Tuple.Create(this, msg, reentry));
             }
             catch (Exception e)
             {
                 Logger.Error(e, "Send Error.");
             }
         }
+
+        public void Pump() => this.bus_.Pump();
 
         public void Run()
         {

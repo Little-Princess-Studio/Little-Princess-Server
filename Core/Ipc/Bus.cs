@@ -41,7 +41,6 @@ namespace LPS.Core.Ipc
 
             do
             {
-                Logger.Debug($"pump {msg.Key}");
                 dispatcher_.Dispatch(msg.Key, msg.arg);
                 succ = this.TryDeque(out msg);
             } while (succ);

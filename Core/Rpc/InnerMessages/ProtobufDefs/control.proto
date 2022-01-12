@@ -1,0 +1,20 @@
+syntax = "proto3";
+package LPS.Core.Rpc.InnerMessages;
+
+enum ControlMessage {
+    Ready = 0;
+    Restart = 1;
+    ShutDown = 2;
+}
+
+enum RemoteType {
+    HostManager = 0;
+    DBManager = 1;
+    Server = 2;
+    Gate = 3;
+}
+
+message Control {
+  RemoteType From = 1;
+  ControlMessage Message = 2;
+}

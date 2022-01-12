@@ -64,10 +64,10 @@ namespace LPS.Core
         {
             Logger.Info("startup gates");
 
-            var dict = json["gates"].ToObject<Dictionary<string, JToken>>();
+            var dict = json["gates"]!.ToObject<Dictionary<string, JToken>>();
 
             var relativePath = GetBinPath();
-            foreach (var name in dict.Keys)
+            foreach (var name in dict!.Keys)
             {
                 StartSubProcess(type, name, confFilePath, relativePath);
             }
@@ -86,10 +86,10 @@ namespace LPS.Core
         {
             Logger.Info("startup servers");
 
-            var dict = json["servers"].ToObject<Dictionary<string, JToken>>();
+            var dict = json["servers"]!.ToObject<Dictionary<string, JToken>>();
 
             var relativePath = GetBinPath();
-            foreach (var name in dict.Keys)
+            foreach (var name in dict!.Keys)
             {
                 StartSubProcess(type, name, confFilePath, relativePath);
             }
@@ -168,27 +168,37 @@ namespace LPS.Core
 
             var json = GetJson(confFilePath);
 
-            var hostnum = Convert.ToInt32(json["hostnum"].ToString());
+            var hostnum = Convert.ToInt32(json["hostnum"]!.ToString());
 
-            var gateInfo = json["gates"][name];
-            var ip = gateInfo["ip"].ToString();
-            var port = Convert.ToInt32(gateInfo["port"].ToString());
+            var gateInfo = json["gates"]![name]!;
+            var ip = gateInfo["ip"]!.ToString();
+            var port = Convert.ToInt32(gateInfo["port"]!.ToString());
 
-            var hostManagerInfo = json["hostmanager"];
-            var hostManagerIP= hostManagerInfo["ip"].ToString();
-            var hostManagerPort = Convert.ToInt32(hostManagerInfo["port"].ToString());
+            var hostManagerInfo = json["hostmanager"]!;
+            var hostManagerIP= hostManagerInfo["ip"]!.ToString();
+            var hostManagerPort = Convert.ToInt32(hostManagerInfo["port"]!.ToString());
 
             #region get servers' ip/port
-            var serverJson = GetJson(json["server_conf"].ToString());
-            var dict = serverJson["servers"].ToObject<Dictionary<string, JToken>>();
+            var serverJson = GetJson(json["server_conf"]!.ToString());
+            var dict = serverJson["servers"]!.ToObject<Dictionary<string, JToken>>();
 
-            var servers = dict.Select(pair => Tuple.Create(
-                pair.Value["ip"].ToString(),
-                pair.Value["port"].ToObject<int>())).ToArray();
+            var servers = dict!.Select(pair => Tuple.Create(
+                pair.Value["ip"]!.ToString(),
+                pair.Value["port"]!.ToObject<int>())).ToArray();
+            #endregion
+
+            #region get other gate's ip/port
+            var otherGates = json["gates"]!.ToObject<Dictionary<string, JToken>>()!
+                                        .Where(pair => pair.Key != name)
+                                        .Select(
+                                            pair => Tuple.Create(pair.Value["ip"]!.ToString(),
+                                            pair.Value["port"]!.ToObject<int>()))
+                                        .ToArray();
+                 
             #endregion
 
             Logger.Debug($"Startup Gate {name} at {ip}:{port}");
-            var gate = new Gate(name, ip, port, hostnum, hostManagerIP, hostManagerPort, servers);
+            var gate = new Gate(name, ip, port, hostnum, hostManagerIP, hostManagerPort, servers, otherGates);
             gate.Loop();
         } 
 
@@ -198,15 +208,15 @@ namespace LPS.Core
 
             var json = GetJson(confFilePath);
 
-            var hostnum = Convert.ToInt32(json["hostnum"].ToString());
+            var hostnum = Convert.ToInt32(json["hostnum"]!.ToString());
 
-            var serverInfo = json["servers"][name];
-            var ip = serverInfo["ip"].ToString();
-            var port = Convert.ToInt32(serverInfo["port"].ToString());
+            var serverInfo = json["servers"]![name]!;
+            var ip = serverInfo["ip"]!.ToString();
+            var port = Convert.ToInt32(serverInfo["port"]!.ToString());
 
-            var hostManagerInfo = json["hostmanager"];
-            var hostManagerIP= hostManagerInfo["ip"].ToString();
-            var hostManagerPort = Convert.ToInt32(hostManagerInfo["port"].ToString());
+            var hostManagerInfo = json["hostmanager"]!;
+            var hostManagerIP= hostManagerInfo["ip"]!.ToString();
+            var hostManagerPort = Convert.ToInt32(hostManagerInfo["port"]!.ToString());
 
             Logger.Debug($"Startup Server {name} at {ip}:{port}");
             var server = new Server(name, ip, port, hostnum, hostManagerIP, hostManagerPort);

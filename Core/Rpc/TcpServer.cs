@@ -20,7 +20,7 @@ namespace LPS.Core.Rpc
     {
         public string IP { get; private set; }
         public int Port { get; private set; }
-        
+
         private bool stopFlag_;
         private readonly Dictionary<Connection, Task> connections_ = new();
         private readonly SandBox sandboxIO_;
@@ -36,7 +36,9 @@ namespace LPS.Core.Rpc
         public Connection[] AllConnections => socketToConn_.Values.ToArray();
         private readonly ConcurrentQueue<(Connection, IMessage)> sendQueue_ = new();
         private uint serverEntityPackageId_;
-        
+
+        public bool Stopped => stopFlag_;
+
         public TcpServer(string ip, int port)
         {
             this.IP = ip;
@@ -61,6 +63,7 @@ namespace LPS.Core.Rpc
 
         public void Stop()
         {
+            Logger.Debug("stopped");
             this.stopFlag_ = true;
             try
             {
@@ -78,6 +81,8 @@ namespace LPS.Core.Rpc
 
             Logger.Debug($"Start server {this.IP} {this.Port}");
 
+            this.OnInit?.Invoke();
+
             var ipa = IPAddress.Parse(this.IP);
             var ipe = new IPEndPoint(ipa, this.Port);
 
@@ -89,23 +94,22 @@ namespace LPS.Core.Rpc
 
             #endregion
 
-            this.OnInit?.Invoke();
-
             #region init bus pump task
-            var busPumpTask = new Task(this.PumpMessageHandler);
-            busPumpTask.Start();
+            var busPumpSandBox = SandBox.Create(this.PumpMessageHandler);
+            busPumpSandBox.Run();
             #endregion
 
             #region init send queue task
-            var sendQueueTask = new Task(this.SendQueueMessageHandler);
-            sendQueueTask.Start();
+            var sendQueueSandBox = SandBox.Create(this.SendQueueMessageHandler);
+            sendQueueSandBox.Run();
             #endregion
 
             #region message loop
             while (!stopFlag_)
             {
                 Socket clientSocket;
-                try {
+                try
+                {
                     clientSocket = this.Socket!.Accept();
                 }
                 catch (Exception e)
@@ -124,9 +128,9 @@ namespace LPS.Core.Rpc
 
                 conn.Connect();
 
-                var task = new Task(() =>
+                var task = new Task(async () =>
                 {
-                    this.HandleMessage(conn);
+                    await this.HandleMessage(conn);
                 }, cancelTokenSource.Token);
 
                 connections_[conn] = task;
@@ -144,7 +148,7 @@ namespace LPS.Core.Rpc
 
             // wait pum task to exit
             Logger.Info("Close pump task");
-            busPumpTask.Wait();
+            // busPumpTask.Wait();
 
             this.OnDispose?.Invoke();
         }
@@ -153,17 +157,20 @@ namespace LPS.Core.Rpc
 
         private void PumpMessageHandler()
         {
-            try
+            while (!stopFlag_)
             {
-                while (!stopFlag_)
+                try
                 {
                     this.bus_.Pump();
-                    Thread.Sleep(0);
                 }
-            }
-            catch (Exception e)
-            {
-                Logger.Error(e, "Pump message failed.");
+                catch (Exception e)
+                {
+                    Logger.Error(e, "Pump message failed.");
+                }
+                finally
+                {
+                    Thread.Sleep(1);
+                }
             }
         }
 
@@ -191,13 +198,14 @@ namespace LPS.Core.Rpc
                         }
                     }
                 }
-                Thread.Sleep(0);
+                Thread.Sleep(1);
             }
         }
 
         public void Send(IMessage msg, Connection conn)
         {
-            try {
+            try
+            {
                 sendQueue_.Enqueue((conn, msg));
             }
             catch (Exception e)
@@ -206,7 +214,7 @@ namespace LPS.Core.Rpc
             }
         }
 
-        private async void HandleMessage(Connection conn)
+        private async Task HandleMessage(Connection conn)
         {
             await RpcHelper.HandleMessage(
                 conn,

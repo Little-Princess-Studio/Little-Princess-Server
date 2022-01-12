@@ -1,5 +1,6 @@
 using System;
 using System.Threading;
+using System.Threading.Tasks;
 using LPS.Core.Debug;
 
 namespace LPS.Core.Ipc
@@ -11,7 +12,9 @@ namespace LPS.Core.Ipc
 
         public int ThreadID => thread_ is null ? throw new Exception("SandBox is empty.") : thread_.ManagedThreadId;
 
-        private Action action_;
+        private object action_;
+
+        private bool isAsyncAction_;
 
         private SandBox() { }
 
@@ -19,7 +22,19 @@ namespace LPS.Core.Ipc
         {
             var sandbox = new SandBox
             {
-                action_ = action
+                action_ = action,
+                isAsyncAction_ = false,
+            };
+
+            return sandbox;
+        }
+
+        public static SandBox Create(Func<Task> action)
+        {
+            var sandbox = new SandBox
+            {
+                action_ = action,
+                isAsyncAction_ = true,
             };
 
             return sandbox;
@@ -31,7 +46,15 @@ namespace LPS.Core.Ipc
             {
                 try
                 {
-                    action_();
+                    if (isAsyncAction_)
+                    {
+                        var promise = (action_ as Func<Task>)!();
+                        promise.Wait();
+                    }
+                    else
+                    {
+                        (action_ as Action)!();
+                    }
                 }
                 catch (ThreadInterruptedException ex) 
                 {
