@@ -169,6 +169,7 @@ namespace LPS.Core
 
         private static void StartUpManager(string name, string confFilePath)
         {
+            RpcProtobufDefs.Initialize();
             DbHelper.Initialize().Wait();
 
             var json = GetJson(confFilePath);
@@ -197,6 +198,7 @@ namespace LPS.Core
 
         private static void StartUpGate(string name, string confFilePath)
         {
+            RpcProtobufDefs.Initialize();
             RpcHelper.ScanRpcMethods("LPS.Core.Entity");
             DbHelper.Initialize().Wait();
 
@@ -238,8 +240,9 @@ namespace LPS.Core
 
         private static void StartUpServer(string name, string confFilePath)
         {
+            RpcProtobufDefs.Initialize();
             RpcHelper.ScanRpcMethods("LPS.Core.Entity");
-            RpcHelper.ScanRpcMethods("LPS.Logic.Entities");
+            RpcHelper.ScanRpcMethods("LPS.Logic.Entity");
             DbHelper.Initialize().Wait();
 
             var json = GetJson(confFilePath);

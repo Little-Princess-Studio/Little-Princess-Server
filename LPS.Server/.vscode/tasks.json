@@ -11,7 +11,7 @@
         },
         {
             "label": "kill_process",
-            "command": "cd scripts && ./force_stop_server.sh",
+            "command": "cd ../scripts && ./force_stop_server.sh",
             "type": "shell",
             "presentation": {
                 "reveal": "silent",
@@ -24,19 +24,18 @@
             "type": "process",
             "args": [
                 "build",
-                "${workspaceFolder}/LPS.Server/LPS.Server.csproj",
+                "${workspaceFolder}/LPS.Server.csproj",
                 "/property:GenerateFullPaths=true",
                 "/consoleloggerparameters:NoSummary"
             ],
             "problemMatcher": "$msCompile"
-        },
-        {
+        },        {
             "label": "publish",
             "command": "dotnet",
             "type": "process",
             "args": [
                 "publish",
-                "${workspaceFolder}/LPS.Server/LPS.Server.csproj",
+                "${workspaceFolder}/LPS.Server.csproj",
                 "/property:GenerateFullPaths=true",
                 "/consoleloggerparameters:NoSummary"
             ],
@@ -49,7 +48,7 @@
             "args": [
                 "watch",
                 "run",
-                "${workspaceFolder}/LPS.Server/LPS.Server.csproj",
+                "${workspaceFolder}/LPS.Server.csproj",
                 "/property:GenerateFullPaths=true",
                 "/consoleloggerparameters:NoSummary"
             ],

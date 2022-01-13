@@ -16,10 +16,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\LPS.Common\LPS.Common.csproj">
-      <Properties>ServerSide=true</Properties>
-      <Properties>ClientSide=false</Properties>
-    </ProjectReference>
+    <ProjectReference Include="..\LPS.Common\LPS.Common.csproj" />
   </ItemGroup>
 
 </Project>

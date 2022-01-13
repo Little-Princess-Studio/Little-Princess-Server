@@ -1,2 +1,2 @@
 #!/bin/bash
-pkill -9 DistServer || echo "Process was not running."
+pkill -9 LPS || echo "Process was not running."

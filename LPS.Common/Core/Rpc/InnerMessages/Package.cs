@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using Google.Protobuf;
 
@@ -82,33 +80,42 @@ namespace LPS.Core.Rpc.InnerMessages
     public static class PackageHelper
     {
         public delegate IMessage CreateIMessage(in Package pkg);
-        
-        private static readonly Dictionary<PackageType, CreateIMessage> Type2ProBuf = new()
+
+        // private static readonly Dictionary<PackageType, CreateIMessage> Type2ProBuf = new()
+        // {
+        //     { PackageType.Authentication, (in Package pkg) => GetProtoBufObject<Authentication>(pkg) },
+        //     { PackageType.CreateEntity, (in Package pkg) => GetProtoBufObject<CreateEntity>(pkg) },
+        //     { PackageType.CreateEntityRes, (in Package pkg) => GetProtoBufObject<CreateEntityRes>(pkg) },
+        //     { PackageType.ExchangeMailBox, (in Package pkg) => GetProtoBufObject<ExchangeMailBox>(pkg) },
+        //     { PackageType.ExchangeMailBoxRes, (in Package pkg) => GetProtoBufObject<ExchangeMailBoxRes>(pkg) },
+        //     { PackageType.Control, (in Package pkg) => GetProtoBufObject<Control>(pkg) },
+        //     { PackageType.EntityRpc, (in Package pkg) => GetProtoBufObject<EntityRpc>(pkg) },
+        // };
+
+        // private static Dictionary<Type, PackageType> Type2Enum = new()
+        // {
+        //     { typeof(Authentication), PackageType.Authentication },
+        //     { typeof(CreateEntity), PackageType.CreateEntity },
+        //     { typeof(CreateEntityRes), PackageType.CreateEntityRes },
+        //     { typeof(ExchangeMailBox), PackageType.ExchangeMailBox },
+        //     { typeof(ExchangeMailBoxRes), PackageType.ExchangeMailBoxRes },
+        //     { typeof(Control), PackageType.Control },
+        //     { typeof(EntityRpc), PackageType.EntityRpc },
+        // };
+
+        private static Dictionary<PackageType, CreateIMessage> Type2Protobuf = null!;
+        private static Dictionary<Type, PackageType> Type2Enum = null!;
+
+        public static void SetType2Protbuf(Dictionary<PackageType, CreateIMessage> type2Protobuf)
         {
-            { PackageType.Authentication, (in Package pkg) => GetProtoBufObject<Authentication>(pkg) },
-#if SERVER_SIDE
-            { PackageType.CreateEntity, (in Package pkg) => GetProtoBufObject<CreateEntity>(pkg) },
-            { PackageType.CreateEntityRes, (in Package pkg) => GetProtoBufObject<CreateEntityRes>(pkg) },
-            { PackageType.ExchangeMailBox, (in Package pkg) => GetProtoBufObject<ExchangeMailBox>(pkg) },
-            { PackageType.ExchangeMailBoxRes, (in Package pkg) => GetProtoBufObject<ExchangeMailBoxRes>(pkg) },
-            { PackageType.Control, (in Package pkg) => GetProtoBufObject<Control>(pkg) },
-#endif
-            { PackageType.EntityRpc, (in Package pkg) => GetProtoBufObject<EntityRpc>(pkg) },
-        };
-        
-        private static Dictionary<Type, PackageType> Type2Enum = new()
+            Type2Protobuf = type2Protobuf;
+        }
+
+        public static void SetType2Enum(Dictionary<Type, PackageType> type2Enum)
         {
-            { typeof(Authentication), PackageType.Authentication },
-#if SERVER_SIDE            
-            { typeof(CreateEntity), PackageType.CreateEntity },
-            { typeof(CreateEntityRes), PackageType.CreateEntityRes },
-            { typeof(ExchangeMailBox), PackageType.ExchangeMailBox },
-            { typeof(ExchangeMailBoxRes), PackageType.ExchangeMailBoxRes },
-            { typeof(Control), PackageType.Control },
-#endif
-            { typeof(EntityRpc), PackageType.EntityRpc },
-        };
-        
+            Type2Enum = type2Enum;
+        }
+
         private static class MessageParserWrapper<T> where T : IMessage<T>, new ()
         {
             private static readonly MessageParser<T> Parser = new(() => new T());
@@ -116,7 +123,7 @@ namespace LPS.Core.Rpc.InnerMessages
             public static MessageParser<T> Get() => Parser;
         }
 
-        private static T GetProtoBufObject<T>(in Package package) where T : IMessage<T>, new ()
+        public static T GetProtoBufObject<T>(in Package package) where T : IMessage<T>, new ()
         {
             var parser = MessageParserWrapper<T>.Get();
             return parser.ParseFrom(package.Body);
@@ -124,7 +131,7 @@ namespace LPS.Core.Rpc.InnerMessages
 
         public static IMessage GetProtoBufObjectByType(PackageType type, in Package package)
         {
-            return Type2ProBuf[type].Invoke(package);
+            return Type2Protobuf[type].Invoke(package);
         }
 
         private static PackageType GetPackageType<T>() => Type2Enum[typeof(T)];

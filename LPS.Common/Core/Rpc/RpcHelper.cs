@@ -98,14 +98,27 @@ namespace LPS.Core.Rpc
 
         public static void ScanRpcMethods(string namespaceName)
         {
-            var types = Assembly.GetExecutingAssembly().GetTypes()
-                .Where(type => type.IsClass && type.Namespace == namespaceName && type.IsDefined(typeof(EntityClassAttribute)))
-                .Select(type => type)
+            var typesEntry = Assembly.GetCallingAssembly().GetTypes()
+                .Where(
+                    type => type.IsClass
+                    && type.Namespace == namespaceName
+                    && Attribute.IsDefined(type, typeof(EntityClassAttribute))
+                    )
                 .ToList();
+
+            var types = Assembly.GetExecutingAssembly()!.GetTypes()
+                .Where(
+                    type => type.IsClass
+                    && type.Namespace == namespaceName
+                    && Attribute.IsDefined(type, typeof(EntityClassAttribute))
+                    )
+                .Concat(typesEntry).ToList();
+
+            Logger.Info($"types: {string.Join(',', types.Select(type => type.Name).ToArray())}");
 
             types.ForEach(type =>
             {
-                if (type.BaseType != typeof(BaseEntity))
+                if (!type.IsSubclassOf(typeof(BaseEntity)))
                 {
                     throw new Exception($"Invalid entity class {type}, entity class must inherit from BaseEntity class.");
                 }

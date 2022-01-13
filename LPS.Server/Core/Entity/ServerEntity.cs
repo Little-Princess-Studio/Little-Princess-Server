@@ -10,7 +10,7 @@ using MailBox = LPS.Core.Rpc.MailBox;
 namespace LPS.Core.Entity
 {
     [EntityClass]
-    internal class ServerEntity : UniqueEntity
+    public class ServerEntity : UniqueEntity
     {
         private readonly Action<string, string, MailBox> onCreateEntity_;
 

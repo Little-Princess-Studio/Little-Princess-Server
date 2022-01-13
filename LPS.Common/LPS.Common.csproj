@@ -6,14 +6,6 @@
     <Nullable>enable</Nullable>
     <RootNamespace>LPS</RootNamespace>
   </PropertyGroup>
-  
-  <PropertyGroup Condition=" '$(ServerSide)'==true ">
-    <DefineConstants>$(DefineConstants);SERVER_SIDE</DefineConstants>
-  </PropertyGroup>
-  
-  <PropertyGroup Condition=" '$(ClientSide)'==true ">
-    <DefineConstants>$(DefineConstants);CLIENT_SIDE</DefineConstants>
-  </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Google.Protobuf" Version="3.19.1" />

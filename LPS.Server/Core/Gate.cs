@@ -45,6 +45,7 @@ namespace LPS.Core
         // if all the tcpclients have connected to server/other gate, countdownEvent_ will down to 0
         private readonly CountdownEvent tcpClientConnectedCountdownEvent_;
         private readonly CountdownEvent otherGatesReadyCountdownEvent_;
+        private readonly CountdownEvent serverMailboxGotEvent_;
 
         public Gate(string name, string ip, int port, int hostnum, string hostManagerIP, int hostManagerPort,
             Tuple<string, int>[] servers, Tuple<string, int>[] otherGates)
@@ -61,6 +62,11 @@ namespace LPS.Core
                 OnDispose = this.UnregisterMessageFromServerAndOtherGateHandlers
             };
 
+            var waitCount = servers.Length + otherGates.Length;
+            tcpClientConnectedCountdownEvent_ = new(waitCount);
+            otherGatesReadyCountdownEvent_ = new(otherGates.Length);
+            serverMailboxGotEvent_ = new(servers.Length);
+
             // connect to each server
             // tcp gate to server handlers msg from server
             tcpClientsToServer_ = new TcpClient[servers.Length];
@@ -72,14 +78,11 @@ namespace LPS.Core
                 {
                     OnInit = () => this.RegisterGateMessageHandlers(tmpIdx),
                     OnDispose = () => this.UnregisterGateMessageHandlers(tmpIdx),
-                };
+                    OnConnected = () => tcpClientConnectedCountdownEvent_.Signal(),
+            };
                 tcpClientsToServer_[idx] = client;
                 ++idx;
             }
-
-            var waitCount = servers.Length + otherGates.Length;
-            tcpClientConnectedCountdownEvent_ = new(waitCount);
-            otherGatesReadyCountdownEvent_ = new(otherGates.Length);
 
             tcpClientsToServer_[0].OnInit = () =>
             {
@@ -290,9 +293,9 @@ namespace LPS.Core
             conn.MailBox = serverEntityMailBox;
             client.MailBox = serverEntityMailBox;
 
-            Logger.Info($"got server mailbox: {serverEntityMailBox}");
+            serverMailboxGotEvent_.Signal();
 
-            tcpClientConnectedCountdownEvent_.Signal();
+            Logger.Info($"got server mailbox: {serverEntityMailBox}");
         }
 
         private void HandleEntityRpcFromServer(TcpClient client, object arg)
@@ -431,11 +434,14 @@ namespace LPS.Core
             Array.ForEach(tcpClientsToServer_, client => client.Run());
             Array.ForEach(tcpClientsToOtherGate_, client => client.Run());
 
+            Logger.Debug("Wait for clients connecting to server");
+            tcpClientConnectedCountdownEvent_.Wait();
+            
             clientsSendQueueSandBox_.Run();
             clientsPumpMsgSandBox_.Run();
 
             Logger.Debug("Wait for server's mailbox");
-            tcpClientConnectedCountdownEvent_.Wait();
+            serverMailboxGotEvent_.Wait();
 
             // NOTE: if tcpClient hash successfully connected to remote, it means remote is already
             // ready to pump message. (tcpServer's OnInit is invoked before tcpServers' Listen)
