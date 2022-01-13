@@ -142,8 +142,6 @@ namespace LPS.Core
 
             var targetMailBox = entityRpc.EntityMailBox;
 
-            Logger.Info($"HandleEntityRpc.entityRpc.rpcID = {entityRpc.RpcID}");
-
             if (this.entity_!.MailBox!.CompareFull(targetMailBox))
             {
                 Logger.Debug($"Call server entity: {entityRpc.MethodName}");

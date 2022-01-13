@@ -47,11 +47,8 @@ namespace LPS.Core.Database
             // 4. convert val to string and padding to 16-digits string
             // 5. convert 16-digits string to base64 string as the globalid
             var globalID = longId;
-            Logger.Debug($"globalID = {globalID}");
             var stringID = Convert.ToString(globalID % 10e16).PadLeft(16, '0');
-            Logger.Debug($"stringID = {stringID}");
             var newID = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(stringID));
-            Logger.Debug($"newID = {newID}");
             return newID;
         }
     }

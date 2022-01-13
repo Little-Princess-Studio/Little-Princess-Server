@@ -458,7 +458,7 @@ namespace LPS.Core
             });
 
             otherGatesReadyCountdownEvent_.Wait();
-            Logger.Debug("waiting completed");
+            Logger.Debug("Waiting completed");
 
             Logger.Debug("Try to call Echo method by mailbox");
             Array.ForEach(tcpClientsToServer_, client =>
