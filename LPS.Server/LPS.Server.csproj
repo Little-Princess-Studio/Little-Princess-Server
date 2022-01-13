@@ -5,7 +5,6 @@
     <TargetFramework>net6.0</TargetFramework>
     <Nullable>enable</Nullable>
     <RootNamespace>LPS</RootNamespace>
-    <DefineConstants>SERVER_SIDE</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>
