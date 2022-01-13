@@ -62,7 +62,11 @@ namespace LPS.Core.Entity
             var source = new TaskCompletionSource();
 
             cancellationTokenSource.Token.Register(
-                () => source.TrySetException(new RpcTimeOutException(this, id)), false);
+                () =>
+                {
+                    this.RemoveRpcRecord(id);
+                    source.TrySetException(new RpcTimeOutException(this, id));
+                }, false);
 
             RpcBlankDict[id] = () => source.TrySetResult();
             OnSend.Invoke(rpcMsg);
@@ -80,7 +84,11 @@ namespace LPS.Core.Entity
             var source = new TaskCompletionSource<T>();
 
             cancellationTokenSource.Token.Register(
-                () => source.TrySetException(new RpcTimeOutException(this, id)), false);
+                () =>
+                {
+                    this.RemoveRpcRecord(id);
+                    source.TrySetException(new RpcTimeOutException(this, id));
+                }, false);
 
             RpcDict[id] = (res => source.TrySetResult((T)res), typeof(T));
             OnSend.Invoke(rpcMsg);

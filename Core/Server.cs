@@ -61,6 +61,7 @@ namespace LPS.Core
                         Logger.Info($"Server register entity with mailbox {mailBox}");
                     })
                     {
+                        // todo: insert local rpc call operation to pump queue, instead of directly calling local entity rpc here.
                         OnSend = entityRpc =>
                         {
                                 // send this rpc to gate
@@ -76,14 +77,9 @@ namespace LPS.Core
                                 {
                                     RpcHelper.CallLocalEntity(this.entity_, entityRpc);
                                 }
-                                catch(RpcTimeOutException e)
-                                {
-                                    e.Who.RemoveRpcRecord(e.RpcID);
-                                    Logger.Error(e, "Rpc time out");
-                                }
                                 catch(Exception e)
                                 {
-                                    Logger.Error(e, "Exception happend when call local entity");
+                                    Logger.Error(e, "Exception happend when call server entity");
                                 }
                             }
                             // send to local entity
@@ -94,11 +90,6 @@ namespace LPS.Core
                                 try
                                 {
                                     RpcHelper.CallLocalEntity(entity, entityRpc);
-                                }
-                                catch(RpcTimeOutException e)
-                                {
-                                    e.Who.RemoveRpcRecord(e.RpcID);
-                                    Logger.Error(e, "Rpc time out");
                                 }
                                 catch(Exception e)
                                 {
@@ -146,22 +137,38 @@ namespace LPS.Core
         // how server handle entity rpc
         private void HandleEntityRpc(object arg)
         {
-            var (msg, conn, _) = (arg as Tuple<IMessage, Connection, UInt32>)!;
+            var (msg, _, _) = (arg as Tuple<IMessage, Connection, UInt32>)!;
             var entityRpc = (msg as EntityRpc)!;
 
             var targetMailBox = entityRpc.EntityMailBox;
 
             Logger.Info($"HandleEntityRpc.entityRpc.rpcID = {entityRpc.RpcID}");
 
-            if (targetMailBox.ID == this.entity_!.MailBox!.ID
-                && targetMailBox.IP == this.entity_.MailBox.IP
-                && targetMailBox.Port == this.entity_.MailBox.Port
-                && targetMailBox.HostNum == this.entity_.MailBox.HostNum)
+            if (this.entity_!.MailBox!.CompareFull(targetMailBox))
             {
                 Logger.Debug($"Call server entity: {entityRpc.MethodName}");
-                RpcHelper.CallLocalEntity(this.entity_, entityRpc);
+                try
+                {
+                    RpcHelper.CallLocalEntity(this.entity_, entityRpc);
+                }
+                catch(Exception e)
+                {
+                    Logger.Error(e, "Exception happend when call server entity");
+                }
+
             }
-            // todo: call local entity
+            else if (localEntityDict_.ContainsKey(this.entity_.MailBox.ID))
+            {
+                var entity = localEntityDict_[this.entity_.MailBox.ID];
+                try
+                {
+                    RpcHelper.CallLocalEntity(entity, entityRpc);
+                }
+                catch(Exception e)
+                {
+                    Logger.Error(e, "Exception happend when call server entity");
+                }
+            }
             else
             {
                 // redirect to gate

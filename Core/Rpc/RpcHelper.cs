@@ -492,7 +492,7 @@ namespace LPS.Core.Rpc
                 .Select((arg, index) => ProtobufToRpcArg(arg, argTypes[index]))
                 .ToArray();
 
-            object res;
+            object? res;
             try
             {
                 res = methodInfo.Invoke(entity, args);

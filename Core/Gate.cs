@@ -163,10 +163,10 @@ namespace LPS.Core
                 Logger.Info("Auth succ");
                 // todo: notify server to create mailbox
 
-                var serverMailBox = RandomServerClient().MailBox;
+                var serverMailBox = RandomServerClient().MailBox!;
 
-                // [var mailbox] = await RPC.Call(server_mb, "CreateUntrusted", content) as Tuple<MailBox>
-                // Send("CreateMailBox")
+                this.entity_!.Call<MailBox>(serverMailBox, "CreateEntity", "Untrusted", "");
+                // .ContinueWith(task => conn.Socket.Send(new Create))
             }
             else
             {
