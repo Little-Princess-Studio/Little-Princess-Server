@@ -103,8 +103,7 @@ namespace LPS.Core.Rpc
                     type => type.IsClass
                     && type.Namespace == namespaceName
                     && Attribute.IsDefined(type, typeof(EntityClassAttribute))
-                    )
-                .ToList();
+                    );
 
             var types = Assembly.GetExecutingAssembly()!.GetTypes()
                 .Where(
@@ -112,7 +111,9 @@ namespace LPS.Core.Rpc
                     && type.Namespace == namespaceName
                     && Attribute.IsDefined(type, typeof(EntityClassAttribute))
                     )
-                .Concat(typesEntry).ToList();
+                .Concat(typesEntry)
+                .Distinct()
+                .ToList();
 
             Logger.Info($"types: {string.Join(',', types.Select(type => type.Name).ToArray())}");
 
