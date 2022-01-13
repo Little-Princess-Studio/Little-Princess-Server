@@ -71,39 +71,44 @@ namespace LPS.Core.Rpc.InnerMessages
     public enum PackageType
     {
         Authentication = 0,
-        CreateEntityRes,
-        EntityRpc,
-        CreateEntity,
-        ExchangeMailBox,
-        ExchangeMailBoxRes,
-        Control,
+        CreateEntityRes = 1,
+        EntityRpc = 2,
+        CreateEntity = 3,
+        ExchangeMailBox = 4,
+        ExchangeMailBoxRes = 5,
+        Control = 6,
     }
 
     public static class PackageHelper
     {
-        private delegate IMessage CreateIMessage(in Package pkg);
+        public delegate IMessage CreateIMessage(in Package pkg);
+        
         private static readonly Dictionary<PackageType, CreateIMessage> Type2ProBuf = new()
         {
             { PackageType.Authentication, (in Package pkg) => GetProtoBufObject<Authentication>(pkg) },
+#if SERVER_SIDE
             { PackageType.CreateEntity, (in Package pkg) => GetProtoBufObject<CreateEntity>(pkg) },
             { PackageType.CreateEntityRes, (in Package pkg) => GetProtoBufObject<CreateEntityRes>(pkg) },
             { PackageType.ExchangeMailBox, (in Package pkg) => GetProtoBufObject<ExchangeMailBox>(pkg) },
             { PackageType.ExchangeMailBoxRes, (in Package pkg) => GetProtoBufObject<ExchangeMailBoxRes>(pkg) },
-            { PackageType.EntityRpc, (in Package pkg) => GetProtoBufObject<EntityRpc>(pkg) },
             { PackageType.Control, (in Package pkg) => GetProtoBufObject<Control>(pkg) },
+#endif
+            { PackageType.EntityRpc, (in Package pkg) => GetProtoBufObject<EntityRpc>(pkg) },
         };
-
-        private static readonly Dictionary<Type, PackageType> Type2Enum = new()
+        
+        private static Dictionary<Type, PackageType> Type2Enum = new()
         {
             { typeof(Authentication), PackageType.Authentication },
+#if SERVER_SIDE            
             { typeof(CreateEntity), PackageType.CreateEntity },
             { typeof(CreateEntityRes), PackageType.CreateEntityRes },
             { typeof(ExchangeMailBox), PackageType.ExchangeMailBox },
             { typeof(ExchangeMailBoxRes), PackageType.ExchangeMailBoxRes },
-            { typeof(EntityRpc), PackageType.EntityRpc },
             { typeof(Control), PackageType.Control },
+#endif
+            { typeof(EntityRpc), PackageType.EntityRpc },
         };
-
+        
         private static class MessageParserWrapper<T> where T : IMessage<T>, new ()
         {
             private static readonly MessageParser<T> Parser = new(() => new T());

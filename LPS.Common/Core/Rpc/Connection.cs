@@ -1,7 +1,4 @@
-using System.Net;
 using System.Net.Sockets;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace LPS.Core.Rpc
 {
@@ -23,7 +20,7 @@ namespace LPS.Core.Rpc
 #nullable disable
         private Connection() { }
 
-        internal static Connection Create(Socket socket, CancellationTokenSource tokenSource)
+        public static Connection Create(Socket socket, CancellationTokenSource tokenSource)
         {
             var newConnection = new Connection
             {

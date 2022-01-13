@@ -55,7 +55,7 @@ namespace LPS.Core
                     new(newID, ip, port, hostnum),
                     (entityClassName, jsonDesc, mailBox) =>
                     {
-                        var entity = RpcHelper.CreateEntityLocally(entityClassName, jsonDesc);
+                        var entity = RpcServerHelper.CreateEntityLocally(entityClassName, jsonDesc);
                         entity.MailBox = mailBox;
                         localEntityDict_[mailBox.ID] = entity;
                         Logger.Info($"Server register entity with mailbox {mailBox}");

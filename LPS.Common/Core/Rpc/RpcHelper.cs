@@ -1,12 +1,8 @@
-using System;
 using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Reflection;
 using System.Runtime.CompilerServices;
-using System.Threading.Tasks;
 using Google.Protobuf;
 using LPS.Core.Debug;
 using LPS.Core.Entity;
@@ -18,6 +14,9 @@ namespace LPS.Core.Rpc
 {
     public static class RpcHelper
     {
+        private static readonly Dictionary<Type, Dictionary<string, MethodInfo>> RpcMethodInfo = new();
+        public static readonly Dictionary<string, Type> EntityClassMap = new();
+
         public static MailBox PbMailBoxToRpcMailBox(InnerMessages.MailBox mb) =>
             new(mb.ID, mb.IP, (int) mb.Port, (int) mb.HostNum);
 
@@ -28,10 +27,7 @@ namespace LPS.Core.Rpc
             Port = (uint) mb.Port,
             HostNum = (uint) mb.HostNum
         };
-
-        private static readonly Dictionary<Type, Dictionary<string, MethodInfo>> RpcMethodInfo = new();
-        private static readonly Dictionary<string, Type> EntityClassMap = new();
-
+        
         public static async Task HandleMessage(
             Connection conn,
             Func<bool> stopCondition,
@@ -97,25 +93,6 @@ namespace LPS.Core.Rpc
             }
         }
 
-        public static DistributeEntity CreateEntityLocally(string entityClassName, string desc)
-        {
-            if (EntityClassMap.ContainsKey(entityClassName))
-            {
-                var entityClass = EntityClassMap[entityClassName];
-                if (entityClass.IsSubclassOf(typeof(DistributeEntity)))
-                {
-                    var obj = (Activator.CreateInstance(entityClass, desc) as DistributeEntity)!;
-                    return obj;
-                }
-                throw new Exception($"Invalid class {entityClassName}, only DistributeEntity and its subclass can be created by CreateEntityLocally.");
-            }
-            throw new Exception($"Invalid entity class name {entityClassName}");
-        }
-
-        public static async Task<DistributeEntity> CreateEntityAnywhere()
-        {
-            return null;
-        }
 
         #region Rpc method registration and validation
 
@@ -145,7 +122,7 @@ namespace LPS.Core.Rpc
             );
 
             types.ForEach(
-                (type) =>
+                type =>
                 {
                     var rpcMethods = type.GetMethods()
                         .Where(method => method.IsDefined(typeof(RpcMethodAttribute)))
@@ -227,11 +204,13 @@ namespace LPS.Core.Rpc
             {
                 return true;
             }
-            else if (type.IsDefined(typeof(RpcJsonTypeAttribute)))
+
+            if (type.IsDefined(typeof(RpcJsonTypeAttribute)))
             {
                 return true;
             }
-            else if (type.IsGenericType)
+
+            if (type.IsGenericType)
             {
                 if (type.GetGenericTypeDefinition() == typeof(Dictionary<,>))
                 {
@@ -242,12 +221,14 @@ namespace LPS.Core.Rpc
                             || valueType == typeof(int))
                            && ValidateRpcType(valueType);
                 }
-                else if (type.GetGenericTypeDefinition() == typeof(List<>))
+
+                if (type.GetGenericTypeDefinition() == typeof(List<>))
                 {
                     var elemType = type.GetGenericArguments()[0];
                     return ValidateRpcType(elemType);
                 }
-                else if (type.GetGenericTypeDefinition() == typeof(Tuple<>))
+
+                if (type.GetGenericTypeDefinition() == typeof(Tuple<>))
                 {
                     return type.GenericTypeArguments.All(ValidateRpcType);
                 }
@@ -422,9 +403,9 @@ namespace LPS.Core.Rpc
 
         private static object?[] ProtobufArgsToRpcArgList(EntityRpc entityRpc, MethodInfo methodInfo)
         {
-            var methodArguments = methodInfo.GetGenericArguments();
+            var argTypes = methodInfo.GetParameters().Select(info => info.GetType()).ToArray();
             return entityRpc.Args
-                .Select((elem, index) => ProtobufToRpcArg(elem, methodArguments[index]))
+                .Select((elem, index) => ProtobufToRpcArg(elem, argTypes[index]))
                 .ToArray();
         }
 
@@ -487,10 +468,7 @@ namespace LPS.Core.Rpc
                 return;
             }
             
-            var argTypes = methodInfo.GetParameters().Select(info => info.GetType()).ToArray();
-            var args = entityRpc.Args
-                .Select((arg, index) => ProtobufToRpcArg(arg, argTypes[index]))
-                .ToArray();
+            var args = ProtobufArgsToRpcArgList(entityRpc, methodInfo);
 
             object? res;
             try

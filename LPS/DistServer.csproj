@@ -5,6 +5,7 @@
     <TargetFramework>net6.0</TargetFramework>
     <Nullable>enable</Nullable>
     <RootNamespace>LPS</RootNamespace>
+    <DefineConstants>SERVER_SIDE</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>
@@ -13,6 +14,13 @@
     <PackageReference Include="Google.Protobuf" Version="3.19.1" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
     <PackageReference Include="NLog" Version="5.0.0-preview.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\LPS.Common\LPS.Common.csproj">
+      <Properties>ServerSide=true</Properties>
+      <Properties>ClientSide=false</Properties>
+    </ProjectReference>
   </ItemGroup>
 
 </Project>

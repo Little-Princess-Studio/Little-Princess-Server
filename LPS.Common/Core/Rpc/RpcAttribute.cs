@@ -1,5 +1,3 @@
-using System;
-
 namespace LPS.Core.Rpc
 {
     public enum Authority
