@@ -34,7 +34,8 @@ namespace LPS.Core.Rpc
             Action<Message> onGotMessage,
             Action? onExitLoop)
         {
-            var buf = new byte[512];
+            var bytes = new byte[512];
+            var buf = new Memory<byte>(bytes);
             var messageBuf = new MessageBuffer();
             var socket = conn.Socket;
 
@@ -164,7 +165,8 @@ namespace LPS.Core.Rpc
                                 valid = true;
                             }
                             else if (returnType.IsGenericType &&
-                                     returnType.GetGenericTypeDefinition() == typeof(Task<>))
+                                     (returnType.GetGenericTypeDefinition() == typeof(Task<>)
+                                     || returnType.GetGenericTypeDefinition() == typeof(ValueTask<>)))
                             {
                                 var taskReturnType = returnType.GetGenericArguments()[0];
                                 valid = ValidateRpcType(taskReturnType);
@@ -527,11 +529,11 @@ namespace LPS.Core.Rpc
         #endregion
 
         public static EntityRpc BuildRpcMessage(
-            uint rpcID, string rpcMethodName, MailBox sender, MailBox target, bool notifyOnly, params object?[] args)
+            uint rpcId, string rpcMethodName, MailBox sender, MailBox target, bool notifyOnly, params object?[] args)
         {
             var rpc = new EntityRpc
             {
-                RpcID = rpcID,
+                RpcID = rpcId,
                 SenderMailBox = RpcMailBoxToPbMailBox(sender),
                 EntityMailBox = RpcMailBoxToPbMailBox(target),
                 MethodName = rpcMethodName,
@@ -581,50 +583,18 @@ namespace LPS.Core.Rpc
 
             var senderMailBox = entityRpc.SenderMailBox;
 
-            if (res != null && methodInfo.ReturnType.IsGenericType &&
-                methodInfo.ReturnType.GetGenericTypeDefinition() == typeof(Task<>))
+            // for Dict/List/ValueTuple/Tuple Type
+
+            if (res != null && methodInfo.ReturnType.IsGenericType)
             {
                 // TODO: for performance, need using IL instead of dynamic/reflection?
-                void Send<T>(Task<T> t) =>
-                    entity.SendWithRpcID(
-                        entityRpc.RpcID,
-                        PbMailBoxToRpcMailBox(senderMailBox),
-                        "OnResult",
-                        true,
-                        t.Result);
-
-                // for Dict/List/ValueTuple/Tuple Type
-                void SendDynamic(dynamic t) =>
-                    entity.SendWithRpcID(
-                        entityRpc.RpcID,
-                        PbMailBoxToRpcMailBox(senderMailBox),
-                        "OnResult",
-                        true,
-                        t.Result);
-
-                switch (res)
+                if (methodInfo.ReturnType.GetGenericTypeDefinition() == typeof(Task<>))
                 {
-                    case Task<int> task:
-                        task.ContinueWith(Send);
-                        break;
-                    case Task<string> task:
-                        task.ContinueWith(Send);
-                        break;
-                    case Task<float> task:
-                        task.ContinueWith(Send);
-                        break;
-                    case Task<MailBox> task:
-                        task.ContinueWith(Send);
-                        break;
-                    case Task<bool> task:
-                        task.ContinueWith(Send);
-                        break;
-                    default:
-                    {
-                        dynamic task = res;
-                        task.ContinueWith((Action<dynamic>) SendDynamic);
-                    }
-                        break;
+                    SendTaskResult(entity, entityRpc, senderMailBox, res);
+                }
+                else if (methodInfo.ReturnType.GetGenericTypeDefinition() == typeof(ValueTask<>))
+                {
+                    SendValueTaskResult(entity, entityRpc, senderMailBox, res);
                 }
 
                 // var sendMethodInfo = entity.GetType().GetMethod("Send")!;
@@ -653,6 +623,138 @@ namespace LPS.Core.Rpc
             else
             {
                 entity.SendWithRpcID(entityRpc.RpcID, PbMailBoxToRpcMailBox(senderMailBox), "OnResult", true, res);
+            }
+        }
+
+        private static void SendValueTaskResult(BaseEntity entity, EntityRpc entityRpc, InnerMessages.MailBox senderMailBox, in object res)
+        {
+            void SendDynamic(dynamic t) =>
+                entity.SendWithRpcID(
+                    entityRpc.RpcID,
+                    PbMailBoxToRpcMailBox(senderMailBox),
+                    "OnResult",
+                    true,
+                    t.Result);
+
+            void Send<T>(in ValueTask<T> t) =>
+                entity.SendWithRpcID(
+                    entityRpc.RpcID,
+                    PbMailBoxToRpcMailBox(senderMailBox),
+                    "OnResult",
+                    true,
+                    t.Result);
+
+            void HandleValueTask<T>(in ValueTask<T> task)
+            {
+                // ValueTask should always be sync
+                if (task.IsCompleted)
+                {
+                    Send(task);
+                }
+                else
+                {
+                    // if ValueTask not complete, alloc awaiter to wait
+                    var awaiter = task.GetAwaiter();
+                    awaiter.OnCompleted(() =>
+                    {
+                        entity.SendWithRpcID(
+                            entityRpc.RpcID,
+                            PbMailBoxToRpcMailBox(senderMailBox),
+                            "OnResult",
+                            true,
+                            awaiter.GetResult());
+                    });
+                }
+            }
+
+            void HandleValueTaskDynamic(dynamic task)
+            {
+                if (task.IsCompleted)
+                {
+                    SendDynamic(task);
+                }
+                else
+                {
+                    var awaiter = task.GetAwaiter();
+                    awaiter.OnCompleted(new Action(() =>
+                    {
+                        entity.SendWithRpcID(
+                            entityRpc.RpcID,
+                            PbMailBoxToRpcMailBox(senderMailBox),
+                            "OnResult",
+                            true,
+                            awaiter.GetResult());
+                    }));
+                }
+            }
+
+            switch (res)
+            {
+                case ValueTask<int> task:
+                    HandleValueTask(task);
+                    break;
+                case ValueTask<string> task:
+                    HandleValueTask(task);
+                    break;
+                case ValueTask<float> task:
+                    HandleValueTask(task);
+                    break;
+                case ValueTask<MailBox> task:
+                    HandleValueTask(task);
+                    break;
+                case ValueTask<bool> task:
+                    HandleValueTask(task);
+                    break;
+                default:
+                {
+                    dynamic task = res;
+                    HandleValueTaskDynamic(task);
+                }
+                    break;
+            }
+        }
+
+        private static void SendTaskResult(BaseEntity entity, EntityRpc entityRpc, InnerMessages.MailBox senderMailBox, in object res)
+        {
+            void SendDynamic(dynamic t) =>
+                entity.SendWithRpcID(
+                    entityRpc.RpcID,
+                    PbMailBoxToRpcMailBox(senderMailBox),
+                    "OnResult",
+                    true,
+                    t.Result);
+
+            void Send<T>(Task<T> t) =>
+                entity.SendWithRpcID(
+                    entityRpc.RpcID,
+                    PbMailBoxToRpcMailBox(senderMailBox),
+                    "OnResult",
+                    true,
+                    t.Result);
+
+            switch (res)
+            {
+                case Task<int> task:
+                    task.ContinueWith(Send);
+                    break;
+                case Task<string> task:
+                    task.ContinueWith(Send);
+                    break;
+                case Task<float> task:
+                    task.ContinueWith(Send);
+                    break;
+                case Task<MailBox> task:
+                    task.ContinueWith(Send);
+                    break;
+                case Task<bool> task:
+                    task.ContinueWith(Send);
+                    break;
+                default:
+                {
+                    dynamic task = res;
+                    task.ContinueWith((Action<dynamic>) SendDynamic);
+                }
+                    break;
             }
         }
     }
