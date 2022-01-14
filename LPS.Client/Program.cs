@@ -1,4 +1,6 @@
-﻿namespace LPS.Client
+﻿using LPS.Core.Debug;
+
+namespace LPS.Client
 {
     public class Program
     {
@@ -13,16 +15,18 @@
         
         public static void Main(string[] args)
         {
-            var client = new Client("52.175.74.209", 11001);
-            client.Start();
+            Logger.Init("client");
+            CommandParser.ScanCommands("LPS.Client");
 
-            var input = Console.ReadLine();
+            // Client.Instance.Init("52.175.74.209", 11001);
+            // Client.Instance.Start();
+            // Client.Instance.Start();
 
-            while (input != null)
-            {
-                client.Send(input);
-                input = Console.ReadLine();
-            }
+            AutoCompleteConsole.Init();
+            AutoCompleteConsole.Loop();
+            
+            // Client.Instance.Stop();
+            // Client.Instance.WaitForExit();
         }
     }
 }
