@@ -10,7 +10,6 @@
 
   <ItemGroup>
     <PackageReference Include="Google.Protobuf" Version="3.19.1" />
-    <PackageReference Include="ReadLine" Version="2.0.1" />
   </ItemGroup>
 
   <ItemGroup>

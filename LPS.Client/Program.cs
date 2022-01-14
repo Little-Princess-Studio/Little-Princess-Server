@@ -1,4 +1,5 @@
 ﻿using LPS.Core.Debug;
+using LPS.Client.Console;
 
 namespace LPS.Client
 {
