@@ -34,8 +34,7 @@ namespace LPS.Core.Rpc
             Action<Message> onGotMessage,
             Action? onExitLoop)
         {
-            var bytes = new byte[512];
-            var buf = new Memory<byte>(bytes);
+            var buf = new byte[512];
             var messageBuf = new MessageBuffer();
             var socket = conn.Socket;
 
