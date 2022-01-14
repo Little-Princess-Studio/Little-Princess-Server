@@ -189,7 +189,7 @@ namespace LPS.Core
             var globalcachePort = globalcacheConfig["port"]!.ToObject<int>();
             var globalcacheDefaultDb = globalcacheConfig["defaultdb"]!.ToString();
 
-            var globalCacheInfo = Tuple.Create(globalcacheIp, globalcachePort, globalcacheDefaultDb);
+            var globalCacheInfo = (globalcacheIp, globalcachePort, globalcacheDefaultDb);
 
             Logger.Debug($"Startup DbManager {name} at {ip}:{port}");
             var dbManager = new DbManager(ip, port, hostnum, hostManagerIP, hostManagerPort, globalCacheInfo);
@@ -218,17 +218,15 @@ namespace LPS.Core
             var serverJson = GetJson(json["server_conf"]!.ToString());
             var dict = serverJson["servers"]!.ToObject<Dictionary<string, JToken>>();
 
-            var servers = dict!.Select(pair => Tuple.Create(
-                pair.Value["ip"]!.ToString(),
-                pair.Value["port"]!.ToObject<int>())).ToArray();
+            var servers = dict!.Select(pair => (
+                pair.Value["ip"]!.ToString(), pair.Value["port"]!.ToObject<int>())).ToArray();
             #endregion
 
             #region get other gate's ip/port
             var otherGates = json["gates"]!.ToObject<Dictionary<string, JToken>>()!
                                         .Where(pair => pair.Key != name)
                                         .Select(
-                                            pair => Tuple.Create(pair.Value["ip"]!.ToString(),
-                                            pair.Value["port"]!.ToObject<int>()))
+                                            pair => (pair.Value["ip"]!.ToString(), pair.Value["port"]!.ToObject<int>()))
                                         .ToArray();
                  
             #endregion

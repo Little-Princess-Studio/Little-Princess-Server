@@ -33,6 +33,11 @@ message ListArg
     repeated google.protobuf.Any PayLoad = 1;
 }
 
+message ValueTupleArg
+{
+    repeated google.protobuf.Any PayLoad = 1;
+}
+
 message TupleArg
 {
     repeated google.protobuf.Any PayLoad = 1;
@@ -46,6 +51,17 @@ message DictWithStringKeyArg
 message DictWithIntKeyArg
 {
     map<sint32, google.protobuf.Any> PayLoad = 1;
+}
+
+message DictWithValueTupleKeyPair
+{
+    google.protobuf.Any Key = 1;
+    google.protobuf.Any Value = 2; 
+}
+
+message DictWithValueTupleKeyArg
+{
+    repeated DictWithValueTupleKeyPair PayLoad = 1;
 }
 
 message NullArg

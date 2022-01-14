@@ -34,7 +34,7 @@ namespace LPS.Core
         private readonly TcpClient[] tcpClientsToServer_;
         private readonly TcpClient[] tcpClientsToOtherGate_;
         private readonly ConcurrentDictionary<(int, PackageType), Action<object>> tcpClientsActions_ = new();
-        private readonly ConcurrentQueue<Tuple<TcpClient, IMessage, bool>> sendQueue_ = new();
+        private readonly ConcurrentQueue<(TcpClient Client, IMessage Message, bool IsReentry)> sendQueue_ = new();
         private readonly SandBox clientsSendQueueSandBox_;
         private readonly SandBox clientsPumpMsgSandBox_;
 
@@ -48,7 +48,7 @@ namespace LPS.Core
         private readonly CountdownEvent serverMailboxGotEvent_;
 
         public Gate(string name, string ip, int port, int hostnum, string hostManagerIP, int hostManagerPort,
-            Tuple<string, int>[] servers, Tuple<string, int>[] otherGates)
+            (string IP, int Port)[] servers, (string IP, int Port)[] otherGates)
         {
             this.Name = name;
             this.IP = ip;
@@ -144,14 +144,14 @@ namespace LPS.Core
             // if gate's server have recieved the EntityRpc msg, it must be redirect from other gates
             Logger.Info("Handle EntityRpc From Other Gates.");
 
-            var (msg, _, _) = (arg as Tuple<IMessage, Connection, UInt32>)!;
+            var (msg, _, _) = ((IMessage, Connection, UInt32))arg;
             var entityRpc = (msg as EntityRpc)!;
             this.HandleEntityRpcMessageOnGate(entityRpc);
         }
 
         private void HandleAuthenticationFromClient(object arg)
         {
-            var (msg, conn, _) = (arg as Tuple<IMessage, Connection, UInt32>)!;
+            var (msg, conn, _) = ((IMessage, Connection, UInt32))arg;
             var auth = (msg as Authentication)!;
 
             // TODO: Cache the rsa object
@@ -181,7 +181,7 @@ namespace LPS.Core
 
         private void HandleControlMessage(object arg)
         {
-            var (msg, _, _) = (arg as Tuple<IMessage, Connection, UInt32>)!;
+            var (msg, _, _) = ((IMessage, Connection, UInt32))arg;
 
             var control = (msg as Control)!;
 
@@ -248,7 +248,7 @@ namespace LPS.Core
 
         private void HandleCreateEntityResFromServer(TcpClient client, object arg)
         {
-            var (msg, _, _) = (arg as Tuple<IMessage, Connection, UInt32>)!;
+            var (msg, _, _) = ((IMessage, Connection, UInt32))arg;
             var createEntityRes = (msg as CreateEntityRes)!.Mailbox;
 
             Logger.Info(
@@ -286,7 +286,7 @@ namespace LPS.Core
 
         private void HandleExchangeMailBoxResFromServer(TcpClient client, object arg)
         {
-            var (msg, conn, _) = (arg as Tuple<IMessage, Connection, UInt32>)!;
+            var (msg, conn, _) = ((IMessage, Connection, UInt32))arg;
             var serverMailBox = (msg as ExchangeMailBoxRes)!.Mailbox;
             var serverEntityMailBox = RpcHelper.PbMailBoxToRpcMailBox(serverMailBox);
 
@@ -302,7 +302,7 @@ namespace LPS.Core
         {
             Logger.Info("HandleEntityRpcFromServer");
 
-            var (msg, _, _) = (arg as Tuple<IMessage, Connection, UInt32>)!;
+            var (msg, _, _) = ((IMessage, Connection, UInt32))arg!;
             var entityRpc = (msg as EntityRpc)!;
             this.HandleEntityRpcMessageOnGate(entityRpc);
         }

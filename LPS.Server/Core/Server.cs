@@ -137,7 +137,7 @@ namespace LPS.Core
         // how server handle entity rpc
         private void HandleEntityRpc(object arg)
         {
-            var (msg, _, _) = (arg as Tuple<IMessage, Connection, UInt32>)!;
+            var (msg, _, _) = ((IMessage, Connection, UInt32))arg;
             var entityRpc = (msg as EntityRpc)!;
 
             var targetMailBox = entityRpc.EntityMailBox;
@@ -183,7 +183,7 @@ namespace LPS.Core
 
         private void HandleCreateEntity(object arg)
         {
-            var (msg, conn, id) = (arg as Tuple<IMessage, Connection, UInt32>)!;
+            var (msg, conn, id) = ((IMessage, Connection, UInt32))arg;
 
             var createEntity = (msg as CreateEntity)!;
             var socket = conn.Socket;
@@ -220,7 +220,7 @@ namespace LPS.Core
 
         private void HandleExchangeMailBox(object arg)
         {
-            var (msg, conn, id) = (arg as Tuple<IMessage, Connection, UInt32>)!;
+            var (msg, conn, id) = ((IMessage, Connection, UInt32))arg;
 
             var gateMailBox = (msg as ExchangeMailBox)!.Mailbox;
             var socket = conn.Socket;

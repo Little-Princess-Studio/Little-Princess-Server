@@ -26,7 +26,7 @@ namespace LPS.Core.Rpc
         private readonly string targetIP_;
         private readonly int targetPort_;
         private readonly TokenSequence<uint> tokenSequence_ = new();
-        private readonly ConcurrentQueue<Tuple<TcpClient, IMessage, bool>> sendQueue_;
+        private readonly ConcurrentQueue<(TcpClient, IMessage, bool)> sendQueue_;
         private bool stopFlag_;
         private const int ConnectRetryMaxTimes = 10;
         private uint idCounter_ = 0;
@@ -34,7 +34,7 @@ namespace LPS.Core.Rpc
         public string TargetIP => targetIP_;
         public int TargetPort => targetPort_;
 
-        public TcpClient(string targetIP, int targetPort, ConcurrentQueue<Tuple<TcpClient, IMessage, bool>> sendQueue)
+        public TcpClient(string targetIP, int targetPort, ConcurrentQueue<(TcpClient, IMessage, bool)> sendQueue)
         {
             targetIP_ = targetIP;
             targetPort_ = targetPort;
@@ -118,7 +118,7 @@ namespace LPS.Core.Rpc
         public void Send(IMessage msg, bool reentry=true)
         {
             try {
-                sendQueue_.Enqueue(Tuple.Create(this, msg, reentry));
+                sendQueue_.Enqueue((this, msg, reentry));
             }
             catch (Exception e)
             {

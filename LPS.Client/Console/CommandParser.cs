@@ -5,7 +5,7 @@ namespace LPS.Client.Console
 {
     public static class CommandParser
     {
-        private static Dictionary<string, Tuple<MethodInfo, string[]>> CmdMapping = new();
+        private static Dictionary<string, (MethodInfo, string[])> CmdMapping = new();
 
         public static void ScanCommands(string @namespace)
         {
@@ -28,7 +28,7 @@ namespace LPS.Client.Console
                     .Select(param => $"({param.ParameterType.Name}){param.Name}")
                     .ToArray();
                 
-                CmdMapping[cmdAttr.Name] = Tuple.Create(method, args);
+                CmdMapping[cmdAttr.Name] = (method, args);
                 
                 Logger.Debug($"Register: {cmdAttr.Name} => {method.Name}({string.Join(',', args)})");
             }
@@ -53,7 +53,7 @@ namespace LPS.Client.Console
                    || argType == typeof(bool);
         }
 
-        public static Tuple<string[], string[]> FindSuggestions(string prefix)
+        public static (string[] CmdNames, string[] CmdDetails) FindSuggestions(string prefix)
         {
             var cmdNames = CmdMapping
                 .Where(kv => kv.Key.StartsWith(prefix))
@@ -63,7 +63,7 @@ namespace LPS.Client.Console
                 .Select(cmdName => $"{cmdName}[{string.Join(',', CmdMapping[cmdName].Item2)}]")
                 .ToArray();
             
-            return Tuple.Create(cmdNames, details);
+            return (cmdNames, details);
         }
 
         public static void Dispatch(string commandString)

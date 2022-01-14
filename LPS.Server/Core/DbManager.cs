@@ -13,7 +13,7 @@ namespace LPS.Core
         private readonly TcpServer tcpDbManagerServer_;
         
 
-        public DbManager(string ip, int port, int hostnum, string hostManagerIP, int hostManagerPort, Tuple<string, int, string> cacheInfo)
+        public DbManager(string ip, int port, int hostnum, string hostManagerIP, int hostManagerPort, (string IP, int Port, string DefaultDb) cacheInfo)
         {
             this.IP = ip;
             this.Port = port;

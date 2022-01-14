@@ -27,7 +27,7 @@ namespace LPS.Core.Rpc
             Port = (uint) mb.Port,
             HostNum = (uint) mb.HostNum
         };
-        
+
         public static async Task HandleMessage(
             Connection conn,
             Func<bool> stopCondition,
@@ -55,7 +55,7 @@ namespace LPS.Core.Rpc
                         var type = (PackageType) pkg.Header.Type;
 
                         var pb = PackageHelper.GetProtoBufObjectByType(type, pkg);
-                        var arg = Tuple.Create(pb, conn, pkg.Header.ID);
+                        var arg = (pb, conn, pkg.Header.ID);
                         var msg = new Message(type, arg);
 
                         Logger.Info($"msg recv: {pb}");
@@ -101,16 +101,16 @@ namespace LPS.Core.Rpc
             var typesEntry = Assembly.GetCallingAssembly().GetTypes()
                 .Where(
                     type => type.IsClass
-                    && type.Namespace == namespaceName
-                    && Attribute.IsDefined(type, typeof(EntityClassAttribute))
-                    );
+                            && type.Namespace == namespaceName
+                            && Attribute.IsDefined(type, typeof(EntityClassAttribute))
+                );
 
             var types = Assembly.GetExecutingAssembly()!.GetTypes()
                 .Where(
                     type => type.IsClass
-                    && type.Namespace == namespaceName
-                    && Attribute.IsDefined(type, typeof(EntityClassAttribute))
-                    )
+                            && type.Namespace == namespaceName
+                            && Attribute.IsDefined(type, typeof(EntityClassAttribute))
+                )
                 .Concat(typesEntry)
                 .Distinct()
                 .ToList();
@@ -121,7 +121,8 @@ namespace LPS.Core.Rpc
             {
                 if (!type.IsSubclassOf(typeof(BaseEntity)))
                 {
-                    throw new Exception($"Invalid entity class {type}, entity class must inherit from BaseEntity class.");
+                    throw new Exception(
+                        $"Invalid entity class {type}, entity class must inherit from BaseEntity class.");
                 }
 
                 var attrName = type.GetCustomAttribute<EntityClassAttribute>()!.Name;
@@ -162,7 +163,8 @@ namespace LPS.Core.Rpc
                             {
                                 valid = true;
                             }
-                            else if (returnType.IsGenericType && returnType.GetGenericTypeDefinition() == typeof(Task<>))
+                            else if (returnType.IsGenericType &&
+                                     returnType.GetGenericTypeDefinition() == typeof(Task<>))
                             {
                                 var taskReturnType = returnType.GetGenericArguments()[0];
                                 valid = ValidateRpcType(taskReturnType);
@@ -232,7 +234,12 @@ namespace LPS.Core.Rpc
                     var valueType = type.GetGenericArguments()[1];
 
                     return (keyType == typeof(string)
-                            || valueType == typeof(int))
+                            || keyType == typeof(int)
+                            /*Allow ValueTuple as dict key*/
+                            || (keyType.IsGenericType
+                                && keyType.GetGenericTypeDefinition() == typeof(ValueTuple<>)
+                                && keyType.GetGenericArguments().All(ValidateRpcType))
+                           )
                            && ValidateRpcType(valueType);
                 }
 
@@ -246,6 +253,11 @@ namespace LPS.Core.Rpc
                 {
                     return type.GenericTypeArguments.All(ValidateRpcType);
                 }
+
+                if (type.GetGenericTypeDefinition() == typeof(ValueTuple<>))
+                {
+                    return type.GenericTypeArguments.All(ValidateRpcType);
+                }
             }
 
             return false;
@@ -254,6 +266,19 @@ namespace LPS.Core.Rpc
         #endregion
 
         #region Rpc serialization
+
+        private static IMessage RpcValueTupleArgToProtoBuf(object tuple)
+        {
+            var iTuple = (tuple as ITuple)!;
+
+            var msg = new ValueTupleArg();
+            for (int i = 0; i < iTuple.Length; ++i)
+            {
+                msg.PayLoad.Add(Google.Protobuf.WellKnownTypes.Any.Pack(RpcArgToProtobuf(iTuple[i])));
+            }
+
+            return msg;
+        }
 
         private static IMessage RpcTupleArgToProtoBuf(object tuple)
         {
@@ -296,7 +321,7 @@ namespace LPS.Core.Rpc
             }
 
             dynamic firstElem = kvList.First();
-            var keyType = firstElem.Key.GetType();
+            Type keyType = firstElem.Key.GetType();
 
             if (keyType == typeof(int))
             {
@@ -315,7 +340,7 @@ namespace LPS.Core.Rpc
 
                 return msg;
             }
-            else
+            else if (keyType == typeof(string))
             {
                 var realDict = kvList.ToDictionary(
                     kv => (string) ((dynamic) kv).Key,
@@ -332,6 +357,23 @@ namespace LPS.Core.Rpc
 
                 return msg;
             }
+            else if (keyType.IsGenericType && keyType.GetGenericTypeDefinition() == typeof(ValueTuple<>))
+            {
+                var realKvList = kvList.Select(kv => new DictWithValueTupleKeyPair()
+                {
+                    Key = Google.Protobuf.WellKnownTypes.Any.Pack(
+                        RpcValueTupleArgToProtoBuf((object) ((dynamic) kv).Key)),
+                    Value = Google.Protobuf.WellKnownTypes.Any.Pack(RpcArgToProtobuf((object) ((dynamic) kv).Value)),
+                });
+
+                var msg = new DictWithValueTupleKeyArg();
+
+                msg.PayLoad.Add(realKvList);
+
+                return msg;
+            }
+
+            throw new Exception($"Invalid dict key type {keyType}");
         }
 
         private static IMessage RpcArgToProtobuf(object? obj)
@@ -349,11 +391,14 @@ namespace LPS.Core.Rpc
                 float f => new FloatArg() {PayLoad = f},
                 string s => new StringArg() {PayLoad = s},
                 MailBox m => new MailBoxArg() {PayLoad = RpcMailBoxToPbMailBox(m)},
-                _ when type.IsDefined(typeof(RpcJsonTypeAttribute)) => new JsonArg() {PayLoad = JsonConvert.SerializeObject(obj)},
+                _ when type.IsDefined(typeof(RpcJsonTypeAttribute)) => new JsonArg()
+                    {PayLoad = JsonConvert.SerializeObject(obj)},
                 _ when type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Dictionary<,>) =>
                     RpcDictArgToProtoBuf(obj),
                 _ when type.IsGenericType && type.GetGenericTypeDefinition() == typeof(List<>) =>
                     RpcListArgToProtoBuf(obj),
+                _ when type.IsGenericType && type.GetGenericTypeDefinition() == typeof(ValueTuple<>) =>
+                    RpcValueTupleArgToProtoBuf(obj),
                 _ when type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Tuple<>) =>
                     RpcTupleArgToProtoBuf(obj),
                 _ => throw new Exception($"Invalid Rpc arg type: {type.Name}")
@@ -363,6 +408,18 @@ namespace LPS.Core.Rpc
         #endregion
 
         #region Rpc deserialization
+
+        private static object ValueTupleProtoBufToRpcArg(ValueTupleArg args, Type argType)
+        {
+            var tupleElemTypes = argType.GetGenericArguments();
+            var objectArgs = args.PayLoad
+                .Select((any, idx) => ProtobufToRpcArg(any, tupleElemTypes[idx]))
+                .ToArray();
+
+            var tuple = Activator.CreateInstance(argType, objectArgs)!;
+
+            return tuple;
+        }
 
         private static object TupleProtoBufToRpcArg(TupleArg args, Type argType)
         {
@@ -415,6 +472,21 @@ namespace LPS.Core.Rpc
             return dict!;
         }
 
+        private static object DictProtoBufToRpcArg(DictWithValueTupleKeyArg arg, Type argType)
+        {
+            var dict = Activator.CreateInstance(argType) as IDictionary;
+            var keyType = argType.GetGenericArguments()[0];
+            var valueType = argType.GetGenericArguments()[1];
+
+            foreach (var pair in arg.PayLoad)
+            {
+                dict![ValueTupleProtoBufToRpcArg(pair.Key.Unpack<ValueTupleArg>(), keyType)!] =
+                    ProtobufToRpcArg(pair.Value, valueType);
+            }
+
+            return dict!;
+        }
+
         private static object?[] ProtobufArgsToRpcArgList(EntityRpc entityRpc, MethodInfo methodInfo)
         {
             var argTypes = methodInfo.GetParameters().Select(info => info.GetType()).ToArray();
@@ -433,12 +505,17 @@ namespace LPS.Core.Rpc
                 _ when arg.Is(FloatArg.Descriptor) => arg.Unpack<FloatArg>().PayLoad,
                 _ when arg.Is(StringArg.Descriptor) => arg.Unpack<StringArg>().PayLoad,
                 _ when arg.Is(MailBoxArg.Descriptor) => PbMailBoxToRpcMailBox(arg.Unpack<MailBoxArg>().PayLoad),
-                _ when arg.Is(JsonArg.Descriptor) => JsonConvert.DeserializeObject(arg.Unpack<JsonArg>().PayLoad, argType),
+                _ when arg.Is(JsonArg.Descriptor) => JsonConvert.DeserializeObject(arg.Unpack<JsonArg>().PayLoad,
+                    argType),
+                _ when arg.Is(ValueTupleArg.Descriptor) => ValueTupleProtoBufToRpcArg(arg.Unpack<ValueTupleArg>(),
+                    argType),
                 _ when arg.Is(TupleArg.Descriptor) => TupleProtoBufToRpcArg(arg.Unpack<TupleArg>(), argType),
                 _ when arg.Is(DictWithStringKeyArg.Descriptor) => DictProtoBufToRpcArg(
                     arg.Unpack<DictWithStringKeyArg>(), argType),
                 _ when arg.Is(DictWithIntKeyArg.Descriptor) => DictProtoBufToRpcArg(arg.Unpack<DictWithIntKeyArg>(),
                     argType),
+                _ when arg.Is(DictWithValueTupleKeyArg.Descriptor) => DictProtoBufToRpcArg(
+                    arg.Unpack<DictWithValueTupleKeyArg>(), argType),
                 _ when arg.Is(ListArg.Descriptor) => ListProtoBufToRpcArg(arg.Unpack<ListArg>(), argType),
                 _ => throw new Exception($"Invalid Rpc arg type: {arg.TypeUrl}"),
             };
@@ -470,7 +547,7 @@ namespace LPS.Core.Rpc
         {
             return RpcMethodInfo[type][rpcMethodName];
         }
-        
+
         public static void CallLocalEntity(BaseEntity entity, EntityRpc entityRpc)
         {
             var methodInfo = GetRpcMethodArgTypes(entity.GetType(), entityRpc.MethodName);
@@ -481,7 +558,7 @@ namespace LPS.Core.Rpc
                 methodInfo.Invoke(entity, new object?[] {entityRpc});
                 return;
             }
-            
+
             var args = ProtobufArgsToRpcArgList(entityRpc, methodInfo);
 
             object? res;
@@ -514,8 +591,8 @@ namespace LPS.Core.Rpc
                         "OnResult",
                         true,
                         t.Result);
-                
-                // for Dict/List/Tuple Type
+
+                // for Dict/List/ValueTuple/Tuple Type
                 void SendDynamic(dynamic t) =>
                     entity.SendWithRpcID(
                         entityRpc.RpcID,
@@ -523,7 +600,7 @@ namespace LPS.Core.Rpc
                         "OnResult",
                         true,
                         t.Result);
-                
+
                 switch (res)
                 {
                     case Task<int> task:
@@ -542,10 +619,10 @@ namespace LPS.Core.Rpc
                         task.ContinueWith(Send<bool>);
                         break;
                     default:
-                        {
-                            dynamic task = res;
-                            task.ContinueWith((Action<dynamic>)SendDynamic);
-                        }
+                    {
+                        dynamic task = res;
+                        task.ContinueWith((Action<dynamic>) SendDynamic);
+                    }
                         break;
                 }
 
