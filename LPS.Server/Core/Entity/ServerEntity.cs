@@ -49,9 +49,9 @@ namespace LPS.Core.Entity
             var newId = await DbHelper.GenerateNewGlobalId();
 
             var newMailBox = new MailBox(
-                newId, this.MailBox!.IP,
+                newId, this.MailBox.IP,
                 this.MailBox.Port,
-                this.MailBox!.HostNum);
+                this.MailBox.HostNum);
 
             try
             {

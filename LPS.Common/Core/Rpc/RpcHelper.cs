@@ -58,7 +58,7 @@ namespace LPS.Core.Rpc
                         var arg = (pb, conn, pkg.Header.ID);
                         var msg = new Message(type, arg);
 
-                        Logger.Info($"msg recv: {pb}");
+                        Logger.Info($"msg received: {pb}");
 
                         onGotMessage(msg);
                     }
@@ -105,7 +105,7 @@ namespace LPS.Core.Rpc
                             && Attribute.IsDefined(type, typeof(EntityClassAttribute))
                 );
 
-            var types = Assembly.GetExecutingAssembly()!.GetTypes()
+            var types = Assembly.GetExecutingAssembly().GetTypes()
                 .Where(
                     type => type.IsClass
                             && type.Namespace == namespaceName
@@ -340,7 +340,8 @@ namespace LPS.Core.Rpc
 
                 return msg;
             }
-            else if (keyType == typeof(string))
+
+            if (keyType == typeof(string))
             {
                 var realDict = kvList.ToDictionary(
                     kv => (string) ((dynamic) kv).Key,
@@ -357,9 +358,10 @@ namespace LPS.Core.Rpc
 
                 return msg;
             }
-            else if (keyType.IsGenericType && keyType.GetGenericTypeDefinition() == typeof(ValueTuple<>))
+
+            if (keyType.IsGenericType && keyType.GetGenericTypeDefinition() == typeof(ValueTuple<>))
             {
-                var realKvList = kvList.Select(kv => new DictWithValueTupleKeyPair()
+                var realKvList = kvList.Select(kv => new DictWithValueTupleKeyPair
                 {
                     Key = Google.Protobuf.WellKnownTypes.Any.Pack(
                         RpcValueTupleArgToProtoBuf((object) ((dynamic) kv).Key)),
@@ -386,13 +388,12 @@ namespace LPS.Core.Rpc
             var type = obj.GetType();
             return obj switch
             {
-                bool b => new BoolArg() {PayLoad = b},
-                int i => new IntArg() {PayLoad = i},
-                float f => new FloatArg() {PayLoad = f},
-                string s => new StringArg() {PayLoad = s},
-                MailBox m => new MailBoxArg() {PayLoad = RpcMailBoxToPbMailBox(m)},
-                _ when type.IsDefined(typeof(RpcJsonTypeAttribute)) => new JsonArg()
-                    {PayLoad = JsonConvert.SerializeObject(obj)},
+                bool b => new BoolArg {PayLoad = b},
+                int i => new IntArg {PayLoad = i},
+                float f => new FloatArg {PayLoad = f},
+                string s => new StringArg {PayLoad = s},
+                MailBox m => new MailBoxArg {PayLoad = RpcMailBoxToPbMailBox(m)},
+                _ when type.IsDefined(typeof(RpcJsonTypeAttribute)) => new JsonArg {PayLoad = JsonConvert.SerializeObject(obj)},
                 _ when type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Dictionary<,>) =>
                     RpcDictArgToProtoBuf(obj),
                 _ when type.IsGenericType && type.GetGenericTypeDefinition() == typeof(List<>) =>
@@ -480,7 +481,7 @@ namespace LPS.Core.Rpc
 
             foreach (var pair in arg.PayLoad)
             {
-                dict![ValueTupleProtoBufToRpcArg(pair.Key.Unpack<ValueTupleArg>(), keyType)!] =
+                dict![ValueTupleProtoBufToRpcArg(pair.Key.Unpack<ValueTupleArg>(), keyType)] =
                     ProtobufToRpcArg(pair.Value, valueType);
             }
 
@@ -528,7 +529,7 @@ namespace LPS.Core.Rpc
         public static EntityRpc BuildRpcMessage(
             uint rpcID, string rpcMethodName, MailBox sender, MailBox target, bool notifyOnly, params object?[] args)
         {
-            var rpc = new EntityRpc()
+            var rpc = new EntityRpc
             {
                 RpcID = rpcID,
                 SenderMailBox = RpcMailBoxToPbMailBox(sender),
@@ -604,19 +605,19 @@ namespace LPS.Core.Rpc
                 switch (res)
                 {
                     case Task<int> task:
-                        task.ContinueWith(Send<int>);
+                        task.ContinueWith(Send);
                         break;
                     case Task<string> task:
-                        task.ContinueWith(Send<string>);
+                        task.ContinueWith(Send);
                         break;
                     case Task<float> task:
-                        task.ContinueWith(Send<float>);
+                        task.ContinueWith(Send);
                         break;
                     case Task<MailBox> task:
-                        task.ContinueWith(Send<MailBox>);
+                        task.ContinueWith(Send);
                         break;
                     case Task<bool> task:
-                        task.ContinueWith(Send<bool>);
+                        task.ContinueWith(Send);
                         break;
                     default:
                     {

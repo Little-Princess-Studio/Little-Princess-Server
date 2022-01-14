@@ -16,7 +16,7 @@ namespace LPS.Core.Rpc
         public Socket Socket { get; private set; }
         public CancellationTokenSource TokenSource { get; private set; }
 #nullable enable
-        public MailBox? MailBox { get; set; }
+        public MailBox MailBox { get; set; }
 #nullable disable
         private Connection() { }
 

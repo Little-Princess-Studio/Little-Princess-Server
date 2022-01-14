@@ -278,9 +278,9 @@ namespace LPS.Core
         private TcpClient FindServerOfEntity(MailBox targetMailBox)
         {
             var clientToServer = this.tcpClientsToServer_
-                .First(clientToServer => clientToServer.MailBox!.IP == targetMailBox.IP
-                                         && clientToServer.MailBox!.Port == targetMailBox.Port
-                                         && clientToServer.MailBox!.HostNum == targetMailBox.HostNum);
+                .First(clientToServer => clientToServer.MailBox.IP == targetMailBox.IP
+                                         && clientToServer.MailBox.Port == targetMailBox.Port
+                                         && clientToServer.MailBox.HostNum == targetMailBox.HostNum);
             return clientToServer;
         }
 

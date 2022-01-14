@@ -18,7 +18,7 @@ namespace LPS.Core.Entity
 
     public abstract class BaseEntity
     {
-        public MailBox? MailBox { get; set; }
+        public MailBox MailBox { get; set; }
 
         private readonly Dictionary<uint, (Action<object>, Type)> RpcDict = new();
         private readonly Dictionary<uint, Action> RpcBlankDict = new();

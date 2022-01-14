@@ -26,11 +26,9 @@ namespace LPS.Core.Rpc
         private readonly SandBox sandboxIO_;
         private readonly Bus bus_;
         private readonly Dispatcher msgDispatcher_;
-#nullable enable
         public Socket? Socket { get; private set; }
         public Action? OnInit { get; set; }
         public Action? OnDispose { get; set; }
-#nullable disable
         private readonly Dictionary<Socket, Connection> socketToConn_ = new();
 
         public Connection[] AllConnections => socketToConn_.Values.ToArray();

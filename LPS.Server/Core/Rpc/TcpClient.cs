@@ -18,7 +18,7 @@ namespace LPS.Core.Rpc
         public Action? OnInit { get; set; }
         public Action? OnDispose { get; set; }
         public Action? OnConnected { get; set; }
-        public MailBox? MailBox { get; set; }
+        public MailBox MailBox { get; set; }
 #nullable disable
         private readonly SandBox sandboxIO_;
         private readonly Bus bus_;

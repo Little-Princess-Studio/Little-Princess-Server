@@ -1,6 +1,6 @@
 namespace LPS.Core.Rpc
 {
-    public class MailBox
+    public struct MailBox
     {
         public readonly string ID;
         public string IP { get; private set; }

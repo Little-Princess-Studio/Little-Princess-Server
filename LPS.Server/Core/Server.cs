@@ -30,7 +30,6 @@ namespace LPS.Core
         private Connection[] GateConnections => tcpServer_.AllConnections;
         private static readonly Random Random = new Random();
 
-
         public Server(string name, string ip, int port, int hostnum, string hostManagerIP, int hostManagerPort)
         {
             this.Name = name;

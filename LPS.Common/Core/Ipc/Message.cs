@@ -2,7 +2,7 @@ using System;
 
 namespace LPS.Core.Ipc
 {
-    public class Message
+    public struct Message
     {
         public readonly IComparable Key;
         public readonly object arg;
