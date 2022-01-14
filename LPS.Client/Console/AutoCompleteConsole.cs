@@ -20,11 +20,11 @@ namespace LPS.Client.Console
         
         public static void Init()
         {
-            LineEditor_ = new LineEditor ("foo") {
+            LineEditor_ = new LineEditor ("cmd") {
                 HeuristicsMode = "csharp"
             };
             
-            LineEditor_.AutoCompleteEvent += delegate (string text, int pos){
+            LineEditor_.AutoCompleteEvent += delegate (string text, int _){
                 var cmdArray = text.Split(' ', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
                 if (cmdArray.Length > 0)
                 {
@@ -45,6 +45,16 @@ namespace LPS.Client.Console
             string s;
             while ((s = LineEditor_!.Edit ("cmd> ", "")) != null)
             {
+                if (s.Trim() == string.Empty)
+                {
+                    continue;
+                }
+
+                if (s == "exit")
+                {
+                    break;
+                }
+
                 try
                 {
                     CommandParser.Dispatch(s);

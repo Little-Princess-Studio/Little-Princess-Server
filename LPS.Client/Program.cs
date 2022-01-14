@@ -21,7 +21,6 @@ namespace LPS.Client
 
             // Client.Instance.Init("52.175.74.209", 11001);
             // Client.Instance.Start();
-            // Client.Instance.Start();
 
             AutoCompleteConsole.Init();
             AutoCompleteConsole.Loop();
