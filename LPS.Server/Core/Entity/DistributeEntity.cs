@@ -5,9 +5,9 @@ namespace LPS.Core.Entity
     [EntityClass]
     public class DistributeEntity : BaseEntity
     {
-        public Rpc.MailBox? GateMailBox { get; set; }
+        public MailBox GateMailBox { get; set; }
 
-        public DistributeEntity(string desc)
+        protected DistributeEntity(string desc)
         {
 
         }

@@ -27,7 +27,7 @@ namespace LPS.Core
     public class Gate
     {
         public string Name { get; private set; }
-        public string IP { get; private set; }
+        public string Ip { get; private set; }
         public int Port { get; private set; }
         public int HostNum { get; private set; }
         private readonly TcpServer tcpGateServer_;
@@ -47,13 +47,13 @@ namespace LPS.Core
         private readonly CountdownEvent otherGatesReadyCountdownEvent_;
         private readonly CountdownEvent serverMailboxGotEvent_;
 
-        public Gate(string name, string ip, int port, int hostnum, string hostManagerIP, int hostManagerPort,
-            (string IP, int Port)[] servers, (string IP, int Port)[] otherGates)
+        public Gate(string name, string ip, int port, int hostNum, string hostManagerIp, int hostManagerPort,
+            (string IP, int Port)[] servers, (string InnerIp, string Ip, int Port)[] otherGates)
         {
             this.Name = name;
-            this.IP = ip;
+            this.Ip = ip;
             this.Port = port;
-            this.HostNum = hostnum;
+            this.HostNum = hostNum;
 
             // tcp gate server handles msg from server/other gates
             tcpGateServer_ = new(ip, port)
@@ -74,6 +74,7 @@ namespace LPS.Core
             foreach (var (serverIP, serverPort) in servers)
             {
                 var tmpIdx = idx;
+                Logger.Debug($"server ip: {serverIP} server port: {serverPort}");
                 var client = new TcpClient(serverIP, serverPort, sendQueue_)
                 {
                     OnInit = () => this.RegisterGateMessageHandlers(tmpIdx),
@@ -105,13 +106,15 @@ namespace LPS.Core
             // tcp gate to other gate only send msg to other gate's server
             tcpClientsToOtherGate_ = new TcpClient[otherGates.Length];
             idx = 0;
-            foreach (var (otherGateIP, otherGatePort) in otherGates)
+            foreach (var (otherGateInnerIp, otherGateIp, otherGatePort) in otherGates)
             {
                 var tmpIdx = idx;
-                var client = new TcpClient(otherGateIP, otherGatePort, sendQueue_)
+                var client = new TcpClient(otherGateInnerIp, otherGatePort, sendQueue_)
                 {
                     OnConnected = () => tcpClientConnectedCountdownEvent_.Signal(),
                 };
+
+                client.TargetIp = otherGateIp;
 
                 tcpClientsToOtherGate_[idx] = client;
                 ++idx;
@@ -254,7 +257,7 @@ namespace LPS.Core
             Logger.Info(
                 $"mailbox {createEntityRes.ID} {createEntityRes.IP} {createEntityRes.Port} {createEntityRes.HostNum}");
 
-            var serverEntityMailBox = new Rpc.MailBox(createEntityRes.ID, this.IP, this.Port, this.HostNum);
+            var serverEntityMailBox = new Rpc.MailBox(createEntityRes.ID, this.Ip, this.Port, this.HostNum);
             entity_ = new(serverEntityMailBox,
                 (id, entityClassName, jsonDesc) => throw new Exception("Cannot create entity on gate."))
                 {
@@ -278,7 +281,7 @@ namespace LPS.Core
         private TcpClient FindServerOfEntity(MailBox targetMailBox)
         {
             var clientToServer = this.tcpClientsToServer_
-                .First(clientToServer => clientToServer.MailBox.IP == targetMailBox.IP
+                .First(clientToServer => clientToServer.MailBox.Ip == targetMailBox.IP
                                          && clientToServer.MailBox.Port == targetMailBox.Port
                                          && clientToServer.MailBox.HostNum == targetMailBox.HostNum);
             return clientToServer;
@@ -327,7 +330,7 @@ namespace LPS.Core
             {
                 // todo: dictionary cache
                 var gate = this.tcpClientsToOtherGate_
-                            .First(client => client.TargetIP == targetEntityMailBox.IP
+                            .First(client => client.TargetIp == targetEntityMailBox.IP
                                 && client.TargetPort == targetEntityMailBox.Port);
 
                 // if rpc's target is other gate entity
@@ -364,7 +367,7 @@ namespace LPS.Core
                     {
                         var (client, msg, reentry) = tp;
 
-                        var id = client.GenerateMsgID();
+                        var id = client.GenerateMsgId();
                         // if (!reentry)
                         // {
                         //     tokenSequence_.Enqueue(id);
@@ -428,7 +431,7 @@ namespace LPS.Core
 
         public void Loop()
         {
-            Logger.Debug($"Start gate at {this.IP}:{this.Port}");
+            Logger.Debug($"Start gate at {this.Ip}:{this.Port}");
             tcpGateServer_.Run();
 
             Array.ForEach(tcpClientsToServer_, client => client.Run());

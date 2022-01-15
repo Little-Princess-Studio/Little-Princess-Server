@@ -37,10 +37,11 @@ namespace LPS.Core.Entity
         }
 
         [RpcMethod(Authority.ServerOnly)]
-        public async void Echo3(MailBox mb)
+        public ValueTask Echo3(MailBox mb)
         {
             Logger.Info($"Got mailbox {mb}");
             // await this.Call(mb, "Hello, LPS");
+            return new ValueTask();
         }
 
         [RpcMethod(Authority.ServerOnly)]
@@ -49,13 +50,13 @@ namespace LPS.Core.Entity
             var newId = await DbHelper.GenerateNewGlobalId();
 
             var newMailBox = new MailBox(
-                newId, this.MailBox.IP,
+                newId, this.MailBox.Ip,
                 this.MailBox.Port,
                 this.MailBox.HostNum);
 
             try
             {
-                onCreateEntity_?.Invoke(entityClassName, jsonDesc, newMailBox);
+                onCreateEntity_.Invoke(entityClassName, jsonDesc, newMailBox);
             }
             catch(Exception e)
             {

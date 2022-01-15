@@ -56,7 +56,7 @@ namespace LPS.Core
                     {
                         var entity = RpcServerHelper.CreateEntityLocally(entityClassName, jsonDesc);
                         entity.MailBox = mailBox;
-                        localEntityDict_[mailBox.ID] = entity;
+                        localEntityDict_[mailBox.Id] = entity;
                         Logger.Info($"Server register entity with mailbox {mailBox}");
                     })
                     {
@@ -67,8 +67,8 @@ namespace LPS.Core
                             var targetMailBox = entityRpc.EntityMailBox;
 
                             // send to self
-                            if (targetMailBox.ID == this.entity_!.MailBox!.ID
-                                && targetMailBox.IP == this.entity_.MailBox.IP
+                            if (targetMailBox.ID == this.entity_!.MailBox!.Id
+                                && targetMailBox.IP == this.entity_.MailBox.Ip
                                 && targetMailBox.Port == this.entity_.MailBox.Port
                                 && targetMailBox.HostNum == this.entity_.MailBox.HostNum)
                             {
@@ -154,9 +154,9 @@ namespace LPS.Core
                 }
 
             }
-            else if (localEntityDict_.ContainsKey(this.entity_.MailBox.ID))
+            else if (localEntityDict_.ContainsKey(this.entity_.MailBox.Id))
             {
-                var entity = localEntityDict_[this.entity_.MailBox.ID];
+                var entity = localEntityDict_[this.entity_.MailBox.Id];
                 try
                 {
                     RpcHelper.CallLocalEntity(entity, entityRpc);

@@ -40,7 +40,7 @@ namespace LPS.Core.Ipc
 
             do
             {
-                dispatcher_.Dispatch(msg.Key, msg.arg);
+                dispatcher_.Dispatch(msg.Key, msg.Arg);
                 succ = this.TryDeque(out msg);
             } while (succ);
         }

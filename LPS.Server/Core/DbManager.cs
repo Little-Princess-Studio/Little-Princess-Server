@@ -1,5 +1,3 @@
-using System;
-using LPS.Core.Database;
 using LPS.Core.Debug;
 using LPS.Core.Rpc;
 
@@ -7,17 +5,18 @@ namespace LPS.Core
 {
     public class DbManager
     {
-        public string IP { get; private set; }
+        public string Ip { get; private set; }
         public int Port { get; private set; }
         public int HostNum { get; private set; }
         private readonly TcpServer tcpDbManagerServer_;
         
 
-        public DbManager(string ip, int port, int hostnum, string hostManagerIP, int hostManagerPort, (string IP, int Port, string DefaultDb) cacheInfo)
+        public DbManager(string ip, int port, int hostNum, string hostManagerIp, int hostManagerPort,
+            (string IP, int Port, string DefaultDb) cacheInfo)
         {
-            this.IP = ip;
+            this.Ip = ip;
             this.Port = port;
-            this.HostNum = hostnum;
+            this.HostNum = hostNum;
 
             // tcp gate server handles msg from server/other gates
             tcpDbManagerServer_ = new(ip, port)
@@ -44,7 +43,7 @@ namespace LPS.Core
 
         public void Loop()
         {
-            Logger.Debug($"Start dbmanager at {this.IP}:{this.Port}");
+            Logger.Debug($"Start dbmanager at {this.Ip}:{this.Port}");
 
             // Logger.Info("$Clear global cache...");
             // DbHelper.FastGlobalCache.Clear().Wait();

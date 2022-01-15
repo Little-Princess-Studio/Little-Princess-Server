@@ -1,16 +1,14 @@
-using System;
-
 namespace LPS.Core.Ipc
 {
     public struct Message
     {
         public readonly IComparable Key;
-        public readonly object arg;
+        public readonly object Arg;
 
         public Message(IComparable key, object arg)
         {
             Key = key;
-            this.arg = arg;
+            this.Arg = arg;
         }
     }
 }

@@ -103,24 +103,24 @@ namespace LPS.Core.Rpc.InnerMessages
         //     { typeof(EntityRpc), PackageType.EntityRpc },
         // };
 
-        private static Dictionary<PackageType, CreateIMessage> Type2Protobuf = null!;
-        private static Dictionary<Type, PackageType> Type2Enum = null!;
+        private static Dictionary<PackageType, CreateIMessage> Type2Protobuf_ = null!;
+        private static Dictionary<Type, PackageType> Type2Enum_ = null!;
 
-        public static void SetType2Protbuf(Dictionary<PackageType, CreateIMessage> type2Protobuf)
+        public static void SetType2Protobuf(Dictionary<PackageType, CreateIMessage> type2Protobuf)
         {
-            Type2Protobuf = type2Protobuf;
+            Type2Protobuf_ = type2Protobuf;
         }
 
         public static void SetType2Enum(Dictionary<Type, PackageType> type2Enum)
         {
-            Type2Enum = type2Enum;
+            Type2Enum_ = type2Enum;
         }
 
         private static class MessageParserWrapper<T> where T : IMessage<T>, new ()
         {
-            private static readonly MessageParser<T> Parser = new(() => new T());
+            private static readonly MessageParser<T> Parser_ = new(() => new T());
 
-            public static MessageParser<T> Get() => Parser;
+            public static MessageParser<T> Get() => Parser_;
         }
 
         public static T GetProtoBufObject<T>(in Package package) where T : IMessage<T>, new ()
@@ -131,12 +131,12 @@ namespace LPS.Core.Rpc.InnerMessages
 
         public static IMessage GetProtoBufObjectByType(PackageType type, in Package package)
         {
-            return Type2Protobuf[type].Invoke(package);
+            return Type2Protobuf_[type].Invoke(package);
         }
 
-        private static PackageType GetPackageType<T>() => Type2Enum[typeof(T)];
+        private static PackageType GetPackageType<T>() => Type2Enum_[typeof(T)];
 
-        private static PackageType GetPackageType(Type type) => Type2Enum[type];
+        private static PackageType GetPackageType(Type type) => Type2Enum_[type];
 
         public static Package FromProtoBuf<T>(T protobufObj, uint id) where T : IMessage<T>, new ()
         {

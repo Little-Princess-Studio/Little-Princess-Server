@@ -1,18 +1,20 @@
 using System;
+using System.Globalization;
 using System.Threading.Tasks;
 using LPS.Core.Database.GlobalCache;
 using LPS.Core.Debug;
 
 namespace LPS.Core.Database
 {
-
     public static class DbHelper
     {
-        private static IGlobalCache? fastGlobalCache_;
+        private static IGlobalCache? FastGlobalCache_;
+
         // Fast* client allows current process directly access to cache (redis).
         // Be careful to use this api.
         // This api should only be used under latency-sensitive circumstance.
-        public static IGlobalCache FastGlobalCache => fastGlobalCache_!;
+        public static IGlobalCache FastGlobalCache => FastGlobalCache_!;
+
         // Slow* client posts the access operation message to remote DbManager process.
         // DbManager process holds a message queue to control the cache-access frequency.
         // User should use this api in most cases.
@@ -21,12 +23,12 @@ namespace LPS.Core.Database
         public static IDatabase FastDatabase => throw new NotImplementedException();
         public static IDatabase SlowDatabase => throw new NotImplementedException();
 
-        public async static Task Initialize()
+        public static async Task Initialize()
         {
             Logger.Info("Start initialize database...");
-            fastGlobalCache_ = Redis.Instance;
-            await fastGlobalCache_.Initialize();
-            // todo: slow.initialzie()
+            FastGlobalCache_ = Redis.Instance;
+            await FastGlobalCache_.Initialize();
+            // todo: slow.initialize()
             Logger.Info("Initialize database success.");
         }
 
@@ -45,11 +47,11 @@ namespace LPS.Core.Database
             // 2. get global counter's val
             // 3. val % 10e16 (get the last 16 digits)
             // 4. convert val to string and padding to 16-digits string
-            // 5. convert 16-digits string to base64 string as the globalid
-            var globalID = longId;
-            var stringID = Convert.ToString(globalID % 10e16).PadLeft(16, '0');
-            var newID = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(stringID));
-            return newID;
+            // 5. convert 16-digits string to base64 string as the global id
+            var globalId = longId;
+            var stringId = Convert.ToString(globalId % 10e16, CultureInfo.InvariantCulture).PadLeft(16, '0');
+            var newId = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(stringId));
+            return newId;
         }
     }
 }

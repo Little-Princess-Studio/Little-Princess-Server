@@ -5,11 +5,11 @@ namespace LPS.Core.Ipc
     // Every thread work int a isolate sandbox
     public class SandBox
     {
-        private Thread thread_ = null;
+        private Thread? thread_;
 
-        public int ThreadID => thread_ is null ? throw new Exception("SandBox is empty.") : thread_.ManagedThreadId;
+        public int ThreadId => thread_?.ManagedThreadId ?? throw new Exception("SandBox is empty.");
 
-        private object action_;
+        private object? action_;
 
         private bool isAsyncAction_;
 
@@ -57,7 +57,7 @@ namespace LPS.Core.Ipc
                 {
                     Logger.Error(ex, "Sandbox thread interupted.");
                 }
-                catch (System.Exception ex)
+                catch (Exception ex)
                 {
                     Logger.Error(ex, $"Exception happend in SandBox");
                 }
@@ -67,12 +67,12 @@ namespace LPS.Core.Ipc
 
         public void WaitForExit()
         {
-            thread_.Join();
+            thread_!.Join();
         }
 
         public void Interrupt()
         {
-            thread_.Interrupt();
+            thread_!.Interrupt();
         }
     }
 }

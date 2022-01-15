@@ -18,17 +18,17 @@ namespace LPS.Core.Rpc
     */
     public class TcpServer
     {
-        public string IP { get; private set; }
+        public string Ip { get; private set; }
         public int Port { get; private set; }
 
         private bool stopFlag_;
         private readonly Dictionary<Connection, Task> connections_ = new();
-        private readonly SandBox sandboxIO_;
+        private readonly SandBox sandboxIo_;
         private readonly Bus bus_;
         private readonly Dispatcher msgDispatcher_;
         public Socket? Socket { get; private set; }
-        public Action? OnInit { get; set; }
-        public Action? OnDispose { get; set; }
+        public Action? OnInit { get; init; }
+        public Action? OnDispose { get; init; }
         private readonly Dictionary<Socket, Connection> socketToConn_ = new();
 
         public Connection[] AllConnections => socketToConn_.Values.ToArray();
@@ -39,24 +39,24 @@ namespace LPS.Core.Rpc
 
         public TcpServer(string ip, int port)
         {
-            this.IP = ip;
+            this.Ip = ip;
             this.Port = port;
 
             msgDispatcher_ = new Dispatcher();
             bus_ = new Bus(msgDispatcher_);
 
-            sandboxIO_ = SandBox.Create(this.IOHandler);
+            sandboxIo_ = SandBox.Create(this.IoHandler);
         }
 
         public void Run()
         {
             stopFlag_ = false;
-            this.sandboxIO_.Run();
+            this.sandboxIo_.Run();
         }
 
         public void WaitForExit()
         {
-            this.sandboxIO_.WaitForExit();
+            this.sandboxIo_.WaitForExit();
         }
 
         public void Stop()
@@ -73,15 +73,15 @@ namespace LPS.Core.Rpc
             }
         }
 
-        private void IOHandler()
+        private void IoHandler()
         {
             #region listen port
 
-            Logger.Debug($"Start server {this.IP} {this.Port}");
+            Logger.Debug($"Start tcp server {this.Ip} {this.Port}");
 
             this.OnInit?.Invoke();
 
-            var ipa = IPAddress.Parse(this.IP);
+            var ipa = IPAddress.Parse(this.Ip);
             var ipe = new IPEndPoint(ipa, this.Port);
 
             this.Socket = new Socket(ipa.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
@@ -126,13 +126,15 @@ namespace LPS.Core.Rpc
 
                 conn.Connect();
 
-                var task = new Task(async () =>
-                {
-                    await this.HandleMessage(conn);
-                }, cancelTokenSource.Token);
+                // var task = new Task(async () =>
+                // {
+                //     await this.HandleMessage(conn);
+                // }, cancelTokenSource.Token);
 
+                var task = this.HandleMessage(conn);
                 connections_[conn] = task;
-                task.Start();
+
+                task.ContinueWith(_ => { }, cancelTokenSource.Token);
             }
             #endregion
 

@@ -226,9 +226,10 @@ namespace LPS.Core
             var otherGates = json["gates"]!.ToObject<Dictionary<string, JToken>>()!
                                         .Where(pair => pair.Key != name)
                                         .Select(
-                                            pair => (pair.Value["ip"]!.ToString(), pair.Value["port"]!.ToObject<int>()))
+                                            pair => (pair.Value["innerip"]!.ToString(), pair.Value["ip"]!.ToString(), pair
+                                            .Value["port"]!
+                                            .ToObject<int>()))
                                         .ToArray();
-                 
             #endregion
 
             Logger.Debug($"Startup Gate {name} at {ip}:{port}");

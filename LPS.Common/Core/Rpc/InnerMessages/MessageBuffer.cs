@@ -1,4 +1,3 @@
-using System;
 using LPS.Core.Debug;
 
 namespace LPS.Core.Rpc.InnerMessages
@@ -7,18 +6,18 @@ namespace LPS.Core.Rpc.InnerMessages
     {
         // initial 4k buffer to recv network messages
         const int InitBufLength = 2048;
-        private static readonly int HeaderLen = PackageHeader.Size;
+        private static readonly int HeaderLen_ = PackageHeader.Size;
 
-        private int head_ = 0;
-        private int tail_ = 0;
+        private int head_;
+        private int tail_;
 
         private int BodyLen=> tail_ - head_;
 
-        private int curBufLen = InitBufLength;
+        private int curBufLen_ = InitBufLength;
 
         private byte[] buffer_ = new byte[InitBufLength];
 
-        public bool TryRecieveFromRaw(byte[] incomeBuffer, int len, out Package pkg)
+        public bool TryReceiveFromRaw(byte[] incomeBuffer, int len, out Package pkg)
         {
             /*
             How to handle TCP stream raw data to Package:
@@ -39,18 +38,18 @@ namespace LPS.Core.Rpc.InnerMessages
                     if bodylen > header.package_len then get package from buf[head..head+header.package_len], set head = head + header.package_len
             */
 
-            if (tail_+len > curBufLen)
+            if (tail_+len > curBufLen_)
             {
-                if (BodyLen + len > curBufLen)
+                if (BodyLen + len > curBufLen_)
                 {
-                    while (tail_+len-1>= curBufLen)
+                    while (tail_+len-1>= curBufLen_)
                     {
-                        Logger.Debug($"{tail_} + {len} - 1 = {tail_ + len - 1} >= {curBufLen}, double the buf");
+                        Logger.Debug($"{tail_} + {len} - 1 = {tail_ + len - 1} >= {curBufLen_}, double the buf");
                         // repeat double size
-                        curBufLen <<= 1;
+                        curBufLen_ <<= 1;
                     }
 
-                    byte[] newBuffer = new byte[curBufLen];
+                    byte[] newBuffer = new byte[curBufLen_];
 
                     // copy current data buf[head...tail] -> new[0...tail-head]
                     Buffer.BlockCopy(buffer_, head_, newBuffer, 0, BodyLen);
@@ -75,7 +74,7 @@ namespace LPS.Core.Rpc.InnerMessages
             Buffer.BlockCopy(incomeBuffer, 0, buffer_, tail_, len);
             tail_ += len;
 
-            if (BodyLen < HeaderLen)
+            if (BodyLen < HeaderLen_)
             {
                 // Logger.Debug("bodylen < header len");
                 pkg = default;
@@ -118,7 +117,7 @@ namespace LPS.Core.Rpc.InnerMessages
             int pos = head_;
             var pkgLen = BitConverter.ToUInt16(buffer_, pos);
             pos += 2;
-            var pkgID = BitConverter.ToUInt32(buffer_, pos);
+            var pkgId = BitConverter.ToUInt32(buffer_, pos);
             pos += 4;
             var pkgVersion = BitConverter.ToUInt16(buffer_, pos);
             pos += 2;
@@ -129,15 +128,15 @@ namespace LPS.Core.Rpc.InnerMessages
             // Logger.Debug($"get pkg len: {pkgLen}, id: {pkgID}, version: {pkgVersion}, type: {pkgType}");
 
             pkg.Header.Length = pkgLen;
-            pkg.Header.ID = pkgID;
+            pkg.Header.ID = pkgId;
             pkg.Header.Version = pkgVersion;
             pkg.Header.Type = pkgType;
 
-            pkg.Body = new byte[pkgLen - HeaderLen];
+            pkg.Body = new byte[pkgLen - HeaderLen_];
 
             // Logger.Debug($"buffer_ size: {buffer_.Length}, {head_ + HeaderLen}, {pkgLen - HeaderLen}");
 
-            Buffer.BlockCopy(buffer_, head_ + HeaderLen, pkg.Body, 0, pkgLen - HeaderLen);
+            Buffer.BlockCopy(buffer_, head_ + HeaderLen_, pkg.Body, 0, pkgLen - HeaderLen_);
 
             return pkg;
         }

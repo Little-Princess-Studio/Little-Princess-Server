@@ -5,7 +5,7 @@ namespace LPS.Core.Entity
     [EntityClass]
     public class UniqueEntity : BaseEntity
     {
-        public UniqueEntity()
+        protected UniqueEntity()
         {
             
         }

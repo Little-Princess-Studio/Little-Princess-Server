@@ -7,7 +7,6 @@ using System.Threading.Tasks;
 using Google.Protobuf;
 using LPS.Core.Debug;
 using LPS.Core.Ipc;
-using LPS.Core.Rpc.InnerMessages;
 
 namespace LPS.Core.Rpc
 {
@@ -16,54 +15,53 @@ namespace LPS.Core.Rpc
 #nullable enable
         public Socket? Socket { get; private set; }
         public Action? OnInit { get; set; }
-        public Action? OnDispose { get; set; }
-        public Action? OnConnected { get; set; }
+        public Action? OnDispose { get; init; }
+        public Action? OnConnected { get; init; }
         public MailBox MailBox { get; set; }
 #nullable disable
-        private readonly SandBox sandboxIO_;
+        private readonly SandBox sandboxIo_;
         private readonly Bus bus_;
-        private readonly Dispatcher msgDispacher_;
-        private readonly string targetIP_;
+        private readonly Dispatcher msgDispatcher_;
+        private readonly string targetIp_;
         private readonly int targetPort_;
         private readonly TokenSequence<uint> tokenSequence_ = new();
         private readonly ConcurrentQueue<(TcpClient, IMessage, bool)> sendQueue_;
         private bool stopFlag_;
         private const int ConnectRetryMaxTimes = 10;
-        private uint idCounter_ = 0;
-
-        public string TargetIP => targetIP_;
+        private uint idCounter_;
         public int TargetPort => targetPort_;
+        public string TargetIp { get; set; }
 
-        public TcpClient(string targetIP, int targetPort, ConcurrentQueue<(TcpClient, IMessage, bool)> sendQueue)
+        public TcpClient(string targetIp, int targetPort, ConcurrentQueue<(TcpClient, IMessage, bool)> sendQueue)
         {
-            targetIP_ = targetIP;
+            TargetIp = targetIp_ = targetIp;
             targetPort_ = targetPort;
             sendQueue_ = sendQueue;
 
-            msgDispacher_ = new Dispatcher();
-            bus_ = new Bus(msgDispacher_);
+            msgDispatcher_ = new Dispatcher();
+            bus_ = new Bus(msgDispatcher_);
 
-            sandboxIO_ = SandBox.Create(this.IOHandler);
+            sandboxIo_ = SandBox.Create(this.IoHandler);
         }
 
-        private async Task IOHandler()
+        private async Task IoHandler()
         {
             try
             {
                 this.OnInit?.Invoke();
 
-                var ipa = IPAddress.Parse(targetIP_);
+                var ipa = IPAddress.Parse(targetIp_);
                 var ipe = new IPEndPoint(ipa, targetPort_);
                 this.Socket = new Socket(ipe.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
 
-                Logger.Debug($"Connect to: {targetIP_}:{targetPort_}");
+                Logger.Debug($"Connect to: {targetIp_}:{targetPort_}");
                 // repeat trying to connect
                 int retryTimes = 0;
                 while (!this.Socket.Connected && !stopFlag_ && retryTimes <= ConnectRetryMaxTimes)
                 {
                     try
                     {
-                        this.Socket.Connect(ipe);
+                        await this.Socket.ConnectAsync(ipe);
                     }
                     catch (Exception e)
                     {
@@ -76,8 +74,8 @@ namespace LPS.Core.Rpc
                 if (!this.Socket.Connected)
                 {
                     this.Socket = null;
-                    var e = new Exception($"Target {targetIP_} {targetPort_} cannot be connected.");
-                    Logger.Fatal(e, $"Target {targetIP_} {targetPort_} cannot be connected.");
+                    var e = new Exception($"Target {targetIp_} {targetPort_} cannot be connected.");
+                    Logger.Fatal(e, $"Target {targetIp_} {targetPort_} cannot be connected.");
                     throw e;
                 }
             }
@@ -113,7 +111,7 @@ namespace LPS.Core.Rpc
                 null);
         }
 
-        public uint GenerateMsgID() => idCounter_++;
+        public uint GenerateMsgId() => idCounter_++;
 
         public void Send(IMessage msg, bool reentry=true)
         {
@@ -131,12 +129,12 @@ namespace LPS.Core.Rpc
         public void Run()
         {
             stopFlag_ = false;
-            this.sandboxIO_.Run();
+            this.sandboxIo_.Run();
         }
 
         public void WaitForExit()
         {
-            this.sandboxIO_.WaitForExit();
+            this.sandboxIo_.WaitForExit();
         }
 
         public void Stop()
@@ -144,22 +142,22 @@ namespace LPS.Core.Rpc
             this.stopFlag_ = true;
             try
             {
-                this.Socket.Shutdown(SocketShutdown.Both);
+                this.Socket!.Shutdown(SocketShutdown.Both);
             }
             finally
             {
-                this.Socket.Close();
+                this.Socket!.Close();
             }
         }
 
         public void RegisterMessageHandler(IComparable key, Action<object> callback)
         {
-            this.msgDispacher_.Register(key, callback);
+            this.msgDispatcher_.Register(key, callback);
         }
 
         public void UnregisterMessageHandler(IComparable key, Action<object> callback)
         {
-            this.msgDispacher_.Unregister(key, callback);
+            this.msgDispatcher_.Unregister(key, callback);
         }
     }
 }

@@ -6,7 +6,7 @@ namespace LPS.Core.Rpc
 {
     public static class RpcProtobufDefs
     {
-        private static readonly Dictionary<PackageType, PackageHelper.CreateIMessage> Type2ProBuf = new()
+        private static readonly Dictionary<PackageType, PackageHelper.CreateIMessage> Type2ProBuf_ = new()
         {
             { PackageType.Authentication, (in Package pkg) => PackageHelper.GetProtoBufObject<Authentication>(pkg) },
             { PackageType.CreateEntity, (in Package pkg) => PackageHelper.GetProtoBufObject<CreateEntity>(pkg) },
@@ -17,7 +17,7 @@ namespace LPS.Core.Rpc
             { PackageType.EntityRpc, (in Package pkg) => PackageHelper.GetProtoBufObject<EntityRpc>(pkg) },
         };
 
-        private static readonly Dictionary<Type, PackageType> Type2Enum = new()
+        private static readonly Dictionary<Type, PackageType> Type2Enum_ = new()
         {
             { typeof(Authentication), PackageType.Authentication },
             { typeof(CreateEntity), PackageType.CreateEntity },
@@ -30,9 +30,8 @@ namespace LPS.Core.Rpc
 
         public static void Initialize()
         {
-            PackageHelper.SetType2Protbuf(Type2ProBuf);
-            PackageHelper.SetType2Enum(Type2Enum);
+            PackageHelper.SetType2Protobuf(Type2ProBuf_);
+            PackageHelper.SetType2Enum(Type2Enum_);
         }
-        
     }
 }

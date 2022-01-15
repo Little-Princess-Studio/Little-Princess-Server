@@ -24,9 +24,9 @@ namespace LPS.Core.Rpc
             throw new Exception($"Invalid entity class name {entityClassName}");
         }
 
-        public static async Task<DistributeEntity> CreateEntityAnywhere()
-        {
-            return null;
-        }
+        // public static Task<DistributeEntity> CreateEntityAnywhere()
+        // {
+        //     return null;
+        // }
     }    
 }

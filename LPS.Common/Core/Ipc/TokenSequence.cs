@@ -1,8 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.ComponentModel.Design;
-using System.Linq;
-
 namespace LPS.Core.Ipc
 {
     /*
@@ -10,7 +5,7 @@ namespace LPS.Core.Ipc
     */
     public class TokenSequence<T> where T : IComparable
     {
-        private Queue<T> queue_ = new();
+        private readonly Queue<T> queue_ = new();
 
         public bool Empty => queue_.Count == 0;
 

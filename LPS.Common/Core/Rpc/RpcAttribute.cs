@@ -10,7 +10,7 @@ namespace LPS.Core.Rpc
     [AttributeUsage(AttributeTargets.Method, AllowMultiple = false, Inherited = true)]
     public class RpcMethodAttribute : Attribute
     {
-        public Authority Authority;
+        public readonly Authority Authority;
 
         public RpcMethodAttribute(Authority authority)
         {
@@ -26,7 +26,7 @@ namespace LPS.Core.Rpc
     [AttributeUsage(AttributeTargets.Class, AllowMultiple = false, Inherited = true)]
     public class EntityClassAttribute : Attribute
     {
-        public string Name;
+        public readonly string Name;
 
         public EntityClassAttribute(string name = "")
         {
