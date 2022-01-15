@@ -1,5 +1,6 @@
 ﻿using LPS.Core.Debug;
 using LPS.Client.Console;
+using LPS.Client.LPS.Core.Rpc;
 
 namespace LPS.Client
 {
@@ -17,16 +18,17 @@ namespace LPS.Client
         public static void Main(string[] args)
         {
             Logger.Init("client");
+            RpcProtobufDefs.Init();
             CommandParser.ScanCommands("LPS.Client");
 
-            // Client.Instance.Init("52.175.74.209", 11001);
-            // Client.Instance.Start();
+            Client.Instance.Init("127.0.0.1", 11001);
+            Client.Instance.Start();
 
             AutoCompleteConsole.Init();
             AutoCompleteConsole.Loop();
             
-            // Client.Instance.Stop();
-            // Client.Instance.WaitForExit();
+            Client.Instance.Stop();
+            Client.Instance.WaitForExit();
         }
     }
 }

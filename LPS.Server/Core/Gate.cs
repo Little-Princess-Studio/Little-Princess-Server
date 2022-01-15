@@ -160,26 +160,27 @@ namespace LPS.Core
             // TODO: Cache the rsa object
             var decryptedData = DecryptedCiphertext(auth);
 
-            Logger.Info($"Got auth req {auth.Content}, {auth.Ciphertext}");
             Logger.Info($"Got decrypted content: {decryptedData}");
 
-            // auth succ
             if (decryptedData == auth.Content)
             {
-                Logger.Info("Auth succ");
-                // todo: notify server to create mailbox
+                Logger.Info("Auth success");
 
                 var serverMailBox = RandomServerClient().MailBox!;
-
-                this.entity_!.Call<MailBox>(serverMailBox, "CreateEntity", "Untrusted", "");
-                // .ContinueWith(task => conn.Socket.Send(new Create))
+                entity_!.Call<Rpc.MailBox>(serverMailBox, "CreateEntity", "Untrusted", "")
+                    .ContinueWith(task => this.OnCreateUntrusted(task.Result, conn));
             }
             else
             {
-                Logger.Info("Auth failed");
+                Logger.Warn("Auth failed");
                 conn.DisConnect();
                 conn.TokenSource.Cancel();
             }
+        }
+
+        private void OnCreateUntrusted(in Rpc.MailBox mailBox, Connection conn)
+        {
+            Logger.Info($"Create Untrusted with mailbox {mailBox}");
         }
 
         private void HandleControlMessage(object arg)

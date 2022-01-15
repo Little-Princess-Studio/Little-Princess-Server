@@ -162,29 +162,5 @@ namespace LPS.Client
                 Logger.Error(e, "Send Error.");
             }
         }
-
-        public void Tt(string message)
-        {
-            var rsa = RSA.Create();
-            var pem = File.ReadAllText("./demo.pub").ToCharArray();
-            rsa.ImportFromPem(pem);
-
-            var byteData = Encoding.UTF8.GetBytes(message);
-            var encryptedData = Convert.ToBase64String(rsa.Encrypt(byteData, RSAEncryptionPadding.Pkcs1));
-
-            Logger.Debug($"encrypted data: {encryptedData}");
-            
-            var authMsg = new Authentication
-            {
-                Content = message,
-                Ciphertext = encryptedData,
-            };
-
-            var pkg = PackageHelper.FromProtoBuf(authMsg, 0);
-            
-            Logger.Debug($"{pkg.Header.Length} {pkg.Header.ID} {pkg.Header.Version} {pkg.Header.Type}");
-            
-            socket_.Send(pkg.ToBytes());
-        }
     }
 }

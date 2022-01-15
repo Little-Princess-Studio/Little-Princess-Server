@@ -1,4 +1,7 @@
+using System.Security.Cryptography;
+using System.Text;
 using LPS.Core.Debug;
+using LPS.Core.Rpc.InnerMessages;
 
 namespace LPS.Client.Console
 {
@@ -13,7 +16,22 @@ namespace LPS.Client.Console
         [ConsoleCommand("send.authority")]
         public static void SendAuthority()
         {
+            const string message = "authority-content";
             
+            var rsa = RSA.Create();
+            var pem = File.ReadAllText("./Config/demo.pub").ToCharArray();
+            rsa.ImportFromPem(pem);
+
+            var byteData = Encoding.UTF8.GetBytes(message);
+            var encryptedData = Convert.ToBase64String(rsa.Encrypt(byteData, RSAEncryptionPadding.Pkcs1));
+            
+            var authMsg = new Authentication
+            {
+                Content = message,
+                Ciphertext = encryptedData,
+            };
+            
+            Client.Instance.Send(authMsg);
         }
         
         [ConsoleCommand("send.ping")]

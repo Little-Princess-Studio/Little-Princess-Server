@@ -7,6 +7,7 @@ using LPS.Core.Debug;
 using LPS.Core.Entity;
 using LPS.Core.Rpc;
 using LPS.Core.Rpc.InnerMessages;
+using MailBox = LPS.Core.Rpc.MailBox;
 
 
 /*
@@ -27,8 +28,9 @@ namespace LPS.Core
         private ServerEntity? entity_;
         private readonly Dictionary<string, DistributeEntity> localEntityDict_ = new();
         private readonly TcpServer tcpServer_;
+
         private Connection[] GateConnections => tcpServer_.AllConnections;
-        private static readonly Random Random = new Random();
+        // private static readonly Random Random = new Random();
 
         public Server(string name, string ip, int port, int hostnum, string hostManagerIP, int hostManagerPort)
         {
@@ -50,59 +52,60 @@ namespace LPS.Core
             DbHelper.GenerateNewGlobalId().ContinueWith(task =>
             {
                 var newID = task.Result;
-                entity_ = new(
-                    new(newID, ip, port, hostnum),
-                    (entityClassName, jsonDesc, mailBox) =>
+                entity_ = new(new(newID, ip, port, hostnum), OnCreateEntity)
+                {
+                    // todo: insert local rpc call operation to pump queue, instead of directly calling local entity rpc here.
+                    OnSend = entityRpc =>
                     {
-                        var entity = RpcServerHelper.CreateEntityLocally(entityClassName, jsonDesc);
-                        entity.MailBox = mailBox;
-                        localEntityDict_[mailBox.Id] = entity;
-                        Logger.Info($"Server register entity with mailbox {mailBox}");
-                    })
-                    {
-                        // todo: insert local rpc call operation to pump queue, instead of directly calling local entity rpc here.
-                        OnSend = entityRpc =>
+                        // send this rpc to gate
+                        var targetMailBox = entityRpc.EntityMailBox;
+
+                        // send to self
+                        if (targetMailBox.ID == this.entity_!.MailBox!.Id
+                            && targetMailBox.IP == this.entity_.MailBox.Ip
+                            && targetMailBox.Port == this.entity_.MailBox.Port
+                            && targetMailBox.HostNum == this.entity_.MailBox.HostNum)
                         {
-                                // send this rpc to gate
-                            var targetMailBox = entityRpc.EntityMailBox;
+                            try
+                            {
+                                RpcHelper.CallLocalEntity(this.entity_, entityRpc);
+                            }
+                            catch (Exception e)
+                            {
+                                Logger.Error(e, "Exception happend when call server entity");
+                            }
+                        }
+                        // send to local entity
+                        else if (localEntityDict_.ContainsKey(entityRpc.EntityMailBox.ID))
+                        {
+                            var entity = localEntityDict_[entityRpc.EntityMailBox.ID];
 
-                            // send to self
-                            if (targetMailBox.ID == this.entity_!.MailBox!.Id
-                                && targetMailBox.IP == this.entity_.MailBox.Ip
-                                && targetMailBox.Port == this.entity_.MailBox.Port
-                                && targetMailBox.HostNum == this.entity_.MailBox.HostNum)
+                            try
                             {
-                                try
-                                {
-                                    RpcHelper.CallLocalEntity(this.entity_, entityRpc);
-                                }
-                                catch(Exception e)
-                                {
-                                    Logger.Error(e, "Exception happend when call server entity");
-                                }
+                                RpcHelper.CallLocalEntity(entity, entityRpc);
                             }
-                            // send to local entity
-                            else if (localEntityDict_.ContainsKey(entityRpc.EntityMailBox.ID))
+                            catch (Exception e)
                             {
-                                var entity = localEntityDict_[entityRpc.EntityMailBox.ID];
-
-                                try
-                                {
-                                    RpcHelper.CallLocalEntity(entity, entityRpc);
-                                }
-                                catch(Exception e)
-                                {
-                                    Logger.Error(e, "Exception happend when call local entity");
-                                }
+                                Logger.Error(e, "Exception happend when call local entity");
                             }
-                            else
-                            {
-                                // redirect to gate
-                                this.tcpServer_.Send(entityRpc, GateConnections[0]);
-                            }
-                        },
-                    };
+                        }
+                        else
+                        {
+                            // redirect to gate
+                            this.tcpServer_.Send(entityRpc, GateConnections[0]);
+                        }
+                    },
+                };
             });
+        }
+
+        private void OnCreateEntity(string entityClassName, string jsonDesc, MailBox mailBox)
+        {
+            var entity = RpcServerHelper.CreateEntityLocally(entityClassName, jsonDesc);
+            Logger.Info($"Server create a new entity with mailbox {mailBox}");
+            
+            entity.MailBox = mailBox;
+            localEntityDict_[mailBox.Id] = entity;
         }
 
         public void Stop()
@@ -136,7 +139,7 @@ namespace LPS.Core
         // how server handle entity rpc
         private void HandleEntityRpc(object arg)
         {
-            var (msg, _, _) = ((IMessage, Connection, UInt32))arg;
+            var (msg, _, _) = ((IMessage, Connection, UInt32)) arg;
             var entityRpc = (msg as EntityRpc)!;
 
             var targetMailBox = entityRpc.EntityMailBox;
@@ -148,11 +151,10 @@ namespace LPS.Core
                 {
                     RpcHelper.CallLocalEntity(this.entity_, entityRpc);
                 }
-                catch(Exception e)
+                catch (Exception e)
                 {
                     Logger.Error(e, "Exception happend when call server entity");
                 }
-
             }
             else if (localEntityDict_.ContainsKey(this.entity_.MailBox.Id))
             {
@@ -161,7 +163,7 @@ namespace LPS.Core
                 {
                     RpcHelper.CallLocalEntity(entity, entityRpc);
                 }
-                catch(Exception e)
+                catch (Exception e)
                 {
                     Logger.Error(e, "Exception happend when call server entity");
                 }
@@ -182,7 +184,7 @@ namespace LPS.Core
 
         private void HandleCreateEntity(object arg)
         {
-            var (msg, conn, id) = ((IMessage, Connection, UInt32))arg;
+            var (msg, conn, id) = ((IMessage, Connection, UInt32)) arg;
 
             var createEntity = (msg as CreateEntity)!;
             var socket = conn.Socket;
@@ -206,7 +208,7 @@ namespace LPS.Core
                             {
                                 IP = "",
                                 Port = 0,
-                                HostNum = (uint)this.HostNum,
+                                HostNum = (uint) this.HostNum,
                                 ID = newID,
                             }
                         };
@@ -219,7 +221,7 @@ namespace LPS.Core
 
         private void HandleExchangeMailBox(object arg)
         {
-            var (msg, conn, id) = ((IMessage, Connection, UInt32))arg;
+            var (msg, conn, id) = ((IMessage, Connection, UInt32)) arg;
 
             var gateMailBox = (msg as ExchangeMailBox)!.Mailbox;
             var socket = conn.Socket;

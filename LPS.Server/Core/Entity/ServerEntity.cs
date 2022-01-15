@@ -45,7 +45,7 @@ namespace LPS.Core.Entity
         }
 
         [RpcMethod(Authority.ServerOnly)]
-        public async Task<MailBox> CreateEntity(string entityClassName, string jsonDesc)
+        public async ValueTask<MailBox> CreateEntity(string entityClassName, string jsonDesc)
         {
             var newId = await DbHelper.GenerateNewGlobalId();
 

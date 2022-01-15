@@ -128,7 +128,7 @@ namespace LPS.Core.Rpc
                 }
 
                 var attrName = type.GetCustomAttribute<EntityClassAttribute>()!.Name;
-                var regName = attrName == "" ? attrName : type.Name;
+                var regName = attrName != "" ? attrName : type.Name;
                 EntityClassMap[regName] = type;
                 Logger.Info($"Register entity pair : {regName} {type}");
             });
