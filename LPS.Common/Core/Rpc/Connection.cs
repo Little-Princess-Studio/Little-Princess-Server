@@ -16,6 +16,9 @@ namespace LPS.Core.Rpc
         public Socket Socket { get; private init; } = null!;
         public CancellationTokenSource TokenSource { get; private init; } = null!;
         public MailBox MailBox { get; set; }
+
+        public uint ConnectionID { get; set; } = uint.MaxValue;
+        
         private Connection() { }
         public static Connection Create(Socket socket, CancellationTokenSource tokenSource)
         {

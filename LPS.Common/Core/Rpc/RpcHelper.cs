@@ -17,7 +17,7 @@ namespace LPS.Core.Rpc
         private static readonly Dictionary<Type, Dictionary<string, MethodInfo>> RpcMethodInfo_ = new();
         public static readonly Dictionary<string, Type> EntityClassMap = new();
 
-        public static readonly object?[] EmptyRes = new object?[] {null};
+        public static readonly object?[] EmptyRes = {null};
         
         public static MailBox PbMailBoxToRpcMailBox(InnerMessages.MailBox mb) =>
             new(mb.ID, mb.IP, (int) mb.Port, (int) mb.HostNum);
@@ -533,7 +533,13 @@ namespace LPS.Core.Rpc
         #endregion
 
         public static EntityRpc BuildRpcMessage(
-            uint rpcId, string rpcMethodName, MailBox sender, MailBox target, bool notifyOnly, params object?[] args)
+            uint rpcId,
+            string rpcMethodName,
+            MailBox sender,
+            MailBox target,
+            bool notifyOnly,
+            bool toClient,
+            params object?[] args)
         {
             var rpc = new EntityRpc
             {
@@ -542,6 +548,7 @@ namespace LPS.Core.Rpc
                 EntityMailBox = RpcMailBoxToPbMailBox(target),
                 MethodName = rpcMethodName,
                 NotifyOnly = notifyOnly,
+                ToClient = toClient,
             };
 
             Array.ForEach(args,

@@ -30,13 +30,18 @@ namespace LPS.Core.Entity
         public void Send(MailBox targetMailBox, string rpcMethodName, bool notifyOnly, params object?[] args)
         {
             var id = rpcId_++;
-            var rpcMsg = RpcHelper.BuildRpcMessage(id, rpcMethodName, this.MailBox, targetMailBox, notifyOnly, args);
+            var rpcMsg = RpcHelper.BuildRpcMessage(
+                id, rpcMethodName, this.MailBox, targetMailBox,
+                notifyOnly, false, args);
             OnSend.Invoke(rpcMsg);
         }
 
-        public void SendWithRpcId(uint rpcId, MailBox targetMailBox, string rpcMethodName, bool notifyOnly, params object?[] args)
+        public void SendWithRpcId(uint rpcId, MailBox targetMailBox, string rpcMethodName, bool notifyOnly,
+            params object?[] args)
         {
-            var rpcMsg = RpcHelper.BuildRpcMessage(rpcId, rpcMethodName, this.MailBox, targetMailBox, notifyOnly, args);
+            var rpcMsg = RpcHelper.BuildRpcMessage(
+                rpcId, rpcMethodName, this.MailBox, targetMailBox,
+                notifyOnly, false, args);
             OnSend.Invoke(rpcMsg);
         }
 
@@ -45,7 +50,8 @@ namespace LPS.Core.Entity
         public Task Call(MailBox targetMailBox, string rpcMethodName, params object?[] args)
         {
             var id = rpcId_++;
-            var rpcMsg = RpcHelper.BuildRpcMessage(id, rpcMethodName, this.MailBox, targetMailBox, false, args);
+            var rpcMsg = RpcHelper.BuildRpcMessage(
+                id, rpcMethodName, this.MailBox, targetMailBox, false, false, args);
 
             var cancellationTokenSource = new CancellationTokenSource(1000);
             var source = new TaskCompletionSource();
@@ -66,7 +72,8 @@ namespace LPS.Core.Entity
         public Task<T> Call<T>(MailBox targetMailBox, string rpcMethodName, params object?[] args)
         {
             var id = rpcId_++;
-            var rpcMsg = RpcHelper.BuildRpcMessage(id, rpcMethodName, this.MailBox, targetMailBox, false, args);
+            var rpcMsg = RpcHelper.BuildRpcMessage(
+                id, rpcMethodName, this.MailBox, targetMailBox, false, false, args);
 
 
             var cancellationTokenSource = new CancellationTokenSource(1000);
@@ -79,7 +86,7 @@ namespace LPS.Core.Entity
                     source.TrySetException(new RpcTimeOutException(this, id));
                 }, false);
 
-            rpcDict_[id] = (res => source.TrySetResult((T)res), typeof(T));
+            rpcDict_[id] = (res => source.TrySetResult((T) res), typeof(T));
             OnSend.Invoke(rpcMsg);
 
             return source.Task;
@@ -89,7 +96,8 @@ namespace LPS.Core.Entity
         public void Notify(MailBox targetMailBox, string rpcMethodName, params object?[] args)
         {
             var id = rpcId_++;
-            var rpcMsg = RpcHelper.BuildRpcMessage(id, rpcMethodName, this.MailBox, targetMailBox, true, args);
+            var rpcMsg = RpcHelper.BuildRpcMessage(
+                id, rpcMethodName, this.MailBox, targetMailBox, true, false, args);
             OnSend.Invoke(rpcMsg);
         }
 

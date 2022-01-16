@@ -12,12 +12,9 @@ namespace LPS.Core.Entity
     [EntityClass]
     public class ServerEntity : UniqueEntity
     {
-        private readonly Action<string, string, MailBox> onCreateEntity_;
-
-        public ServerEntity(MailBox mailbox, Action<string, string, MailBox> onCreateEntity)
+        public ServerEntity(MailBox mailbox)
         {
             this.MailBox = mailbox;
-            onCreateEntity_ = onCreateEntity;
         }
 
         [RpcMethod(Authority.All)]
@@ -42,29 +39,6 @@ namespace LPS.Core.Entity
             Logger.Info($"Got mailbox {mb}");
             // await this.Call(mb, "Hello, LPS");
             return new ValueTask();
-        }
-
-        [RpcMethod(Authority.ServerOnly)]
-        public async ValueTask<MailBox> CreateEntity(string entityClassName, string jsonDesc)
-        {
-            var newId = await DbHelper.GenerateNewGlobalId();
-
-            var newMailBox = new MailBox(
-                newId, this.MailBox.Ip,
-                this.MailBox.Port,
-                this.MailBox.HostNum);
-
-            try
-            {
-                onCreateEntity_.Invoke(entityClassName, jsonDesc, newMailBox);
-            }
-            catch(Exception e)
-            {
-                Logger.Error(e, "Create entity failed.");
-                throw;
-            }
-
-            return newMailBox;
         }
     }
 }

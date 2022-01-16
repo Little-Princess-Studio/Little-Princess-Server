@@ -25,18 +25,18 @@ namespace LPS.Core.Rpc.InnerMessages {
       byte[] descriptorData = global::System.Convert.FromBase64String(
           string.Concat(
             "ChNjcmVhdGVfZW50aXR5LnByb3RvEhpMUFMuQ29yZS5ScGMuSW5uZXJNZXNz",
-            "YWdlcxoZZ29vZ2xlL3Byb3RvYnVmL2FueS5wcm90byL9AQoMQ3JlYXRlRW50",
-            "aXR5EhcKD0VudGl0eUNsYXNzTmFtZRgBIAEoCRI6CgpDcmVhdGVUeXBlGAIg",
-            "ASgOMiYuTFBTLkNvcmUuUnBjLklubmVyTWVzc2FnZXMuQ3JlYXRlVHlwZRJO",
-            "CgtEZXNjcmlwdGlvbhgDIAMoCzI5LkxQUy5Db3JlLlJwYy5Jbm5lck1lc3Nh",
-            "Z2VzLkNyZWF0ZUVudGl0eS5EZXNjcmlwdGlvbkVudHJ5GkgKEERlc2NyaXB0",
-            "aW9uRW50cnkSCwoDa2V5GAEgASgJEiMKBXZhbHVlGAIgASgLMhQuZ29vZ2xl",
-            "LnByb3RvYnVmLkFueToCOAEqMQoKQ3JlYXRlVHlwZRIJCgVMb2NhbBAAEgwK",
-            "CEFueXdoZXJlEAESCgoGTWFudWFsEAJiBnByb3RvMw=="));
+            "YWdlcyLKAQoMQ3JlYXRlRW50aXR5EhcKD0VudGl0eUNsYXNzTmFtZRgBIAEo",
+            "CRI6CgpDcmVhdGVUeXBlGAIgASgOMiYuTFBTLkNvcmUuUnBjLklubmVyTWVz",
+            "c2FnZXMuQ3JlYXRlVHlwZRITCgtEZXNjcmlwdGlvbhgDIAEoCRI6CgpFbnRp",
+            "dHlUeXBlGAQgASgOMiYuTFBTLkNvcmUuUnBjLklubmVyTWVzc2FnZXMuRW50",
+            "aXR5VHlwZRIUCgxDb25uZWN0aW9uSUQYBSABKA0qMQoKQ3JlYXRlVHlwZRIJ",
+            "CgVMb2NhbBAAEgwKCEFueXdoZXJlEAESCgoGTWFudWFsEAIqNAoKRW50aXR5",
+            "VHlwZRIWChJTZXJ2ZXJDbGllbnRFbnRpdHkQABIOCgpHYXRlRW50aXR5EAFi",
+            "BnByb3RvMw=="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
-          new pbr::FileDescriptor[] { global::Google.Protobuf.WellKnownTypes.AnyReflection.Descriptor, },
-          new pbr::GeneratedClrTypeInfo(new[] {typeof(global::LPS.Core.Rpc.InnerMessages.CreateType), }, null, new pbr::GeneratedClrTypeInfo[] {
-            new pbr::GeneratedClrTypeInfo(typeof(global::LPS.Core.Rpc.InnerMessages.CreateEntity), global::LPS.Core.Rpc.InnerMessages.CreateEntity.Parser, new[]{ "EntityClassName", "CreateType", "Description" }, null, null, null, new pbr::GeneratedClrTypeInfo[] { null, })
+          new pbr::FileDescriptor[] { },
+          new pbr::GeneratedClrTypeInfo(new[] {typeof(global::LPS.Core.Rpc.InnerMessages.CreateType), typeof(global::LPS.Core.Rpc.InnerMessages.EntityType), }, null, new pbr::GeneratedClrTypeInfo[] {
+            new pbr::GeneratedClrTypeInfo(typeof(global::LPS.Core.Rpc.InnerMessages.CreateEntity), global::LPS.Core.Rpc.InnerMessages.CreateEntity.Parser, new[]{ "EntityClassName", "CreateType", "Description", "EntityType", "ConnectionID" }, null, null, null, null)
           }));
     }
     #endregion
@@ -47,6 +47,11 @@ namespace LPS.Core.Rpc.InnerMessages {
     [pbr::OriginalName("Local")] Local = 0,
     [pbr::OriginalName("Anywhere")] Anywhere = 1,
     [pbr::OriginalName("Manual")] Manual = 2,
+  }
+
+  public enum EntityType {
+    [pbr::OriginalName("ServerClientEntity")] ServerClientEntity = 0,
+    [pbr::OriginalName("GateEntity")] GateEntity = 1,
   }
 
   #endregion
@@ -88,7 +93,9 @@ namespace LPS.Core.Rpc.InnerMessages {
     public CreateEntity(CreateEntity other) : this() {
       entityClassName_ = other.entityClassName_;
       createType_ = other.createType_;
-      description_ = other.description_.Clone();
+      description_ = other.description_;
+      entityType_ = other.entityType_;
+      connectionID_ = other.connectionID_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -124,13 +131,38 @@ namespace LPS.Core.Rpc.InnerMessages {
 
     /// <summary>Field number for the "Description" field.</summary>
     public const int DescriptionFieldNumber = 3;
-    private static readonly pbc::MapField<string, global::Google.Protobuf.WellKnownTypes.Any>.Codec _map_description_codec
-        = new pbc::MapField<string, global::Google.Protobuf.WellKnownTypes.Any>.Codec(pb::FieldCodec.ForString(10, ""), pb::FieldCodec.ForMessage(18, global::Google.Protobuf.WellKnownTypes.Any.Parser), 26);
-    private readonly pbc::MapField<string, global::Google.Protobuf.WellKnownTypes.Any> description_ = new pbc::MapField<string, global::Google.Protobuf.WellKnownTypes.Any>();
+    private string description_ = "";
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public pbc::MapField<string, global::Google.Protobuf.WellKnownTypes.Any> Description {
+    public string Description {
       get { return description_; }
+      set {
+        description_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    /// <summary>Field number for the "EntityType" field.</summary>
+    public const int EntityTypeFieldNumber = 4;
+    private global::LPS.Core.Rpc.InnerMessages.EntityType entityType_ = global::LPS.Core.Rpc.InnerMessages.EntityType.ServerClientEntity;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public global::LPS.Core.Rpc.InnerMessages.EntityType EntityType {
+      get { return entityType_; }
+      set {
+        entityType_ = value;
+      }
+    }
+
+    /// <summary>Field number for the "ConnectionID" field.</summary>
+    public const int ConnectionIDFieldNumber = 5;
+    private uint connectionID_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public uint ConnectionID {
+      get { return connectionID_; }
+      set {
+        connectionID_ = value;
+      }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -150,7 +182,9 @@ namespace LPS.Core.Rpc.InnerMessages {
       }
       if (EntityClassName != other.EntityClassName) return false;
       if (CreateType != other.CreateType) return false;
-      if (!Description.Equals(other.Description)) return false;
+      if (Description != other.Description) return false;
+      if (EntityType != other.EntityType) return false;
+      if (ConnectionID != other.ConnectionID) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -160,7 +194,9 @@ namespace LPS.Core.Rpc.InnerMessages {
       int hash = 1;
       if (EntityClassName.Length != 0) hash ^= EntityClassName.GetHashCode();
       if (CreateType != global::LPS.Core.Rpc.InnerMessages.CreateType.Local) hash ^= CreateType.GetHashCode();
-      hash ^= Description.GetHashCode();
+      if (Description.Length != 0) hash ^= Description.GetHashCode();
+      if (EntityType != global::LPS.Core.Rpc.InnerMessages.EntityType.ServerClientEntity) hash ^= EntityType.GetHashCode();
+      if (ConnectionID != 0) hash ^= ConnectionID.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -187,7 +223,18 @@ namespace LPS.Core.Rpc.InnerMessages {
         output.WriteRawTag(16);
         output.WriteEnum((int) CreateType);
       }
-      description_.WriteTo(output, _map_description_codec);
+      if (Description.Length != 0) {
+        output.WriteRawTag(26);
+        output.WriteString(Description);
+      }
+      if (EntityType != global::LPS.Core.Rpc.InnerMessages.EntityType.ServerClientEntity) {
+        output.WriteRawTag(32);
+        output.WriteEnum((int) EntityType);
+      }
+      if (ConnectionID != 0) {
+        output.WriteRawTag(40);
+        output.WriteUInt32(ConnectionID);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -206,7 +253,18 @@ namespace LPS.Core.Rpc.InnerMessages {
         output.WriteRawTag(16);
         output.WriteEnum((int) CreateType);
       }
-      description_.WriteTo(ref output, _map_description_codec);
+      if (Description.Length != 0) {
+        output.WriteRawTag(26);
+        output.WriteString(Description);
+      }
+      if (EntityType != global::LPS.Core.Rpc.InnerMessages.EntityType.ServerClientEntity) {
+        output.WriteRawTag(32);
+        output.WriteEnum((int) EntityType);
+      }
+      if (ConnectionID != 0) {
+        output.WriteRawTag(40);
+        output.WriteUInt32(ConnectionID);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -223,7 +281,15 @@ namespace LPS.Core.Rpc.InnerMessages {
       if (CreateType != global::LPS.Core.Rpc.InnerMessages.CreateType.Local) {
         size += 1 + pb::CodedOutputStream.ComputeEnumSize((int) CreateType);
       }
-      size += description_.CalculateSize(_map_description_codec);
+      if (Description.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(Description);
+      }
+      if (EntityType != global::LPS.Core.Rpc.InnerMessages.EntityType.ServerClientEntity) {
+        size += 1 + pb::CodedOutputStream.ComputeEnumSize((int) EntityType);
+      }
+      if (ConnectionID != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeUInt32Size(ConnectionID);
+      }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
       }
@@ -242,7 +308,15 @@ namespace LPS.Core.Rpc.InnerMessages {
       if (other.CreateType != global::LPS.Core.Rpc.InnerMessages.CreateType.Local) {
         CreateType = other.CreateType;
       }
-      description_.Add(other.description_);
+      if (other.Description.Length != 0) {
+        Description = other.Description;
+      }
+      if (other.EntityType != global::LPS.Core.Rpc.InnerMessages.EntityType.ServerClientEntity) {
+        EntityType = other.EntityType;
+      }
+      if (other.ConnectionID != 0) {
+        ConnectionID = other.ConnectionID;
+      }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
 
@@ -267,7 +341,15 @@ namespace LPS.Core.Rpc.InnerMessages {
             break;
           }
           case 26: {
-            description_.AddEntriesFrom(input, _map_description_codec);
+            Description = input.ReadString();
+            break;
+          }
+          case 32: {
+            EntityType = (global::LPS.Core.Rpc.InnerMessages.EntityType) input.ReadEnum();
+            break;
+          }
+          case 40: {
+            ConnectionID = input.ReadUInt32();
             break;
           }
         }
@@ -294,7 +376,15 @@ namespace LPS.Core.Rpc.InnerMessages {
             break;
           }
           case 26: {
-            description_.AddEntriesFrom(ref input, _map_description_codec);
+            Description = input.ReadString();
+            break;
+          }
+          case 32: {
+            EntityType = (global::LPS.Core.Rpc.InnerMessages.EntityType) input.ReadEnum();
+            break;
+          }
+          case 40: {
+            ConnectionID = input.ReadUInt32();
             break;
           }
         }

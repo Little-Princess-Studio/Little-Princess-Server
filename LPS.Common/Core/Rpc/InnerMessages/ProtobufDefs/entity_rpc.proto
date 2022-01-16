@@ -79,5 +79,6 @@ message EntityRpc {
     MailBox EntityMailBox = 3;
     string MethodName = 4;
     bool NotifyOnly = 5;
-    repeated google.protobuf.Any Args = 6;
+    bool ToClient = 6;
+    repeated google.protobuf.Any Args = 7;
 };

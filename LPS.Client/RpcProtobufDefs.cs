@@ -10,12 +10,14 @@ namespace LPS.Client
             {
                 {PackageType.Authentication, (in Package pkg) => PackageHelper.GetProtoBufObject<Authentication>(pkg)},
                 {PackageType.EntityRpc, (in Package pkg) => PackageHelper.GetProtoBufObject<EntityRpc>(pkg)},
+                {PackageType.ClientCreateEntity, (in Package pkg) => PackageHelper.GetProtoBufObject<ClientCreateEntity>(pkg)},
             };
 
             private static readonly Dictionary<Type, PackageType> Type2Enum_ = new()
             {
                 {typeof(Authentication), PackageType.Authentication},
                 {typeof(EntityRpc), PackageType.EntityRpc},
+                {typeof(ClientCreateEntity), PackageType.ClientCreateEntity},
             };
 
             public static void Init()

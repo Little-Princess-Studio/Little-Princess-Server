@@ -75,34 +75,13 @@ namespace LPS.Core.Rpc.InnerMessages
         ExchangeMailBox = 4,
         ExchangeMailBoxRes = 5,
         Control = 6,
+        ClientCreateEntity = 7,
     }
 
     public static class PackageHelper
     {
         public delegate IMessage CreateIMessage(in Package pkg);
-
-        // private static readonly Dictionary<PackageType, CreateIMessage> Type2ProBuf = new()
-        // {
-        //     { PackageType.Authentication, (in Package pkg) => GetProtoBufObject<Authentication>(pkg) },
-        //     { PackageType.CreateEntity, (in Package pkg) => GetProtoBufObject<CreateEntity>(pkg) },
-        //     { PackageType.CreateEntityRes, (in Package pkg) => GetProtoBufObject<CreateEntityRes>(pkg) },
-        //     { PackageType.ExchangeMailBox, (in Package pkg) => GetProtoBufObject<ExchangeMailBox>(pkg) },
-        //     { PackageType.ExchangeMailBoxRes, (in Package pkg) => GetProtoBufObject<ExchangeMailBoxRes>(pkg) },
-        //     { PackageType.Control, (in Package pkg) => GetProtoBufObject<Control>(pkg) },
-        //     { PackageType.EntityRpc, (in Package pkg) => GetProtoBufObject<EntityRpc>(pkg) },
-        // };
-
-        // private static Dictionary<Type, PackageType> Type2Enum = new()
-        // {
-        //     { typeof(Authentication), PackageType.Authentication },
-        //     { typeof(CreateEntity), PackageType.CreateEntity },
-        //     { typeof(CreateEntityRes), PackageType.CreateEntityRes },
-        //     { typeof(ExchangeMailBox), PackageType.ExchangeMailBox },
-        //     { typeof(ExchangeMailBoxRes), PackageType.ExchangeMailBoxRes },
-        //     { typeof(Control), PackageType.Control },
-        //     { typeof(EntityRpc), PackageType.EntityRpc },
-        // };
-
+        
         private static Dictionary<PackageType, CreateIMessage> Type2Protobuf_ = null!;
         private static Dictionary<Type, PackageType> Type2Enum_ = null!;
 

@@ -32,9 +32,19 @@ namespace LPS.Client
             msgDispatcher_ = new Dispatcher();
             bus_ = new Bus(msgDispatcher_);
             
-            ioSandBox_ = SandBox.Create(IOHandler);
+            ioSandBox_ = SandBox.Create(IoHandler);
             sendSandBox_ = SandBox.Create(SendHandler);
             pumpSandBox_ = SandBox.Create(PumpHandler);
+        }
+
+        public void RegisterMessageHandler(IComparable key, Action<object> callback)
+        {
+            this.msgDispatcher_.Register(key, callback);
+        }
+
+        public void UnregisterMessageHandler(IComparable key, Action<object> callback)
+        {
+            this.msgDispatcher_.Unregister(key, callback);
         }
 
         private void PumpHandler()
@@ -82,7 +92,7 @@ namespace LPS.Client
             }
         }
         
-        private async void IOHandler()
+        private async void IoHandler()
         {
             var ipa = IPAddress.Parse(ip_!);
             var ipe = new IPEndPoint(ipa, port_);

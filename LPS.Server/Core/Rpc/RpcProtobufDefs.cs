@@ -15,6 +15,7 @@ namespace LPS.Core.Rpc
             { PackageType.ExchangeMailBoxRes, (in Package pkg) => PackageHelper.GetProtoBufObject<ExchangeMailBoxRes>(pkg) },
             { PackageType.Control, (in Package pkg) => PackageHelper.GetProtoBufObject<Control>(pkg) },
             { PackageType.EntityRpc, (in Package pkg) => PackageHelper.GetProtoBufObject<EntityRpc>(pkg) },
+            { PackageType.ClientCreateEntity, (in Package pkg) => PackageHelper.GetProtoBufObject<ClientCreateEntity>(pkg) },
         };
 
         private static readonly Dictionary<Type, PackageType> Type2Enum_ = new()
@@ -26,6 +27,7 @@ namespace LPS.Core.Rpc
             { typeof(ExchangeMailBoxRes), PackageType.ExchangeMailBoxRes },
             { typeof(Control), PackageType.Control },
             { typeof(EntityRpc), PackageType.EntityRpc },
+            { typeof(ClientCreateEntity), PackageType.ClientCreateEntity },
         };
 
         public static void Initialize()

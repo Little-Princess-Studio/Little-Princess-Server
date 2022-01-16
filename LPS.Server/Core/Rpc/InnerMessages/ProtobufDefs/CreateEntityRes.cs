@@ -25,13 +25,16 @@ namespace LPS.Core.Rpc.InnerMessages {
       byte[] descriptorData = global::System.Convert.FromBase64String(
           string.Concat(
             "ChdjcmVhdGVfZW50aXR5X3Jlcy5wcm90bxIaTFBTLkNvcmUuUnBjLklubmVy",
-            "TWVzc2FnZXMaDW1haWxib3gucHJvdG8iRwoPQ3JlYXRlRW50aXR5UmVzEjQK",
-            "B01haWxib3gYASABKAsyIy5MUFMuQ29yZS5ScGMuSW5uZXJNZXNzYWdlcy5N",
-            "YWlsQm94YgZwcm90bzM="));
+            "TWVzc2FnZXMaDW1haWxib3gucHJvdG8aE2NyZWF0ZV9lbnRpdHkucHJvdG8i",
+            "sgEKD0NyZWF0ZUVudGl0eVJlcxI0CgdNYWlsYm94GAEgASgLMiMuTFBTLkNv",
+            "cmUuUnBjLklubmVyTWVzc2FnZXMuTWFpbEJveBI6CgpFbnRpdHlUeXBlGAIg",
+            "ASgOMiYuTFBTLkNvcmUuUnBjLklubmVyTWVzc2FnZXMuRW50aXR5VHlwZRIU",
+            "CgxDb25uZWN0aW9uSUQYAyABKA0SFwoPRW50aXR5Q2xhc3NOYW1lGAQgASgJ",
+            "YgZwcm90bzM="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
-          new pbr::FileDescriptor[] { global::LPS.Core.Rpc.InnerMessages.MailboxReflection.Descriptor, },
+          new pbr::FileDescriptor[] { global::LPS.Core.Rpc.InnerMessages.MailboxReflection.Descriptor, global::LPS.Core.Rpc.InnerMessages.CreateEntityReflection.Descriptor, },
           new pbr::GeneratedClrTypeInfo(null, null, new pbr::GeneratedClrTypeInfo[] {
-            new pbr::GeneratedClrTypeInfo(typeof(global::LPS.Core.Rpc.InnerMessages.CreateEntityRes), global::LPS.Core.Rpc.InnerMessages.CreateEntityRes.Parser, new[]{ "Mailbox" }, null, null, null, null)
+            new pbr::GeneratedClrTypeInfo(typeof(global::LPS.Core.Rpc.InnerMessages.CreateEntityRes), global::LPS.Core.Rpc.InnerMessages.CreateEntityRes.Parser, new[]{ "Mailbox", "EntityType", "ConnectionID", "EntityClassName" }, null, null, null, null)
           }));
     }
     #endregion
@@ -73,6 +76,9 @@ namespace LPS.Core.Rpc.InnerMessages {
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public CreateEntityRes(CreateEntityRes other) : this() {
       mailbox_ = other.mailbox_ != null ? other.mailbox_.Clone() : null;
+      entityType_ = other.entityType_;
+      connectionID_ = other.connectionID_;
+      entityClassName_ = other.entityClassName_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -94,6 +100,42 @@ namespace LPS.Core.Rpc.InnerMessages {
       }
     }
 
+    /// <summary>Field number for the "EntityType" field.</summary>
+    public const int EntityTypeFieldNumber = 2;
+    private global::LPS.Core.Rpc.InnerMessages.EntityType entityType_ = global::LPS.Core.Rpc.InnerMessages.EntityType.ServerClientEntity;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public global::LPS.Core.Rpc.InnerMessages.EntityType EntityType {
+      get { return entityType_; }
+      set {
+        entityType_ = value;
+      }
+    }
+
+    /// <summary>Field number for the "ConnectionID" field.</summary>
+    public const int ConnectionIDFieldNumber = 3;
+    private uint connectionID_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public uint ConnectionID {
+      get { return connectionID_; }
+      set {
+        connectionID_ = value;
+      }
+    }
+
+    /// <summary>Field number for the "EntityClassName" field.</summary>
+    public const int EntityClassNameFieldNumber = 4;
+    private string entityClassName_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string EntityClassName {
+      get { return entityClassName_; }
+      set {
+        entityClassName_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
@@ -110,6 +152,9 @@ namespace LPS.Core.Rpc.InnerMessages {
         return true;
       }
       if (!object.Equals(Mailbox, other.Mailbox)) return false;
+      if (EntityType != other.EntityType) return false;
+      if (ConnectionID != other.ConnectionID) return false;
+      if (EntityClassName != other.EntityClassName) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -118,6 +163,9 @@ namespace LPS.Core.Rpc.InnerMessages {
     public override int GetHashCode() {
       int hash = 1;
       if (mailbox_ != null) hash ^= Mailbox.GetHashCode();
+      if (EntityType != global::LPS.Core.Rpc.InnerMessages.EntityType.ServerClientEntity) hash ^= EntityType.GetHashCode();
+      if (ConnectionID != 0) hash ^= ConnectionID.GetHashCode();
+      if (EntityClassName.Length != 0) hash ^= EntityClassName.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -140,6 +188,18 @@ namespace LPS.Core.Rpc.InnerMessages {
         output.WriteRawTag(10);
         output.WriteMessage(Mailbox);
       }
+      if (EntityType != global::LPS.Core.Rpc.InnerMessages.EntityType.ServerClientEntity) {
+        output.WriteRawTag(16);
+        output.WriteEnum((int) EntityType);
+      }
+      if (ConnectionID != 0) {
+        output.WriteRawTag(24);
+        output.WriteUInt32(ConnectionID);
+      }
+      if (EntityClassName.Length != 0) {
+        output.WriteRawTag(34);
+        output.WriteString(EntityClassName);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -154,6 +214,18 @@ namespace LPS.Core.Rpc.InnerMessages {
         output.WriteRawTag(10);
         output.WriteMessage(Mailbox);
       }
+      if (EntityType != global::LPS.Core.Rpc.InnerMessages.EntityType.ServerClientEntity) {
+        output.WriteRawTag(16);
+        output.WriteEnum((int) EntityType);
+      }
+      if (ConnectionID != 0) {
+        output.WriteRawTag(24);
+        output.WriteUInt32(ConnectionID);
+      }
+      if (EntityClassName.Length != 0) {
+        output.WriteRawTag(34);
+        output.WriteString(EntityClassName);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -166,6 +238,15 @@ namespace LPS.Core.Rpc.InnerMessages {
       int size = 0;
       if (mailbox_ != null) {
         size += 1 + pb::CodedOutputStream.ComputeMessageSize(Mailbox);
+      }
+      if (EntityType != global::LPS.Core.Rpc.InnerMessages.EntityType.ServerClientEntity) {
+        size += 1 + pb::CodedOutputStream.ComputeEnumSize((int) EntityType);
+      }
+      if (ConnectionID != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeUInt32Size(ConnectionID);
+      }
+      if (EntityClassName.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(EntityClassName);
       }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
@@ -184,6 +265,15 @@ namespace LPS.Core.Rpc.InnerMessages {
           Mailbox = new global::LPS.Core.Rpc.InnerMessages.MailBox();
         }
         Mailbox.MergeFrom(other.Mailbox);
+      }
+      if (other.EntityType != global::LPS.Core.Rpc.InnerMessages.EntityType.ServerClientEntity) {
+        EntityType = other.EntityType;
+      }
+      if (other.ConnectionID != 0) {
+        ConnectionID = other.ConnectionID;
+      }
+      if (other.EntityClassName.Length != 0) {
+        EntityClassName = other.EntityClassName;
       }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
@@ -207,6 +297,18 @@ namespace LPS.Core.Rpc.InnerMessages {
             input.ReadMessage(Mailbox);
             break;
           }
+          case 16: {
+            EntityType = (global::LPS.Core.Rpc.InnerMessages.EntityType) input.ReadEnum();
+            break;
+          }
+          case 24: {
+            ConnectionID = input.ReadUInt32();
+            break;
+          }
+          case 34: {
+            EntityClassName = input.ReadString();
+            break;
+          }
         }
       }
     #endif
@@ -227,6 +329,18 @@ namespace LPS.Core.Rpc.InnerMessages {
               Mailbox = new global::LPS.Core.Rpc.InnerMessages.MailBox();
             }
             input.ReadMessage(Mailbox);
+            break;
+          }
+          case 16: {
+            EntityType = (global::LPS.Core.Rpc.InnerMessages.EntityType) input.ReadEnum();
+            break;
+          }
+          case 24: {
+            ConnectionID = input.ReadUInt32();
+            break;
+          }
+          case 34: {
+            EntityClassName = input.ReadString();
             break;
           }
         }

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
@@ -37,6 +38,8 @@ namespace LPS.Core
         private readonly ConcurrentQueue<(TcpClient Client, IMessage Message, bool IsReentry)> sendQueue_ = new();
         private readonly SandBox clientsSendQueueSandBox_;
         private readonly SandBox clientsPumpMsgSandBox_;
+        private readonly ConcurrentDictionary<uint, Connection> createEntityMapping_ = new();
+        private readonly Dictionary<string, (Rpc.MailBox, Connection)> entityIdToClientConnMapping_ = new();
 
         private ServerEntity? entity_;
 
@@ -46,6 +49,8 @@ namespace LPS.Core
         private readonly CountdownEvent tcpClientConnectedCountdownEvent_;
         private readonly CountdownEvent otherGatesReadyCountdownEvent_;
         private readonly CountdownEvent serverMailboxGotEvent_;
+
+        private uint createEntityCounter_;
 
         public Gate(string name, string ip, int port, int hostNum, string hostManagerIp, int hostManagerPort,
             (string IP, int Port)[] servers, (string InnerIp, string Ip, int Port)[] otherGates)
@@ -80,7 +85,7 @@ namespace LPS.Core
                     OnInit = () => this.RegisterGateMessageHandlers(tmpIdx),
                     OnDispose = () => this.UnregisterGateMessageHandlers(tmpIdx),
                     OnConnected = () => tcpClientConnectedCountdownEvent_.Signal(),
-            };
+                };
                 tcpClientsToServer_[idx] = client;
                 ++idx;
             }
@@ -93,10 +98,13 @@ namespace LPS.Core
                 var client = RandomServerClient();
 
                 client.Send(
-                    new CreateEntity()
+                    new CreateEntity
                     {
+                        EntityType = EntityType.GateEntity,
                         CreateType = CreateType.Manual,
                         EntityClassName = "None",
+                        Description = "",
+                        ConnectionID = createEntityCounter_++
                     },
                     false
                 );
@@ -147,14 +155,14 @@ namespace LPS.Core
             // if gate's server have recieved the EntityRpc msg, it must be redirect from other gates
             Logger.Info("Handle EntityRpc From Other Gates.");
 
-            var (msg, _, _) = ((IMessage, Connection, UInt32))arg;
+            var (msg, _, _) = ((IMessage, Connection, UInt32)) arg;
             var entityRpc = (msg as EntityRpc)!;
             this.HandleEntityRpcMessageOnGate(entityRpc);
         }
 
         private void HandleAuthenticationFromClient(object arg)
         {
-            var (msg, conn, _) = ((IMessage, Connection, UInt32))arg;
+            var (msg, conn, _) = ((IMessage, Connection, UInt32)) arg;
             var auth = (msg as Authentication)!;
 
             // TODO: Cache the rsa object
@@ -166,9 +174,27 @@ namespace LPS.Core
             {
                 Logger.Info("Auth success");
 
-                var serverMailBox = RandomServerClient().MailBox!;
-                entity_!.Call<Rpc.MailBox>(serverMailBox, "CreateEntity", "Untrusted", "")
-                    .ContinueWith(task => this.OnCreateUntrusted(task.Result, conn));
+                var connId = createEntityCounter_++;
+                
+                var createEntityMsg = new CreateEntity
+                {
+                    EntityClassName = "Untrusted",
+                    CreateType = CreateType.Anywhere,
+                    Description = "",
+                    EntityType = EntityType.ServerClientEntity,
+                    ConnectionID = connId
+                };
+
+                if (conn.ConnectionID != uint.MaxValue)
+                {
+                    throw new Exception("Entity is creating");
+                }
+
+                conn.ConnectionID = connId;
+                createEntityMapping_[connId] = conn;
+
+                var serverClient = RandomServerClient();
+                serverClient.Send(createEntityMsg, false);
             }
             else
             {
@@ -185,7 +211,7 @@ namespace LPS.Core
 
         private void HandleControlMessage(object arg)
         {
-            var (msg, _, _) = ((IMessage, Connection, UInt32))arg;
+            var (msg, _, _) = ((IMessage, Connection, UInt32)) arg;
 
             var control = (msg as Control)!;
 
@@ -195,7 +221,7 @@ namespace LPS.Core
             {
                 if (control.Message == ControlMessage.Ready)
                 {
-                    Logger.Info($"Got gate ready msg");
+                    Logger.Info("Got gate ready msg");
                     otherGatesReadyCountdownEvent_.Signal();
                 }
             }
@@ -220,17 +246,17 @@ namespace LPS.Core
         {
             var client = tcpClientsToServer_[idx];
 
-            var createMailBoxHandler = (object arg) => this.HandleCreateEntityResFromServer(client, arg);
-            tcpClientsActions_[(idx, PackageType.CreateEntityRes)] = createMailBoxHandler;
+            var createMailBoxResHandler = (object arg) => this.HandleCreateEntityResFromServer(client, arg);
+            tcpClientsActions_[(idx, PackageType.CreateEntityRes)] = createMailBoxResHandler;
 
-            var requireMailBoxHandler = (object arg) => this.HandleExchangeMailBoxResFromServer(client, arg);
-            tcpClientsActions_[(idx, PackageType.ExchangeMailBoxRes)] = requireMailBoxHandler;
+            var exchangeMailBoxResHandler = (object arg) => this.HandleExchangeMailBoxResFromServer(client, arg);
+            tcpClientsActions_[(idx, PackageType.ExchangeMailBoxRes)] = exchangeMailBoxResHandler;
 
             var entityRpcHandler = (object arg) => this.HandleEntityRpcFromServer(client, arg);
             tcpClientsActions_[(idx, PackageType.EntityRpc)] = entityRpcHandler;
 
-            client.RegisterMessageHandler(PackageType.CreateEntityRes, createMailBoxHandler);
-            client.RegisterMessageHandler(PackageType.ExchangeMailBoxRes, requireMailBoxHandler);
+            client.RegisterMessageHandler(PackageType.CreateEntityRes, createMailBoxResHandler);
+            client.RegisterMessageHandler(PackageType.ExchangeMailBoxRes, exchangeMailBoxResHandler);
             client.RegisterMessageHandler(PackageType.EntityRpc, entityRpcHandler);
         }
 
@@ -252,31 +278,51 @@ namespace LPS.Core
 
         private void HandleCreateEntityResFromServer(TcpClient client, object arg)
         {
-            var (msg, _, _) = ((IMessage, Connection, UInt32))arg;
-            var createEntityRes = (msg as CreateEntityRes)!.Mailbox;
+            var (msg, _, _) = ((IMessage, Connection, UInt32)) arg;
+            var createEntityRes = (msg as CreateEntityRes)!;
 
-            Logger.Info(
-                $"mailbox {createEntityRes.ID} {createEntityRes.IP} {createEntityRes.Port} {createEntityRes.HostNum}");
-
-            var serverEntityMailBox = new Rpc.MailBox(createEntityRes.ID, this.Ip, this.Port, this.HostNum);
-            entity_ = new(serverEntityMailBox,
-                (id, entityClassName, jsonDesc) => throw new Exception("Cannot create entity on gate."))
+            if (createEntityRes.EntityType == EntityType.GateEntity)
+            {
+                Logger.Info("Create gate entity success.");
+                var serverEntityMailBox = new Rpc.MailBox(createEntityRes.Mailbox.ID, this.Ip, this.Port, this.HostNum);
+                entity_ = new(serverEntityMailBox)
                 {
                     OnSend = entityRpc =>
                     {
                         var targetMailBox = entityRpc.EntityMailBox;
                         var clientToServer = FindServerOfEntity(targetMailBox);
                         clientToServer.Send(entityRpc);
-                    },
+                    }
                 };
 
-            Logger.Info($"gate entity create succ");
-
-            var exchangeMailBox = new ExchangeMailBox()
+                var exchangeMailBox = new ExchangeMailBox
+                {
+                    Mailbox = RpcHelper.RpcMailBoxToPbMailBox(serverEntityMailBox)
+                };
+                Array.ForEach(tcpClientsToServer_, c => c.Send(exchangeMailBox));
+            }
+            else if (createEntityRes.EntityType == EntityType.ServerClientEntity)
             {
-                Mailbox = RpcHelper.RpcMailBoxToPbMailBox(serverEntityMailBox),
-            };
-            Array.ForEach(tcpClientsToServer_, c => c.Send(exchangeMailBox));
+                Logger.Info("Create server client entity success.");
+                var serverClientEntity = RpcHelper.PbMailBoxToRpcMailBox(createEntityRes.Mailbox);
+                createEntityMapping_.Remove(createEntityRes.ConnectionID, out var conn);
+                if (conn != null)
+                {
+                    entityIdToClientConnMapping_[serverClientEntity.Id] = (serverClientEntity, conn);
+                    var clientCreateEntity = new ClientCreateEntity
+                    {
+                        EntityClassName = createEntityRes.EntityClassName,
+                        ServerClientMailBox = createEntityRes.Mailbox
+                    };
+                    var pkg = PackageHelper.FromProtoBuf(clientCreateEntity, 0);
+                    conn.Socket.Send(pkg.ToBytes());
+                }
+                else
+                {
+                    throw new Exception("Error when creating server client entity: connection id not found.");
+                }
+            }
+            
         }
 
         private TcpClient FindServerOfEntity(MailBox targetMailBox)
@@ -290,7 +336,7 @@ namespace LPS.Core
 
         private void HandleExchangeMailBoxResFromServer(TcpClient client, object arg)
         {
-            var (msg, conn, _) = ((IMessage, Connection, UInt32))arg;
+            var (msg, conn, _) = ((IMessage, Connection, UInt32)) arg;
             var serverMailBox = (msg as ExchangeMailBoxRes)!.Mailbox;
             var serverEntityMailBox = RpcHelper.PbMailBoxToRpcMailBox(serverMailBox);
 
@@ -306,7 +352,7 @@ namespace LPS.Core
         {
             Logger.Info("HandleEntityRpcFromServer");
 
-            var (msg, _, _) = ((IMessage, Connection, UInt32))arg!;
+            var (msg, _, _) = ((IMessage, Connection, UInt32)) arg!;
             var entityRpc = (msg as EntityRpc)!;
             this.HandleEntityRpcMessageOnGate(entityRpc);
         }
@@ -318,7 +364,7 @@ namespace LPS.Core
             var targetEntityMailBox = entityRpc.EntityMailBox!;
 
             Logger.Debug($"rpc to {targetEntityMailBox.IP} {targetEntityMailBox.Port} {targetEntityMailBox.ID}" +
-            $" {targetEntityMailBox.HostNum}");
+                         $" {targetEntityMailBox.HostNum}");
 
             // if rpc's target is gate entity
             if (entity_!.MailBox!.CompareFull(targetEntityMailBox))
@@ -331,8 +377,8 @@ namespace LPS.Core
             {
                 // todo: dictionary cache
                 var gate = this.tcpClientsToOtherGate_
-                            .First(client => client.TargetIp == targetEntityMailBox.IP
-                                && client.TargetPort == targetEntityMailBox.Port);
+                    .First(client => client.TargetIp == targetEntityMailBox.IP
+                                     && client.TargetPort == targetEntityMailBox.Port);
 
                 // if rpc's target is other gate entity
                 if (gate != null)
@@ -350,7 +396,8 @@ namespace LPS.Core
                     }
                     else
                     {
-                        Logger.Warn($"invalid rpc target mailbox: ${targetEntityMailBox.IP} {targetEntityMailBox.Port} {targetEntityMailBox.ID}" +
+                        Logger.Warn(
+                            $"invalid rpc target mailbox: ${targetEntityMailBox.IP} {targetEntityMailBox.Port} {targetEntityMailBox.ID}" +
                             $"{targetEntityMailBox.HostNum}");
                     }
                 }
@@ -388,6 +435,7 @@ namespace LPS.Core
                         }
                     }
                 }
+
                 Thread.Sleep(1);
             }
         }
@@ -440,7 +488,7 @@ namespace LPS.Core
 
             Logger.Debug("Wait for clients connecting to server");
             tcpClientConnectedCountdownEvent_.Wait();
-            
+
             clientsSendQueueSandBox_.Run();
             clientsPumpMsgSandBox_.Run();
 
