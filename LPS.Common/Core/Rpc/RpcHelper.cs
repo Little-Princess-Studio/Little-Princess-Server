@@ -70,13 +70,11 @@ namespace LPS.Core.Rpc
             }
             catch (OperationCanceledException ex)
             {
-                var ipEndPoint = socket.RemoteEndPoint as IPEndPoint;
-                Logger.Error(ex, $"IO Task canceled {ipEndPoint!.Address} {ipEndPoint.Port}");
+                Logger.Error(ex, $"IO Task canceled, socket will close.");
             }
             catch (Exception ex)
             {
-                var ipEndPoint = socket.RemoteEndPoint as IPEndPoint;
-                Logger.Error(ex, $"Read socket data failed, socket will close {ipEndPoint!.Address} {ipEndPoint.Port}");
+                Logger.Error(ex, "Read socket data failed, socket will close.");
             }
 
             onExitLoop?.Invoke();

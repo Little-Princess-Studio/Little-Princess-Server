@@ -152,34 +152,34 @@ namespace LPS.Core
 
             var targetMailBox = entityRpc.EntityMailBox;
 
-            if (this.entity_!.MailBox!.CompareFull(targetMailBox))
+            if (entity_!.MailBox!.CompareFull(targetMailBox))
             {
                 Logger.Debug($"Call server entity: {entityRpc.MethodName}");
                 try
                 {
-                    RpcHelper.CallLocalEntity(this.entity_, entityRpc);
+                    RpcHelper.CallLocalEntity(entity_, entityRpc);
                 }
                 catch (Exception e)
                 {
                     Logger.Error(e, "Exception happend when call server entity");
                 }
             }
-            else if (localEntityDict_.ContainsKey(this.entity_.MailBox.Id))
+            else if (localEntityDict_.ContainsKey(entity_.MailBox.Id))
             {
-                var entity = localEntityDict_[this.entity_.MailBox.Id];
+                var entity = localEntityDict_[entity_.MailBox.Id];
                 try
                 {
                     RpcHelper.CallLocalEntity(entity, entityRpc);
                 }
                 catch (Exception e)
                 {
-                    Logger.Error(e, "Exception happend when call server entity");
+                    Logger.Error(e, "Exception happened when call server entity");
                 }
             }
             else
             {
                 // redirect to gate
-                this.tcpServer_.Send(entityRpc, GateConnections[0]);
+                tcpServer_.Send(entityRpc, GateConnections[0]);
             }
         }
 
