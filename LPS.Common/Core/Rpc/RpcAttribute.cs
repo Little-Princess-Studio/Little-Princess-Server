@@ -4,6 +4,7 @@ namespace LPS.Core.Rpc
     {
         ServerOnly = 0x00000001,
         ClientOnly = 0x00000010,
+        ClientStub = 0x00000100,
         All = ServerOnly | ClientOnly,
     }
 

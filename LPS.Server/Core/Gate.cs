@@ -291,7 +291,14 @@ namespace LPS.Core
                     {
                         var targetMailBox = entityRpc.EntityMailBox;
                         var clientToServer = FindServerOfEntity(targetMailBox);
-                        clientToServer.Send(entityRpc);
+                        if (clientToServer != null)
+                        {
+                            clientToServer.Send(entityRpc);
+                        }
+                        else
+                        {
+                            throw new Exception($"gate's server client not found: {targetMailBox}");
+                        }
                     }
                 };
 
@@ -325,12 +332,12 @@ namespace LPS.Core
             
         }
 
-        private TcpClient FindServerOfEntity(MailBox targetMailBox)
+        private TcpClient? FindServerOfEntity(MailBox targetMailBox)
         {
-            var clientToServer = this.tcpClientsToServer_
-                .First(clientToServer => clientToServer.MailBox.Ip == targetMailBox.IP
+            var clientToServer = tcpClientsToServer_
+                .FirstOrDefault(clientToServer => clientToServer?.MailBox.Ip == targetMailBox.IP
                                          && clientToServer.MailBox.Port == targetMailBox.Port
-                                         && clientToServer.MailBox.HostNum == targetMailBox.HostNum);
+                                         && clientToServer.MailBox.HostNum == targetMailBox.HostNum, null);
             return clientToServer;
         }
 
@@ -367,18 +374,18 @@ namespace LPS.Core
                          $" {targetEntityMailBox.HostNum}");
 
             // if rpc's target is gate entity
-            if (entity_!.MailBox!.CompareFull(targetEntityMailBox))
+            if (entity_!.MailBox.CompareFull(targetEntityMailBox))
             {
                 Logger.Debug("send to gate itself");
                 Logger.Debug($"Call gate entity: {entityRpc.MethodName}");
-                RpcHelper.CallLocalEntity(this.entity_, entityRpc);
+                RpcHelper.CallLocalEntity(entity_, entityRpc);
             }
             else
             {
                 // todo: dictionary cache
                 var gate = this.tcpClientsToOtherGate_
-                    .First(client => client.TargetIp == targetEntityMailBox.IP
-                                     && client.TargetPort == targetEntityMailBox.Port);
+                    .FirstOrDefault(client => client.TargetIp == targetEntityMailBox.IP
+                                              && client.TargetPort == targetEntityMailBox.Port, null);
 
                 // if rpc's target is other gate entity
                 if (gate != null)
