@@ -8,42 +8,35 @@ namespace LPS.Core.Rpc.RpcProperty
         {
         }
         
-        public RpcList(int size, TElem defaultVal): base(new List<RpcPropertyContainer<TElem>>(size))
+        public RpcList(int size, [DisallowNull] TElem defaultVal): base(new List<RpcPropertyContainer<TElem>>(size))
         {
+            ArgumentNullException.ThrowIfNull(defaultVal);
             for (int i = 0; i < size; i++)
             {
-                this.Value[i] = new RpcPropertyContainer<TElem>(defaultVal)
+                var newContainer = new RpcPropertyContainer<TElem>(defaultVal)
                 {
                     Parent = this,
                     Name = "${i}",
                 };
+
+                this.HandleIfContainer<TElem>(newContainer, defaultVal);
+                this.Value[i] = newContainer;
             }
         }
 
         public void Add([DisallowNull] TElem elem)
         {
             ArgumentNullException.ThrowIfNull(elem);
-            var newElem = new RpcPropertyContainer<TElem>(elem)
+            var newContainer = new RpcPropertyContainer<TElem>(elem)
             {
                 Parent = this,
                 Name = $"{Value.Count}",
                 Reffered = true,
             };
             
-            if (elem is RpcPropertyContainer container)
-            {
-                if (container.Reffered)
-                {
-                    throw new Exception("Each object in rpc property can only be reffered once");
-                }
-
-                container.Parent = newElem;
-                container.IsProxyContainer = true;
-                container.Reffered = true;
-            }
-
-            this.Value.Add(newElem);
-            var pathList = new List<string>() { newElem.Name };
+            this.HandleIfContainer<TElem>(newContainer, elem);
+            this.Value.Add(newContainer);
+            var pathList = new List<string>() { newContainer.Name };
             this.NotifyChange(pathList, null, elem);
         }
 
@@ -53,19 +46,7 @@ namespace LPS.Core.Rpc.RpcProperty
             set
             {
                 ArgumentNullException.ThrowIfNull(value);
-                var pathList = new List<string> { this.Value[index].Name };
-                
-                if (value is RpcPropertyContainer container)
-                {
-                    if (container.Reffered)
-                    {
-                        throw new Exception("Each object in rpc property can only be reffered once");
-                    }
-
-                    container.Parent = this.Value[index];
-                    container.IsProxyContainer = true;
-                    container.Reffered = true;
-                }
+                this.HandleIfContainer<TElem>(this.Value[index], value);
 
                 var old = this.Value[index].Value!;
                 if (old is RpcPropertyContainer oldContainer)
@@ -74,7 +55,7 @@ namespace LPS.Core.Rpc.RpcProperty
                 }
 
                 this.Value[index].Value = value;
-                this.NotifyChange(pathList, old, value);
+                this.NotifyChange(this.Value[index].Name, old, value);
             }
         }
     }

@@ -78,11 +78,15 @@ namespace LPS.Core.Rpc.RpcProperty
         {
             this.value_.Owner = this;
             this.value_.Name = name;
+            this.value_.Reffered = true;
         }
         
         public void Set(T value)
         {
-            ((RpcPropertyContainer<T>)this.value_).Value = value;
+            var container = ((RpcPropertyContainer<T>)this.value_);
+            container.Value.Reffered = false;
+            container.Value = value;
+            container.Value.Reffered = true;
         }
 
         public T Get()

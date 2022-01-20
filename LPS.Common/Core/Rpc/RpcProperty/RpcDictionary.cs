@@ -1,6 +1,9 @@
 ﻿// using System.Collections.ObjectModel;
 // using System.Linq.Expressions;
 //
+
+using System.Diagnostics.CodeAnalysis;
+
 namespace LPS.Core.Rpc.RpcProperty
 {
     public class RpcDictionary<TK, TV> : RpcPropertyContainer<Dictionary<TK, RpcPropertyContainer<TV>>>
@@ -18,17 +21,7 @@ namespace LPS.Core.Rpc.RpcProperty
                 ArgumentNullException.ThrowIfNull(value);
                 if (this.Value.ContainsKey(key))
                 {
-                    if (value is RpcPropertyContainer newContainer)
-                    {
-                        if (newContainer.Reffered)
-                        {
-                            throw new Exception("Each object in rpc property can only be reffered once");
-                        }
-
-                        newContainer.Reffered = true;
-                        newContainer.IsProxyContainer = true;
-                        newContainer.Parent = this.Value[key];
-                    }
+                    this.HandleIfContainer(this.Value[key], value);
 
                     var old = this.Value[key].Value;
                     if (old is RpcPropertyContainer container)
@@ -37,9 +30,7 @@ namespace LPS.Core.Rpc.RpcProperty
                     }
 
                     this.Value[key].Value = value;
-                    
-                    var pathList = new List<string>() { this.Value[key].Name };
-                    this.NotifyChange(pathList, old!, value);
+                    this.NotifyChange(this.Value[key].Name, old!, value);
                 }
                 else
                 {
@@ -49,27 +40,14 @@ namespace LPS.Core.Rpc.RpcProperty
                         Name = $"{key}",
                         Reffered = true,
                     };
-
-                    if (value is RpcPropertyContainer container)
-                    {
-                        if (container.Reffered)
-                        {
-                            throw new Exception("Each object in rpc property can only be reffered once");
-                        }
-
-                        container.Reffered = true;
-                        container.Parent = newContainer;
-                        container.IsProxyContainer = true;
-                    }
-
-                    this.Value[key] = newContainer;
                     
-                    var pathList = new List<string>() { this.Value[key].Name };
-                    this.NotifyChange(pathList, null, value);
+                    this.HandleIfContainer<TV>(newContainer, value);
+                    this.Value[key] = newContainer;
+                    this.NotifyChange(this.Value[key].Name, null, value);
                 }
             }
         }
-
+        
         // public void Clear() => this.Value.Clear();
         // public bool Remove(TK key) => this.Value.Remove(key);
     }

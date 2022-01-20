@@ -1,18 +1,18 @@
 using LPS.Core.Rpc.RpcProperty;
+using NuGet.Frameworks;
 using Xunit;
 
 namespace LPS.UnitTest;
 
 public class RpcPropertyUnitTest
 {
-    public class CostumeRpcProperty
+    [RpcCostumePropertyContainerAttribute]
+    private class CostumeRpcContainerProperty : RpcPropertyContainer
     {
-        
-    }
-    
-    public class CostumeRpcContainerProperty : RpcPropertyContainer
-    {
-        
+        [RpcCostumePropertyAttribute]
+        public readonly RpcList<string> SubListProperty = new();
+        [RpcCostumePropertyAttribute]
+        public readonly RpcPropertyContainer<float> SubFloatProperty = new(0.0f);
     }
 
     [Fact]
@@ -78,6 +78,17 @@ public class RpcPropertyUnitTest
     [Fact]
     public void TestCostumeRpcProp()
     {
+        var costumeRpcContainerProp = new CostumeRpcContainerProperty();
+        RpcComplexProperty<CostumeRpcContainerProperty> rpcProp =
+            new("test_costume_rpc_prop", RpcPropertySetting.FastSync, costumeRpcContainerProp);
+
+        rpcProp.Val.SubListProperty.Add("111");
         
+        CostumeRpcContainerProperty cprop = rpcProp;
+        cprop.SubFloatProperty.Value = 1.0f;
+        
+        Assert.True(costumeRpcContainerProp.Reffered);
+        Assert.Equal("111", rpcProp.Val.SubListProperty[0]);
+        Assert.Equal(1.0f, rpcProp.Val.SubFloatProperty.Value);
     }
 }
