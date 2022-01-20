@@ -36,8 +36,7 @@ namespace LPS.Core.Rpc.RpcProperty
             
             this.HandleIfContainer<TElem>(newContainer, elem);
             this.Value.Add(newContainer);
-            var pathList = new List<string>() { newContainer.Name };
-            this.NotifyChange(pathList, null, elem);
+            this.NotifyChange(newContainer.Name, null, elem);
         }
 
         public TElem this[int index]

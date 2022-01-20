@@ -1,5 +1,4 @@
 using LPS.Core.Rpc.RpcProperty;
-using NuGet.Frameworks;
 using Xunit;
 
 namespace LPS.UnitTest;
