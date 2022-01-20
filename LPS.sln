@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LPS.Client", "LPS.Client\LP
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LPS.Server", "LPS.Server\LPS.Server.csproj", "{B1E27357-760C-45EC-A87C-829CED18C69C}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LPS.UnitTest", "LPS.UnitTest\LPS.UnitTest.csproj", "{0D42FD17-045E-4607-92A5-025B735272DD}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -30,5 +32,9 @@ Global
 		{B1E27357-760C-45EC-A87C-829CED18C69C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B1E27357-760C-45EC-A87C-829CED18C69C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B1E27357-760C-45EC-A87C-829CED18C69C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0D42FD17-045E-4607-92A5-025B735272DD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0D42FD17-045E-4607-92A5-025B735272DD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0D42FD17-045E-4607-92A5-025B735272DD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0D42FD17-045E-4607-92A5-025B735272DD}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

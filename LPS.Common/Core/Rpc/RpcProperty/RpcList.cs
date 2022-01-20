@@ -1,67 +1,88 @@
-﻿using System.Collections.ObjectModel;
-using System.Diagnostics.CodeAnalysis;
+﻿using System.Diagnostics.CodeAnalysis;
 
 namespace LPS.Core.Rpc.RpcProperty
 {
-    public class RpcList<TElem> : RpcProperty<List<RpcContainerNode<TElem>>>
+    public class RpcList<TElem> : RpcPropertyContainer<List<RpcPropertyContainer<TElem>>>
     {
-        public RpcList(string name, RpcPropertySetting setting, List<TElem> value) : base(name, setting, new())
+        public RpcList(): base(new List<RpcPropertyContainer<TElem>>())
         {
         }
-
-        public void Clear()
+        
+        public RpcList(int size, TElem defaultVal): base(new List<RpcPropertyContainer<TElem>>(size))
         {
-            value_.Clear();
-        }
-
-        public void RemoveAt(int index) => value_.RemoveAt(index);
-
-        public void Resize(int size, [DisallowNull] TElem defaultValue)
-        {
-            ArgumentNullException.ThrowIfNull(defaultValue);
-
-            if (value_.Count > 0)
+            for (int i = 0; i < size; i++)
             {
-                throw new Exception("Resize can only used on empty RpcList");
-            }
-
-            for (int i = 0; i < size; ++i)
-            {
-                value_.Add(new RpcContainerNode<TElem>(defaultValue));
+                this.Value[i] = new RpcPropertyContainer<TElem>(defaultVal)
+                {
+                    Parent = this,
+                    Name = "${i}",
+                };
             }
         }
 
-        public void Add([DisallowNull] TElem value)
+        public void Add([DisallowNull] TElem elem)
         {
-            ArgumentNullException.ThrowIfNull(value);
-            value_.Add(new RpcContainerNode<TElem>(value));
+            ArgumentNullException.ThrowIfNull(elem);
+            var newElem = new RpcPropertyContainer<TElem>(elem)
+            {
+                Parent = this,
+                Name = $"{Value.Count}",
+                Reffered = true,
+            };
+            
+            if (elem is RpcPropertyContainer container)
+            {
+                if (container.Reffered)
+                {
+                    throw new Exception("Each object in rpc property can only be reffered once");
+                }
+
+                container.Parent = newElem;
+                container.IsProxyContainer = true;
+                container.Reffered = true;
+            }
+
+            this.Value.Add(newElem);
+            var pathList = new List<string>() { newElem.Name };
+            this.NotifyChange(pathList, null, elem);
         }
 
         public TElem this[int index]
         {
-            get => value_[index].Value;
+            get => this.Value[index];
             set
             {
                 ArgumentNullException.ThrowIfNull(value);
-                value_[index].Value = value;
+                var pathList = new List<string> { this.Value[index].Name };
+                
+                if (value is RpcPropertyContainer container)
+                {
+                    if (container.Reffered)
+                    {
+                        throw new Exception("Each object in rpc property can only be reffered once");
+                    }
+
+                    container.Parent = this.Value[index];
+                    container.IsProxyContainer = true;
+                    container.Reffered = true;
+                }
+
+                var old = this.Value[index].Value!;
+                if (old is RpcPropertyContainer oldContainer)
+                {
+                    oldContainer.Reffered = false;
+                }
+
+                this.Value[index].Value = value;
+                this.NotifyChange(pathList, old, value);
             }
         }
-        
-        public ReadOnlyCollection<RpcContainerNode<TElem>> AsReadOnly() => value_.AsReadOnly();
     }
 
-    public class ShadowRpcList<TElem> : ShadowRpcProperty<List<RpcContainerNode<TElem>>>
-    {
-        public ShadowRpcList(string name) : base(name)
-        {
-        }
-
-        public TElem this[int index]
-        {
-            get => value_[index].Value;
-            set => throw new Exception("RpcList is readonly");
-        }
-
-        public ReadOnlyCollection<RpcContainerNode<TElem>> AsReadOnly() => value_.AsReadOnly();
-    }
+    // public class ShadowRpcList<TElem> : List<RpcContainerNode<TElem>>
+    // {
+    //     public ShadowRpcList()
+    //     {
+    //     }
+    // }
 }

@@ -2,6 +2,7 @@ using System.Threading.Tasks;
 using LPS.Core.Debug;
 using LPS.Core.Entity;
 using LPS.Core.Rpc;
+using LPS.Core.Rpc.RpcProperty;
 
 namespace LPS.Logic.Entity
 {
@@ -34,6 +35,12 @@ namespace LPS.Logic.Entity
     [EntityClass]
     public class Untrusted : DistributeEntity
     {
+        public readonly RpcComplexProperty<RpcList<string>> RpcProp = 
+            new (nameof(Untrusted.RpcProp), RpcPropertySetting.Permanent, new RpcList<string>());
+
+        public readonly RpcPlainProperty<string> RpcPlainPropStr = 
+            new (nameof(Untrusted.RpcPlainPropStr), RpcPropertySetting.Permanent, "");
+
         public ClientProxy Client { get; private set; } = null!;
         
         public Untrusted(string desc) : base(desc)
