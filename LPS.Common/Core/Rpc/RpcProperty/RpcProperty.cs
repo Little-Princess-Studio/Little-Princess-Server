@@ -55,18 +55,18 @@ namespace LPS.Core.Rpc.RpcProperty
         public readonly string Name;
         public readonly RpcPropertySetting Setting;
         public BaseEntity? Owner;
-        protected readonly RpcPropertyContainer value_;
+        protected readonly RpcPropertyContainer Value;
 
         protected RpcProperty(string name, RpcPropertySetting setting, RpcPropertyContainer value)
         {
             Name = name;
             Setting = setting;
-            value_ = value;
+            Value = value;
         }
 
         public void OnChange(List<string> path, object oldVal, object newVal)
         {
-            Console.WriteLine($"{string.Join('.', path)} value changed from {oldVal} to {newVal}");
+            // Console.WriteLine($"{string.Join('.', path)} value changed from {oldVal} to {newVal}");
         }
     }
 
@@ -76,25 +76,29 @@ namespace LPS.Core.Rpc.RpcProperty
         public RpcComplexProperty(string name, RpcPropertySetting setting, T value) 
             : base(name, setting, value)
         {
-            this.value_.Owner = this;
-            this.value_.Name = name;
-            this.value_.Reffered = true;
+            this.Value.Owner = this;
+            this.Value.Name = name;
+            this.Value.IsReffered = true;
         }
         
         public void Set(T value)
         {
-            var container = ((RpcPropertyContainer<T>)this.value_);
-            container.Value.Reffered = false;
+            var container = ((RpcPropertyContainer<T>)this.Value);
+            container.Value.IsReffered = false;
             container.Value = value;
-            container.Value.Reffered = true;
+            container.Value.IsReffered = true;
         }
 
         public T Get()
         {
-            return (T)this.value_;
+            return (T)this.Value;
         }
 
-        public T Val => Get();
+        public T Val
+        {
+            get => Get();
+            set => Set(value);
+        }
 
         public static implicit operator T(RpcComplexProperty<T> complex) => complex.Val;
     }
@@ -124,21 +128,25 @@ namespace LPS.Core.Rpc.RpcProperty
         private RpcPlainProperty(RpcPropertySetting setting, string name, RpcPropertyContainer value)
             : base(name, setting, value)
         {
-            this.value_.Owner = this;
-            this.value_.Name = name;
+            this.Value.Owner = this;
+            this.Value.Name = name;
         }
 
         public void Set(T value)
         {
-            ((RpcPropertyContainer<T>)this.value_).Value = value;
+            ((RpcPropertyContainer<T>)this.Value).Value = value;
         }
 
         public T Get()
         {
-            return (RpcPropertyContainer<T>)this.value_;
+            return (RpcPropertyContainer<T>)this.Value;
         }
-        
-        public T Val => Get();
+
+        public T Val
+        {
+            get => Get();
+            set => Set(value);
+        }
         
         public static implicit operator T(RpcPlainProperty<T> container) => container.Val;
     }

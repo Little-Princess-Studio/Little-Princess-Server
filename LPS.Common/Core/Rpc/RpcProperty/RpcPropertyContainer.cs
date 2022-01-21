@@ -15,11 +15,11 @@ namespace LPS.Core.Rpc.RpcProperty
 
     public abstract class RpcPropertyContainer
     {
-        public string Name { get; set; }
+        public string? Name { get; set; }
         public RpcPropertyContainer? Parent { get; set; }
         public RpcProperty? Owner { get; set; }
         public bool IsProxyContainer { get; set; }
-        public bool Reffered { get; set; }
+        public bool IsReffered { get; set; }
 
         protected void NotifyChange(string name, object old, object @new)
         {
@@ -31,7 +31,7 @@ namespace LPS.Core.Rpc.RpcProperty
         {
             if (!IsProxyContainer)
             {
-                path.Insert(0, Name);
+                path.Insert(0, Name!);
             }
 
             if (this.Owner != null)
@@ -44,18 +44,19 @@ namespace LPS.Core.Rpc.RpcProperty
             }
         }
 
-        public RpcPropertyContainer()
+        protected RpcPropertyContainer()
         {
             if (this.GetType().IsDefined(typeof(RpcCostumePropertyContainerAttribute)))
             {
                 var rpcFields = this.GetType().GetFields()
-                    .Where(field => field.IsDefined(typeof(RpcCostumePropertyAttribute)));
+                    .Where(field => field.IsDefined(typeof(RpcCostumePropertyAttribute))
+                                    && field.FieldType.IsSubclassOf(typeof(RpcPropertyContainer)));
 
                 foreach (var fieldInfo in rpcFields)
                 {
                     var prop = (fieldInfo.GetValue(this) as RpcPropertyContainer)!;
                     prop.Parent = this;
-                    prop.Reffered = true;
+                    prop.IsReffered = true;
                     prop.Name = fieldInfo.Name;
                 }
             }
@@ -73,13 +74,13 @@ namespace LPS.Core.Rpc.RpcProperty
             {
                 ArgumentNullException.ThrowIfNull(value);
                 var pathList = new List<string>();
-                this.NotifyChange(pathList, this.value_!, value!);
+                this.NotifyChange(pathList, old: this.value_!, value);
                 this.value_ = value;
             }
         }
 
         public static implicit operator T(RpcPropertyContainer<T> container) => container.Value;
-        // public static implicit operator RpcPropertyContainer<T>(T value) => new (value);
+        public static implicit operator RpcPropertyContainer<T>(T value) => new (value);
 
         public RpcPropertyContainer(T initVal)
         {
@@ -90,12 +91,12 @@ namespace LPS.Core.Rpc.RpcProperty
         {
             if (value is RpcPropertyContainer container)
             {
-                if (container.Reffered)
+                if (container.IsReffered)
                 {
                     throw new Exception("Each object in rpc property can only be referred once");
                 }
 
-                container.Reffered = true;
+                container.IsReffered = true;
                 container.IsProxyContainer = true;
                 container.Parent = parent;
             }

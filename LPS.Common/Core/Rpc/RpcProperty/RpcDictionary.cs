@@ -26,11 +26,11 @@ namespace LPS.Core.Rpc.RpcProperty
                     var old = this.Value[key].Value;
                     if (old is RpcPropertyContainer container)
                     {
-                        container.Reffered = false;
+                        container.IsReffered = false;
                     }
 
                     this.Value[key].Value = value;
-                    this.NotifyChange(this.Value[key].Name, old!, value);
+                    this.NotifyChange(this.Value[key].Name!, old!, value);
                 }
                 else
                 {
@@ -38,12 +38,12 @@ namespace LPS.Core.Rpc.RpcProperty
                     {
                         Parent = this,
                         Name = $"{key}",
-                        Reffered = true,
+                        IsReffered = true,
                     };
                     
                     this.HandleIfContainer<TV>(newContainer, value);
                     this.Value[key] = newContainer;
-                    this.NotifyChange(this.Value[key].Name, null, value);
+                    this.NotifyChange(this.Value[key].Name!, null, value);
                 }
             }
         }

@@ -6,12 +6,24 @@ namespace LPS.UnitTest;
 public class RpcPropertyUnitTest
 {
     [RpcCostumePropertyContainerAttribute]
-    private class CostumeRpcContainerProperty : RpcPropertyContainer
+    private class CostumeRpcContainerProperty2 : RpcPropertyContainer
+    {
+        [RpcCostumePropertyAttribute] private readonly RpcPropertyContainer<float> subFloatProperty_ = 0.0f;
+
+        public float SubFloatProperty
+        {
+            get => subFloatProperty_.Value;
+            set => subFloatProperty_.Value = value;
+        }
+    }
+    
+    [RpcCostumePropertyContainerAttribute]
+    private class CostumeRpcContainerProperty1 : RpcPropertyContainer
     {
         [RpcCostumePropertyAttribute]
         public readonly RpcList<string> SubListProperty = new();
         [RpcCostumePropertyAttribute]
-        public readonly RpcPropertyContainer<float> SubFloatProperty = new(0.0f);
+        public readonly CostumeRpcContainerProperty2 SubCostumerContainerRpcContainerProperty = new();
     }
 
     [Fact]
@@ -31,7 +43,7 @@ public class RpcPropertyUnitTest
     public void TestRpcString()
     {
         RpcPlainProperty<string> rpcPlainStrProp = new("test_str_prop", RpcPropertySetting.Permanent, "");
-        rpcPlainStrProp.Set("321");
+        rpcPlainStrProp.Val = "321";
         Assert.True(rpcPlainStrProp.Val == "321");
     }
 
@@ -69,25 +81,26 @@ public class RpcPropertyUnitTest
         rpcProp.Val["n1"][123] = rpcList2;
         rpcProp.Val["n1"][123].Add(333);
 
-        Assert.False(rpcList.Reffered);
-        Assert.True(rpcList2.Reffered);
+        Assert.False(rpcList.IsReffered);
+        Assert.True(rpcList2.IsReffered);
         Assert.Equal(333, rpcProp.Val["n1"][123][0]);
     }
 
     [Fact]
     public void TestCostumeRpcProp()
     {
-        var costumeRpcContainerProp = new CostumeRpcContainerProperty();
-        RpcComplexProperty<CostumeRpcContainerProperty> rpcProp =
+        var costumeRpcContainerProp = new CostumeRpcContainerProperty1();
+        RpcComplexProperty<CostumeRpcContainerProperty1> rpcProp =
             new("test_costume_rpc_prop", RpcPropertySetting.FastSync, costumeRpcContainerProp);
 
         rpcProp.Val.SubListProperty.Add("111");
         
-        CostumeRpcContainerProperty cprop = rpcProp;
-        cprop.SubFloatProperty.Value = 1.0f;
+        CostumeRpcContainerProperty1 cprop = rpcProp;
+        cprop.SubCostumerContainerRpcContainerProperty.SubFloatProperty = 1.0f;
         
-        Assert.True(costumeRpcContainerProp.Reffered);
+        Assert.True(costumeRpcContainerProp.IsReffered);
+        Assert.True(costumeRpcContainerProp.SubCostumerContainerRpcContainerProperty.IsReffered);
         Assert.Equal("111", rpcProp.Val.SubListProperty[0]);
-        Assert.Equal(1.0f, rpcProp.Val.SubFloatProperty.Value);
+        Assert.Equal(1.0f, rpcProp.Val.SubCostumerContainerRpcContainerProperty.SubFloatProperty);
     }
 }

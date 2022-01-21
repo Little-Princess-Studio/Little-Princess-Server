@@ -11,6 +11,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LPS.Server", "LPS.Server\LP
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LPS.UnitTest", "LPS.UnitTest\LPS.UnitTest.csproj", "{0D42FD17-045E-4607-92A5-025B735272DD}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LPS.BenchMark", "LPS.BenchMark\LPS.BenchMark.csproj", "{91A98EFB-E77F-49D5-BDA9-5457D7C23755}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -36,5 +38,9 @@ Global
 		{0D42FD17-045E-4607-92A5-025B735272DD}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0D42FD17-045E-4607-92A5-025B735272DD}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0D42FD17-045E-4607-92A5-025B735272DD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{91A98EFB-E77F-49D5-BDA9-5457D7C23755}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{91A98EFB-E77F-49D5-BDA9-5457D7C23755}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{91A98EFB-E77F-49D5-BDA9-5457D7C23755}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{91A98EFB-E77F-49D5-BDA9-5457D7C23755}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

@@ -31,7 +31,7 @@ namespace LPS.Core.Rpc.RpcProperty
             {
                 Parent = this,
                 Name = $"{Value.Count}",
-                Reffered = true,
+                IsReffered = true,
             };
             
             this.HandleIfContainer<TElem>(newContainer, elem);
@@ -50,7 +50,7 @@ namespace LPS.Core.Rpc.RpcProperty
                 var old = this.Value[index].Value!;
                 if (old is RpcPropertyContainer oldContainer)
                 {
-                    oldContainer.Reffered = false;
+                    oldContainer.IsReffered = false;
                 }
 
                 this.Value[index].Value = value;
