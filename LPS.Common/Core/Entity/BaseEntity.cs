@@ -47,11 +47,11 @@ namespace LPS.Core.Entity
 
         // BaseEntity.Call/Call<T> will return a promise 
         // which always wait for remote git a callback and give caller a async result.
-        public Task Call(MailBox targetMailBox, string rpcMethodName, params object?[] args)
+        public Task Call(MailBox targetMailBox, string rpcMethodName, RpcType rpcType, params object?[] args)
         {
             var id = rpcId_++;
             var rpcMsg = RpcHelper.BuildRpcMessage(
-                id, rpcMethodName, this.MailBox, targetMailBox, false, RpcType.ServerInside, args);
+                id, rpcMethodName, this.MailBox, targetMailBox, false, rpcType, args);
 
             var cancellationTokenSource = new CancellationTokenSource(1000);
             var source = new TaskCompletionSource();
@@ -69,11 +69,14 @@ namespace LPS.Core.Entity
             return source.Task;
         }
 
-        public Task<T> Call<T>(MailBox targetMailBox, string rpcMethodName, params object?[] args)
+        public Task Call(MailBox targetMailBox, string rpcMethodName, params object?[] args) =>
+            this.Call(targetMailBox, rpcMethodName, RpcType.ServerInside, args);
+
+        public Task<T> Call<T>(MailBox targetMailBox, string rpcMethodName, RpcType rpcType, params object?[] args)
         {
             var id = rpcId_++;
             var rpcMsg = RpcHelper.BuildRpcMessage(
-                id, rpcMethodName, this.MailBox, targetMailBox, false, RpcType.ServerInside, args);
+                id, rpcMethodName, this.MailBox, targetMailBox, false, rpcType, args);
 
 
             var cancellationTokenSource = new CancellationTokenSource(1000);
@@ -91,15 +94,21 @@ namespace LPS.Core.Entity
 
             return source.Task;
         }
+        
+        public Task<T> Call<T>(MailBox targetMailBox, string rpcMethodName, params object?[] args) =>
+            this.Call<T>(targetMailBox, rpcMethodName, RpcType.ServerInside, args);
 
         // BaseEntity.Notify will not return any promise and only send rpc message to remote
-        public void Notify(MailBox targetMailBox, string rpcMethodName, params object?[] args)
+        public void Notify(MailBox targetMailBox, string rpcMethodName, RpcType rpcType, params object?[] args)
         {
             var id = rpcId_++;
             var rpcMsg = RpcHelper.BuildRpcMessage(
-                id, rpcMethodName, this.MailBox, targetMailBox, true, RpcType.ServerInside, args);
+                id, rpcMethodName, this.MailBox, targetMailBox, true, rpcType, args);
             OnSend.Invoke(rpcMsg);
         }
+
+        public void Notify(MailBox targetMailBox, string rpcMethodName, params object?[] args) =>
+            this.Notify(targetMailBox, rpcMethodName, RpcType.ServerInside, args);
 
         // OnResult is a special rpc method with special parameter
         [RpcMethod(Authority.All)]

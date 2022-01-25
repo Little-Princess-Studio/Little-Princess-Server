@@ -34,10 +34,13 @@ namespace LPS.Client.Console
             Client.Instance.Send(authMsg);
         }
         
-        [ConsoleCommand("send.ping")]
-        public static void Ping()
+        [ConsoleCommand("send.echo")]
+        public static void Echo()
         {
-            
+            ClientGlobal.ShadowClientEntity
+                .Server
+                .Call<string>("Echo","Hello, LPS")
+                .ContinueWith(task => Logger.Debug($"echo res: {task.Result}"));
         }
 
         [ConsoleCommand("help")]

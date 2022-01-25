@@ -22,10 +22,13 @@ namespace LPS.Client
         {
             Logger.Init("client");
             RpcProtobufDefs.Init();
+            RpcHelper.ScanRpcMethods("LPS.Client.Entity");
             CommandParser.ScanCommands("LPS.Client");
 
-            Client.Instance.Init("127.0.0.1", 11001);
+            // Client.Instance.Init("127.0.0.1", 11001);
+            Client.Instance.Init("52.175.74.209", 11001);
             Client.Instance.RegisterMessageHandler(PackageType.ClientCreateEntity, HandleClientCreateEntity);
+            Client.Instance.RegisterMessageHandler(PackageType.EntityRpc, HandleEntityRpc);
 
             Client.Instance.Start();
 
@@ -36,13 +39,35 @@ namespace LPS.Client
             Client.Instance.WaitForExit();
         }
 
-        public static void HandleClientCreateEntity(object arg)
+        private static void HandleEntityRpc(object arg)
+        {
+            var (msg, _, _) = ((IMessage, Connection, UInt32)) arg;
+            var entityRpc = (EntityRpc) msg;
+            
+            Logger.Info($"rpc msg from server {entityRpc}");
+            
+            RpcHelper.CallLocalEntity(ClientGlobal.ShadowClientEntity, entityRpc);
+        }
+
+        private static void HandleClientCreateEntity(object arg)
         {
             var (msg, _, _) = ((IMessage, Connection, UInt32)) arg;
             var clientCreateEntity = (ClientCreateEntity) msg;
 
             Logger.Info(
-                $"Client create entity: {clientCreateEntity.EntityClassName} {clientCreateEntity.ServerClientMailBox}");
+                $"Client create entity: {clientCreateEntity.EntityClassName} " +
+                $"{clientCreateEntity.ServerClientMailBox}");
+
+            var shadowEntity  = RpcClientHelper.CreateClientEntity(clientCreateEntity.EntityClassName);
+            shadowEntity.OnSend = rpc =>
+            {
+                Client.Instance.Send(rpc);
+            };
+            shadowEntity.MailBox = RpcHelper.PbMailBoxToRpcMailBox(clientCreateEntity.ServerClientMailBox);
+            shadowEntity.BindServerMailBox();
+
+            ClientGlobal.ShadowClientEntity = shadowEntity;
+            Logger.Info($"{shadowEntity} created success.");
         }
     }
 }

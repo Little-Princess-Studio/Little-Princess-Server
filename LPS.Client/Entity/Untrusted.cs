@@ -4,7 +4,7 @@ using LPS.Core.Rpc;
 namespace LPS.Client.Entity
 {
     [EntityClass]
-    public class Untrusted : ShadowEntity
+    public class Untrusted : ShadowClientEntity
     {
     }
 }
