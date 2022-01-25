@@ -35,12 +35,22 @@ namespace LPS.Client.Console
         }
         
         [ConsoleCommand("send.echo")]
-        public static void Echo()
+        public static async void Echo()
         {
-            ClientGlobal.ShadowClientEntity
-                .Server
-                .Call<string>("Echo","Hello, LPS")
-                .ContinueWith(task => Logger.Debug($"echo res: {task.Result}"));
+            var startTime = new TimeSpan(System.DateTime.Now.Ticks);
+            for (int i = 0; i < 50; ++i)
+            {
+                var start = new TimeSpan(System.DateTime.Now.Ticks);
+                var res = await ClientGlobal.ShadowClientEntity
+                    .Server
+                    .Call<string>("Echo", $"Hello, LPS, times {i}");
+                
+                var end = new TimeSpan(System.DateTime.Now.Ticks);
+                
+                Logger.Debug($"call res {res}, latancy: {(end - start).TotalMilliseconds} ms");
+                
+                Thread.Sleep(50);
+            }
         }
 
         [ConsoleCommand("help")]

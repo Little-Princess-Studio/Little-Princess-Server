@@ -44,7 +44,7 @@ namespace LPS.Client
             var (msg, _, _) = ((IMessage, Connection, UInt32)) arg;
             var entityRpc = (EntityRpc) msg;
             
-            Logger.Info($"rpc msg from server {entityRpc}");
+            // Logger.Info($"rpc msg from server {entityRpc}");
             
             RpcHelper.CallLocalEntity(ClientGlobal.ShadowClientEntity, entityRpc);
         }

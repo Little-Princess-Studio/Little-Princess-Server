@@ -53,7 +53,7 @@ namespace LPS.Core.Entity
             var rpcMsg = RpcHelper.BuildRpcMessage(
                 id, rpcMethodName, this.MailBox, targetMailBox, false, rpcType, args);
 
-            var cancellationTokenSource = new CancellationTokenSource(1000);
+            var cancellationTokenSource = new CancellationTokenSource(5000);
             var source = new TaskCompletionSource();
 
             cancellationTokenSource.Token.Register(
@@ -79,7 +79,7 @@ namespace LPS.Core.Entity
                 id, rpcMethodName, this.MailBox, targetMailBox, false, rpcType, args);
 
 
-            var cancellationTokenSource = new CancellationTokenSource(1000);
+            var cancellationTokenSource = new CancellationTokenSource(5000);
             var source = new TaskCompletionSource<T>();
 
             cancellationTokenSource.Token.Register(
