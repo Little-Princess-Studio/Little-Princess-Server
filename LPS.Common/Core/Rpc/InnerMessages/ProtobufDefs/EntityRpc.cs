@@ -46,16 +46,18 @@ namespace LPS.Core.Rpc.InnerMessages {
             "b2dsZS5wcm90b2J1Zi5BbnkiYgoYRGljdFdpdGhWYWx1ZVR1cGxlS2V5QXJn",
             "EkYKB1BheUxvYWQYASADKAsyNS5MUFMuQ29yZS5ScGMuSW5uZXJNZXNzYWdl",
             "cy5EaWN0V2l0aFZhbHVlVHVwbGVLZXlQYWlyIgkKB051bGxBcmciGgoHSnNv",
-            "bkFyZxIPCgdQYXlMb2FkGAEgASgJIvABCglFbnRpdHlScGMSDQoFUnBjSUQY",
+            "bkFyZxIPCgdQYXlMb2FkGAEgASgJIpQCCglFbnRpdHlScGMSDQoFUnBjSUQY",
             "ASABKA0SOgoNU2VuZGVyTWFpbEJveBgCIAEoCzIjLkxQUy5Db3JlLlJwYy5J",
             "bm5lck1lc3NhZ2VzLk1haWxCb3gSOgoNRW50aXR5TWFpbEJveBgDIAEoCzIj",
             "LkxQUy5Db3JlLlJwYy5Jbm5lck1lc3NhZ2VzLk1haWxCb3gSEgoKTWV0aG9k",
-            "TmFtZRgEIAEoCRISCgpOb3RpZnlPbmx5GAUgASgIEhAKCFRvQ2xpZW50GAYg",
-            "ASgIEiIKBEFyZ3MYByADKAsyFC5nb29nbGUucHJvdG9idWYuQW55YgZwcm90",
-            "bzM="));
+            "TmFtZRgEIAEoCRISCgpOb3RpZnlPbmx5GAUgASgIEjQKB1JwY1R5cGUYBiAB",
+            "KA4yIy5MUFMuQ29yZS5ScGMuSW5uZXJNZXNzYWdlcy5ScGNUeXBlEiIKBEFy",
+            "Z3MYByADKAsyFC5nb29nbGUucHJvdG9idWYuQW55KkMKB1JwY1R5cGUSEAoM",
+            "U2VydmVySW5zaWRlEAASEgoOU2VydmVyVG9DbGllbnQQARISCg5DbGllbnRU",
+            "b1NlcnZlchACYgZwcm90bzM="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { global::LPS.Core.Rpc.InnerMessages.MailboxReflection.Descriptor, global::Google.Protobuf.WellKnownTypes.AnyReflection.Descriptor, },
-          new pbr::GeneratedClrTypeInfo(null, null, new pbr::GeneratedClrTypeInfo[] {
+          new pbr::GeneratedClrTypeInfo(new[] {typeof(global::LPS.Core.Rpc.InnerMessages.RpcType), }, null, new pbr::GeneratedClrTypeInfo[] {
             new pbr::GeneratedClrTypeInfo(typeof(global::LPS.Core.Rpc.InnerMessages.BoolArg), global::LPS.Core.Rpc.InnerMessages.BoolArg.Parser, new[]{ "PayLoad" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::LPS.Core.Rpc.InnerMessages.IntArg), global::LPS.Core.Rpc.InnerMessages.IntArg.Parser, new[]{ "PayLoad" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::LPS.Core.Rpc.InnerMessages.FloatArg), global::LPS.Core.Rpc.InnerMessages.FloatArg.Parser, new[]{ "PayLoad" }, null, null, null, null),
@@ -70,12 +72,21 @@ namespace LPS.Core.Rpc.InnerMessages {
             new pbr::GeneratedClrTypeInfo(typeof(global::LPS.Core.Rpc.InnerMessages.DictWithValueTupleKeyArg), global::LPS.Core.Rpc.InnerMessages.DictWithValueTupleKeyArg.Parser, new[]{ "PayLoad" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::LPS.Core.Rpc.InnerMessages.NullArg), global::LPS.Core.Rpc.InnerMessages.NullArg.Parser, null, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::LPS.Core.Rpc.InnerMessages.JsonArg), global::LPS.Core.Rpc.InnerMessages.JsonArg.Parser, new[]{ "PayLoad" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::LPS.Core.Rpc.InnerMessages.EntityRpc), global::LPS.Core.Rpc.InnerMessages.EntityRpc.Parser, new[]{ "RpcID", "SenderMailBox", "EntityMailBox", "MethodName", "NotifyOnly", "ToClient", "Args" }, null, null, null, null)
+            new pbr::GeneratedClrTypeInfo(typeof(global::LPS.Core.Rpc.InnerMessages.EntityRpc), global::LPS.Core.Rpc.InnerMessages.EntityRpc.Parser, new[]{ "RpcID", "SenderMailBox", "EntityMailBox", "MethodName", "NotifyOnly", "RpcType", "Args" }, null, null, null, null)
           }));
     }
     #endregion
 
   }
+  #region Enums
+  public enum RpcType {
+    [pbr::OriginalName("ServerInside")] ServerInside = 0,
+    [pbr::OriginalName("ServerToClient")] ServerToClient = 1,
+    [pbr::OriginalName("ClientToServer")] ClientToServer = 2,
+  }
+
+  #endregion
+
   #region Messages
   public sealed partial class BoolArg : pb::IMessage<BoolArg>
   #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
@@ -2723,7 +2734,7 @@ namespace LPS.Core.Rpc.InnerMessages {
       entityMailBox_ = other.entityMailBox_ != null ? other.entityMailBox_.Clone() : null;
       methodName_ = other.methodName_;
       notifyOnly_ = other.notifyOnly_;
-      toClient_ = other.toClient_;
+      rpcType_ = other.rpcType_;
       args_ = other.args_.Clone();
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
@@ -2794,15 +2805,15 @@ namespace LPS.Core.Rpc.InnerMessages {
       }
     }
 
-    /// <summary>Field number for the "ToClient" field.</summary>
-    public const int ToClientFieldNumber = 6;
-    private bool toClient_;
+    /// <summary>Field number for the "RpcType" field.</summary>
+    public const int RpcTypeFieldNumber = 6;
+    private global::LPS.Core.Rpc.InnerMessages.RpcType rpcType_ = global::LPS.Core.Rpc.InnerMessages.RpcType.ServerInside;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public bool ToClient {
-      get { return toClient_; }
+    public global::LPS.Core.Rpc.InnerMessages.RpcType RpcType {
+      get { return rpcType_; }
       set {
-        toClient_ = value;
+        rpcType_ = value;
       }
     }
 
@@ -2837,7 +2848,7 @@ namespace LPS.Core.Rpc.InnerMessages {
       if (!object.Equals(EntityMailBox, other.EntityMailBox)) return false;
       if (MethodName != other.MethodName) return false;
       if (NotifyOnly != other.NotifyOnly) return false;
-      if (ToClient != other.ToClient) return false;
+      if (RpcType != other.RpcType) return false;
       if(!args_.Equals(other.args_)) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
@@ -2851,7 +2862,7 @@ namespace LPS.Core.Rpc.InnerMessages {
       if (entityMailBox_ != null) hash ^= EntityMailBox.GetHashCode();
       if (MethodName.Length != 0) hash ^= MethodName.GetHashCode();
       if (NotifyOnly != false) hash ^= NotifyOnly.GetHashCode();
-      if (ToClient != false) hash ^= ToClient.GetHashCode();
+      if (RpcType != global::LPS.Core.Rpc.InnerMessages.RpcType.ServerInside) hash ^= RpcType.GetHashCode();
       hash ^= args_.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
@@ -2891,9 +2902,9 @@ namespace LPS.Core.Rpc.InnerMessages {
         output.WriteRawTag(40);
         output.WriteBool(NotifyOnly);
       }
-      if (ToClient != false) {
+      if (RpcType != global::LPS.Core.Rpc.InnerMessages.RpcType.ServerInside) {
         output.WriteRawTag(48);
-        output.WriteBool(ToClient);
+        output.WriteEnum((int) RpcType);
       }
       args_.WriteTo(output, _repeated_args_codec);
       if (_unknownFields != null) {
@@ -2926,9 +2937,9 @@ namespace LPS.Core.Rpc.InnerMessages {
         output.WriteRawTag(40);
         output.WriteBool(NotifyOnly);
       }
-      if (ToClient != false) {
+      if (RpcType != global::LPS.Core.Rpc.InnerMessages.RpcType.ServerInside) {
         output.WriteRawTag(48);
-        output.WriteBool(ToClient);
+        output.WriteEnum((int) RpcType);
       }
       args_.WriteTo(ref output, _repeated_args_codec);
       if (_unknownFields != null) {
@@ -2956,8 +2967,8 @@ namespace LPS.Core.Rpc.InnerMessages {
       if (NotifyOnly != false) {
         size += 1 + 1;
       }
-      if (ToClient != false) {
-        size += 1 + 1;
+      if (RpcType != global::LPS.Core.Rpc.InnerMessages.RpcType.ServerInside) {
+        size += 1 + pb::CodedOutputStream.ComputeEnumSize((int) RpcType);
       }
       size += args_.CalculateSize(_repeated_args_codec);
       if (_unknownFields != null) {
@@ -2993,8 +3004,8 @@ namespace LPS.Core.Rpc.InnerMessages {
       if (other.NotifyOnly != false) {
         NotifyOnly = other.NotifyOnly;
       }
-      if (other.ToClient != false) {
-        ToClient = other.ToClient;
+      if (other.RpcType != global::LPS.Core.Rpc.InnerMessages.RpcType.ServerInside) {
+        RpcType = other.RpcType;
       }
       args_.Add(other.args_);
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
@@ -3039,7 +3050,7 @@ namespace LPS.Core.Rpc.InnerMessages {
             break;
           }
           case 48: {
-            ToClient = input.ReadBool();
+            RpcType = (global::LPS.Core.Rpc.InnerMessages.RpcType) input.ReadEnum();
             break;
           }
           case 58: {
@@ -3088,7 +3099,7 @@ namespace LPS.Core.Rpc.InnerMessages {
             break;
           }
           case 48: {
-            ToClient = input.ReadBool();
+            RpcType = (global::LPS.Core.Rpc.InnerMessages.RpcType) input.ReadEnum();
             break;
           }
           case 58: {

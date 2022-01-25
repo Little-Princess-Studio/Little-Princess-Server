@@ -73,12 +73,19 @@ message JsonArg
     string PayLoad = 1;
 }
 
+enum RpcType
+{
+  ServerInside = 0;
+  ServerToClient = 1;
+  ClientToServer = 2;
+}
+
 message EntityRpc {
     uint32 RpcID = 1;
     MailBox SenderMailBox = 2;
     MailBox EntityMailBox = 3;
     string MethodName = 4;
     bool NotifyOnly = 5;
-    bool ToClient = 6;
+    RpcType RpcType = 6;
     repeated google.protobuf.Any Args = 7;
 };

@@ -79,23 +79,40 @@ namespace LPS.Core
                 }
             }
             // send to local entity
-            else if (localEntityDict_.ContainsKey(entityRpc.EntityMailBox.ID))
+            else if (localEntityDict_.ContainsKey(targetMailBox.ID))
             {
-                var entity = localEntityDict_[entityRpc.EntityMailBox.ID];
+                var entity = localEntityDict_[targetMailBox.ID];
 
-                try
+                Logger.Info($"rpctype: {entityRpc.RpcType}");
+                var rpcType = entityRpc.RpcType;
+                if (rpcType == RpcType.ClientToServer || rpcType == RpcType.ServerInside)
                 {
-                    RpcHelper.CallLocalEntity(entity, entityRpc);
+                    try
+                    {
+                        RpcHelper.CallLocalEntity(entity, entityRpc);
+                    }
+                    catch (Exception e)
+                    {
+                        Logger.Error(e, "Exception happened when call local entity");
+                    }
                 }
-                catch (Exception e)
+                else if (rpcType == RpcType.ServerToClient)
                 {
-                    Logger.Error(e, "Exception happened when call local entity");
+                    var gateConn = (entity as ServerClientEntity)!.Client.GateConn;
+
+                    Logger.Info($"serverToClient rpc send to gate {gateConn.MailBox}");
+
+                    tcpServer_.Send(entityRpc, gateConn);
+                }
+                else
+                {
+                    throw new Exception($"Invalid rpc type: {entityRpc.RpcType}");
                 }
             }
             else
             {
                 // redirect to gate
-                this.tcpServer_.Send(entityRpc, GateConnections[0]);
+                tcpServer_.Send(entityRpc, GateConnections[0]);
             }
         }
 
@@ -106,10 +123,10 @@ namespace LPS.Core
             Logger.Info($"Server create a new entity with mailbox {mailBox}");
 
             // todo: determain if the entity is a ServerClientEntity
-            if (entity.GetType() == typeof(Untrusted))
+            if (entity.GetType().IsSubclassOf(typeof(ServerClientEntity)))
             {
                 // bind gate conn to client entity
-                (entity as Untrusted)!.BindGateConn(gateConn);
+                (entity as ServerClientEntity)!.BindGateConn(gateConn);
             }
             entity.OnSend = entityRpc => SendEntityRpc(entity, entityRpc);
             entity.MailBox = mailBox;
@@ -164,9 +181,9 @@ namespace LPS.Core
                     Logger.Error(e, "Exception happend when call server entity");
                 }
             }
-            else if (localEntityDict_.ContainsKey(entity_.MailBox.Id))
+            else if (localEntityDict_.ContainsKey(targetMailBox.ID))
             {
-                var entity = localEntityDict_[entity_.MailBox.Id];
+                var entity = localEntityDict_[targetMailBox.ID];
                 try
                 {
                     RpcHelper.CallLocalEntity(entity, entityRpc);
@@ -182,13 +199,6 @@ namespace LPS.Core
                 tcpServer_.Send(entityRpc, GateConnections[0]);
             }
         }
-
-        // private static string RandomString(int length)
-        // {
-        //     const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-        //     return new string(Enumerable.Repeat(chars, length)
-        //         .Select(s => s[Random.Next(s.Length)]).ToArray());
-        // }
 
         private void HandleCreateEntity(object arg)
         {

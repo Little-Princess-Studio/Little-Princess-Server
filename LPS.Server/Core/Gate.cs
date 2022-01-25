@@ -204,11 +204,6 @@ namespace LPS.Core
             }
         }
 
-        private void OnCreateUntrusted(in Rpc.MailBox mailBox, Connection conn)
-        {
-            Logger.Info($"Create Untrusted with mailbox {mailBox}");
-        }
-
         private void HandleControlMessage(object arg)
         {
             var (msg, _, _) = ((IMessage, Connection, UInt32)) arg;
@@ -315,6 +310,7 @@ namespace LPS.Core
                 createEntityMapping_.Remove(createEntityRes.ConnectionID, out var conn);
                 if (conn != null)
                 {
+                    Logger.Info($"{serverClientEntity.Id} => {conn.MailBox}");
                     entityIdToClientConnMapping_[serverClientEntity.Id] = (serverClientEntity, conn);
                     var clientCreateEntity = new ClientCreateEntity
                     {
@@ -382,31 +378,47 @@ namespace LPS.Core
             }
             else
             {
-                // todo: dictionary cache
-                var gate = this.tcpClientsToOtherGate_
-                    .FirstOrDefault(client => client.TargetIp == targetEntityMailBox.IP
-                                              && client.TargetPort == targetEntityMailBox.Port, null);
+                var rpcType = entityRpc.RpcType;
+                if (rpcType == RpcType.ClientToServer || rpcType == RpcType.ServerInside)
+                {
+                    // todo: dictionary cache
+                    var gate = this.tcpClientsToOtherGate_
+                        .FirstOrDefault(client => client!.TargetIp == targetEntityMailBox.IP
+                                                && client.TargetPort == targetEntityMailBox.Port, null);
 
-                // if rpc's target is other gate entity
-                if (gate != null)
-                {
-                    Logger.Debug("redirect to gate's entity");
-                    gate.Send(entityRpc);
-                }
-                else
-                {
-                    var serverClient = this.FindServerOfEntity(entityRpc.EntityMailBox);
-                    if (serverClient != null)
+                    // if rpc's target is other gate entity
+                    if (gate != null)
                     {
-                        Logger.Debug("redirect to server");
-                        serverClient.Send(entityRpc);
+                        Logger.Debug("redirect to gate's entity");
+                        gate.Send(entityRpc);
                     }
                     else
                     {
-                        Logger.Warn(
-                            $"invalid rpc target mailbox: ${targetEntityMailBox.IP} {targetEntityMailBox.Port} {targetEntityMailBox.ID}" +
-                            $"{targetEntityMailBox.HostNum}");
+                        var serverClient = this.FindServerOfEntity(targetEntityMailBox);
+                        if (serverClient != null)
+                        {
+                            Logger.Debug($"redirect to server {serverClient.MailBox}");
+                            serverClient.Send(entityRpc);
+                        }
+                        else
+                        {
+                            Logger.Warn(
+                                $"invalid rpc target mailbox: ${targetEntityMailBox.IP} {targetEntityMailBox.Port} {targetEntityMailBox.ID}" +
+                                $"{targetEntityMailBox.HostNum}");
+                        }
                     }
+                }
+                else if (rpcType == RpcType.ServerToClient)
+                {
+                    // send to client
+                    Logger.Info("send rpc to client");
+                    var conn = entityIdToClientConnMapping_[entityRpc.EntityMailBox.ID].Item2;
+                    var pkg = PackageHelper.FromProtoBuf(entityRpc, 0);
+                    conn.Socket.Send(pkg.ToBytes());
+                }
+                else
+                {
+                    throw new Exception($"Invalid rpc type: {rpcType}");
                 }
             }
         }

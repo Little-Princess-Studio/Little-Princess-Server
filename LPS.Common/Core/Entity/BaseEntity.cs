@@ -27,21 +27,21 @@ namespace LPS.Core.Entity
 
         private uint rpcId_;
 
-        public void Send(MailBox targetMailBox, string rpcMethodName, bool notifyOnly, params object?[] args)
+        public void Send(MailBox targetMailBox, string rpcMethodName, bool notifyOnly, RpcType rpcType, params object?[] args)
         {
             var id = rpcId_++;
             var rpcMsg = RpcHelper.BuildRpcMessage(
                 id, rpcMethodName, this.MailBox, targetMailBox,
-                notifyOnly, false, args);
+                notifyOnly, rpcType, args);
             OnSend.Invoke(rpcMsg);
         }
 
-        public void SendWithRpcId(uint rpcId, MailBox targetMailBox, string rpcMethodName, bool notifyOnly,
+        public void SendWithRpcId(uint rpcId, MailBox targetMailBox, string rpcMethodName, bool notifyOnly, RpcType rpcType,
             params object?[] args)
         {
             var rpcMsg = RpcHelper.BuildRpcMessage(
                 rpcId, rpcMethodName, this.MailBox, targetMailBox,
-                notifyOnly, false, args);
+                notifyOnly, rpcType, args);
             OnSend.Invoke(rpcMsg);
         }
 
@@ -51,7 +51,7 @@ namespace LPS.Core.Entity
         {
             var id = rpcId_++;
             var rpcMsg = RpcHelper.BuildRpcMessage(
-                id, rpcMethodName, this.MailBox, targetMailBox, false, false, args);
+                id, rpcMethodName, this.MailBox, targetMailBox, false, RpcType.ServerInside, args);
 
             var cancellationTokenSource = new CancellationTokenSource(1000);
             var source = new TaskCompletionSource();
@@ -73,7 +73,7 @@ namespace LPS.Core.Entity
         {
             var id = rpcId_++;
             var rpcMsg = RpcHelper.BuildRpcMessage(
-                id, rpcMethodName, this.MailBox, targetMailBox, false, false, args);
+                id, rpcMethodName, this.MailBox, targetMailBox, false, RpcType.ServerInside, args);
 
 
             var cancellationTokenSource = new CancellationTokenSource(1000);
@@ -97,7 +97,7 @@ namespace LPS.Core.Entity
         {
             var id = rpcId_++;
             var rpcMsg = RpcHelper.BuildRpcMessage(
-                id, rpcMethodName, this.MailBox, targetMailBox, true, false, args);
+                id, rpcMethodName, this.MailBox, targetMailBox, true, RpcType.ServerInside, args);
             OnSend.Invoke(rpcMsg);
         }
 

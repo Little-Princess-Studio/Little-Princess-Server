@@ -5,52 +5,25 @@ using LPS.Core.Rpc;
 using LPS.Core.Rpc.RpcProperty;
 
 namespace LPS.Logic.Entity
-{
-    public class ClientProxy
-    {
-        // gateConnection_ record which gate the client is connecting to
-        private Connection gateConnection_;
-
-        public ClientProxy(Connection gateConnection)
-        {
-            gateConnection_ = gateConnection;
-        }
-
-        public Task<T> Call<T>(string methodName, params object?[] args)
-        {
-            return null!;
-        }
-
-        public Task Call(string methodName, params object?[] args)
-        {
-            return null!;
-        }
-
-        public void Notify(string methodName, params object?[] args)
-        {
-            
-        }
-    }
-    
+{   
     [EntityClass]
-    public class Untrusted : DistributeEntity
+    public class Untrusted : ServerClientEntity
     {
         public readonly RpcComplexProperty<RpcList<string>> RpcProp = 
             new (nameof(Untrusted.RpcProp), RpcPropertySetting.Permanent, new RpcList<string>());
 
         public readonly RpcPlainProperty<string> RpcPlainPropStr = 
             new (nameof(Untrusted.RpcPlainPropStr), RpcPropertySetting.Permanent, "");
-
-        public ClientProxy Client { get; private set; } = null!;
         
         public Untrusted(string desc) : base(desc)
         {
             Logger.Debug($"Untrusted created, desc : {desc}");
         }
 
-        public void BindGateConn(Connection gateConnection)
+        [RpcMethod(Authority.ClientOnly)]
+        public ValueTask<string> Echo(string msg)
         {
-            this.Client = new ClientProxy(gateConnection);
+            return ValueTask.FromResult("echo:" + msg);
         }
     }
 }
