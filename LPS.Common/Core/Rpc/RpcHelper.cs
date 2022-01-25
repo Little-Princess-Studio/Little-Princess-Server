@@ -792,6 +792,7 @@ namespace LPS.Core.Rpc
                     PbMailBoxToRpcMailBox(senderMailBox),
                     "OnResult",
                     true,
+                    sendRpcType,
                     t.Result);
 
             void Send<T>(Task<T> t) =>

@@ -69,36 +69,22 @@ namespace LPS.Core
             // send to self
             if (baseEntity.MailBox.CompareFull(targetMailBox))
             {
-                try
-                {
-                    RpcHelper.CallLocalEntity(baseEntity, entityRpc);
-                }
-                catch (Exception e)
-                {
-                    Logger.Error(e, "Exception happened when call server entity");
-                }
-            }
-            // send to local entity
-            else if (localEntityDict_.ContainsKey(targetMailBox.ID))
-            {
-                var entity = localEntityDict_[targetMailBox.ID];
-
                 Logger.Info($"rpctype: {entityRpc.RpcType}");
                 var rpcType = entityRpc.RpcType;
                 if (rpcType == RpcType.ClientToServer || rpcType == RpcType.ServerInside)
                 {
                     try
                     {
-                        RpcHelper.CallLocalEntity(entity, entityRpc);
+                        RpcHelper.CallLocalEntity(baseEntity, entityRpc);
                     }
                     catch (Exception e)
                     {
-                        Logger.Error(e, "Exception happened when call local entity");
+                        Logger.Error(e, "Exception happened when call server entity");
                     }
                 }
                 else if (rpcType == RpcType.ServerToClient)
                 {
-                    var gateConn = (entity as ServerClientEntity)!.Client.GateConn;
+                    var gateConn = (baseEntity as ServerClientEntity)!.Client.GateConn;
 
                     Logger.Info($"serverToClient rpc send to gate {gateConn.MailBox}");
 
@@ -107,6 +93,20 @@ namespace LPS.Core
                 else
                 {
                     throw new Exception($"Invalid rpc type: {entityRpc.RpcType}");
+                }
+            }
+            // send to local entity
+            else if (localEntityDict_.ContainsKey(targetMailBox.ID))
+            {
+                var entity = localEntityDict_[targetMailBox.ID];
+
+                try
+                {
+                    RpcHelper.CallLocalEntity(entity, entityRpc);
+                }
+                catch (Exception e)
+                {
+                    Logger.Error(e, "Exception happened when call local entity");
                 }
             }
             else
