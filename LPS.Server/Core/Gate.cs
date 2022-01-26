@@ -76,11 +76,11 @@ namespace LPS.Core
             // tcp gate to server handlers msg from server
             tcpClientsToServer_ = new TcpClient[servers.Length];
             var idx = 0;
-            foreach (var (serverIP, serverPort) in servers)
+            foreach (var (serverIp, serverPort) in servers)
             {
                 var tmpIdx = idx;
-                Logger.Debug($"server ip: {serverIP} server port: {serverPort}");
-                var client = new TcpClient(serverIP, serverPort, sendQueue_)
+                Logger.Debug($"server ip: {serverIp} server port: {serverPort}");
+                var client = new TcpClient(serverIp, serverPort, sendQueue_)
                 {
                     OnInit = () => this.RegisterGateMessageHandlers(tmpIdx),
                     OnDispose = () => this.UnregisterGateMessageHandlers(tmpIdx),

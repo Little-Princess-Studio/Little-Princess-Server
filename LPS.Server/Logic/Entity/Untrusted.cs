@@ -20,6 +20,10 @@ namespace LPS.Logic.Entity
             Logger.Debug($"Untrusted created, desc : {desc}");
         }
 
+        public Untrusted()
+        {
+        }
+
         [RpcMethod(Authority.ClientOnly)]
         public ValueTask<string> Echo(string msg)
         {

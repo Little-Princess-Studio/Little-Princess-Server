@@ -1,3 +1,4 @@
+using LPS.Core.Debug;
 using LPS.Core.Rpc;
 using LPS.Core.Rpc.InnerMessages;
 using MailBox = LPS.Core.Rpc.MailBox;
@@ -23,12 +24,42 @@ namespace LPS.Core.Entity
         private readonly Dictionary<uint, (Action<object>, Type)> rpcDict_ = new();
         private readonly Dictionary<uint, Action> rpcBlankDict_ = new();
 
+        public bool IsDestroied { get; protected set; }
+        
+        // if an entity is frozen, it can only send rpc to client
+        public bool IsFrozen { get; protected set; }
+        
         public Action<EntityRpc> OnSend { get; set; } = null!;
 
         private uint rpcId_;
 
+        public string Serialize()
+        {
+            return "";
+        }
+
+        public void Deserialize(string content)
+        {
+            
+        }
+
+        public void Destroy()
+        {
+            this.IsDestroied = true;
+        }
+        
         public void Send(MailBox targetMailBox, string rpcMethodName, bool notifyOnly, RpcType rpcType, params object?[] args)
         {
+            if (this.IsDestroied)
+            {
+                throw new Exception("Entity already destroyed.");
+            }
+
+            if (this.IsFrozen && rpcType != RpcType.ServerToClient)
+            {
+                throw new Exception("Entity is frozen.");
+            }
+            
             var id = rpcId_++;
             var rpcMsg = RpcHelper.BuildRpcMessage(
                 id, rpcMethodName, this.MailBox, targetMailBox,
@@ -39,6 +70,16 @@ namespace LPS.Core.Entity
         public void SendWithRpcId(uint rpcId, MailBox targetMailBox, string rpcMethodName, bool notifyOnly, RpcType rpcType,
             params object?[] args)
         {
+            if (this.IsDestroied)
+            {
+                throw new Exception("Entity already destroyed.");
+            }
+            
+            if (this.IsFrozen && rpcType != RpcType.ServerToClient)
+            {
+                throw new Exception("Entity is frozen.");
+            }
+            
             var rpcMsg = RpcHelper.BuildRpcMessage(
                 rpcId, rpcMethodName, this.MailBox, targetMailBox,
                 notifyOnly, rpcType, args);
@@ -49,6 +90,16 @@ namespace LPS.Core.Entity
         // which always wait for remote git a callback and give caller a async result.
         public Task Call(MailBox targetMailBox, string rpcMethodName, RpcType rpcType, params object?[] args)
         {
+            if (this.IsDestroied)
+            {
+                throw new Exception("Entity already destroyed.");
+            }
+            
+            if (this.IsFrozen && rpcType != RpcType.ServerToClient)
+            {
+                throw new Exception("Entity is frozen.");
+            }
+            
             var id = rpcId_++;
             var rpcMsg = RpcHelper.BuildRpcMessage(
                 id, rpcMethodName, this.MailBox, targetMailBox, false, rpcType, args);
@@ -74,6 +125,16 @@ namespace LPS.Core.Entity
 
         public Task<T> Call<T>(MailBox targetMailBox, string rpcMethodName, RpcType rpcType, params object?[] args)
         {
+            if (this.IsDestroied)
+            {
+                throw new Exception("Entity already destroyed.");
+            }
+            
+            if (this.IsFrozen && rpcType != RpcType.ServerToClient)
+            {
+                throw new Exception("Entity is frozen.");
+            }
+            
             var id = rpcId_++;
             var rpcMsg = RpcHelper.BuildRpcMessage(
                 id, rpcMethodName, this.MailBox, targetMailBox, false, rpcType, args);
@@ -101,6 +162,16 @@ namespace LPS.Core.Entity
         // BaseEntity.Notify will not return any promise and only send rpc message to remote
         public void Notify(MailBox targetMailBox, string rpcMethodName, RpcType rpcType, params object?[] args)
         {
+            if (this.IsDestroied)
+            {
+                throw new Exception("Entity already destroyed.");
+            }
+            
+            if (this.IsFrozen && rpcType != RpcType.ServerToClient)
+            {
+                throw new Exception("Entity is frozen.");
+            }
+            
             var id = rpcId_++;
             var rpcMsg = RpcHelper.BuildRpcMessage(
                 id, rpcMethodName, this.MailBox, targetMailBox, true, rpcType, args);
@@ -114,6 +185,12 @@ namespace LPS.Core.Entity
         [RpcMethod(Authority.All)]
         public void OnResult(EntityRpc entityRpc)
         {
+            if (this.IsDestroied)
+            {
+                Logger.Warn("Entity already destroyed.");
+                return;
+            }
+            
             var rpcId = entityRpc.RpcID;
             RpcAsyncCallBack(rpcId, entityRpc);
         }

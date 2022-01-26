@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using Google.Protobuf;
 using LPS.Core.Database;
 using LPS.Core.Debug;
@@ -27,10 +28,16 @@ namespace LPS.Core
         private readonly string hostManagerIP_;
         private readonly int hostManagerPort_;
         private ServerEntity? entity_;
+        private CellEntity? defaultCell_;
         private readonly Dictionary<string, DistributeEntity> localEntityDict_ = new();
-        private readonly TcpServer tcpServer_;
+        private readonly Dictionary<string, CellEntity> cells_ = new();
 
+        private readonly TcpServer tcpServer_;
+        
         private Connection[] GateConnections => tcpServer_.AllConnections;
+        
+        private readonly CountdownEvent localEntityGeneratedEvent_;
+
         // private static readonly Random Random = new Random();
 
         public Server(string name, string ip, int port, int hostnum, string hostManagerIP, int hostManagerPort)
@@ -40,6 +47,8 @@ namespace LPS.Core
             this.Port = port;
             this.HostNum = hostnum;
 
+            localEntityGeneratedEvent_ = new(2);
+            
             tcpServer_ = new(ip, port)
             {
                 OnInit = this.RegisterServerMessageHandlers,
@@ -52,12 +61,30 @@ namespace LPS.Core
             // how server entity send msg
             DbHelper.GenerateNewGlobalId().ContinueWith(task =>
             {
-                var newID = task.Result;
-                entity_ = new(new(newID, ip, port, hostnum))
+                var newId = task.Result;
+                entity_ = new(new(newId, ip, port, hostnum))
                 {
                     // todo: insert local rpc call operation to pump queue, instead of directly calling local entity rpc here.
-                    OnSend = entityRpc => SendEntityRpc(entity_, entityRpc),
+                    OnSend = entityRpc => SendEntityRpc(entity_!, entityRpc),
                 };
+
+                Logger.Info("server entity generated.");
+                localEntityGeneratedEvent_.Signal();
+            });
+
+            DbHelper.GenerateNewGlobalId().ContinueWith(task =>
+            {
+                var newId = task.Result;
+                defaultCell_ = new ServerDefaultCellEntity()
+                {
+                    MailBox = new MailBox(newId, ip, port, hostnum),
+                    OnSend = entityRpc => SendEntityRpc(defaultCell_!, entityRpc),
+                    EntityLeaveCallBack = entity => this.localEntityDict_.Remove(entity.MailBox.Id),
+                    EntityEnterCallBack = entity => this.localEntityDict_.Add(entity.MailBox.Id, entity),
+                };
+                
+                Logger.Info("default cell generated.");
+                localEntityGeneratedEvent_.Signal();
             });
         }
 
@@ -140,6 +167,7 @@ namespace LPS.Core
 
         public void Loop()
         {
+            localEntityGeneratedEvent_.Wait();
             Logger.Debug($"Start gate at {this.Ip}:{this.Port}");
             tcpServer_.Run();
 
