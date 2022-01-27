@@ -2,33 +2,37 @@ using System;
 using System.Threading.Tasks;
 using LPS.Core.Debug;
 using LPS.Core.Rpc;
+using LPS.Core.Rpc.InnerMessages;
+using MailBox = LPS.Core.Rpc.MailBox;
 
 namespace LPS.Core.Entity
 {
     public class ClientProxy
     {
         // gateConnection_ record which gate the client is connecting to
+        public readonly ServerClientEntity Owner;
         private Connection gateConnection_;
         public Connection GateConn => gateConnection_;
 
-        public ClientProxy(Connection gateConnection)
+        public ClientProxy(Connection gateConnection, ServerClientEntity owner)
         {
             gateConnection_ = gateConnection;
+            Owner = owner;
         }
 
         public Task<T> Call<T>(string methodName, params object?[] args)
         {
-            return null!;
+            return this.Owner.Call<T>(this.Owner.MailBox, methodName, RpcType.ServerToClient, args);
         }
 
         public Task Call(string methodName, params object?[] args)
         {
-            return null!;
+            return this.Owner.Call(this.Owner.MailBox, methodName, RpcType.ServerToClient, args);
         }
 
         public void Notify(string methodName, params object?[] args)
         {
-            
+            this.Owner.Notify(this.Owner.MailBox, methodName, RpcType.ServerInside, args);
         }
     }
 
@@ -56,12 +60,15 @@ namespace LPS.Core.Entity
             var serialContent = "";
             try
             {
+                var gateMailBox = this.Client.GateConn.MailBox;
+                
                 var (res, mailbox) = await this.Call<(bool, MailBox)>(targetCellMailBox,
                     "RequireTransfer",
                     this.MailBox,
                     this.GetType().Name,
                     serialContent,
-                    transferInfo);
+                    transferInfo,
+                    gateMailBox);
 
                 if (!res)
                 {
@@ -69,14 +76,7 @@ namespace LPS.Core.Entity
                     throw new Exception("Error when transfer to cell");
                 }
 
-                res = await this.Client.Call<bool>("OnTransfer", mailbox);
-
-                if (!res)
-                {
-                    this.IsFrozen = false;
-                    throw new Exception("Error when notify client transfer");
-                }
-                
+                this.Client.Notify("OnTransfer", mailbox);
                 this.Cell.OnEntityLeave(this);
                 
                 Logger.Debug($"transfer success, new mailbox {mailbox}");
@@ -87,12 +87,12 @@ namespace LPS.Core.Entity
                 throw;
             }
             
-            this.IsDestroied = true;
+            this.IsDestroyed = true;
         }
 
         public void BindGateConn(Connection gateConnection)
         {
-            this.Client = new ClientProxy(gateConnection);
+            this.Client = new ClientProxy(gateConnection, this);
         }
     }
 }

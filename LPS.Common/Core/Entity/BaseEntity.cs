@@ -24,7 +24,7 @@ namespace LPS.Core.Entity
         private readonly Dictionary<uint, (Action<object>, Type)> rpcDict_ = new();
         private readonly Dictionary<uint, Action> rpcBlankDict_ = new();
 
-        public bool IsDestroied { get; protected set; }
+        public bool IsDestroyed { get; protected set; }
         
         // if an entity is frozen, it can only send rpc to client
         public bool IsFrozen { get; protected set; }
@@ -45,12 +45,12 @@ namespace LPS.Core.Entity
 
         public void Destroy()
         {
-            this.IsDestroied = true;
+            this.IsDestroyed = true;
         }
         
         public void Send(MailBox targetMailBox, string rpcMethodName, bool notifyOnly, RpcType rpcType, params object?[] args)
         {
-            if (this.IsDestroied)
+            if (this.IsDestroyed)
             {
                 throw new Exception("Entity already destroyed.");
             }
@@ -70,7 +70,7 @@ namespace LPS.Core.Entity
         public void SendWithRpcId(uint rpcId, MailBox targetMailBox, string rpcMethodName, bool notifyOnly, RpcType rpcType,
             params object?[] args)
         {
-            if (this.IsDestroied)
+            if (this.IsDestroyed)
             {
                 throw new Exception("Entity already destroyed.");
             }
@@ -90,7 +90,7 @@ namespace LPS.Core.Entity
         // which always wait for remote git a callback and give caller a async result.
         public Task Call(MailBox targetMailBox, string rpcMethodName, RpcType rpcType, params object?[] args)
         {
-            if (this.IsDestroied)
+            if (this.IsDestroyed)
             {
                 throw new Exception("Entity already destroyed.");
             }
@@ -125,7 +125,7 @@ namespace LPS.Core.Entity
 
         public Task<T> Call<T>(MailBox targetMailBox, string rpcMethodName, RpcType rpcType, params object?[] args)
         {
-            if (this.IsDestroied)
+            if (this.IsDestroyed)
             {
                 throw new Exception("Entity already destroyed.");
             }
@@ -162,7 +162,7 @@ namespace LPS.Core.Entity
         // BaseEntity.Notify will not return any promise and only send rpc message to remote
         public void Notify(MailBox targetMailBox, string rpcMethodName, RpcType rpcType, params object?[] args)
         {
-            if (this.IsDestroied)
+            if (this.IsDestroyed)
             {
                 throw new Exception("Entity already destroyed.");
             }
@@ -185,7 +185,7 @@ namespace LPS.Core.Entity
         [RpcMethod(Authority.All)]
         public void OnResult(EntityRpc entityRpc)
         {
-            if (this.IsDestroied)
+            if (this.IsDestroyed)
             {
                 Logger.Warn("Entity already destroyed.");
                 return;
@@ -222,6 +222,11 @@ namespace LPS.Core.Entity
             {
                 rpcBlankDict_.Remove(rpcId);
             }
+        }
+
+        ~BaseEntity()
+        {
+            Logger.Info("Entity destroyed");
         }
     }
 }

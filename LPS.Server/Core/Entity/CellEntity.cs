@@ -11,7 +11,7 @@ namespace LPS.Core.Entity
     {
         public readonly Dictionary<string, DistributeEntity> Entities = new();
         public Action<DistributeEntity> EntityLeaveCallBack { get; init; }
-        public Action<DistributeEntity> EntityEnterCallBack { get; init; }
+        public Action<DistributeEntity, MailBox> EntityEnterCallBack { get; init; }
         
         public CellEntity(string desc)
         {
@@ -23,10 +23,10 @@ namespace LPS.Core.Entity
             return entity;
         }
 
-        public void OnEntityEnter(DistributeEntity entity)
+        public void OnEntityEnter(DistributeEntity entity, MailBox gateMailBox)
         {
             this.Entities.Add(entity.MailBox.Id, entity);
-            this.EntityEnterCallBack.Invoke(entity);
+            this.EntityEnterCallBack.Invoke(entity, gateMailBox);
         }
 
         public void OnEntityLeave(DistributeEntity entity)
@@ -39,10 +39,11 @@ namespace LPS.Core.Entity
         public ValueTask<(bool, MailBox)> RequireTransfer(MailBox entityMailBox, 
             string entityClassName,
             string serialContent, 
-            string transferInfo)
+            string transferInfo,
+            MailBox gateMailBox)
         {
             Logger.Debug($"transfer request: {entityMailBox} {entityClassName} {serialContent} {transferInfo}");
-            
+
             var res = false;
             do
             {
@@ -57,7 +58,7 @@ namespace LPS.Core.Entity
                     serialContent);
                 entity.OnTransferred(transferInfo);
                 this.Entities.Add(entityMailBox.Id, entity);
-                this.OnEntityEnter(entity);
+                this.OnEntityEnter(entity, gateMailBox);
                 res = true;
             } while (false);
 

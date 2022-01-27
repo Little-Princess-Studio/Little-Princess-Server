@@ -80,7 +80,16 @@ namespace LPS.Core
                     MailBox = new MailBox(newId, ip, port, hostnum),
                     OnSend = entityRpc => SendEntityRpc(defaultCell_!, entityRpc),
                     EntityLeaveCallBack = entity => this.localEntityDict_.Remove(entity.MailBox.Id),
-                    EntityEnterCallBack = entity => this.localEntityDict_.Add(entity.MailBox.Id, entity),
+                    EntityEnterCallBack = (entity, gateMailBox) =>
+                    {
+                        if (entity is ServerClientEntity serverClientEntity)
+                        {
+                            Logger.Debug("transferred new serverClientEntity, bind new conn");
+                            var gateConn = this.GateConnections.First(conn => conn.MailBox.CompareFull(gateMailBox));
+                            serverClientEntity.BindGateConn(gateConn);
+                        }
+                        this.localEntityDict_.Add(entity.MailBox.Id, entity);
+                    },
                 };
                 
                 Logger.Info("default cell generated.");
