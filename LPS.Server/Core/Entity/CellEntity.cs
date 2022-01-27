@@ -17,6 +17,12 @@ namespace LPS.Core.Entity
         {
         }
 
+        public void ManualyAdd(DistributeEntity entity)
+        {
+            entity.Cell = this;
+            this.Entities.Add(entity.MailBox.Id, entity);
+        }
+
         public DistributeEntity? GetEntityById(string entityId)
         {
             this.Entities.TryGetValue(entityId, out var entity);
@@ -56,9 +62,15 @@ namespace LPS.Core.Entity
                     new MailBox(entityMailBox.Id, this.MailBox.Ip, this.MailBox.Port, this.MailBox.HostNum), 
                     entityClassName, 
                     serialContent);
+
+                entity.Cell = this;
                 entity.OnTransferred(transferInfo);
-                this.Entities.Add(entityMailBox.Id, entity);
                 this.OnEntityEnter(entity, gateMailBox);
+
+                if (entity is ServerClientEntity serverClientEntity)
+                {
+                    serverClientEntity.Client.Notify("OnTransfer", entity.MailBox);
+                }
                 res = true;
             } while (false);
 

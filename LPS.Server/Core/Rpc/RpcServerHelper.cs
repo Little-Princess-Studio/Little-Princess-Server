@@ -42,7 +42,6 @@ namespace LPS.Core.Rpc
                 throw new Exception($"Invalid class {entityClassName}, only DistributeEntity and its subclass can be created by CreateEntityLocally.");
             }
             throw new Exception($"Invalid entity class name {entityClassName}");
-            return null;
         }
 
         // public static Task<DistributeEntity> CreateEntityAnywhere()

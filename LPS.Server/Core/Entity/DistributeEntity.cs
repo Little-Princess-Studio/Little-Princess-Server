@@ -8,7 +8,7 @@ namespace LPS.Core.Entity
     [EntityClass]
     public abstract class DistributeEntity : BaseEntity
     {
-        public CellEntity Cell { get; private set; } = null!;
+        public CellEntity Cell { get; set; } = null!;
         
         protected DistributeEntity(string desc)
         {

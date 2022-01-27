@@ -253,6 +253,8 @@ namespace LPS.Core
             client.RegisterMessageHandler(PackageType.CreateEntityRes, createMailBoxResHandler);
             client.RegisterMessageHandler(PackageType.ExchangeMailBoxRes, exchangeMailBoxResHandler);
             client.RegisterMessageHandler(PackageType.EntityRpc, entityRpcHandler);
+
+            Logger.Info($"client {idx} registered msg");
         }
 
         private void UnregisterGateMessageHandlers(int idx)
@@ -275,6 +277,8 @@ namespace LPS.Core
         {
             var (msg, _, _) = ((IMessage, Connection, UInt32)) arg;
             var createEntityRes = (msg as CreateEntityRes)!;
+
+            Logger.Info($"create entity res {createEntityRes.EntityType} {createEntityRes.EntityClassName}");
 
             if (createEntityRes.EntityType == EntityType.GateEntity)
             {

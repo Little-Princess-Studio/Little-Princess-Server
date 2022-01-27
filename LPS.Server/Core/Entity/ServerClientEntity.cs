@@ -11,7 +11,7 @@ namespace LPS.Core.Entity
     {
         // gateConnection_ record which gate the client is connecting to
         public readonly ServerClientEntity Owner;
-        private Connection gateConnection_;
+        private readonly Connection gateConnection_;
         public Connection GateConn => gateConnection_;
 
         public ClientProxy(Connection gateConnection, ServerClientEntity owner)
@@ -32,7 +32,7 @@ namespace LPS.Core.Entity
 
         public void Notify(string methodName, params object?[] args)
         {
-            this.Owner.Notify(this.Owner.MailBox, methodName, RpcType.ServerInside, args);
+            this.Owner.Notify(this.Owner.MailBox, methodName, RpcType.ServerToClient, args);
         }
     }
 
@@ -49,10 +49,9 @@ namespace LPS.Core.Entity
         {
         }
 
+        [RpcMethod(Authority.All)]
         public override async Task TransferIntoCell(MailBox targetCellMailBox, string transferInfo)
         {
-            this.IsFrozen = true;
-
             //todo: serialContent is the serialized rpc property tree of entity
             
             Logger.Debug($"start transfer to {targetCellMailBox}");
@@ -61,8 +60,24 @@ namespace LPS.Core.Entity
             try
             {
                 var gateMailBox = this.Client.GateConn.MailBox;
-                
-                var (res, mailbox) = await this.Call<(bool, MailBox)>(targetCellMailBox,
+
+                // var (res, mailbox) = await this.Call<(bool, MailBox)>(targetCellMailBox,
+                //     "RequireTransfer",
+                //     this.MailBox,
+                //     this.GetType().Name,
+                //     serialContent,
+                //     transferInfo,
+                //     gateMailBox);
+
+                // this.IsFrozen = true;
+
+                // if (!res)
+                // {
+                //     this.IsFrozen = false;
+                //     throw new Exception("Error when transfer to cell");
+                // }
+
+                this.Notify(targetCellMailBox,
                     "RequireTransfer",
                     this.MailBox,
                     this.GetType().Name,
@@ -70,16 +85,11 @@ namespace LPS.Core.Entity
                     transferInfo,
                     gateMailBox);
 
-                if (!res)
-                {
-                    this.IsFrozen = false;
-                    throw new Exception("Error when transfer to cell");
-                }
-
-                this.Client.Notify("OnTransfer", mailbox);
+                this.IsFrozen = true;
+                // this.Client.Notify("OnTransfer", mailbox);
                 this.Cell.OnEntityLeave(this);
                 
-                Logger.Debug($"transfer success, new mailbox {mailbox}");
+                // Logger.Debug($"transfer success, new mailbox {mailbox}");
             }
             catch (Exception e)
             {

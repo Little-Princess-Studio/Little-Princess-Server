@@ -82,17 +82,20 @@ namespace LPS.Core
                     EntityLeaveCallBack = entity => this.localEntityDict_.Remove(entity.MailBox.Id),
                     EntityEnterCallBack = (entity, gateMailBox) =>
                     {
+                        entity.OnSend = entityRpc => SendEntityRpc(entity!, entityRpc);
                         if (entity is ServerClientEntity serverClientEntity)
                         {
                             Logger.Debug("transferred new serverClientEntity, bind new conn");
                             var gateConn = this.GateConnections.First(conn => conn.MailBox.CompareFull(gateMailBox));
                             serverClientEntity.BindGateConn(gateConn);
                         }
-                        this.localEntityDict_.Add(entity.MailBox.Id, entity);
+                        localEntityDict_.Add(entity.MailBox.Id, entity);
                     },
                 };
                 
-                Logger.Info("default cell generated.");
+                Logger.Info($"default cell generated, {defaultCell_.MailBox}.");
+                // localEntityDict_.Add(newId, defaultCell_);
+                cells_.Add(newId, defaultCell_);
                 localEntityGeneratedEvent_.Signal();
             });
         }
@@ -159,14 +162,16 @@ namespace LPS.Core
             Logger.Info($"Server create a new entity with mailbox {mailBox}");
 
             // todo: determain if the entity is a ServerClientEntity
-            if (entity.GetType().IsSubclassOf(typeof(ServerClientEntity)))
+            if (entity is ServerClientEntity serverClientEntity)
             {
                 // bind gate conn to client entity
-                (entity as ServerClientEntity)!.BindGateConn(gateConn);
+                serverClientEntity.BindGateConn(gateConn);
             }
             entity.OnSend = entityRpc => SendEntityRpc(entity, entityRpc);
             entity.MailBox = mailBox;
             localEntityDict_[mailBox.Id] = entity;
+
+            defaultCell_!.ManualyAdd(entity);
         }
 
         public void Stop()
@@ -218,6 +223,18 @@ namespace LPS.Core
                     Logger.Error(e, "Exception happend when call server entity");
                 }
             }
+            else if (cells_.ContainsKey(targetMailBox.ID))
+            {
+                var cell = cells_[targetMailBox.ID];
+                try
+                {
+                    RpcHelper.CallLocalEntity(cell, entityRpc);
+                }
+                catch (Exception e)
+                {
+                    Logger.Error(e, "Exception happened when call cell");
+                }
+            }
             else if (localEntityDict_.ContainsKey(targetMailBox.ID))
             {
                 var entity = localEntityDict_[targetMailBox.ID];
@@ -227,7 +244,7 @@ namespace LPS.Core
                 }
                 catch (Exception e)
                 {
-                    Logger.Error(e, "Exception happened when call server entity");
+                    Logger.Error(e, "Exception happened when call server distribute entity");
                 }
             }
             else

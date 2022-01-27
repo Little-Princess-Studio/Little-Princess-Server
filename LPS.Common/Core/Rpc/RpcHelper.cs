@@ -211,6 +211,40 @@ namespace LPS.Core.Rpc
             );
         }
 
+        private static bool IsTuple(Type tuple)
+        {
+            if (!tuple.IsGenericType)
+            {
+                return false;
+            }
+            var openType = tuple.GetGenericTypeDefinition();
+            return openType == typeof(Tuple<>)
+                || openType == typeof(Tuple<,>)
+                || openType == typeof(Tuple<,,>)
+                || openType == typeof(Tuple<,,,>)
+                || openType == typeof(Tuple<,,,,>)
+                || openType == typeof(Tuple<,,,,,>)
+                || openType == typeof(Tuple<,,,,,,>)
+                || (openType == typeof(Tuple<,,,,,,,>) && IsTuple(tuple.GetGenericArguments()[7]));
+        }
+
+        private static bool IsValueTuple(Type tuple)
+        {
+            if (!tuple.IsGenericType)
+            {
+                return false;
+            }
+            var openType = tuple.GetGenericTypeDefinition();
+            return openType == typeof(ValueTuple<>)
+                || openType == typeof(ValueTuple<,>)
+                || openType == typeof(ValueTuple<,,>)
+                || openType == typeof(ValueTuple<,,,>)
+                || openType == typeof(ValueTuple<,,,,>)
+                || openType == typeof(ValueTuple<,,,,,>)
+                || openType == typeof(ValueTuple<,,,,,,>)
+                || (openType == typeof(ValueTuple<,,,,,,,>) && IsValueTuple(tuple.GetGenericArguments()[7]));
+        }
+
         private static bool ValidateArgs(Type[] args) => args.Length == 0 || args.All(ValidateRpcType);
 
         private static bool ValidateRpcType(Type type)
@@ -239,8 +273,7 @@ namespace LPS.Core.Rpc
                     return (keyType == typeof(string)
                             || keyType == typeof(int)
                             /*Allow ValueTuple as dict key*/
-                            || (keyType.IsGenericType
-                                && keyType.GetGenericTypeDefinition() == typeof(ValueTuple<>)
+                            || (IsValueTuple(keyType)
                                 && keyType.GetGenericArguments().All(ValidateRpcType))
                            )
                            && ValidateRpcType(valueType);
@@ -252,12 +285,12 @@ namespace LPS.Core.Rpc
                     return ValidateRpcType(elemType);
                 }
 
-                if (type.GetGenericTypeDefinition() == typeof(Tuple<>))
+                if (IsTuple(type))
                 {
                     return type.GenericTypeArguments.All(ValidateRpcType);
                 }
 
-                if (type.GetGenericTypeDefinition() == typeof(ValueTuple<>))
+                if (IsValueTuple(type))
                 {
                     return type.GenericTypeArguments.All(ValidateRpcType);
                 }
@@ -362,7 +395,7 @@ namespace LPS.Core.Rpc
                 return msg;
             }
 
-            if (keyType.IsGenericType && keyType.GetGenericTypeDefinition() == typeof(ValueTuple<>))
+            if (IsValueTuple(keyType))
             {
                 var realKvList = kvList.Select(kv => new DictWithValueTupleKeyPair
                 {
@@ -402,9 +435,9 @@ namespace LPS.Core.Rpc
                     RpcDictArgToProtoBuf(obj),
                 _ when type.IsGenericType && type.GetGenericTypeDefinition() == typeof(List<>) =>
                     RpcListArgToProtoBuf(obj),
-                _ when type.IsGenericType && type.GetGenericTypeDefinition() == typeof(ValueTuple<>) =>
+                _ when IsValueTuple(type) =>
                     RpcValueTupleArgToProtoBuf(obj),
-                _ when type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Tuple<>) =>
+                _ when IsTuple(type) =>
                     RpcTupleArgToProtoBuf(obj),
                 _ => throw new Exception($"Invalid Rpc arg type: {type.Name}")
             };
