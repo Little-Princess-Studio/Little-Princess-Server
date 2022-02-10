@@ -122,7 +122,6 @@ namespace LPS.Core.Ipc
         private readonly Queue<(uint, RpcPropertySyncMessage)> waitingMessageQueue_;
         private readonly TimeCircleSlot[] slots_;
 
-        private uint currentTimestamp_;
         private int slotIndex_;
         private readonly int slotsPerCircle_;
 
@@ -142,27 +141,36 @@ namespace LPS.Core.Ipc
 
         public void Start()
         {
-            currentTimestamp_ = 0;
             slotIndex_ = 0;
         }
 
+        public void FillSlot(TimeCircleSlot slot, int slotIndex)
+        {
+            slot.Clear();
+            var targetTime = (uint)(slotIndex)* timeInterval_;
+            do
+            {
+                
+            } while (waitingMessageQueue_);
+        }
+
+        // dispatch 0 -> fill 60 to 0
+        // dispatch 1 -> fill 61 to 1
+        // dispatch n -> fill n + 60 to n
         public void Tick(uint duration)
         {
+            // move forward
             var moveStep = duration / timeInterval_;
 
-            for (int i = 0; i < moveStep; ++i, ++slotIndex_)
+            for (int i = 0; i < moveStep; i++)
             {
-                if (slotIndex_ >= slotsPerCircle_)
-                {
-                    // todo: fill slots
-                    break;
-                }
-                var slot = slots_[slotIndex_];
+                ++slotIndex_;
+                var slotCircleIndex = slotIndex_ % slotsPerCircle_;
+                var slot = slots_[slotCircleIndex];
+                
                 slot.Dispatch();
-                slot.Clear();
+                this.FillSlot(slot, slotIndex_ + slotsPerCircle_);
             }
-            
-            currentTimestamp_ += duration;
         }
     }
 }
