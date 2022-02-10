@@ -414,7 +414,7 @@ namespace LPS.Core.Rpc
             throw new Exception($"Invalid dict key type {keyType}");
         }
 
-        private static IMessage RpcArgToProtobuf(object? obj)
+        public static IMessage RpcArgToProtobuf(object? obj)
         {
             if (obj == null)
             {

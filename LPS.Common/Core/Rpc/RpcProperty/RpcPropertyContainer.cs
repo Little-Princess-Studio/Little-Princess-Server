@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
+using Google.Protobuf.WellKnownTypes;
 
 namespace LPS.Core.Rpc.RpcProperty
 {
@@ -20,6 +21,7 @@ namespace LPS.Core.Rpc.RpcProperty
         public RpcProperty? Owner { get; set; }
         public bool IsProxyContainer { get; set; }
         public bool IsReffered { get; set; }
+        public Dictionary<string, RpcPropertyContainer>? Children { get; set; }
 
         protected void NotifyChange(string name, object old, object @new)
         {
@@ -52,15 +54,27 @@ namespace LPS.Core.Rpc.RpcProperty
                     .Where(field => field.IsDefined(typeof(RpcCostumePropertyAttribute))
                                     && field.FieldType.IsSubclassOf(typeof(RpcPropertyContainer)));
 
+                // build children
+                this.Children = new();
+                
                 foreach (var fieldInfo in rpcFields)
                 {
                     var prop = (fieldInfo.GetValue(this) as RpcPropertyContainer)!;
                     prop.Parent = this;
                     prop.IsReffered = true;
                     prop.Name = fieldInfo.Name;
+                    this.Children.Add(prop.Name, prop);
                 }
             }
         }
+
+        // public string ToJson();
+        public Google.Protobuf.WellKnownTypes.Any ToRpcArg()
+        {
+            return new Any();
+        }
+
+        // public abstract Google.Protobuf.WellKnownTypes.Any SerializeToRpcArg();
     }
 
     public class RpcPropertyContainer<T> : RpcPropertyContainer

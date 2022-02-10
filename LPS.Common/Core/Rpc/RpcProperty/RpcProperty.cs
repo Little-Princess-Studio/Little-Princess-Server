@@ -1,5 +1,7 @@
 using Google.Protobuf.WellKnownTypes;
 using LPS.Core.Entity;
+using LPS.Core.Ipc.SyncMessage;
+using LPS.Core.Rpc.InnerMessages;
 
 /*
  * There are 3 way to implement rpc property:
@@ -48,6 +50,7 @@ namespace LPS.Core.Rpc.RpcProperty
         ServerOwn = 0x00000010,
         ClientOwn = 0x00000100,
         FastSync = 0x00001000,
+        KeepSendOrder = 0x00010000,
     }
 
     public abstract class RpcProperty
@@ -66,7 +69,80 @@ namespace LPS.Core.Rpc.RpcProperty
 
         public void OnChange(List<string> path, object oldVal, object newVal)
         {
-            // Console.WriteLine($"{string.Join('.', path)} value changed from {oldVal} to {newVal}");
+            // var syncRpc = new PropertySync();
+            //
+            // foreach (var p in path)
+            // {
+            //     syncRpc.Path.Add(p);
+            // }
+            //
+            // syncRpc.SyncType = (uint)RpcPropertySyncOperation.SetValue;
+            // syncRpc.SyncArg = (Any)RpcHelper.RpcArgToProtobuf(newVal);
+        }
+
+        public void OnListAdd(List<string> path, object val)
+        {
+            // var syncRpc = new PropertySync();
+            //
+            // foreach (var p in path)
+            // {
+            //     syncRpc.Path.Add(p);
+            // }
+            //
+            // syncRpc.SyncType = (uint)RpcPropertySyncOperation.AddListElem;
+            // syncRpc.SyncArg = (Any)RpcHelper.RpcArgToProtobuf(val);
+        }
+
+        public void OnDictUpdate(List<string> path, object val)
+        {
+            // var syncRpc = new PropertySync();
+            //
+            // foreach (var p in path)
+            // {
+            //     syncRpc.Path.Add(p);
+            // }
+            //
+            // syncRpc.SyncType = (uint)RpcPropertySyncOperation.AddListElem;
+            // syncRpc.SyncArg = (Any)RpcHelper.RpcArgToProtobuf(val);
+        }
+        
+        public void OnClear(List<string> path)
+        {
+            // var syncRpc = new PropertySync();
+            //
+            // foreach (var p in path)
+            // {
+            //     syncRpc.Path.Add(p);
+            // }
+            //
+            // syncRpc.SyncType = (uint)RpcPropertySyncOperation.Clear;
+            // syncRpc.SyncArg = (Any)RpcHelper.RpcArgToProtobuf(null);
+        }
+
+        public void OnInsert(List<string> path, object val)
+        {
+            // var syncRpc = new PropertySync();
+            //
+            // foreach (var p in path)
+            // {
+            //     syncRpc.Path.Add(p);
+            // }
+            //
+            // syncRpc.SyncType = (uint)RpcPropertySyncOperation.InsertElem;
+            // syncRpc.SyncArg = (Any)RpcHelper.RpcArgToProtobuf(val);
+        }
+        
+        public void OnRemove(List<string> path)
+        {
+            // var syncRpc = new PropertySync();
+            //
+            // foreach (var p in path)
+            // {
+            //     syncRpc.Path.Add(p);
+            // }
+            //
+            // syncRpc.SyncType = (uint)RpcPropertySyncOperation.RemoveElem;
+            // syncRpc.SyncArg = (Any)RpcHelper.RpcArgToProtobuf(null);
         }
     }
 

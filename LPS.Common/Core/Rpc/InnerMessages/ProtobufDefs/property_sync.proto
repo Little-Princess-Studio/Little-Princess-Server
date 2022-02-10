@@ -1,0 +1,11 @@
+syntax = "proto3";
+import "mailbox.proto";
+import "google/protobuf/any.proto";
+package LPS.Core.Rpc.InnerMessages;
+
+message PropertySync {
+    uint32 SyncType = 1;
+    MailBox EntityMailBox = 2;
+    repeated string Path = 3;
+    google.protobuf.Any SyncArg = 4;
+};
