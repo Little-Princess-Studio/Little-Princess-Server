@@ -8,7 +8,8 @@ public class RpcPropertyUnitTest
     [RpcCostumePropertyContainerAttribute]
     private class CostumeRpcContainerProperty2 : RpcPropertyContainer
     {
-        [RpcCostumePropertyAttribute] private readonly RpcPropertyContainer<float> subFloatProperty_ = 0.0f;
+        [RpcCostumePropertyAttribute] 
+        private readonly RpcPropertyContainer<float> subFloatProperty_ = 0.0f;
 
         public float SubFloatProperty
         {

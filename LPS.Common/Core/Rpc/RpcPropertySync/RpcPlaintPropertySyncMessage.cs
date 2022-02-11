@@ -18,7 +18,7 @@ namespace LPS.Core.Ipc.SyncMessage
 
         public override bool MergeKeepOrder(RpcPropertySyncMessage otherMsg)
         {
-            if (otherMsg.Operation == RpcPropertySyncOperation.SetValue)
+            if (otherMsg.Operation != RpcPropertySyncOperation.SetValue)
             {
                 return false;
             }

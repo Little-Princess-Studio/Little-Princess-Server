@@ -1,12 +1,17 @@
 using LPS.Core.Rpc;
+using LPS.Core.Rpc.RpcProperty;
 using LPS.Core.Rpc.RpcPropertySync;
 
 namespace LPS.Core.Ipc.SyncMessage
 {
     public class RpcDictPropertySyncMessage : RpcPropertySyncMessage
     {
-        private Dictionary<object, object>? updateDictInfo_;
+        private Dictionary<object, RpcPropertyContainer>? updateDictInfo_;
         private HashSet<object>? removeDictInfo_;
+        
+        public delegate void DictOperation(params object[] args);
+
+        public DictOperation? Action { get; }
 
         public RpcDictPropertySyncMessage(MailBox mailbox, 
             RpcPropertySyncOperation operation,
@@ -14,6 +19,25 @@ namespace LPS.Core.Ipc.SyncMessage
             RpcSyncPropertyType rpcSyncPropertyType) 
             : base(mailbox, operation, rpcPropertyPath, rpcSyncPropertyType)
         {
+            this.Action = operation switch
+            {
+                RpcPropertySyncOperation.UpdateDict => args =>
+                {
+                    var key = args[0];
+                    var val = args[1] as RpcPropertyContainer;
+
+                    updateDictInfo_ ??= new();
+                    updateDictInfo_[key] = val ?? throw new Exception($"Invalid args {args}");
+                },
+                RpcPropertySyncOperation.RemoveElem => args =>
+                {
+                    var key = args[0];
+
+                    removeDictInfo_ ??= new();
+                    removeDictInfo_.Add(key);
+                },
+                _ => throw new Exception($"Invalid operation {operation}")
+            };
         }
         
         public override bool MergeKeepOrder(RpcPropertySyncMessage otherMsg)
