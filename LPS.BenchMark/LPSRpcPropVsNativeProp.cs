@@ -33,7 +33,7 @@ internal class NativeProperty2
 internal class NativeProperty1
 {
     public readonly List<string> SubListProperty = new();
-    public readonly CostumeRpcContainerProperty2 SubCostumerContainerRpcContainerProperty = new();
+    public readonly NativeProperty2 SubCostumerContainerRpcContainerProperty = new();
 }
 
 [MemoryDiagnoser]
@@ -41,32 +41,43 @@ internal class NativeProperty1
 public class NativePropertyVsLpsRpcProperty
 {
     private readonly RpcComplexProperty<CostumeRpcContainerProperty1> rpcProp_;
-    private readonly CostumeRpcContainerProperty1 rpcNativeProp_;
-    private int counter1_;
-    private int counter2_;
+    private readonly NativeProperty1 rpcNativeProp_;
 
+    [Params(1, 10, 100, 1000, 10000)]
+    public int AddCount;
+    
     public NativePropertyVsLpsRpcProperty()
     {
         var costumeRpcContainerProp = new CostumeRpcContainerProperty1();
         rpcProp_ =
             new("test_costume_rpc_prop", RpcPropertySetting.FastSync, costumeRpcContainerProp);
 
-        rpcNativeProp_ = new CostumeRpcContainerProperty1();
+        rpcNativeProp_ = new ();
     }
     
     [Benchmark]
     public void LpsRpcProperty()
     {
-        ++counter1_;
-        rpcProp_.Val.SubListProperty.Add($"{counter1_}");
-        rpcProp_.Val.SubCostumerContainerRpcContainerProperty.SubFloatProperty = counter1_;
+        // for (int i = 0; i < AddCount; ++i)
+        // {
+        //     rpcProp_.Val.SubListProperty.Add($"{i}");
+        // }
+        for (int i = 0; i < AddCount; ++i)
+        {
+            rpcProp_.Val.SubCostumerContainerRpcContainerProperty.SubFloatProperty = i;
+        }
     }
 
     [Benchmark]
     public void NativeProperty()
     {
-        ++counter2_; 
-        rpcNativeProp_.SubListProperty.Add($"{counter2_}");
-        rpcNativeProp_.SubCostumerContainerRpcContainerProperty.SubFloatProperty = counter2_;
+        // for (int i = 0; i < AddCount; ++i)
+        // {
+        //     rpcNativeProp_.SubListProperty.Add($"{i}");
+        // }
+        for (int i = 0; i < AddCount; ++i)
+        {
+            rpcNativeProp_.SubCostumerContainerRpcContainerProperty.SubFloatProperty = i;   
+        }
     }
 }

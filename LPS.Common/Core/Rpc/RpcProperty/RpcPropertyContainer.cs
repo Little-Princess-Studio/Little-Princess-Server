@@ -23,7 +23,7 @@ namespace LPS.Core.Rpc.RpcProperty
 
         protected void NotifyChange(string name, object old, object @new)
         {
-            var pathList = new List<string>() {name};
+            var pathList = new List<string> {name};
             this.NotifyChange(pathList, old, @new);
         }
 
@@ -73,8 +73,7 @@ namespace LPS.Core.Rpc.RpcProperty
             set
             {
                 ArgumentNullException.ThrowIfNull(value);
-                var pathList = new List<string>();
-                this.NotifyChange(pathList, old: this.value_!, value);
+                this.NotifyChange(this.Name, old: value_!, value);
                 this.value_ = value;
             }
         }

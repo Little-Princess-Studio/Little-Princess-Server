@@ -281,9 +281,9 @@ namespace LPS.Core
 
             conn.MailBox = RpcHelper.PbMailBoxToRpcMailBox(gateMailBox);
 
-            var res = new ExchangeMailBoxRes()
+            var res = new ExchangeMailBoxRes
             {
-                Mailbox = RpcHelper.RpcMailBoxToPbMailBox(entity_.MailBox!),
+                Mailbox = RpcHelper.RpcMailBoxToPbMailBox(entity_!.MailBox),
             };
 
             var pkg = PackageHelper.FromProtoBuf(res, id);

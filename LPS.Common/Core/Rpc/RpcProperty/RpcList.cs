@@ -39,6 +39,17 @@ namespace LPS.Core.Rpc.RpcProperty
             this.NotifyChange(newContainer.Name, null, elem);
         }
 
+        public void RemoveAt(int index)
+        {
+            var elem = this.Value[index];
+            elem.IsReffered = false;
+            elem.Parent = null;
+            elem.Name = string.Empty;
+            this.Value.RemoveAt(index);
+        }
+
+        public int Count => this.Value.Count;
+        
         public TElem this[int index]
         {
             get => this.Value[index];
