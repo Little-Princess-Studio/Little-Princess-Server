@@ -1,3 +1,4 @@
+using LPS.Core.Debug;
 using LPS.Core.Entity;
 using LPS.Core.Rpc;
 using LPS.Core.Rpc.InnerMessages;
@@ -40,6 +41,17 @@ namespace LPS.Client.Entity
         public void BindServerMailBox()
         {
             this.Server = new ServerProxy(this.MailBox, this);
+        }
+
+        [RpcMethod(Authority.ClientStub)]
+        public ValueTask OnTransfer(MailBox newMailBox)
+        {
+            
+            Logger.Debug($"entity transferred {newMailBox}");
+            
+            this.MailBox = newMailBox;
+            this.Server = new ServerProxy(this.MailBox, this);
+            return default;
         }
     }
 }

@@ -11,6 +11,7 @@ namespace LPS.Core.Rpc.RpcProperty
     {
         public RpcDictionary() : base(new())
         {
+            this.Children = new();
         }
 
         public TV this[TK key]
@@ -44,6 +45,8 @@ namespace LPS.Core.Rpc.RpcProperty
                     this.HandleIfContainer<TV>(newContainer, value);
                     this.Value[key] = newContainer;
                     this.NotifyChange(this.Value[key].Name!, null, value);
+                    
+                    this.Children!.Add($"{key}", newContainer);
                 }
             }
         }

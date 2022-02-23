@@ -6,11 +6,15 @@ namespace LPS.Core.Rpc.RpcProperty
     {
         public RpcList(): base(new List<RpcPropertyContainer<TElem>>())
         {
+            this.Children = new();
         }
         
         public RpcList(int size, [DisallowNull] TElem defaultVal): base(new List<RpcPropertyContainer<TElem>>(size))
         {
             ArgumentNullException.ThrowIfNull(defaultVal);
+            
+            this.Children = new();
+
             for (int i = 0; i < size; i++)
             {
                 var newContainer = new RpcPropertyContainer<TElem>(defaultVal)
@@ -21,6 +25,8 @@ namespace LPS.Core.Rpc.RpcProperty
 
                 this.HandleIfContainer<TElem>(newContainer, defaultVal);
                 this.Value[i] = newContainer;
+                
+                this.Children.Add($"{i}", newContainer);
             }
         }
 
@@ -37,6 +43,8 @@ namespace LPS.Core.Rpc.RpcProperty
             this.HandleIfContainer<TElem>(newContainer, elem);
             this.Value.Add(newContainer);
             this.NotifyChange(newContainer.Name, null, elem);
+            
+            this.Children!.Add($"{this.Value.Count - 1}", newContainer);
         }
 
         public void RemoveAt(int index)
@@ -65,7 +73,7 @@ namespace LPS.Core.Rpc.RpcProperty
                 }
 
                 this.Value[index].Value = value;
-                this.NotifyChange(this.Value[index].Name, old, value);
+                this.NotifyChange(this.Value[index].Name!, old, value);
             }
         }
     }

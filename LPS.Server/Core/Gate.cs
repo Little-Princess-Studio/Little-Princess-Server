@@ -76,11 +76,11 @@ namespace LPS.Core
             // tcp gate to server handlers msg from server
             tcpClientsToServer_ = new TcpClient[servers.Length];
             var idx = 0;
-            foreach (var (serverIP, serverPort) in servers)
+            foreach (var (serverIp, serverPort) in servers)
             {
                 var tmpIdx = idx;
-                Logger.Debug($"server ip: {serverIP} server port: {serverPort}");
-                var client = new TcpClient(serverIP, serverPort, sendQueue_)
+                Logger.Debug($"server ip: {serverIp} server port: {serverPort}");
+                var client = new TcpClient(serverIp, serverPort, sendQueue_)
                 {
                     OnInit = () => this.RegisterGateMessageHandlers(tmpIdx),
                     OnDispose = () => this.UnregisterGateMessageHandlers(tmpIdx),
@@ -253,6 +253,8 @@ namespace LPS.Core
             client.RegisterMessageHandler(PackageType.CreateEntityRes, createMailBoxResHandler);
             client.RegisterMessageHandler(PackageType.ExchangeMailBoxRes, exchangeMailBoxResHandler);
             client.RegisterMessageHandler(PackageType.EntityRpc, entityRpcHandler);
+
+            Logger.Info($"client {idx} registered msg");
         }
 
         private void UnregisterGateMessageHandlers(int idx)
@@ -275,6 +277,8 @@ namespace LPS.Core
         {
             var (msg, _, _) = ((IMessage, Connection, UInt32)) arg;
             var createEntityRes = (msg as CreateEntityRes)!;
+
+            Logger.Info($"create entity res {createEntityRes.EntityType} {createEntityRes.EntityClassName}");
 
             if (createEntityRes.EntityType == EntityType.GateEntity)
             {

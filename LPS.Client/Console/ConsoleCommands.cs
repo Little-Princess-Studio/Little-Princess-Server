@@ -38,7 +38,7 @@ namespace LPS.Client.Console
         public static async void Echo()
         {
             var startTime = new TimeSpan(System.DateTime.Now.Ticks);
-            for (int i = 0; i < 50; ++i)
+            for (int i = 0; i < 1; ++i)
             {
                 var start = new TimeSpan(System.DateTime.Now.Ticks);
                 var res = await ClientGlobal.ShadowClientEntity
@@ -63,6 +63,18 @@ namespace LPS.Client.Console
             {
                 System.Console.WriteLine($"{string.Join(',', cmdDetails[i])}");
             }
+        }
+
+        [ConsoleCommand("send.transfer")]
+        public static async void Transsfer(string id, string ip, int port, int hostNum)
+        {
+            var cellMailBox = new Core.Rpc.MailBox(id, ip, port, hostNum);
+
+            ClientGlobal.ShadowClientEntity.Server.Notify(
+                "TransferIntoCell",
+                cellMailBox,
+                ""
+            );
         }
     }
 }
