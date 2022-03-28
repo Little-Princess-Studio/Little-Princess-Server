@@ -16,6 +16,7 @@ namespace LPS.Core.Ipc.SyncMessage
     public class RpcListPropertyAddSyncMessageImpl : IRpcListPropertySyncMessageImpl
     {
         private readonly List<RpcPropertyContainer> addInfo_ = new ();
+        public List<RpcPropertyContainer> GetAddInfo() => addInfo_; 
 
         public void AddElem(RpcPropertyContainer elem)
         {

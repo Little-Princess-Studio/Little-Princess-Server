@@ -78,7 +78,7 @@ namespace LPS.Core.Rpc.RpcPropertySync
 
         public override void AddNewSyncMessage(RpcPropertySyncMessage msg)
         {
-            var newMsg = (msg as RpcPlaintPropertySyncMessage)!;
+            var newMsg = (msg as RpcPlainPropertySyncMessage)!;
             newMsg.MergeIntoSyncInfo(this);
         }
     }

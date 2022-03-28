@@ -1,4 +1,7 @@
-﻿using LPS.Core.Ipc;
+﻿using System.Collections;
+using System.Linq;
+using System.Reflection;
+using LPS.Core.Ipc;
 using LPS.Core.Ipc.SyncMessage;
 using LPS.Core.Rpc;
 using LPS.Core.Rpc.RpcProperty;
@@ -9,14 +12,23 @@ namespace LPS.UnitTest;
 
 public class TimeCircleUnitTest
 {
+    private static TimeCircleSlot[] GetSlot(TimeCircle timeCircle)
+    {
+        return (TimeCircleSlot[]) typeof(TimeCircle)
+            .GetField("slots_", BindingFlags.NonPublic | BindingFlags.Instance)!
+            .GetValue(timeCircle)!;
+    }
+    
     [Fact]
     public void TestCircleKeepOrder()
     {
-        var timeCircle = new TimerCircle(50, 1000);
+        var timeCircle = new TimeCircle(50, 1000);
 
-        AddPliantMessage(timeCircle);
+        AddPlainMessage(timeCircle);
         AddListMessage(timeCircle);
         AddDictMessage(timeCircle);
+
+        var slots = GetSlot(timeCircle);
 
         timeCircle.Tick(50);
         timeCircle.Tick(50);
@@ -25,31 +37,45 @@ public class TimeCircleUnitTest
         Assert.True(true);
     }
 
-    private static void AddDictMessage(TimerCircle timeCircle)
+    private static void AddPlainMessage(TimeCircle timeCircle)
     {
-        var mailbox3 = new MailBox("test_id1", "127.0.0.1", 88, 9999);
-        for (int i = 0; i < 5; ++i)
-        {
-            var dictMsg = new RpcDictPropertySyncMessage(mailbox3, 
-                RpcPropertySyncOperation.UpdateDict, "testpath3", RpcSyncPropertyType.Dict);
-            dictMsg.Action!(i, new RpcPropertyContainer<string>($"{i}"));
-            timeCircle.AddPropertySyncMessage(dictMsg,
-                120,
-                true);
+        var mailbox1 = new MailBox("test_id", "127.0.0.1", 88, 9999);
+        var plainMsg1 = new RpcPlainPropertySyncMessage(mailbox1, RpcPropertySyncOperation.SetValue, "testpath",
+            RpcSyncPropertyType.Plaint);
+        plainMsg1.Val = new RpcPropertyContainer<string>("1111");
 
-            for (int j = i; j < i + 10; ++j)
-            {
-                var dictMsg2 = new RpcDictPropertySyncMessage(mailbox3, 
-                    RpcPropertySyncOperation.RemoveElem, "testpath3", RpcSyncPropertyType.Dict);
-                dictMsg2.Action!(j);
-                timeCircle.AddPropertySyncMessage(dictMsg2,
-                    120,
-                    true);
-            }
-        }
+        var plainMsg2 = new RpcPlainPropertySyncMessage(mailbox1, RpcPropertySyncOperation.SetValue, "testpath",
+            RpcSyncPropertyType.Plaint);
+        plainMsg2.Val = new RpcPropertyContainer<string>("2222");
+
+        timeCircle.AddPropertySyncMessage(
+            plainMsg1,
+            0,
+            true);
+
+        timeCircle.AddPropertySyncMessage(
+            plainMsg2,
+            0,
+            true);
+
+        var slot = GetSlot(timeCircle)[0];
+        var queue = slot.FindOrderedSyncQueue(mailbox1);
+        Assert.NotNull(queue);
+        
+        var arr = queue!.ToArray();
+        Assert.Single(arr);
+
+        var msg = (RpcPlainPropertySyncMessage)arr[0];
+        Assert.NotNull(msg);
+        
+        Assert.Equal(RpcPropertySyncOperation.SetValue, msg.Operation);
+        
+        var val = (RpcPropertyContainer<string>) msg.Val;
+        Assert.NotNull(val);
+        Assert.Equal("2222", val.Value);
     }
-
-    private static void AddListMessage(TimerCircle timeCircle)
+    
+    private static void AddListMessage(TimeCircle timeCircle)
     {
         var mailbox1 = new MailBox("test_id2", "127.0.0.1", 88, 9999);
         for (int i = 0; i < 5; ++i)
@@ -73,28 +99,48 @@ public class TimeCircleUnitTest
                     true);
             }
         }
+        var slot = GetSlot(timeCircle)[0];
+        var queue = slot.FindOrderedSyncQueue(mailbox1);
+        Assert.NotNull(queue);
+        
+        var arr = queue!.ToArray();
+        Assert.Equal(10, arr.Length);
+        
+        var msg = (RpcListPropertySyncMessage)arr[0];
+        Assert.NotNull(msg);
+        
+        Assert.Equal(RpcPropertySyncOperation.AddListElem, msg.Operation);
+        var impl = msg.GetImpl<RpcListPropertyAddSyncMessageImpl>();
+        Assert.NotNull(impl);
+
+        var addInfo = impl.GetAddInfo()
+            .Select(container => ((RpcPropertyContainer<int>)container).Value)
+            .ToArray();
+        Assert.Equal(addInfo, new []{1, 2, 3, 4, 5});
     }
-
-    private static void AddPliantMessage(TimerCircle timeCircle)
+    
+    private static void AddDictMessage(TimeCircle timeCircle)
     {
-        var mailbox1 = new MailBox("test_id", "127.0.0.1", 88, 9999);
-        var plaintMsg1 = new RpcPlaintPropertySyncMessage(mailbox1, RpcPropertySyncOperation.SetValue, "testpath",
-            RpcSyncPropertyType.Plaint);
-        plaintMsg1.Val = new RpcPropertyContainer<string>("1111");
+        var mailbox3 = new MailBox("test_id1", "127.0.0.1", 88, 9999);
+        for (int i = 0; i < 5; ++i)
+        {
+            var dictMsg = new RpcDictPropertySyncMessage(mailbox3, 
+                RpcPropertySyncOperation.UpdateDict, "testpath3", RpcSyncPropertyType.Dict);
+            dictMsg.Action!(i, new RpcPropertyContainer<string>($"{i}"));
+            timeCircle.AddPropertySyncMessage(dictMsg,
+                120,
+                true);
 
-        var plaintMsg2 = new RpcPlaintPropertySyncMessage(mailbox1, RpcPropertySyncOperation.SetValue, "testpath",
-            RpcSyncPropertyType.Plaint);
-        plaintMsg2.Val = new RpcPropertyContainer<string>("2222");
-
-        timeCircle.AddPropertySyncMessage(
-            plaintMsg1,
-            0,
-            true);
-
-        timeCircle.AddPropertySyncMessage(
-            plaintMsg2,
-            0,
-            true);
+            for (int j = i; j < i + 10; ++j)
+            {
+                var dictMsg2 = new RpcDictPropertySyncMessage(mailbox3, 
+                    RpcPropertySyncOperation.RemoveElem, "testpath3", RpcSyncPropertyType.Dict);
+                dictMsg2.Action!(j);
+                timeCircle.AddPropertySyncMessage(dictMsg2,
+                    120,
+                    true);
+            }
+        }
     }
 
     [Fact]
