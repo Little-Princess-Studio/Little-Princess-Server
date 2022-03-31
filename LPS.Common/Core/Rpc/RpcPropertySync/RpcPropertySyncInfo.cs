@@ -29,7 +29,15 @@ namespace LPS.Core.Rpc.RpcPropertySync
 
         public RpcPropertySyncMessage? GetLastMsg()
             => propPath2SyncMsgQueue_.Count > 0 ? propPath2SyncMsgQueue_.Last() : null;
-
+        
+        public void PopLastMsg()
+        {
+            if (propPath2SyncMsgQueue_.Count > 0)
+            {
+                propPath2SyncMsgQueue_.RemoveLast();
+            }
+        }
+        
         public void Clear() => propPath2SyncMsgQueue_.Clear();
     }
 
@@ -49,8 +57,6 @@ namespace LPS.Core.Rpc.RpcPropertySync
 
     public class RpcDictPropertySyncInfo : RpcPropertySyncInfo
     {
-        public RpcDictPropertySyncMessage? SyncMsg { get; set; }
-        
         public override Package ToSyncPackage()
         {
             throw new NotImplementedException();
@@ -60,12 +66,6 @@ namespace LPS.Core.Rpc.RpcPropertySync
         {
             var newMsg = (msg as RpcDictPropertySyncMessage)!;
             newMsg.MergeIntoSyncInfo(this);
-        }
-
-        public override void Reset()
-        {
-            base.Reset();
-            this.SyncMsg = null;
         }
     }
 

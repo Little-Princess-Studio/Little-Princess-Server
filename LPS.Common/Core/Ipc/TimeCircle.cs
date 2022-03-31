@@ -131,7 +131,7 @@ namespace LPS.Core.Ipc
                 getSyncInfoFunc
             );
             
-            syncInfo.AddNewSyncMessage(incomeMsg);; 
+            syncInfo.AddNewSyncMessage(incomeMsg); 
         }
 
         public void Dispatch()

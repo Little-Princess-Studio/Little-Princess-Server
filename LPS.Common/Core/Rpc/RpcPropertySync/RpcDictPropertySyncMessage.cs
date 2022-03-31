@@ -4,21 +4,187 @@ using LPS.Core.Rpc.RpcPropertySync;
 
 namespace LPS.Core.Ipc.SyncMessage
 {
+    interface IRpcDictPropertySyncMessageImpl
+    {
+        bool MergeIntoSyncInfo(RpcDictPropertySyncInfo rpcDictPropertySyncInfo);
+        bool MergeKeepOrder(RpcDictPropertySyncMessage newMsg);
+    }
+
+    public class RpcDictPropertyUpdateSyncMessageImpl : IRpcDictPropertySyncMessageImpl
+    {
+        private readonly Dictionary<object, RpcPropertyContainer> updateDictInfo_ = new();
+        public Dictionary<object, RpcPropertyContainer> GetUpdateDictInfo() => updateDictInfo_;
+
+        public void Update(object key, RpcPropertyContainer value)
+        {
+            updateDictInfo_[key] = value;
+        }
+
+        public bool MergeIntoSyncInfo(RpcDictPropertySyncInfo rpcDictPropertySyncInfo)
+        {
+            var lastMsg = rpcDictPropertySyncInfo.GetLastMsg();
+            if (lastMsg == null)
+            {
+                return false;
+            }
+
+            if (lastMsg.Operation == RpcPropertySyncOperation.UpdateDict)
+            {
+                var updateImpl =
+                    (lastMsg as RpcDictPropertySyncMessage)!.GetImpl<RpcDictPropertyUpdateSyncMessageImpl>();
+                foreach (var (key, value) in updateDictInfo_)
+                {
+                    updateImpl.updateDictInfo_[key] = value;
+                }
+
+                return true;
+            }
+
+            if (lastMsg.Operation == RpcPropertySyncOperation.RemoveElem)
+            {
+                var removeImpl =
+                    (lastMsg as RpcDictPropertySyncMessage)!.GetImpl<RpcDictPropertyRemoveSyncMessageImpl>();
+                var removedKeys = removeImpl.GetRemoveDictInfo();
+                foreach (var (key, value) in updateDictInfo_)
+                {
+                    if (removedKeys.Contains(key))
+                    {
+                        removedKeys.Remove(key);
+                    }
+                }
+
+                if (removedKeys.Count == 0)
+                {
+                    rpcDictPropertySyncInfo.PopLastMsg();
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        public bool MergeKeepOrder(RpcDictPropertySyncMessage newMsg)
+        {
+            if (newMsg.Operation != RpcPropertySyncOperation.UpdateDict)
+            {
+                return false;
+            }
+
+            var dictUpdateImpl = newMsg.GetImpl<RpcDictPropertyUpdateSyncMessageImpl>();
+            var dictUpdateInfo = dictUpdateImpl.GetUpdateDictInfo();
+            foreach (var (key, value) in dictUpdateInfo)
+            {
+                updateDictInfo_[key] = value;
+            }
+
+            return true;
+        }
+    }
+
+    public class RpcDictPropertyRemoveSyncMessageImpl : IRpcDictPropertySyncMessageImpl
+    {
+        private readonly HashSet<object> removeDictInfo_ = new();
+        public HashSet<object> GetRemoveDictInfo() => removeDictInfo_;
+
+        public void Remove(object key)
+        {
+            removeDictInfo_.Add(key);
+        }
+
+        public bool MergeIntoSyncInfo(RpcDictPropertySyncInfo rpcDictPropertySyncInfo)
+        {
+            var lastMsg = rpcDictPropertySyncInfo.GetLastMsg();
+            if (lastMsg == null)
+            {
+                return false;
+            }
+
+            if (lastMsg.Operation == RpcPropertySyncOperation.RemoveElem)
+            {
+                var removeImpl =
+                    (lastMsg as RpcDictPropertySyncMessage)!.GetImpl<RpcDictPropertyRemoveSyncMessageImpl>();
+                foreach (var key in removeDictInfo_)
+                {
+                    removeImpl.removeDictInfo_.Add(key);
+                }
+
+                return true;
+            }
+
+            if (lastMsg.Operation == RpcPropertySyncOperation.UpdateDict)
+            {
+                var updateImpl =
+                    (lastMsg as RpcDictPropertySyncMessage)!.GetImpl<RpcDictPropertyUpdateSyncMessageImpl>();
+                var updateInfo = updateImpl.GetUpdateDictInfo();
+                foreach (var key in removeDictInfo_)
+                {
+                    if (updateInfo.ContainsKey(key))
+                    {
+                        updateInfo.Remove(key);
+                    }
+                }
+
+                if (updateInfo.Count == 0)
+                {
+                    rpcDictPropertySyncInfo.PopLastMsg();
+                    // if return false, this msg will be enqued
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        public bool MergeKeepOrder(RpcDictPropertySyncMessage newMsg)
+        {
+            if (newMsg.Operation != RpcPropertySyncOperation.RemoveElem)
+            {
+                return false;
+            }
+
+            var dictRemoveImpl = newMsg.GetImpl<RpcDictPropertyRemoveSyncMessageImpl>();
+            var dictRemoveInfo = dictRemoveImpl.GetRemoveDictInfo();
+            foreach (var key in dictRemoveInfo)
+            {
+                removeDictInfo_.Add(key);
+            }
+
+            return true;
+        }
+    }
+
+
     public class RpcDictPropertySyncMessage : RpcPropertySyncMessage
     {
-        private Dictionary<object, RpcPropertyContainer>? updateDictInfo_;
-        private HashSet<object>? removeDictInfo_;
-        
+        private readonly IRpcDictPropertySyncMessageImpl? impl_;
+
         public delegate void DictOperation(params object[] args);
 
         public DictOperation? Action { get; }
 
-        public RpcDictPropertySyncMessage(MailBox mailbox, 
+        public RpcDictPropertySyncMessage(MailBox mailbox,
             RpcPropertySyncOperation operation,
             string rpcPropertyPath,
-            RpcSyncPropertyType rpcSyncPropertyType) 
+            RpcSyncPropertyType rpcSyncPropertyType)
             : base(mailbox, operation, rpcPropertyPath, rpcSyncPropertyType)
         {
+            switch (operation)
+            {
+                case RpcPropertySyncOperation.UpdateDict:
+                    impl_ = new RpcDictPropertyUpdateSyncMessageImpl();
+                    break;
+                case RpcPropertySyncOperation.RemoveElem:
+                    impl_ = new RpcDictPropertyRemoveSyncMessageImpl();
+                    break;
+                case RpcPropertySyncOperation.Clear:
+                    break;
+                case RpcPropertySyncOperation.SetValue:
+                case RpcPropertySyncOperation.AddListElem:
+                case RpcPropertySyncOperation.InsertElem:
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(operation), operation, null);
+            }
+
             this.Action = operation switch
             {
                 RpcPropertySyncOperation.UpdateDict => args =>
@@ -26,133 +192,99 @@ namespace LPS.Core.Ipc.SyncMessage
                     var key = args[0];
                     var val = args[1] as RpcPropertyContainer;
 
-                    updateDictInfo_ ??= new();
-                    updateDictInfo_[key] = val ?? throw new Exception($"Invalid args {args}");
+                    if (val == null)
+                    {
+                        throw new Exception($"Invalid args {args}");
+                    }
+
+                    ((RpcDictPropertyUpdateSyncMessageImpl) impl_!).Update(key, val);
                 },
                 RpcPropertySyncOperation.RemoveElem => args =>
                 {
                     var key = args[0];
 
-                    removeDictInfo_ ??= new();
-                    removeDictInfo_.Add(key);
+                    ((RpcDictPropertyRemoveSyncMessageImpl) impl_!).Remove(key);
                 },
+                RpcPropertySyncOperation.Clear => args => { },
                 _ => throw new Exception($"Invalid operation {operation}")
             };
         }
-        
-        public override bool MergeKeepOrder(RpcPropertySyncMessage otherMsg)
-        {
-            if (this.Operation != otherMsg.Operation)
-            {
-                return false;
-            }
 
-            var msg = (otherMsg as RpcDictPropertySyncMessage)!;
-            
-            switch (this.Operation)
-            {
-                case RpcPropertySyncOperation.SetValue:
-                {
-                    foreach (var (key, value) in msg.updateDictInfo_!)
-                    {
-                        updateDictInfo_![key] = value;
-                    }
-                    break;
-                }
-                case RpcPropertySyncOperation.RemoveElem:
-                {
-                    foreach (var key in msg.removeDictInfo_!)
-                    {
-                        removeDictInfo_!.Add(key);
-                    }
-                    break;
-                }
-                default:
-                    throw new Exception($"Invalid operation {otherMsg.Operation}");
-            }
-
-            return true;
-        }
+        public override bool MergeKeepOrder(RpcPropertySyncMessage otherMsg) =>
+            impl_!.MergeKeepOrder((otherMsg as RpcDictPropertySyncMessage)!);
 
         public override void MergeIntoSyncInfo(RpcPropertySyncInfo rpcPropertySyncInfo)
         {
             var dictInfo = (rpcPropertySyncInfo as RpcDictPropertySyncInfo)!;
 
-            // if we have got a clear msg,
+            // if we got a clear msg,
             // then cancel all the previous modification and record the clear msg
             if (this.Operation == RpcPropertySyncOperation.Clear)
             {
-                dictInfo.SyncMsg = null;
-                rpcPropertySyncInfo.PropPath2SyncMsgQueue.Clear();
-                rpcPropertySyncInfo.Enque(this);
+                dictInfo.PropPath2SyncMsgQueue.Clear();
+                dictInfo.Enque(this);
                 return;
             }
             
-            if (dictInfo.SyncMsg == null)
+            if (dictInfo.PropPath2SyncMsgQueue.Count == 0)
             {
-                dictInfo.SyncMsg = this;
-                rpcPropertySyncInfo.Enque(this);
+                dictInfo.Enque(this);
             }
             else
             {
-                var curDictSyncInfo = dictInfo.SyncMsg;
-                switch (this.Operation)
+                var res = impl_!.MergeIntoSyncInfo(dictInfo);
+                if (!res)
                 {
-                    case RpcPropertySyncOperation.UpdateDict:
-                        HandleUpdateDict(curDictSyncInfo);
-                        break;
-                    case RpcPropertySyncOperation.RemoveElem:
-                        HandleRemove(curDictSyncInfo);
-                        break;
-                    default:
-                        throw new Exception($"Invalid operation for rpc dict property {this.Operation}");
+                    dictInfo.Enque(this);
                 }
             }
         }
 
-        private void HandleUpdateDict(RpcDictPropertySyncMessage curDictSyncInfo)
-        {
-            if (curDictSyncInfo.updateDictInfo_ == null)
-            {
-                curDictSyncInfo.updateDictInfo_ = updateDictInfo_;
-            }
-            else
-            {
-                foreach (var (key, value) in updateDictInfo_!)
-                {
-                    curDictSyncInfo.updateDictInfo_[key] = value;
-                    if (curDictSyncInfo.removeDictInfo_ != null
-                        && curDictSyncInfo.removeDictInfo_.Contains(key))
-                    {
-                        curDictSyncInfo.removeDictInfo_.Remove(value);
-                    }
-                }
-            }
-        }
+        // private void HandleUpdateDict(RpcDictPropertySyncMessage curDictSyncInfo)
+        // {
+        //     curDictSyncInfo.updateDictInfo_ ??= updateDictInfo_!;
+        //     
+        //     foreach (var (key, value) in updateDictInfo_!)
+        //     {
+        //         curDictSyncInfo.updateDictInfo_[key] = value;
+        //         if (curDictSyncInfo.removeDictInfo_ != null
+        //             && curDictSyncInfo.removeDictInfo_.Contains(key))
+        //         {
+        //             curDictSyncInfo.removeDictInfo_.Remove(value);
+        //         }
+        //     }
+        //
+        //     if (curDictSyncInfo.removeDictInfo_ is {Count: 0})
+        //     {
+        //         curDictSyncInfo.removeDictInfo_ = null;
+        //     }
+        // }
+        //
+        // private void HandleRemove(RpcDictPropertySyncMessage curDictSyncInfo)
+        // {
+        //     curDictSyncInfo.removeDictInfo_ ??= removeDictInfo_!;
+        //
+        //     foreach (var key in removeDictInfo_!)
+        //     {
+        //         curDictSyncInfo.removeDictInfo_.Add(key);
+        //         if (curDictSyncInfo.updateDictInfo_ != null
+        //             && curDictSyncInfo.updateDictInfo_.ContainsKey(key))
+        //         {
+        //             curDictSyncInfo.updateDictInfo_.Remove(key);
+        //         }
+        //     }
+        //
+        //     if (curDictSyncInfo.updateDictInfo_ is {Count: 0})
+        //     {
+        //         curDictSyncInfo.updateDictInfo_ = null;
+        //     }
+        // }
 
-        private void HandleRemove(RpcDictPropertySyncMessage curDictSyncInfo)
-        {
-            if (curDictSyncInfo.removeDictInfo_ == null)
-            {
-                curDictSyncInfo.removeDictInfo_ = removeDictInfo_;
-            }
-            else
-            {
-                foreach (var key in removeDictInfo_!)
-                {
-                    curDictSyncInfo.removeDictInfo_.Add(key);
-                    if (curDictSyncInfo.updateDictInfo_ != null
-                        && curDictSyncInfo.updateDictInfo_.ContainsKey(key))
-                    {
-                        curDictSyncInfo.updateDictInfo_.Remove(key);
-                    }
-                }
-            }
-        }
+        public T GetImpl<T>() => (T) impl_!;
 
         public override byte[] Serialize()
         {
             throw new NotImplementedException();
         }
-    }    
+    }
 }

@@ -57,7 +57,8 @@ namespace LPS.Core.Ipc.SyncMessage
     public class RpcListPropertySetValueSyncMessageImpl : IRpcListPropertySyncMessageImpl
     {
         private readonly Dictionary<int, RpcPropertyContainer> setValueInfo_ = new ();
-
+        Dictionary<int, RpcPropertyContainer> GetSetValueInfo() => setValueInfo_;
+        
         public void SetValue(int index, RpcPropertyContainer elem)
         {
             setValueInfo_[index] = elem;
@@ -103,6 +104,7 @@ namespace LPS.Core.Ipc.SyncMessage
     public class RpcListPropertyInsertSyncMessageImpl : IRpcListPropertySyncMessageImpl
     {
         private readonly List<(int, RpcPropertyContainer)> insertInfo_ = new ();
+        public List<(int, RpcPropertyContainer)> GetInsertInfo() => insertInfo_;
 
         public void Insert(int index, RpcPropertyContainer elem)
         {
@@ -143,6 +145,7 @@ namespace LPS.Core.Ipc.SyncMessage
     public class RpcListPropertyRemoveElemMessageImpl : IRpcListPropertySyncMessageImpl
     {
         private readonly List<int> removeElemInfo_ = new();
+        public List<int> GetRemoveElemInfo() => removeElemInfo_;
 
         public void RemoveElem(int index)
         {
