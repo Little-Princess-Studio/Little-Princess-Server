@@ -40,7 +40,7 @@ namespace LPS.Core
 
         // private static readonly Random Random = new Random();
 
-        public Server(string name, string ip, int port, int hostnum, string hostManagerIP, int hostManagerPort)
+        public Server(string name, string ip, int port, int hostnum, string hostManagerIp, int hostManagerPort)
         {
             this.Name = name;
             this.Ip = ip;
@@ -55,7 +55,7 @@ namespace LPS.Core
                 OnDispose = this.UnregisterServerMessageHandlers
             };
 
-            hostManagerIP_ = hostManagerIP;
+            hostManagerIP_ = hostManagerIp;
             hostManagerPort_ = hostManagerPort;
 
             // how server entity send msg

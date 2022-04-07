@@ -9,7 +9,9 @@ using System.Threading.Tasks;
 using Google.Protobuf;
 using LPS.Core.Debug;
 using LPS.Core.Ipc;
+using LPS.Core.Ipc.SyncMessage;
 using LPS.Core.Rpc.InnerMessages;
+using Microsoft.VisualBasic;
 
 namespace LPS.Core.Rpc
 {
@@ -34,6 +36,9 @@ namespace LPS.Core.Rpc
         public Connection[] AllConnections => socketToConn_.Values.ToArray();
         private readonly ConcurrentQueue<(Connection, IMessage)> sendQueue_ = new();
         private uint serverEntityPackageId_;
+        private readonly TimeCircle timeCircle_ = new(50, 1000);
+
+        private readonly ConcurrentQueue<(bool, uint, RpcPropertySyncMessage)> timeCircleQueue_ = new();
 
         public bool Stopped => stopFlag_;
 
@@ -93,16 +98,35 @@ namespace LPS.Core.Rpc
             #endregion
 
             #region init bus pump task
+
             var busPumpSandBox = SandBox.Create(this.PumpMessageHandler);
             busPumpSandBox.Run();
+
             #endregion
 
             #region init send queue task
+
             var sendQueueSandBox = SandBox.Create(this.SendQueueMessageHandler);
             sendQueueSandBox.Run();
+
+            #endregion
+
+            #region init timecircle enqueue task
+
+            var timeCircleEnqueueSandBox = SandBox.Create(this.TimeCircleSyncMessageEnqueueHandler);
+            timeCircleEnqueueSandBox.Run();
+
+            #endregion
+
+            #region init timecircle task
+
+            var timeCircleSandBox = SandBox.Create(this.TimeCircleHandler);
+            timeCircleSandBox.Run();
+
             #endregion
 
             #region message loop
+
             while (!stopFlag_)
             {
                 Socket clientSocket;
@@ -126,16 +150,14 @@ namespace LPS.Core.Rpc
 
                 conn.Connect();
 
-                // var task = new Task(async () =>
-                // {
-                //     await this.HandleMessage(conn);
-                // }, cancelTokenSource.Token);
-
                 var task = this.HandleMessage(conn);
                 connections_[conn] = task;
 
-                task.ContinueWith(_ => { }, cancelTokenSource.Token);
+                task.ContinueWith(
+                    _ => { Logger.Debug("Client Io Handler Exist"); }, 
+                    cancelTokenSource.Token);
             }
+
             #endregion
 
             // cancel each task end
@@ -174,6 +196,43 @@ namespace LPS.Core.Rpc
             }
         }
 
+        private void TimeCircleSyncMessageEnqueueHandler()
+        {
+            while (!stopFlag_)
+            {
+                if (!sendQueue_.IsEmpty)
+                {
+                    while (!sendQueue_.IsEmpty)
+                    {
+                        var res = timeCircleQueue_.TryDequeue(out var tp);
+                        if (res)
+                        {
+                            var (keepOrder, delayTime, msg) = tp;
+                            timeCircle_.AddPropertySyncMessage(msg, delayTime, keepOrder);
+                        }
+                    }
+                }
+                Thread.Sleep(1);
+            }
+        }
+
+        private void TimeCircleHandler()
+        {
+            var lastTimeCircleTickTimestamp = DateTime.UtcNow;
+            var currentTimeCircleTickTimestamp = DateTime.UtcNow;
+            while (!stopFlag_)
+            {
+                var deltaTime = (currentTimeCircleTickTimestamp - lastTimeCircleTickTimestamp).Milliseconds;
+                if (deltaTime > 50)
+                {
+                    lastTimeCircleTickTimestamp = currentTimeCircleTickTimestamp;
+                    timeCircle_.Tick((uint) deltaTime);
+                }
+
+                Thread.Sleep(25);
+            }
+        }
+
         private void SendQueueMessageHandler()
         {
             while (!stopFlag_)
@@ -198,6 +257,7 @@ namespace LPS.Core.Rpc
                         }
                     }
                 }
+
                 Thread.Sleep(1);
             }
         }
@@ -214,6 +274,10 @@ namespace LPS.Core.Rpc
             }
         }
 
+        public void AddMessageToTimeCircle(RpcPropertySyncMessage msg, uint delayTimeByMilliseconds, bool keepOrder)
+            // => timeCircle_.AddPropertySyncMessage(msg, delayTimeByMilliseconds, keepOrder);
+            => timeCircleQueue_.Enqueue((keepOrder, delayTimeByMilliseconds, msg));
+        
         private async Task HandleMessage(Connection conn)
         {
             await RpcHelper.HandleMessage(

@@ -40,7 +40,7 @@ namespace LPS.Core.Ipc
 
         public int GetSyncQueueLength(MailBox mb) =>
             idToSyncMsgWithOrder_.ContainsKey(mb.Id) ? idToSyncMsgWithOrder_[mb.Id].Count : 0;
-        
+
         public RpcPropertySyncInfo? FindRpcPropertySyncInfo(MailBox mb, string path)
         {
             var id = mb.Id;
@@ -50,7 +50,7 @@ namespace LPS.Core.Ipc
             }
 
             var info = idToSyncMsg_[id];
-            
+
             if (!info.ContainsKey(path))
             {
                 return null;
@@ -110,6 +110,7 @@ namespace LPS.Core.Ipc
                     return;
                 }
             }
+
             queue.Enqueue(incomeMsg);
         }
 
@@ -130,31 +131,31 @@ namespace LPS.Core.Ipc
                 incomeMsg.RpcPropertyPath,
                 getSyncInfoFunc
             );
-            
-            syncInfo.AddNewSyncMessage(incomeMsg); 
+
+            syncInfo.AddNewSyncMessage(incomeMsg);
         }
 
         public void Dispatch()
         {
-            Console.WriteLine("Dispatch Message");
+            Logger.Debug("Dispatch Message");
             foreach (var (entityId, entitySyncInfoDict) in idToSyncMsg_)
             {
-                Console.WriteLine($"Dispatch entity id {entityId}");
+                Logger.Debug($"Dispatch entity id {entityId}");
                 foreach (var (propPath, syncInfo) in entitySyncInfoDict)
                 {
-                    Console.WriteLine($"{propPath} -> {syncInfo}");
+                    Logger.Debug($"{propPath} -> {syncInfo}");
                 }
             }
 
             foreach (var (entityId, msgQueue) in idToSyncMsgWithOrder_)
             {
-                Console.WriteLine($"Dispatch entity id {entityId}");
+                Logger.Debug($"Dispatch entity id {entityId}");
                 foreach (var (propPath, syncQueue) in idToSyncMsgWithOrder_)
                 {
                     while (syncQueue.Count > 0)
                     {
                         var msg = syncQueue.Dequeue();
-                        Console.WriteLine($"{propPath} -> {msg}");
+                        Logger.Debug($"{propPath} -> {msg}");
                     }
                 }
             }
@@ -200,8 +201,8 @@ namespace LPS.Core.Ipc
             // can arrange directly
             if (delayTimeByMillisecond <= slotsPerCircle_ * timeInterval_)
             {
-                var arrangeSlot = (slotIndex_ + 
-                                   (uint) Math.Floor(delayTimeByMillisecond / (decimal)timeInterval_))
+                var arrangeSlot = (slotIndex_ +
+                                   (uint) Math.Floor(delayTimeByMillisecond / (decimal) timeInterval_))
                                   % slotsPerCircle_;
                 if (keepOrder)
                 {
@@ -215,7 +216,7 @@ namespace LPS.Core.Ipc
             // arrange to waiting queue
             else
             {
-                var arrangeTime = (uint)slotIndex_ * (uint)timeInterval_ + delayTimeByMillisecond;
+                var arrangeTime = (uint) slotIndex_ * (uint) timeInterval_ + delayTimeByMillisecond;
                 waitingMessageQueue_.Enqueue((keepOrder, arrangeTime, msg));
             }
         }
@@ -223,7 +224,7 @@ namespace LPS.Core.Ipc
         public void FillSlot(TimeCircleSlot slot, int slotIndex)
         {
             slot.Clear();
-            var targetEndTime = (uint)(slotIndex + 1)* timeInterval_;
+            var targetEndTime = (uint) (slotIndex + 1) * timeInterval_;
             do
             {
                 if (waitingMessageQueue_.Count == 0)
@@ -236,7 +237,7 @@ namespace LPS.Core.Ipc
                 {
                     break;
                 }
-                
+
                 var (_, msgDispatchTime, _) = candidate;
                 if (msgDispatchTime <= targetEndTime)
                 {
@@ -270,7 +271,7 @@ namespace LPS.Core.Ipc
             {
                 var slotCircleIndex = slotIndex_ % slotsPerCircle_;
                 var slot = slots_[slotCircleIndex];
-                
+
                 slot.Dispatch();
                 this.FillSlot(slot, slotIndex_ + slotsPerCircle_);
                 ++slotIndex_;

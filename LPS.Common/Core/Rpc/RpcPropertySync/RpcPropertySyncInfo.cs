@@ -17,7 +17,7 @@ namespace LPS.Core.Rpc.RpcPropertySync
         public abstract Package ToSyncPackage();
         public abstract void AddNewSyncMessage(RpcPropertySyncMessage msg);
 
-        public virtual void Reset()
+        public void Reset()
         {
             PropPath2SyncMsgQueue.Clear();
         }

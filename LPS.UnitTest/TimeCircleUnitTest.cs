@@ -36,12 +36,17 @@ public class TimeCircleUnitTest
         timeCircle.Tick(50);
         timeCircle.Tick(50);
 
-        Assert.True(true);
+        var slot = GetSlot(timeCircle)[0];
+        Assert.Equal(0, slot.GetSyncQueueLength(new MailBox("test_id1", "127.0.0.1", 99, 9999)));
+        slot = GetSlot(timeCircle)[1];
+        Assert.Equal(0, slot.GetSyncQueueLength(new MailBox("test_id2", "127.0.0.1", 99, 9999)));
+        slot = GetSlot(timeCircle)[2];
+        Assert.Equal(0, slot.GetSyncQueueLength(new MailBox("test_id3", "127.0.0.1", 99, 9999)));
     }
 
     private static void AddPlainMessage(TimeCircle timeCircle, bool keepOrder)
     {
-        var mailbox1 = new MailBox("test_id", "127.0.0.1", 88, 9999);
+        var mailbox1 = new MailBox("test_id1", "127.0.0.1", 88, 9999);
         var plainMsg1 = new RpcPlainPropertySyncMessage(mailbox1, RpcPropertySyncOperation.SetValue, "testpath",
             RpcSyncPropertyType.Plaint);
         plainMsg1.Val = new RpcPropertyContainer<string>("1111");
@@ -194,7 +199,7 @@ public class TimeCircleUnitTest
 
     private static void AddDictMessage(TimeCircle timeCircle, bool keepOrder)
     {
-        var mailbox3 = new MailBox("test_id1", "127.0.0.1", 88, 9999);
+        var mailbox3 = new MailBox("test_id3", "127.0.0.1", 88, 9999);
         for (int i = 0; i < 5; ++i)
         {
             var dictMsg = new RpcDictPropertySyncMessage(mailbox3, 
@@ -301,6 +306,11 @@ public class TimeCircleUnitTest
         timeCircle.Tick(50);
         timeCircle.Tick(50);
 
-        Assert.True(true);
+        var slot = GetSlot(timeCircle)[0];
+        Assert.Null(slot.FindRpcPropertySyncInfo(new MailBox("test_id", "127.0.0.1", 99, 9999), "testpath"));;
+        slot = GetSlot(timeCircle)[1];
+        Assert.Null(slot.FindRpcPropertySyncInfo(new MailBox("test_id2", "127.0.0.1", 99, 9999), "testpath2"));
+        slot = GetSlot(timeCircle)[2];
+        Assert.Null(slot.FindRpcPropertySyncInfo(new MailBox("test_id3", "127.0.0.1", 99, 9999), "testpath3"));
     }
 }
