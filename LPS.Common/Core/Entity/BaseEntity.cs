@@ -1,6 +1,7 @@
 using LPS.Core.Debug;
 using LPS.Core.Rpc;
 using LPS.Core.Rpc.InnerMessages;
+using LPS.Core.Rpc.RpcProperty;
 using MailBox = LPS.Core.Rpc.MailBox;
 
 namespace LPS.Core.Entity
@@ -23,6 +24,7 @@ namespace LPS.Core.Entity
 
         private readonly Dictionary<uint, (Action<object>, Type)> rpcDict_ = new();
         private readonly Dictionary<uint, Action> rpcBlankDict_ = new();
+        private readonly Dictionary<string, RpcPropertyContainer> propertyTree_ = new();
 
         public bool IsDestroyed { get; protected set; }
         

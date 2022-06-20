@@ -8,7 +8,7 @@ namespace LPS.Core.Rpc.RpcProperty
         {
             this.Children = new();
         }
-        
+
         public RpcList(int size, [DisallowNull] TElem defaultVal): base(new List<RpcPropertyContainer<TElem>>(size))
         {
             ArgumentNullException.ThrowIfNull(defaultVal);

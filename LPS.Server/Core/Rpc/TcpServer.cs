@@ -82,7 +82,7 @@ namespace LPS.Core.Rpc
         {
             #region listen port
 
-            Logger.Debug($"Start tcp server {this.Ip} {this.Port}");
+            Logger.Debug($"[SOCKET] Start tcp server {this.Ip} {this.Port}");
 
             this.OnInit?.Invoke();
 
@@ -93,7 +93,7 @@ namespace LPS.Core.Rpc
             this.Socket.Bind(ipe);
             this.Socket.Listen(int.MaxValue);
 
-            Logger.Debug("Listen succ");
+            Logger.Debug("[SOCKET] Listen succ");
 
             #endregion
 
@@ -161,7 +161,7 @@ namespace LPS.Core.Rpc
             #endregion
 
             // cancel each task end
-            Logger.Info($"Close {connections_.Count} connections");
+            Logger.Info($"[SOCKET] Close {connections_.Count} connections");
             foreach (var conn in this.connections_)
             {
                 conn.Key.TokenSource.Cancel();
@@ -169,7 +169,7 @@ namespace LPS.Core.Rpc
             }
 
             // wait pum task to exit
-            Logger.Info("Close pump task");
+            Logger.Info("[EXIT] Close pump task");
             // busPumpTask.Wait();
 
             this.OnDispose?.Invoke();

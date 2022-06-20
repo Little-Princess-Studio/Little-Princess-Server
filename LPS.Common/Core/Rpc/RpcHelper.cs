@@ -8,6 +8,7 @@ using LPS.Core.Debug;
 using LPS.Core.Entity;
 using LPS.Core.Ipc;
 using LPS.Core.Rpc.InnerMessages;
+using LPS.Core.Rpc.RpcProperty;
 using Newtonsoft.Json;
 
 namespace LPS.Core.Rpc
@@ -18,7 +19,7 @@ namespace LPS.Core.Rpc
         public static readonly Dictionary<string, Type> EntityClassMap = new();
 
         public static readonly object?[] EmptyRes = {null};
-        
+
         public static MailBox PbMailBoxToRpcMailBox(InnerMessages.MailBox mb) =>
             new(mb.ID, mb.IP, (int) mb.Port, (int) mb.HostNum);
 
@@ -217,15 +218,16 @@ namespace LPS.Core.Rpc
             {
                 return false;
             }
+
             var openType = tuple.GetGenericTypeDefinition();
             return openType == typeof(Tuple<>)
-                || openType == typeof(Tuple<,>)
-                || openType == typeof(Tuple<,,>)
-                || openType == typeof(Tuple<,,,>)
-                || openType == typeof(Tuple<,,,,>)
-                || openType == typeof(Tuple<,,,,,>)
-                || openType == typeof(Tuple<,,,,,,>)
-                || (openType == typeof(Tuple<,,,,,,,>) && IsTuple(tuple.GetGenericArguments()[7]));
+                   || openType == typeof(Tuple<,>)
+                   || openType == typeof(Tuple<,,>)
+                   || openType == typeof(Tuple<,,,>)
+                   || openType == typeof(Tuple<,,,,>)
+                   || openType == typeof(Tuple<,,,,,>)
+                   || openType == typeof(Tuple<,,,,,,>)
+                   || (openType == typeof(Tuple<,,,,,,,>) && IsTuple(tuple.GetGenericArguments()[7]));
         }
 
         private static bool IsValueTuple(Type tuple)
@@ -234,15 +236,16 @@ namespace LPS.Core.Rpc
             {
                 return false;
             }
+
             var openType = tuple.GetGenericTypeDefinition();
             return openType == typeof(ValueTuple<>)
-                || openType == typeof(ValueTuple<,>)
-                || openType == typeof(ValueTuple<,,>)
-                || openType == typeof(ValueTuple<,,,>)
-                || openType == typeof(ValueTuple<,,,,>)
-                || openType == typeof(ValueTuple<,,,,,>)
-                || openType == typeof(ValueTuple<,,,,,,>)
-                || (openType == typeof(ValueTuple<,,,,,,,>) && IsValueTuple(tuple.GetGenericArguments()[7]));
+                   || openType == typeof(ValueTuple<,>)
+                   || openType == typeof(ValueTuple<,,>)
+                   || openType == typeof(ValueTuple<,,,>)
+                   || openType == typeof(ValueTuple<,,,,>)
+                   || openType == typeof(ValueTuple<,,,,,>)
+                   || openType == typeof(ValueTuple<,,,,,,>)
+                   || (openType == typeof(ValueTuple<,,,,,,,>) && IsValueTuple(tuple.GetGenericArguments()[7]));
         }
 
         private static bool ValidateArgs(Type[] args) => args.Length == 0 || args.All(ValidateRpcType);
@@ -342,6 +345,21 @@ namespace LPS.Core.Rpc
             var msg = new ListArg();
             elemList.ForEach(e => msg.PayLoad.Add(
                 Google.Protobuf.WellKnownTypes.Any.Pack(RpcArgToProtobuf(e))));
+
+            return msg;
+        }
+
+        private static ListArg? RpcContainerListToProtoBufAny<T>(RpcList<T> list)
+        {
+            if (list.Value.Count == 0)
+            {
+                return null;
+            }
+
+            var msg = new ListArg();
+            list.Value.ForEach(e => msg.PayLoad.Add(
+                Google.Protobuf.WellKnownTypes.Any.Pack(RpcArgToProtobuf(e.Value))
+            ));
 
             return msg;
         }
@@ -719,7 +737,8 @@ namespace LPS.Core.Rpc
             }
             else
             {
-                entity.SendWithRpcId(entityRpc.RpcID, PbMailBoxToRpcMailBox(senderMailBox), "OnResult", true, sendRpcType, res);
+                entity.SendWithRpcId(entityRpc.RpcID, PbMailBoxToRpcMailBox(senderMailBox), "OnResult", true,
+                    sendRpcType, res);
             }
         }
 
