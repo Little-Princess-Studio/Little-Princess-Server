@@ -6,6 +6,7 @@ using Google.Protobuf;
 using LPS.Core.Database;
 using LPS.Core.Debug;
 using LPS.Core.Entity;
+using LPS.Core.Ipc;
 using LPS.Core.Rpc;
 using LPS.Core.Rpc.InnerMessages;
 using LPS.Logic.Entity;

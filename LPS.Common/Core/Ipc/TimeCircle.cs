@@ -89,50 +89,55 @@ namespace LPS.Core.Ipc
         public void AddSyncMessageKeepOrder(RpcPropertySyncMessage incomeMsg)
         {
             var id = incomeMsg.MailBox.Id;
+            
+            lock (this)
+            {
+                Queue<RpcPropertySyncMessage> queue;
 
-            Queue<RpcPropertySyncMessage> queue;
-            if (idToSyncMsgWithOrder_.ContainsKey(id))
-            {
-                queue = idToSyncMsgWithOrder_[id];
-            }
-            else
-            {
-                queue = new Queue<RpcPropertySyncMessage>();
-                idToSyncMsgWithOrder_[id] = queue;
-            }
-
-            if (queue.Count > 0)
-            {
-                var lastMsg = queue.Last();
-                var res = lastMsg.MergeKeepOrder(incomeMsg);
-                if (res)
+                if (idToSyncMsgWithOrder_.ContainsKey(id))
                 {
-                    return;
+                    queue = idToSyncMsgWithOrder_[id];
                 }
-            }
+                else
+                {
+                    queue = new Queue<RpcPropertySyncMessage>();
+                    idToSyncMsgWithOrder_[id] = queue;
+                }
 
-            queue.Enqueue(incomeMsg);
+                if (queue.Count > 0)
+                {
+                    var lastMsg = queue.Last();
+                    var res = lastMsg.MergeKeepOrder(incomeMsg);
+                    if (res)
+                    {
+                        return;
+                    }
+                }
+
+                queue.Enqueue(incomeMsg);   
+            }
         }
 
         public void AddSyncMessageNoKeepOrder(RpcPropertySyncMessage incomeMsg)
         {
-            var propChangeOperation = incomeMsg.Operation;
-
-            Func<RpcPropertySyncInfo> getSyncInfoFunc = incomeMsg.RpcSyncPropertyType switch
+            lock (this)
             {
-                RpcSyncPropertyType.Plaint => () => new RpcPlaintPropertySyncInfo(),
-                RpcSyncPropertyType.List => () => new RpcListPropertySyncInfo(),
-                RpcSyncPropertyType.Dict => () => new RpcDictPropertySyncInfo(),
-                _ => throw new ArgumentOutOfRangeException()
-            };
+                Func<RpcPropertySyncInfo> getSyncInfoFunc = incomeMsg.RpcSyncPropertyType switch
+                {
+                    RpcSyncPropertyType.Plaint => () => new RpcPlaintPropertySyncInfo(),
+                    RpcSyncPropertyType.List => () => new RpcListPropertySyncInfo(),
+                    RpcSyncPropertyType.Dict => () => new RpcDictPropertySyncInfo(),
+                    _ => throw new ArgumentOutOfRangeException()
+                };
 
-            var syncInfo = this.GetRpcPropertySyncInfo(
-                incomeMsg.MailBox,
-                incomeMsg.RpcPropertyPath,
-                getSyncInfoFunc
-            );
+                var syncInfo = this.GetRpcPropertySyncInfo(
+                    incomeMsg.MailBox,
+                    incomeMsg.RpcPropertyPath,
+                    getSyncInfoFunc
+                );
 
-            syncInfo.AddNewSyncMessage(incomeMsg);
+                syncInfo.AddNewSyncMessage(incomeMsg);
+            }
         }
 
         public void Dispatch()

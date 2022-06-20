@@ -191,7 +191,7 @@ namespace LPS.Core.Rpc
                 }
                 finally
                 {
-                    Thread.Sleep(1);
+                    Thread.Sleep(50);
                 }
             }
         }
@@ -200,16 +200,13 @@ namespace LPS.Core.Rpc
         {
             while (!stopFlag_)
             {
-                if (!sendQueue_.IsEmpty)
+                while (!sendQueue_.IsEmpty)
                 {
-                    while (!sendQueue_.IsEmpty)
+                    var res = timeCircleQueue_.TryDequeue(out var tp);
+                    if (res)
                     {
-                        var res = timeCircleQueue_.TryDequeue(out var tp);
-                        if (res)
-                        {
-                            var (keepOrder, delayTime, msg) = tp;
-                            timeCircle_.AddPropertySyncMessage(msg, delayTime, keepOrder);
-                        }
+                        var (keepOrder, delayTime, msg) = tp;
+                        timeCircle_.AddPropertySyncMessage(msg, delayTime, keepOrder);
                     }
                 }
                 Thread.Sleep(1);
