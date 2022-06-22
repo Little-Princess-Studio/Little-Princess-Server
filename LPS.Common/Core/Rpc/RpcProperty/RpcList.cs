@@ -1,4 +1,7 @@
 ﻿using System.Diagnostics.CodeAnalysis;
+using Google.Protobuf;
+using Google.Protobuf.WellKnownTypes;
+using LPS.Core.Rpc.InnerMessages;
 
 namespace LPS.Core.Rpc.RpcProperty
 {
@@ -7,6 +10,32 @@ namespace LPS.Core.Rpc.RpcProperty
         public RpcList(): base(new List<RpcPropertyContainer<TElem>>())
         {
             this.Children = new();
+        }
+
+        public override Any ToRpcArg()
+        {
+            IMessage? pbList = null;
+            DictWithStringKeyArg? pbChildren = null;
+
+            if (this.Value.Count > 0)
+            {
+                pbList = RpcHelper.RpcContainerListToProtoBufAny(this);
+            }
+
+            if (this.Children!.Count > 0)
+            {
+                pbChildren = new DictWithStringKeyArg();
+                foreach (var (name, value) in this.Children)
+                {
+                    pbChildren.PayLoad.Add(name, value.ToRpcArg());
+                }
+            }
+            
+            var pbRpc = new DictWithStringKeyArg();
+            pbRpc.PayLoad.Add("value", pbList == null ? Any.Pack(new NullArg()) : Any.Pack(pbList));
+            pbRpc.PayLoad.Add("children", pbChildren == null ? Any.Pack(new NullArg()) : Any.Pack(pbChildren));
+
+            return Any.Pack(pbRpc);
         }
 
         public RpcList(int size, [DisallowNull] TElem defaultVal): base(new List<RpcPropertyContainer<TElem>>(size))

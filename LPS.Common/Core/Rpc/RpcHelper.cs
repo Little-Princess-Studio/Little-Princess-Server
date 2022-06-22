@@ -71,7 +71,7 @@ namespace LPS.Core.Rpc
             }
             catch (OperationCanceledException ex)
             {
-                Logger.Error(ex, $"IO Task canceled, socket will close.");
+                Logger.Error(ex, "IO Task canceled, socket will close.");
             }
             catch (Exception ex)
             {
@@ -349,11 +349,11 @@ namespace LPS.Core.Rpc
             return msg;
         }
 
-        private static ListArg? RpcContainerListToProtoBufAny<T>(RpcList<T> list)
+        public static IMessage RpcContainerListToProtoBufAny<T>(RpcList<T> list)
         {
             if (list.Value.Count == 0)
             {
-                return null;
+                return new NullArg();
             }
 
             var msg = new ListArg();
@@ -364,7 +364,47 @@ namespace LPS.Core.Rpc
             return msg;
         }
 
-        private static IMessage RpcDictArgToProtoBuf(object dict)
+        public static IMessage RpcContainerDictToProtoBufAny<TK, TV>(RpcDictionary<TK, TV> dict) where TK : notnull
+        {
+            if (dict.Value.Count == 0)
+            {
+                return new NullArg();
+            }
+
+            if (typeof(TK) == typeof(string))
+            {
+                var msg = new DictWithStringKeyArg();
+
+                foreach (var (key, value) in dict.Value)
+                {
+                    msg.PayLoad.Add((key as string)!, value.ToRpcArg());
+                }
+                
+                return msg;
+            }
+
+            if (typeof(TK) == typeof(int))
+            {
+                var msg = new DictWithIntKeyArg();
+
+                foreach (var (key, value) in dict.Value)
+                {
+                    msg.PayLoad.Add((int)key, value.ToRpcArg());
+                }
+
+                return msg;
+            }
+
+            if (IsValueTuple(typeof(TK)))
+            {
+                var msg = new DictWithValueTupleKeyArg();
+                return msg;
+            }
+
+            throw new Exception($"Wrong dict key type : {typeof(TK)}");
+        }
+
+        public static IMessage RpcDictArgToProtoBuf(object dict)
         {
             var enumerable = (dict as IEnumerable)!;
             var kvList = enumerable.Cast<object>().ToList();
@@ -646,7 +686,7 @@ namespace LPS.Core.Rpc
             var sendRpcType = RpcType.ServerInside;
             if (entityRpc.RpcType == RpcType.ClientToServer)
             {
-                Logger.Info($"rpc call is from client, the result will be sent to client.");
+                Logger.Info("rpc call is from client, the result will be sent to client.");
                 sendRpcType = RpcType.ServerToClient;
             }
             else if (entityRpc.RpcType == RpcType.ServerToClient)

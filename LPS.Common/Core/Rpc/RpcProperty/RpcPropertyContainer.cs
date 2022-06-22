@@ -114,14 +114,7 @@ namespace LPS.Core.Rpc.RpcProperty
 
         public override Any ToRpcArg()
         {
-            if (value_ is RpcPropertyContainer container)
-            {
-                return container.ToRpcArg();
-            }
-
-            
-            
-            return null;
+            throw new NotImplementedException();
         }
     }
 }

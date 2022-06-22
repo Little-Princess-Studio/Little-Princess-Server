@@ -135,7 +135,7 @@ namespace LPS.Client
                 conn,
                 () => exitFlag_,
                 msg => bus_.AppendMessage(msg),
-                null);
+                ()=> exitFlag_ = true);
         }
 
         public void Init(string ip, int port)
