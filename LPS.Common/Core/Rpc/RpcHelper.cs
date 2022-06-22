@@ -364,42 +364,74 @@ namespace LPS.Core.Rpc
             return msg;
         }
 
-        public static IMessage RpcContainerDictToProtoBufAny<TK, TV>(RpcDictionary<TK, TV> dict) where TK : notnull
+        public static IMessage RpcContainerDictToProtoBufAny<TV>(RpcDictionary<int, TV> dict) where TK : notnull
         {
             if (dict.Value.Count == 0)
             {
                 return new NullArg();
             }
-
-            if (typeof(TK) == typeof(string))
+            
+            var msg = new DictWithIntKeyArg();
+            
+            foreach (var (key, value) in dict.Value)
             {
-                var msg = new DictWithStringKeyArg();
-
-                foreach (var (key, value) in dict.Value)
-                {
-                    msg.PayLoad.Add((key as string)!, value.ToRpcArg());
-                }
-                
-                return msg;
+                msg.PayLoad.Add(key, value.ToRpcArg());
             }
+            
+            return msg;
 
-            if (typeof(TK) == typeof(int))
+            // if (typeof(TK) == typeof(string))
+            // {
+            //     var msg = new DictWithStringKeyArg();
+            //
+            //     foreach (var (key, value) in dict.Value)
+            //     {
+            //         msg.PayLoad.Add((key as string)!, value.ToRpcArg());
+            //     }
+            //     
+            //     return msg;
+            // }
+            //
+            // if (typeof(TK) == typeof(int))
+            // {
+
+            // }
+            //
+            // if (IsValueTuple(typeof(TK)))
+            // {
+            //     var msg = new DictWithValueTupleKeyArg();
+            //     return msg;
+            // }
+
+            throw new Exception($"Wrong dict key type : {typeof(TK)}");
+        }
+        
+        public static IMessage RpcContainerDictToProtoBufAny<TV>(RpcDictionary<string, TV> dict) where TK : notnull
+        {
+            if (dict.Value.Count == 0)
             {
-                var msg = new DictWithIntKeyArg();
-
-                foreach (var (key, value) in dict.Value)
-                {
-                    msg.PayLoad.Add((int)key, value.ToRpcArg());
-                }
-
-                return msg;
+                return new NullArg();
             }
-
-            if (IsValueTuple(typeof(TK)))
+            
+            var msg = new DictWithStringKeyArg();
+            
+            foreach (var (key, value) in dict.Value)
             {
-                var msg = new DictWithValueTupleKeyArg();
-                return msg;
+                msg.PayLoad.Add((key as string)!, value.ToRpcArg());
             }
+            
+            return msg;
+            
+            // if (typeof(TK) == typeof(int))
+            // {
+
+            // }
+            //
+            // if (IsValueTuple(typeof(TK)))
+            // {
+            //     var msg = new DictWithValueTupleKeyArg();
+            //     return msg;
+            // }
 
             throw new Exception($"Wrong dict key type : {typeof(TK)}");
         }
