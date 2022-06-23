@@ -3,6 +3,9 @@
 //
 
 using System.Diagnostics.CodeAnalysis;
+using Google.Protobuf;
+using Google.Protobuf.WellKnownTypes;
+using LPS.Core.Rpc.InnerMessages;
 
 namespace LPS.Core.Rpc.RpcProperty
 {
@@ -12,6 +15,34 @@ namespace LPS.Core.Rpc.RpcProperty
         public RpcDictionary() : base(new())
         {
             this.Children = new();
+        }
+
+        public override Any ToRpcArg()
+        {
+            IMessage? pbDictVal = null;
+            DictWithStringKeyArg? pbChildren = null;
+
+            if (this.Value.Count > 0)
+            {
+                pbDictVal = RpcHelper.RpcDictArgToProtoBuf(this.Value);
+            }
+
+            if (this.Children!.Count > 0)
+            {
+                pbChildren = new DictWithStringKeyArg();
+                
+                foreach (var (name, value) in this.Children)
+                {
+                    pbChildren.PayLoad.Add(name, value.ToRpcArg());
+                }
+            }
+            
+            var pbRpc = new DictWithStringKeyArg();
+            pbRpc.PayLoad.Add("value", pbDictVal == null ? Any.Pack(new NullArg()) : Any.Pack(pbDictVal));
+            pbRpc.PayLoad.Add("children", pbChildren == null ? Any.Pack(new NullArg()) : Any.Pack(pbChildren));
+
+            return Any.Pack(pbRpc);
+
         }
 
         public TV this[TK key]
@@ -50,7 +81,9 @@ namespace LPS.Core.Rpc.RpcProperty
                 }
             }
         }
-        
+
+        public int Count => this.Value.Count;
+
         // public void Clear() => this.Value.Clear();
         // public bool Remove(TK key) => this.Value.Remove(key);
     }

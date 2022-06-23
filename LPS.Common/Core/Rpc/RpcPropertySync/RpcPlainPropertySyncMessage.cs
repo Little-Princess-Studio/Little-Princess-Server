@@ -4,11 +4,11 @@ using LPS.Core.Rpc.RpcPropertySync;
 
 namespace LPS.Core.Ipc.SyncMessage
 {
-    public class RpcPlaintPropertySyncMessage : RpcPropertySyncMessage
+    public class RpcPlainPropertySyncMessage : RpcPropertySyncMessage
     {
         public RpcPropertyContainer Val;
 
-        public RpcPlaintPropertySyncMessage(MailBox mailbox, 
+        public RpcPlainPropertySyncMessage(MailBox mailbox, 
             RpcPropertySyncOperation operation,
             string rpcPropertyPath,
             RpcSyncPropertyType rpcSyncPropertyType) 
@@ -23,7 +23,7 @@ namespace LPS.Core.Ipc.SyncMessage
                 return false;
             }
 
-            this.Val = (otherMsg as RpcPlaintPropertySyncMessage)!.Val;
+            this.Val = (otherMsg as RpcPlainPropertySyncMessage)!.Val;
             return true;
         }
 
@@ -36,7 +36,7 @@ namespace LPS.Core.Ipc.SyncMessage
             }
             else
             {
-                (lastMsg as RpcPlaintPropertySyncMessage)!.Val = this.Val;
+                (lastMsg as RpcPlainPropertySyncMessage)!.Val = this.Val;
             }
         }
 

@@ -9,11 +9,11 @@ namespace LPS.Logic.Entity
     [EntityClass]
     public class Untrusted : ServerClientEntity
     {
-        public readonly RpcComplexProperty<RpcList<string>> RpcProp = 
-            new (nameof(Untrusted.RpcProp), RpcPropertySetting.Permanent, new RpcList<string>());
+        public readonly RpcComplexProperty<RpcList<string>> TestRpcProp = 
+            new (nameof(Untrusted.TestRpcProp), RpcPropertySetting.Permanent, new RpcList<string>());
 
-        public readonly RpcPlainProperty<string> RpcPlainPropStr = 
-            new (nameof(Untrusted.RpcPlainPropStr), RpcPropertySetting.Permanent, "");
+        public readonly RpcPlainProperty<string> TestRpcPlainPropStr = 
+            new (nameof(Untrusted.TestRpcPlainPropStr), RpcPropertySetting.Permanent, "");
         
         public Untrusted(string desc) : base(desc)
         {

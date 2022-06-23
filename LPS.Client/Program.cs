@@ -25,8 +25,8 @@ namespace LPS.Client
             RpcHelper.ScanRpcMethods("LPS.Client.Entity");
             CommandParser.ScanCommands("LPS.Client");
 
-            // Client.Instance.Init("127.0.0.1", 11001);
-            Client.Instance.Init("52.175.74.209", 11001);
+            Client.Instance.Init("127.0.0.1", 11001);
+            // Client.Instance.Init("52.175.74.209", 11001);
             Client.Instance.RegisterMessageHandler(PackageType.ClientCreateEntity, HandleClientCreateEntity);
             Client.Instance.RegisterMessageHandler(PackageType.EntityRpc, HandleEntityRpc);
 

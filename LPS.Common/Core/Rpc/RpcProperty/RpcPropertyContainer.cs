@@ -69,10 +69,7 @@ namespace LPS.Core.Rpc.RpcProperty
         }
 
         // public string ToJson();
-        public Google.Protobuf.WellKnownTypes.Any ToRpcArg()
-        {
-            return new Any();
-        }
+        public abstract Google.Protobuf.WellKnownTypes.Any ToRpcArg();
 
         // public abstract Google.Protobuf.WellKnownTypes.Any SerializeToRpcArg();
     }
@@ -113,6 +110,11 @@ namespace LPS.Core.Rpc.RpcProperty
                 container.IsProxyContainer = true;
                 container.Parent = parent;
             }
+        }
+
+        public override Any ToRpcArg()
+        {
+            throw new NotImplementedException();
         }
     }
 }

@@ -1,3 +1,4 @@
+using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
 using LPS.Core.Entity;
 using LPS.Core.Ipc.SyncMessage;
@@ -66,6 +67,8 @@ namespace LPS.Core.Rpc.RpcProperty
             Setting = setting;
             Value = value;
         }
+
+        public abstract IMessage ToProtobuf();
 
         public void OnChange(List<string> path, object oldVal, object newVal)
         {
@@ -177,6 +180,10 @@ namespace LPS.Core.Rpc.RpcProperty
         }
 
         public static implicit operator T(RpcComplexProperty<T> complex) => complex.Val;
+        public override Any ToProtobuf()
+        {
+            return this.Val.ToRpcArg();
+        }
     }
     
     public class RpcPlainProperty<T> : RpcProperty
@@ -200,7 +207,11 @@ namespace LPS.Core.Rpc.RpcProperty
             : this(setting, name, new RpcPropertyContainer<bool>(value))
         {
         }
-        
+
+        private RpcPlainProperty() : base("", RpcPropertySetting.None, null)
+        {
+        }
+
         private RpcPlainProperty(RpcPropertySetting setting, string name, RpcPropertyContainer value)
             : base(name, setting, value)
         {
@@ -225,6 +236,10 @@ namespace LPS.Core.Rpc.RpcProperty
         }
         
         public static implicit operator T(RpcPlainProperty<T> container) => container.Val;
+        public override IMessage ToProtobuf()
+        {
+            return RpcHelper.RpcArgToProtobuf(this.Val);
+        }
     }
 
     // public class ShadowRpcProperty<T> : RpcProperty

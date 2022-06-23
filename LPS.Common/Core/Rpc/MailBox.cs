@@ -30,7 +30,7 @@ namespace LPS.Core.Rpc
             return this.Id == other.ID;
         }
 
-        public bool CompareFull(MailBox other)
+        public readonly bool CompareFull(MailBox other)
         {
             return this.Id == other.Id
                 && this.Ip == other.Ip

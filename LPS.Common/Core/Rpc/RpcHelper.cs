@@ -8,6 +8,7 @@ using LPS.Core.Debug;
 using LPS.Core.Entity;
 using LPS.Core.Ipc;
 using LPS.Core.Rpc.InnerMessages;
+using LPS.Core.Rpc.RpcProperty;
 using Newtonsoft.Json;
 
 namespace LPS.Core.Rpc
@@ -18,7 +19,7 @@ namespace LPS.Core.Rpc
         public static readonly Dictionary<string, Type> EntityClassMap = new();
 
         public static readonly object?[] EmptyRes = {null};
-        
+
         public static MailBox PbMailBoxToRpcMailBox(InnerMessages.MailBox mb) =>
             new(mb.ID, mb.IP, (int) mb.Port, (int) mb.HostNum);
 
@@ -70,7 +71,7 @@ namespace LPS.Core.Rpc
             }
             catch (OperationCanceledException ex)
             {
-                Logger.Error(ex, $"IO Task canceled, socket will close.");
+                Logger.Error(ex, "IO Task canceled, socket will close.");
             }
             catch (Exception ex)
             {
@@ -217,15 +218,16 @@ namespace LPS.Core.Rpc
             {
                 return false;
             }
+
             var openType = tuple.GetGenericTypeDefinition();
             return openType == typeof(Tuple<>)
-                || openType == typeof(Tuple<,>)
-                || openType == typeof(Tuple<,,>)
-                || openType == typeof(Tuple<,,,>)
-                || openType == typeof(Tuple<,,,,>)
-                || openType == typeof(Tuple<,,,,,>)
-                || openType == typeof(Tuple<,,,,,,>)
-                || (openType == typeof(Tuple<,,,,,,,>) && IsTuple(tuple.GetGenericArguments()[7]));
+                   || openType == typeof(Tuple<,>)
+                   || openType == typeof(Tuple<,,>)
+                   || openType == typeof(Tuple<,,,>)
+                   || openType == typeof(Tuple<,,,,>)
+                   || openType == typeof(Tuple<,,,,,>)
+                   || openType == typeof(Tuple<,,,,,,>)
+                   || (openType == typeof(Tuple<,,,,,,,>) && IsTuple(tuple.GetGenericArguments()[7]));
         }
 
         private static bool IsValueTuple(Type tuple)
@@ -234,15 +236,16 @@ namespace LPS.Core.Rpc
             {
                 return false;
             }
+
             var openType = tuple.GetGenericTypeDefinition();
             return openType == typeof(ValueTuple<>)
-                || openType == typeof(ValueTuple<,>)
-                || openType == typeof(ValueTuple<,,>)
-                || openType == typeof(ValueTuple<,,,>)
-                || openType == typeof(ValueTuple<,,,,>)
-                || openType == typeof(ValueTuple<,,,,,>)
-                || openType == typeof(ValueTuple<,,,,,,>)
-                || (openType == typeof(ValueTuple<,,,,,,,>) && IsValueTuple(tuple.GetGenericArguments()[7]));
+                   || openType == typeof(ValueTuple<,>)
+                   || openType == typeof(ValueTuple<,,>)
+                   || openType == typeof(ValueTuple<,,,>)
+                   || openType == typeof(ValueTuple<,,,,>)
+                   || openType == typeof(ValueTuple<,,,,,>)
+                   || openType == typeof(ValueTuple<,,,,,,>)
+                   || (openType == typeof(ValueTuple<,,,,,,,>) && IsValueTuple(tuple.GetGenericArguments()[7]));
         }
 
         private static bool ValidateArgs(Type[] args) => args.Length == 0 || args.All(ValidateRpcType);
@@ -346,7 +349,94 @@ namespace LPS.Core.Rpc
             return msg;
         }
 
-        private static IMessage RpcDictArgToProtoBuf(object dict)
+        public static IMessage RpcContainerListToProtoBufAny<T>(RpcList<T> list)
+        {
+            if (list.Value.Count == 0)
+            {
+                return new NullArg();
+            }
+
+            var msg = new ListArg();
+            list.Value.ForEach(e => msg.PayLoad.Add(
+                Google.Protobuf.WellKnownTypes.Any.Pack(RpcArgToProtobuf(e.Value))
+            ));
+
+            return msg;
+        }
+
+        public static IMessage RpcContainerDictToProtoBufAny<TV>(RpcDictionary<int, TV> dict) where TK : notnull
+        {
+            if (dict.Value.Count == 0)
+            {
+                return new NullArg();
+            }
+            
+            var msg = new DictWithIntKeyArg();
+            
+            foreach (var (key, value) in dict.Value)
+            {
+                msg.PayLoad.Add(key, value.ToRpcArg());
+            }
+            
+            return msg;
+
+            // if (typeof(TK) == typeof(string))
+            // {
+            //     var msg = new DictWithStringKeyArg();
+            //
+            //     foreach (var (key, value) in dict.Value)
+            //     {
+            //         msg.PayLoad.Add((key as string)!, value.ToRpcArg());
+            //     }
+            //     
+            //     return msg;
+            // }
+            //
+            // if (typeof(TK) == typeof(int))
+            // {
+
+            // }
+            //
+            // if (IsValueTuple(typeof(TK)))
+            // {
+            //     var msg = new DictWithValueTupleKeyArg();
+            //     return msg;
+            // }
+
+            throw new Exception($"Wrong dict key type : {typeof(TK)}");
+        }
+        
+        public static IMessage RpcContainerDictToProtoBufAny<TV>(RpcDictionary<string, TV> dict) where TK : notnull
+        {
+            if (dict.Value.Count == 0)
+            {
+                return new NullArg();
+            }
+            
+            var msg = new DictWithStringKeyArg();
+            
+            foreach (var (key, value) in dict.Value)
+            {
+                msg.PayLoad.Add((key as string)!, value.ToRpcArg());
+            }
+            
+            return msg;
+            
+            // if (typeof(TK) == typeof(int))
+            // {
+
+            // }
+            //
+            // if (IsValueTuple(typeof(TK)))
+            // {
+            //     var msg = new DictWithValueTupleKeyArg();
+            //     return msg;
+            // }
+
+            throw new Exception($"Wrong dict key type : {typeof(TK)}");
+        }
+
+        public static IMessage RpcDictArgToProtoBuf(object dict)
         {
             var enumerable = (dict as IEnumerable)!;
             var kvList = enumerable.Cast<object>().ToList();
@@ -628,7 +718,7 @@ namespace LPS.Core.Rpc
             var sendRpcType = RpcType.ServerInside;
             if (entityRpc.RpcType == RpcType.ClientToServer)
             {
-                Logger.Info($"rpc call is from client, the result will be sent to client.");
+                Logger.Info("rpc call is from client, the result will be sent to client.");
                 sendRpcType = RpcType.ServerToClient;
             }
             else if (entityRpc.RpcType == RpcType.ServerToClient)
@@ -719,7 +809,8 @@ namespace LPS.Core.Rpc
             }
             else
             {
-                entity.SendWithRpcId(entityRpc.RpcID, PbMailBoxToRpcMailBox(senderMailBox), "OnResult", true, sendRpcType, res);
+                entity.SendWithRpcId(entityRpc.RpcID, PbMailBoxToRpcMailBox(senderMailBox), "OnResult", true,
+                    sendRpcType, res);
             }
         }
 
