@@ -79,12 +79,16 @@ public class TimeCircleUnitTest
     {
         var mailbox1 = new MailBox("test_id", "127.0.0.1", 88, 9999);
         var plaintMsg1 = new RpcPlaintPropertySyncMessage(mailbox1, RpcPropertySyncOperation.SetValue, "testpath",
-            RpcSyncPropertyType.Plaint);
-        plaintMsg1.Val = new RpcPropertyContainer<string>("1111");
+            RpcSyncPropertyType.Plaint)
+        {
+            Val = new RpcPropertyContainer<string>("1111")
+        };
 
         var plaintMsg2 = new RpcPlaintPropertySyncMessage(mailbox1, RpcPropertySyncOperation.SetValue, "testpath",
-            RpcSyncPropertyType.Plaint);
-        plaintMsg2.Val = new RpcPropertyContainer<string>("2222");
+            RpcSyncPropertyType.Plaint)
+        {
+            Val = new RpcPropertyContainer<string>("2222")
+        };
 
         timeCircle.AddPropertySyncMessage(
             plaintMsg1,
