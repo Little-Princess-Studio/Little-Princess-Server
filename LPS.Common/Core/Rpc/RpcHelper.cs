@@ -306,10 +306,8 @@ namespace LPS.Core.Rpc
 
         #region Rpc serialization
 
-        private static IMessage RpcValueTupleArgToProtoBuf(object tuple)
+        private static IMessage RpcValueTupleArgToProtoBuf(ITuple iTuple)
         {
-            var iTuple = (tuple as ITuple)!;
-
             var msg = new ValueTupleArg();
             for (int i = 0; i < iTuple.Length; ++i)
             {
@@ -319,10 +317,8 @@ namespace LPS.Core.Rpc
             return msg;
         }
 
-        private static IMessage RpcTupleArgToProtoBuf(object tuple)
+        private static IMessage RpcTupleArgToProtoBuf(ITuple iTuple)
         {
-            var iTuple = (tuple as ITuple)!;
-
             var msg = new TupleArg();
             for (int i = 0; i < iTuple.Length; ++i)
             {
@@ -332,9 +328,8 @@ namespace LPS.Core.Rpc
             return msg;
         }
 
-        private static IMessage RpcListArgToProtoBuf(object list)
+        private static IMessage RpcListArgToProtoBuf(IEnumerable enumerable)
         {
-            var enumerable = (list as IEnumerable)!;
             var elemList = enumerable.Cast<object>().ToList();
 
             if (elemList.Count == 0)
@@ -358,110 +353,99 @@ namespace LPS.Core.Rpc
 
             var msg = new ListArg();
             list.Value.ForEach(e => msg.PayLoad.Add(
-                Google.Protobuf.WellKnownTypes.Any.Pack(RpcArgToProtobuf(e.Value))
+                Google.Protobuf.WellKnownTypes.Any.Pack(e.ToRpcArg())
             ));
 
             return msg;
         }
 
-        public static IMessage RpcContainerDictToProtoBufAny<TV>(RpcDictionary<int, TV> dict) where TK : notnull
+        public static IMessage RpcContainerDictToProtoBufAny<TV>(RpcDictionary<int, TV> dict)
         {
             if (dict.Value.Count == 0)
             {
                 return new NullArg();
             }
-            
+
             var msg = new DictWithIntKeyArg();
-            
+
             foreach (var (key, value) in dict.Value)
             {
                 msg.PayLoad.Add(key, value.ToRpcArg());
             }
-            
+
             return msg;
-
-            // if (typeof(TK) == typeof(string))
-            // {
-            //     var msg = new DictWithStringKeyArg();
-            //
-            //     foreach (var (key, value) in dict.Value)
-            //     {
-            //         msg.PayLoad.Add((key as string)!, value.ToRpcArg());
-            //     }
-            //     
-            //     return msg;
-            // }
-            //
-            // if (typeof(TK) == typeof(int))
-            // {
-
-            // }
-            //
-            // if (IsValueTuple(typeof(TK)))
-            // {
-            //     var msg = new DictWithValueTupleKeyArg();
-            //     return msg;
-            // }
-
-            throw new Exception($"Wrong dict key type : {typeof(TK)}");
         }
-        
-        public static IMessage RpcContainerDictToProtoBufAny<TV>(RpcDictionary<string, TV> dict) where TK : notnull
+
+        public static IMessage RpcContainerDictToProtoBufAny<TV>(RpcDictionary<string, TV> dict)
         {
             if (dict.Value.Count == 0)
             {
                 return new NullArg();
             }
-            
+
             var msg = new DictWithStringKeyArg();
-            
+
             foreach (var (key, value) in dict.Value)
             {
-                msg.PayLoad.Add((key as string)!, value.ToRpcArg());
+                msg.PayLoad.Add(key, value.ToRpcArg());
             }
-            
+
             return msg;
-            
-            // if (typeof(TK) == typeof(int))
-            // {
-
-            // }
-            //
-            // if (IsValueTuple(typeof(TK)))
-            // {
-            //     var msg = new DictWithValueTupleKeyArg();
-            //     return msg;
-            // }
-
-            throw new Exception($"Wrong dict key type : {typeof(TK)}");
         }
 
-        public static IMessage RpcDictArgToProtoBuf(object dict)
+        public static IMessage RpcContainerDictToProtoBufAny<TK, TV>(RpcDictionary<TK, TV> dict) where TK : notnull
         {
-            var enumerable = (dict as IEnumerable)!;
-            var kvList = enumerable.Cast<object>().ToList();
+            if (IsValueTuple(typeof(TK)))
+            {
+                if (dict.Value.Count == 0)
+                {
+                    return new NullArg();
+                }
 
-            if (kvList.Count == 0)
+                var msg = new DictWithValueTupleKeyArg();
+                var containerDict = dict.Value;
+
+                foreach (var (key, value) in containerDict)
+                {
+                    var pair = new DictWithValueTupleKeyPair()
+                    {
+                        Key = Google.Protobuf.WellKnownTypes.Any.Pack(RpcValueTupleArgToProtoBuf((key as ITuple)!)),
+                        Value = value.ToRpcArg(),
+                    };
+                    
+                    msg.PayLoad.Add(pair);
+                }
+                
+                return msg;
+            }
+
+            throw new Exception($"Invalid dict key type : {typeof(TK)}");
+        }
+        
+        public static IMessage RpcDictArgToProtoBuf(IDictionary dict)
+        {
+            if (dict.Count == 0)
             {
                 return new NullArg();
             }
 
-            dynamic firstElem = kvList.First();
-            Type keyType = firstElem.Key.GetType();
+            var keysEnumerable = dict.Keys.Cast<object>();
+            var valuesEnumerable = dict.Values.Cast<object>();
+
+            var keys = keysEnumerable as object[] ?? keysEnumerable.ToArray();
+            var values = keysEnumerable as object[] ?? valuesEnumerable.ToArray();
+
+            var keyType = keys.First().GetType();
 
             if (keyType == typeof(int))
             {
-                var realDict = kvList.ToDictionary(
-                    kv => (int) ((dynamic) kv).Key,
-                    kv => (object) ((dynamic) kv).Value);
-
                 var msg = new DictWithIntKeyArg();
 
-                foreach (var pair in realDict)
+                for (int i = 0; i < keys.Length; i++)
                 {
                     msg.PayLoad.Add(
-                        pair.Key,
-                        Google.Protobuf.WellKnownTypes.Any.Pack(RpcArgToProtobuf(pair.Value)));
+                        (int) keys.ElementAt(i),
+                        Google.Protobuf.WellKnownTypes.Any.Pack(RpcArgToProtobuf(values.ElementAt(i))));
                 }
 
                 return msg;
@@ -469,17 +453,13 @@ namespace LPS.Core.Rpc
 
             if (keyType == typeof(string))
             {
-                var realDict = kvList.ToDictionary(
-                    kv => (string) ((dynamic) kv).Key,
-                    kv => (object) ((dynamic) kv).Value);
-
                 var msg = new DictWithStringKeyArg();
 
-                foreach (var pair in realDict)
+                for (int i = 0; i < keys.Length; i++)
                 {
                     msg.PayLoad.Add(
-                        pair.Key,
-                        Google.Protobuf.WellKnownTypes.Any.Pack(RpcArgToProtobuf(pair.Value)));
+                        (string) keys.ElementAt(i),
+                        Google.Protobuf.WellKnownTypes.Any.Pack(RpcArgToProtobuf(values.ElementAt(i))));
                 }
 
                 return msg;
@@ -487,16 +467,18 @@ namespace LPS.Core.Rpc
 
             if (IsValueTuple(keyType))
             {
-                var realKvList = kvList.Select(kv => new DictWithValueTupleKeyPair
-                {
-                    Key = Google.Protobuf.WellKnownTypes.Any.Pack(
-                        RpcValueTupleArgToProtoBuf((object) ((dynamic) kv).Key)),
-                    Value = Google.Protobuf.WellKnownTypes.Any.Pack(RpcArgToProtobuf((object) ((dynamic) kv).Value)),
-                });
-
                 var msg = new DictWithValueTupleKeyArg();
 
-                msg.PayLoad.Add(realKvList);
+                for (int i = 0; i < keys.Length; i++)
+                {
+                    var pair = new DictWithValueTupleKeyPair
+                    {
+                        Key = Google.Protobuf.WellKnownTypes.Any.Pack(RpcValueTupleArgToProtoBuf((keys.ElementAt(i) as ITuple)!)),
+                        Value = Google.Protobuf.WellKnownTypes.Any.Pack(RpcArgToProtobuf((values.ElementAt(i))))
+                    };
+                    
+                    msg.PayLoad.Add(pair);
+                }
 
                 return msg;
             }
@@ -522,13 +504,13 @@ namespace LPS.Core.Rpc
                 _ when type.IsDefined(typeof(RpcJsonTypeAttribute)) => new JsonArg
                     {PayLoad = JsonConvert.SerializeObject(obj)},
                 _ when type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Dictionary<,>) =>
-                    RpcDictArgToProtoBuf(obj),
+                    RpcDictArgToProtoBuf((obj as IDictionary)!),
                 _ when type.IsGenericType && type.GetGenericTypeDefinition() == typeof(List<>) =>
-                    RpcListArgToProtoBuf(obj),
+                    RpcListArgToProtoBuf((obj as IEnumerable)!),
                 _ when IsValueTuple(type) =>
-                    RpcValueTupleArgToProtoBuf(obj),
+                    RpcValueTupleArgToProtoBuf((obj as ITuple)!),
                 _ when IsTuple(type) =>
-                    RpcTupleArgToProtoBuf(obj),
+                    RpcTupleArgToProtoBuf((obj as ITuple)!),
                 _ => throw new Exception($"Invalid Rpc arg type: {type.Name}")
             };
         }

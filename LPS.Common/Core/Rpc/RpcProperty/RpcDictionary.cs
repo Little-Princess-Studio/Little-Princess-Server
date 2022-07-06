@@ -24,7 +24,7 @@ namespace LPS.Core.Rpc.RpcProperty
 
             if (this.Value.Count > 0)
             {
-                pbDictVal = RpcHelper.RpcDictArgToProtoBuf(this.Value);
+                pbDictVal = RpcHelper.RpcContainerDictToProtoBufAny(this);
             }
 
             if (this.Children!.Count > 0)
@@ -42,7 +42,6 @@ namespace LPS.Core.Rpc.RpcProperty
             pbRpc.PayLoad.Add("children", pbChildren == null ? Any.Pack(new NullArg()) : Any.Pack(pbChildren));
 
             return Any.Pack(pbRpc);
-
         }
 
         public TV this[TK key]
