@@ -52,13 +52,13 @@ namespace LPS.Core.Rpc.RpcProperty
         {
             if (this.GetType().IsDefined(typeof(RpcCostumePropertyContainerAttribute)))
             {
-                var rpcFields = this.GetType().GetFields()
+                var rpcFields = this.GetType().GetFields(BindingFlags.Public | BindingFlags.NonPublic)
                     .Where(field => field.IsDefined(typeof(RpcCostumePropertyAttribute))
                                     && field.FieldType.IsSubclassOf(typeof(RpcPropertyContainer)));
 
                 // build children
                 this.Children = new();
-                
+
                 foreach (var fieldInfo in rpcFields)
                 {
                     var prop = (fieldInfo.GetValue(this) as RpcPropertyContainer)!;
@@ -84,7 +84,7 @@ namespace LPS.Core.Rpc.RpcProperty
                 container.Parent = parent;
             }
         }
-        
+
         // public string ToJson();
         public abstract Any ToRpcArg();
     }
@@ -95,7 +95,7 @@ namespace LPS.Core.Rpc.RpcProperty
         {
             RpcGenericArgTypeCheckHelper.AssertIsValidValueType<T>();
         }
-        
+
         private T value_;
 
         public T Value
@@ -115,7 +115,7 @@ namespace LPS.Core.Rpc.RpcProperty
         }
 
         public static implicit operator T(RpcPropertyContainer<T> container) => container.Value;
-        public static implicit operator RpcPropertyContainer<T>(T value) => new (value);
+        public static implicit operator RpcPropertyContainer<T>(T value) => new(value);
 
         public RpcPropertyContainer(T initVal)
         {

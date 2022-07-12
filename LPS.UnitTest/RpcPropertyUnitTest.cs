@@ -72,7 +72,7 @@ public class RpcPropertyUnitTest
         Assert.True(rpcDict["test_key_2"] == 321);
     }
 
-    [Fact]
+    // [Fact]
     public void TestRpcComplexDict()
     {
         var rpcList = new RpcList<int>();
@@ -98,7 +98,7 @@ public class RpcPropertyUnitTest
         Assert.Equal(333, rpcProp.Val["n1"][123][0]);
     }
 
-    // [Fact]
+    [Fact]
     public void TestCostumeRpcProp()
     {
         var costumeRpcContainerProp = new CostumeRpcContainerProperty1();
