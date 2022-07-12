@@ -5,15 +5,36 @@
 using System.Diagnostics.CodeAnalysis;
 using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
+using LPS.Core.Ipc.SyncMessage;
 using LPS.Core.Rpc.InnerMessages;
+using LPS.Core.Rpc.Utils;
 
 namespace LPS.Core.Rpc.RpcProperty
 {
-    public class RpcDictionary<TK, TV> : RpcPropertyContainer<Dictionary<TK, RpcPropertyContainer<TV>>>
+    public class RpcDictionary<TK, TV> : RpcPropertyContainer
         where TK : notnull
     {
-        public RpcDictionary() : base(new())
+        private Dictionary<TK, RpcPropertyContainer<TV>> value_;
+
+        public Dictionary<TK, RpcPropertyContainer<TV>> Value
         {
+            get => value_;
+            set
+            {
+                ArgumentNullException.ThrowIfNull(value);
+                this.NotifyChange(RpcPropertySyncOperation.SetValue, this.Name!, old: value_!, value);
+                this.value_ = value;
+            }
+        }
+
+        static RpcDictionary()
+        {
+            RpcGenericArgTypeCheckHelper.AssertIsValidKeyType<TK>();
+        }
+
+        public RpcDictionary() : base()
+        {
+            this.value_ = new();
             this.Children = new();
         }
 
@@ -30,13 +51,13 @@ namespace LPS.Core.Rpc.RpcProperty
             if (this.Children!.Count > 0)
             {
                 pbChildren = new DictWithStringKeyArg();
-                
+
                 foreach (var (name, value) in this.Children)
                 {
                     pbChildren.PayLoad.Add(name, value.ToRpcArg());
                 }
             }
-            
+
             var pbRpc = new DictWithStringKeyArg();
             pbRpc.PayLoad.Add("value", pbDictVal == null ? Any.Pack(new NullArg()) : Any.Pack(pbDictVal));
             pbRpc.PayLoad.Add("children", pbChildren == null ? Any.Pack(new NullArg()) : Any.Pack(pbChildren));
@@ -60,8 +81,8 @@ namespace LPS.Core.Rpc.RpcProperty
                         container.IsReffered = false;
                     }
 
-                    this.Value[key].Value = value;
-                    this.NotifyChange(this.Value[key].Name!, old!, value);
+                    this.Value[key].SetWithoutNotify(value);
+                    this.NotifyChange(RpcPropertySyncOperation.UpdateDict, this.Value[key].Name!, old!, value);
                 }
                 else
                 {
@@ -71,20 +92,36 @@ namespace LPS.Core.Rpc.RpcProperty
                         Name = $"{key}",
                         IsReffered = true,
                     };
-                    
+
                     this.HandleIfContainer<TV>(newContainer, value);
                     this.Value[key] = newContainer;
-                    this.NotifyChange(this.Value[key].Name!, null, value);
-                    
+                    this.NotifyChange(RpcPropertySyncOperation.UpdateDict, newContainer.Name, null, value);
+
                     this.Children!.Add($"{key}", newContainer);
                 }
             }
         }
 
-        public int Count => this.Value.Count;
+        public void Remove(TK key)
+        {
+            var elem = this.Value[key];
+            elem.IsReffered = false;
+            elem.Parent = null;
+            elem.Name = string.Empty;
+            this.Value.Remove(key);
+            
+            this.NotifyChange(RpcPropertySyncOperation.RemoveElem, elem.Name, elem, null);
+        }
+        
+        public void Clear()
+        {
+            this.Value.Clear();
+            this.Children!.Clear();
+            
+            this.NotifyChange(RpcPropertySyncOperation.Clear, this.Name!, null, null);
+        }
 
-        // public void Clear() => this.Value.Clear();
-        // public bool Remove(TK key) => this.Value.Remove(key);
+        public int Count => this.Value.Count;
     }
 }
 

@@ -1,4 +1,5 @@
 using BenchmarkDotNet.Attributes;
+using Google.Protobuf.WellKnownTypes;
 using LPS.Core.Rpc.RpcProperty;
 
 namespace LPS.BenchMark;
@@ -14,6 +15,11 @@ internal class CostumeRpcContainerProperty2 : RpcPropertyContainer
         get => subFloatProperty_.Value;
         set => subFloatProperty_.Value = value;
     }
+
+    public override Any ToRpcArg()
+    {
+        throw new NotImplementedException();
+    }
 }
     
 [RpcCostumePropertyContainer]
@@ -23,6 +29,11 @@ internal class CostumeRpcContainerProperty1 : RpcPropertyContainer
     public readonly RpcList<string> SubListProperty = new();
     [RpcCostumePropertyAttribute]
     public readonly CostumeRpcContainerProperty2 SubCostumerContainerRpcContainerProperty = new();
+
+    public override Any ToRpcArg()
+    {
+        throw new NotImplementedException();
+    }
 }
 
 internal class NativeProperty2

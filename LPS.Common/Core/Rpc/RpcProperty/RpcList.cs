@@ -1,14 +1,29 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
+using LPS.Core.Ipc.SyncMessage;
 using LPS.Core.Rpc.InnerMessages;
+using LPS.Core.Rpc.Utils;
 
 namespace LPS.Core.Rpc.RpcProperty
 {
-    public class RpcList<TElem> : RpcPropertyContainer<List<RpcPropertyContainer<TElem>>>
+    public class RpcList<TElem> : RpcPropertyContainer
     {
-        public RpcList(): base(new List<RpcPropertyContainer<TElem>>())
+        private List<RpcPropertyContainer<TElem>> value_;
+        public List<RpcPropertyContainer<TElem>> Value
         {
+            get => value_;
+            set
+            {
+                ArgumentNullException.ThrowIfNull(value);
+                this.NotifyChange(RpcPropertySyncOperation.SetValue, this.Name, old: value_!, value);
+                this.value_ = value;
+            }
+        }
+        
+        public RpcList()
+        {
+            this.value_ = new List<RpcPropertyContainer<TElem>>();
             this.Children = new();
         }
 
@@ -38,9 +53,11 @@ namespace LPS.Core.Rpc.RpcProperty
             return Any.Pack(pbRpc);
         }
 
-        public RpcList(int size, [DisallowNull] TElem defaultVal): base(new List<RpcPropertyContainer<TElem>>(size))
+        public RpcList(int size, [DisallowNull] TElem defaultVal)
         {
             ArgumentNullException.ThrowIfNull(defaultVal);
+
+            this.value_ = new List<RpcPropertyContainer<TElem>>(size);
             
             this.Children = new();
 
@@ -65,15 +82,15 @@ namespace LPS.Core.Rpc.RpcProperty
             var newContainer = new RpcPropertyContainer<TElem>(elem)
             {
                 Parent = this,
-                Name = $"{Value.Count}",
+                Name = $"{this.Value.Count}",
                 IsReffered = true,
             };
             
             this.HandleIfContainer<TElem>(newContainer, elem);
             this.Value.Add(newContainer);
-            this.NotifyChange(newContainer.Name, null, elem);
+            this.NotifyChange(RpcPropertySyncOperation.AddListElem, newContainer.Name, null, elem);
             
-            this.Children!.Add($"{this.Value.Count - 1}", newContainer);
+            this.Children!.Add(newContainer.Name, newContainer);
         }
 
         public void RemoveAt(int index)
@@ -83,6 +100,33 @@ namespace LPS.Core.Rpc.RpcProperty
             elem.Parent = null;
             elem.Name = string.Empty;
             this.Value.RemoveAt(index);
+            
+            this.NotifyChange(RpcPropertySyncOperation.RemoveElem, elem.Name, elem, null);
+        }
+
+        public void InsertAt(int index, [DisallowNull] TElem elem)
+        {
+            ArgumentNullException.ThrowIfNull(elem);
+            var newContainer = new RpcPropertyContainer<TElem>(elem)
+            {
+                Parent = this,
+                Name = $"{index}",
+                IsReffered = true,
+            };
+            
+            this.HandleIfContainer<TElem>(newContainer, elem);
+            this.Value.Insert(index, newContainer);
+            this.NotifyChange(RpcPropertySyncOperation.InsertElem, newContainer.Name, null, elem);
+            
+            this.Children!.Add(newContainer.Name, newContainer);
+        }
+
+        public void Clear()
+        {
+            this.Value.Clear();
+            this.Children!.Clear();
+            
+            this.NotifyChange(RpcPropertySyncOperation.Clear, this.Name!, null, null);
         }
 
         public int Count => this.Value.Count;
@@ -101,8 +145,8 @@ namespace LPS.Core.Rpc.RpcProperty
                     oldContainer.IsReffered = false;
                 }
 
-                this.Value[index].Value = value;
-                this.NotifyChange(this.Value[index].Name!, old, value);
+                this.Value[index].SetWithoutNotify(value);
+                this.NotifyChange(RpcPropertySyncOperation.SetValue, this.Value[index].Name!, old, value);
             }
         }
     }

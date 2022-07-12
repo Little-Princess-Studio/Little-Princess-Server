@@ -1,5 +1,6 @@
 using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
+using LPS.Core.Debug;
 using LPS.Core.Entity;
 using LPS.Core.Ipc.SyncMessage;
 using LPS.Core.Rpc.InnerMessages;
@@ -70,7 +71,12 @@ namespace LPS.Core.Rpc.RpcProperty
 
         public abstract IMessage ToProtobuf();
 
-        public void OnChange(List<string> path, object oldVal, object newVal)
+        public void OnNotify(RpcPropertySyncOperation operation, List<string> path, object? old, object? @new)
+        {
+            Console.WriteLine($"[OnNotify] {operation}, {string.Join(".", path)}, {old} -> {@new}");
+        }
+
+        public void OnChange(List<string> path, object? oldVal, object? newVal)
         {
             // var syncRpc = new PropertySync();
             //
@@ -82,95 +88,29 @@ namespace LPS.Core.Rpc.RpcProperty
             // syncRpc.SyncType = (uint)RpcPropertySyncOperation.SetValue;
             // syncRpc.SyncArg = (Any)RpcHelper.RpcArgToProtobuf(newVal);
         }
-
-        public void OnListAdd(List<string> path, object val)
-        {
-            // var syncRpc = new PropertySync();
-            //
-            // foreach (var p in path)
-            // {
-            //     syncRpc.Path.Add(p);
-            // }
-            //
-            // syncRpc.SyncType = (uint)RpcPropertySyncOperation.AddListElem;
-            // syncRpc.SyncArg = (Any)RpcHelper.RpcArgToProtobuf(val);
-        }
-
-        public void OnDictUpdate(List<string> path, object val)
-        {
-            // var syncRpc = new PropertySync();
-            //
-            // foreach (var p in path)
-            // {
-            //     syncRpc.Path.Add(p);
-            // }
-            //
-            // syncRpc.SyncType = (uint)RpcPropertySyncOperation.AddListElem;
-            // syncRpc.SyncArg = (Any)RpcHelper.RpcArgToProtobuf(val);
-        }
-        
-        public void OnClear(List<string> path)
-        {
-            // var syncRpc = new PropertySync();
-            //
-            // foreach (var p in path)
-            // {
-            //     syncRpc.Path.Add(p);
-            // }
-            //
-            // syncRpc.SyncType = (uint)RpcPropertySyncOperation.Clear;
-            // syncRpc.SyncArg = (Any)RpcHelper.RpcArgToProtobuf(null);
-        }
-
-        public void OnInsert(List<string> path, object val)
-        {
-            // var syncRpc = new PropertySync();
-            //
-            // foreach (var p in path)
-            // {
-            //     syncRpc.Path.Add(p);
-            // }
-            //
-            // syncRpc.SyncType = (uint)RpcPropertySyncOperation.InsertElem;
-            // syncRpc.SyncArg = (Any)RpcHelper.RpcArgToProtobuf(val);
-        }
-        
-        public void OnRemove(List<string> path)
-        {
-            // var syncRpc = new PropertySync();
-            //
-            // foreach (var p in path)
-            // {
-            //     syncRpc.Path.Add(p);
-            // }
-            //
-            // syncRpc.SyncType = (uint)RpcPropertySyncOperation.RemoveElem;
-            // syncRpc.SyncArg = (Any)RpcHelper.RpcArgToProtobuf(null);
-        }
     }
 
     public class RpcComplexProperty<T> : RpcProperty
-        where T: RpcPropertyContainer
+        where T : RpcPropertyContainer
     {
-        public RpcComplexProperty(string name, RpcPropertySetting setting, T value) 
+        public RpcComplexProperty(string name, RpcPropertySetting setting, T value)
             : base(name, setting, value)
         {
             this.Value.Owner = this;
             this.Value.Name = name;
             this.Value.IsReffered = true;
         }
-        
+
         public void Set(T value)
         {
-            var container = ((RpcPropertyContainer<T>)this.Value);
-            container.Value.IsReffered = false;
+            var container = ((RpcPropertyContainer<T>) this.Value);
             container.Value = value;
             container.Value.IsReffered = true;
         }
 
         public T Get()
         {
-            return (T)this.Value;
+            return (T) this.Value;
         }
 
         public T Val
@@ -180,12 +120,13 @@ namespace LPS.Core.Rpc.RpcProperty
         }
 
         public static implicit operator T(RpcComplexProperty<T> complex) => complex.Val;
+
         public override Any ToProtobuf()
         {
             return this.Val.ToRpcArg();
         }
     }
-    
+
     public class RpcPlainProperty<T> : RpcProperty
     {
         public RpcPlainProperty(string name, RpcPropertySetting setting, string value)
@@ -197,14 +138,19 @@ namespace LPS.Core.Rpc.RpcProperty
             : this(setting, name, new RpcPropertyContainer<int>(value))
         {
         }
-        
+
         public RpcPlainProperty(string name, RpcPropertySetting setting, float value)
             : this(setting, name, new RpcPropertyContainer<float>(value))
         {
         }
-        
+
         public RpcPlainProperty(string name, RpcPropertySetting setting, bool value)
             : this(setting, name, new RpcPropertyContainer<bool>(value))
+        {
+        }
+
+        public RpcPlainProperty(string name, RpcPropertySetting setting, MailBox value)
+            : this(setting, name, new RpcPropertyContainer<MailBox>(value))
         {
         }
 
@@ -221,12 +167,12 @@ namespace LPS.Core.Rpc.RpcProperty
 
         public void Set(T value)
         {
-            ((RpcPropertyContainer<T>)this.Value).Value = value;
+            ((RpcPropertyContainer<T>) this.Value).Value = value;
         }
 
         public T Get()
         {
-            return (RpcPropertyContainer<T>)this.Value;
+            return (RpcPropertyContainer<T>) this.Value;
         }
 
         public T Val
@@ -234,8 +180,9 @@ namespace LPS.Core.Rpc.RpcProperty
             get => Get();
             set => Set(value);
         }
-        
+
         public static implicit operator T(RpcPlainProperty<T> container) => container.Val;
+
         public override IMessage ToProtobuf()
         {
             return RpcHelper.RpcArgToProtobuf(this.Val);

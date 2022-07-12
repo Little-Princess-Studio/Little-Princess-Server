@@ -212,7 +212,7 @@ namespace LPS.Core.Rpc
             );
         }
 
-        private static bool IsTuple(Type tuple)
+        public static bool IsTuple(Type tuple)
         {
             if (!tuple.IsGenericType)
             {
@@ -230,7 +230,7 @@ namespace LPS.Core.Rpc
                    || (openType == typeof(Tuple<,,,,,,,>) && IsTuple(tuple.GetGenericArguments()[7]));
         }
 
-        private static bool IsValueTuple(Type tuple)
+        public static bool IsValueTuple(Type tuple)
         {
             if (!tuple.IsGenericType)
             {

@@ -1,6 +1,8 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using Google.Protobuf.WellKnownTypes;
+using LPS.Core.Ipc.SyncMessage;
+using LPS.Core.Rpc.Utils;
 
 namespace LPS.Core.Rpc.RpcProperty
 {
@@ -23,13 +25,13 @@ namespace LPS.Core.Rpc.RpcProperty
         public bool IsReffered { get; set; }
         public Dictionary<string, RpcPropertyContainer>? Children { get; set; }
 
-        protected void NotifyChange(string name, object old, object @new)
+        protected void NotifyChange(RpcPropertySyncOperation operation, string name, object? old, object? @new)
         {
             var pathList = new List<string> {name};
-            this.NotifyChange(pathList, old, @new);
+            this.NotifyChange(operation, pathList, old, @new);
         }
 
-        protected void NotifyChange(List<string> path, object old, object @new)
+        protected void NotifyChange(RpcPropertySyncOperation operation, List<string> path, object? old, object? @new)
         {
             if (!IsProxyContainer)
             {
@@ -38,11 +40,11 @@ namespace LPS.Core.Rpc.RpcProperty
 
             if (this.Owner != null)
             {
-                this.Owner.OnChange(path, old, @new);
+                this.Owner.OnNotify(operation, path, old, @new);
             }
             else
             {
-                this.Parent?.NotifyChange(path, old, @new);
+                this.Parent?.NotifyChange(operation, path, old, @new);
             }
         }
 
@@ -68,35 +70,6 @@ namespace LPS.Core.Rpc.RpcProperty
             }
         }
 
-        // public string ToJson();
-        public abstract Google.Protobuf.WellKnownTypes.Any ToRpcArg();
-
-        // public abstract Google.Protobuf.WellKnownTypes.Any SerializeToRpcArg();
-    }
-
-    public class RpcPropertyContainer<T> : RpcPropertyContainer
-    {
-        private T value_;
-
-        public T Value
-        {
-            get => value_;
-            set
-            {
-                ArgumentNullException.ThrowIfNull(value);
-                this.NotifyChange(this.Name, old: value_!, value);
-                this.value_ = value;
-            }
-        }
-
-        public static implicit operator T(RpcPropertyContainer<T> container) => container.Value;
-        public static implicit operator RpcPropertyContainer<T>(T value) => new (value);
-
-        public RpcPropertyContainer(T initVal)
-        {
-            value_ = initVal;
-        }
-        
         protected void HandleIfContainer<TT>(RpcPropertyContainer parent, [DisallowNull] TT value)
         {
             if (value is RpcPropertyContainer container)
@@ -110,6 +83,43 @@ namespace LPS.Core.Rpc.RpcProperty
                 container.IsProxyContainer = true;
                 container.Parent = parent;
             }
+        }
+        
+        // public string ToJson();
+        public abstract Any ToRpcArg();
+    }
+
+    public class RpcPropertyContainer<T> : RpcPropertyContainer
+    {
+        static RpcPropertyContainer()
+        {
+            RpcGenericArgTypeCheckHelper.AssertIsValidValueType<T>();
+        }
+        
+        private T value_;
+
+        public T Value
+        {
+            get => value_;
+            set
+            {
+                ArgumentNullException.ThrowIfNull(value);
+                this.NotifyChange(RpcPropertySyncOperation.SetValue, this.Name, old: value_!, value);
+                this.value_ = value;
+            }
+        }
+
+        public void SetWithoutNotify(T v)
+        {
+            this.value_ = v;
+        }
+
+        public static implicit operator T(RpcPropertyContainer<T> container) => container.Value;
+        public static implicit operator RpcPropertyContainer<T>(T value) => new (value);
+
+        public RpcPropertyContainer(T initVal)
+        {
+            value_ = initVal;
         }
 
         public override Any ToRpcArg()
