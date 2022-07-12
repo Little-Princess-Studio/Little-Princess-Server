@@ -25,14 +25,18 @@ namespace LPS.Core.Rpc.InnerMessages {
       byte[] descriptorData = global::System.Convert.FromBase64String(
           string.Concat(
             "ChNwcm9wZXJ0eV9zeW5jLnByb3RvEhpMUFMuQ29yZS5ScGMuSW5uZXJNZXNz",
-            "YWdlcxoNbWFpbGJveC5wcm90bxoZZ29vZ2xlL3Byb3RvYnVmL2FueS5wcm90",
-            "byKRAQoMUHJvcGVydHlTeW5jEhAKCFN5bmNUeXBlGAEgASgNEjoKDUVudGl0",
-            "eU1haWxCb3gYAiABKAsyIy5MUFMuQ29yZS5ScGMuSW5uZXJNZXNzYWdlcy5N",
-            "YWlsQm94EgwKBFBhdGgYAyADKAkSJQoHU3luY0FyZxgEIAEoCzIULmdvb2ds",
-            "ZS5wcm90b2J1Zi5BbnliBnByb3RvMw=="));
+            "YWdlcxoNbWFpbGJveC5wcm90bxoQZW50aXR5X3JwYy5wcm90bxoZZ29vZ2xl",
+            "L3Byb3RvYnVmL2FueS5wcm90byJ6ChBQcm9wZXJ0eUZ1bGxTeW5jEjoKDUVu",
+            "dGl0eU1haWxCb3gYASABKAsyIy5MUFMuQ29yZS5ScGMuSW5uZXJNZXNzYWdl",
+            "cy5NYWlsQm94EioKDFByb3BlcnR5VHJlZRgCIAEoCzIULmdvb2dsZS5wcm90",
+            "b2J1Zi5BbnkikQEKDFByb3BlcnR5U3luYxIQCghTeW5jVHlwZRgBIAEoDRI6",
+            "Cg1FbnRpdHlNYWlsQm94GAIgASgLMiMuTFBTLkNvcmUuUnBjLklubmVyTWVz",
+            "c2FnZXMuTWFpbEJveBIMCgRQYXRoGAMgAygJEiUKB1N5bmNBcmcYBCABKAsy",
+            "FC5nb29nbGUucHJvdG9idWYuQW55YgZwcm90bzM="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
-          new pbr::FileDescriptor[] { global::LPS.Core.Rpc.InnerMessages.MailboxReflection.Descriptor, global::Google.Protobuf.WellKnownTypes.AnyReflection.Descriptor, },
+          new pbr::FileDescriptor[] { global::LPS.Core.Rpc.InnerMessages.MailboxReflection.Descriptor, global::LPS.Core.Rpc.InnerMessages.EntityRpcReflection.Descriptor, global::Google.Protobuf.WellKnownTypes.AnyReflection.Descriptor, },
           new pbr::GeneratedClrTypeInfo(null, null, new pbr::GeneratedClrTypeInfo[] {
+            new pbr::GeneratedClrTypeInfo(typeof(global::LPS.Core.Rpc.InnerMessages.PropertyFullSync), global::LPS.Core.Rpc.InnerMessages.PropertyFullSync.Parser, new[]{ "EntityMailBox", "PropertyTree" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::LPS.Core.Rpc.InnerMessages.PropertySync), global::LPS.Core.Rpc.InnerMessages.PropertySync.Parser, new[]{ "SyncType", "EntityMailBox", "Path", "SyncArg" }, null, null, null, null)
           }));
     }
@@ -40,6 +44,250 @@ namespace LPS.Core.Rpc.InnerMessages {
 
   }
   #region Messages
+  public sealed partial class PropertyFullSync : pb::IMessage<PropertyFullSync>
+  #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      , pb::IBufferMessage
+  #endif
+  {
+    private static readonly pb::MessageParser<PropertyFullSync> _parser = new pb::MessageParser<PropertyFullSync>(() => new PropertyFullSync());
+    private pb::UnknownFieldSet _unknownFields;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static pb::MessageParser<PropertyFullSync> Parser { get { return _parser; } }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static pbr::MessageDescriptor Descriptor {
+      get { return global::LPS.Core.Rpc.InnerMessages.PropertySyncReflection.Descriptor.MessageTypes[0]; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    pbr::MessageDescriptor pb::IMessage.Descriptor {
+      get { return Descriptor; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public PropertyFullSync() {
+      OnConstruction();
+    }
+
+    partial void OnConstruction();
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public PropertyFullSync(PropertyFullSync other) : this() {
+      entityMailBox_ = other.entityMailBox_ != null ? other.entityMailBox_.Clone() : null;
+      propertyTree_ = other.propertyTree_ != null ? other.propertyTree_.Clone() : null;
+      _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public PropertyFullSync Clone() {
+      return new PropertyFullSync(this);
+    }
+
+    /// <summary>Field number for the "EntityMailBox" field.</summary>
+    public const int EntityMailBoxFieldNumber = 1;
+    private global::LPS.Core.Rpc.InnerMessages.MailBox entityMailBox_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public global::LPS.Core.Rpc.InnerMessages.MailBox EntityMailBox {
+      get { return entityMailBox_; }
+      set {
+        entityMailBox_ = value;
+      }
+    }
+
+    /// <summary>Field number for the "PropertyTree" field.</summary>
+    public const int PropertyTreeFieldNumber = 2;
+    private global::Google.Protobuf.WellKnownTypes.Any propertyTree_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public global::Google.Protobuf.WellKnownTypes.Any PropertyTree {
+      get { return propertyTree_; }
+      set {
+        propertyTree_ = value;
+      }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override bool Equals(object other) {
+      return Equals(other as PropertyFullSync);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool Equals(PropertyFullSync other) {
+      if (ReferenceEquals(other, null)) {
+        return false;
+      }
+      if (ReferenceEquals(other, this)) {
+        return true;
+      }
+      if (!object.Equals(EntityMailBox, other.EntityMailBox)) return false;
+      if (!object.Equals(PropertyTree, other.PropertyTree)) return false;
+      return Equals(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override int GetHashCode() {
+      int hash = 1;
+      if (entityMailBox_ != null) hash ^= EntityMailBox.GetHashCode();
+      if (propertyTree_ != null) hash ^= PropertyTree.GetHashCode();
+      if (_unknownFields != null) {
+        hash ^= _unknownFields.GetHashCode();
+      }
+      return hash;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override string ToString() {
+      return pb::JsonFormatter.ToDiagnosticString(this);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void WriteTo(pb::CodedOutputStream output) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      output.WriteRawMessage(this);
+    #else
+      if (entityMailBox_ != null) {
+        output.WriteRawTag(10);
+        output.WriteMessage(EntityMailBox);
+      }
+      if (propertyTree_ != null) {
+        output.WriteRawTag(18);
+        output.WriteMessage(PropertyTree);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(output);
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
+      if (entityMailBox_ != null) {
+        output.WriteRawTag(10);
+        output.WriteMessage(EntityMailBox);
+      }
+      if (propertyTree_ != null) {
+        output.WriteRawTag(18);
+        output.WriteMessage(PropertyTree);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(ref output);
+      }
+    }
+    #endif
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public int CalculateSize() {
+      int size = 0;
+      if (entityMailBox_ != null) {
+        size += 1 + pb::CodedOutputStream.ComputeMessageSize(EntityMailBox);
+      }
+      if (propertyTree_ != null) {
+        size += 1 + pb::CodedOutputStream.ComputeMessageSize(PropertyTree);
+      }
+      if (_unknownFields != null) {
+        size += _unknownFields.CalculateSize();
+      }
+      return size;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void MergeFrom(PropertyFullSync other) {
+      if (other == null) {
+        return;
+      }
+      if (other.entityMailBox_ != null) {
+        if (entityMailBox_ == null) {
+          EntityMailBox = new global::LPS.Core.Rpc.InnerMessages.MailBox();
+        }
+        EntityMailBox.MergeFrom(other.EntityMailBox);
+      }
+      if (other.propertyTree_ != null) {
+        if (propertyTree_ == null) {
+          PropertyTree = new global::Google.Protobuf.WellKnownTypes.Any();
+        }
+        PropertyTree.MergeFrom(other.PropertyTree);
+      }
+      _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void MergeFrom(pb::CodedInputStream input) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      input.ReadRawMessage(this);
+    #else
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+        switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
+            break;
+          case 10: {
+            if (entityMailBox_ == null) {
+              EntityMailBox = new global::LPS.Core.Rpc.InnerMessages.MailBox();
+            }
+            input.ReadMessage(EntityMailBox);
+            break;
+          }
+          case 18: {
+            if (propertyTree_ == null) {
+              PropertyTree = new global::Google.Protobuf.WellKnownTypes.Any();
+            }
+            input.ReadMessage(PropertyTree);
+            break;
+          }
+        }
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+        switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
+            break;
+          case 10: {
+            if (entityMailBox_ == null) {
+              EntityMailBox = new global::LPS.Core.Rpc.InnerMessages.MailBox();
+            }
+            input.ReadMessage(EntityMailBox);
+            break;
+          }
+          case 18: {
+            if (propertyTree_ == null) {
+              PropertyTree = new global::Google.Protobuf.WellKnownTypes.Any();
+            }
+            input.ReadMessage(PropertyTree);
+            break;
+          }
+        }
+      }
+    }
+    #endif
+
+  }
+
   public sealed partial class PropertySync : pb::IMessage<PropertySync>
   #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       , pb::IBufferMessage
@@ -54,7 +302,7 @@ namespace LPS.Core.Rpc.InnerMessages {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::LPS.Core.Rpc.InnerMessages.PropertySyncReflection.Descriptor.MessageTypes[0]; }
+      get { return global::LPS.Core.Rpc.InnerMessages.PropertySyncReflection.Descriptor.MessageTypes[1]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]

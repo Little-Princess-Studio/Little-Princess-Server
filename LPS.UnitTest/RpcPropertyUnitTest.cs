@@ -6,10 +6,10 @@ namespace LPS.UnitTest;
 
 public class RpcPropertyUnitTest
 {
-    [RpcCostumePropertyContainerAttribute]
+    [RpcCostumePropertyContainer]
     private class CostumeRpcContainerProperty2 : RpcPropertyContainer
     {
-        [RpcCostumePropertyAttribute] 
+        [RpcCostumeProperty] 
         private readonly RpcPropertyContainer<float> subFloatProperty_ = 0.0f;
 
         public float SubFloatProperty
@@ -24,12 +24,12 @@ public class RpcPropertyUnitTest
         }
     }
     
-    [RpcCostumePropertyContainerAttribute]
+    [RpcCostumePropertyContainer]
     private class CostumeRpcContainerProperty1 : RpcPropertyContainer
     {
-        [RpcCostumePropertyAttribute]
+        [RpcCostumeProperty]
         public readonly RpcList<string> SubListProperty = new();
-        [RpcCostumePropertyAttribute]
+        [RpcCostumeProperty]
         public readonly CostumeRpcContainerProperty2 SubCostumerContainerRpcContainerProperty = new();
 
         public override Any ToRpcArg()
@@ -38,7 +38,7 @@ public class RpcPropertyUnitTest
         }
     }
 
-    // [Fact]
+    [Fact]
     public void TestRpcList()
     {
         RpcComplexProperty<RpcList<string>> rpcProp = new ("test_list_prop", RpcPropertySetting.Permanent, new RpcList<string>());
@@ -51,7 +51,7 @@ public class RpcPropertyUnitTest
         Assert.True(rpcProp.Val[1] == "456");
     }
 
-    // [Fact]
+    [Fact]
     public void TestRpcString()
     {
         RpcPlainProperty<string> rpcPlainStrProp = new("test_str_prop", RpcPropertySetting.Permanent, "");
@@ -59,7 +59,7 @@ public class RpcPropertyUnitTest
         Assert.True(rpcPlainStrProp.Val == "321");
     }
 
-    // [Fact]
+    [Fact]
     public void TestRpcDict()
     {
         RpcComplexProperty<RpcDictionary<string, int>> rpcProp = new("test_dict_prop", RpcPropertySetting.ClientOwn, new RpcDictionary<string, int>());
@@ -98,7 +98,7 @@ public class RpcPropertyUnitTest
         Assert.Equal(333, rpcProp.Val["n1"][123][0]);
     }
 
-    // [Fact]
+    [Fact]
     public void TestCostumeRpcProp()
     {
         var costumeRpcContainerProp = new CostumeRpcContainerProperty1();
