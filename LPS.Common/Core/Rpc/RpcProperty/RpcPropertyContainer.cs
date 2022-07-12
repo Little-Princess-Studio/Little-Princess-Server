@@ -57,7 +57,7 @@ namespace LPS.Core.Rpc.RpcProperty
                                     && field.FieldType.IsSubclassOf(typeof(RpcPropertyContainer)));
 
                 // build children
-                this.Children = new();
+                this.Children = new Dictionary<string, RpcPropertyContainer>();
 
                 foreach (var fieldInfo in rpcFields)
                 {
@@ -70,7 +70,7 @@ namespace LPS.Core.Rpc.RpcProperty
             }
         }
 
-        protected void HandleIfContainer<TT>(RpcPropertyContainer parent, [DisallowNull] TT value)
+        protected static void HandleIfContainer<TT>(RpcPropertyContainer parent, [DisallowNull] TT value)
         {
             if (value is RpcPropertyContainer container)
             {

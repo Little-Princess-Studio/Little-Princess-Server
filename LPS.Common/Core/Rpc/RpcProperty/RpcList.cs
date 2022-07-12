@@ -68,7 +68,7 @@ namespace LPS.Core.Rpc.RpcProperty
                     Name = "${i}",
                 };
 
-                this.HandleIfContainer<TElem>(newContainer, defaultVal);
+                HandleIfContainer(newContainer, defaultVal);
                 this.Value[i] = newContainer;
                 
                 this.Children.Add($"{i}", newContainer);
@@ -85,7 +85,7 @@ namespace LPS.Core.Rpc.RpcProperty
                 IsReffered = true,
             };
             
-            this.HandleIfContainer<TElem>(newContainer, elem);
+            HandleIfContainer(newContainer, elem);
             this.Value.Add(newContainer);
             this.NotifyChange(RpcPropertySyncOperation.AddListElem, newContainer.Name, null, elem);
             
@@ -113,7 +113,7 @@ namespace LPS.Core.Rpc.RpcProperty
                 IsReffered = true,
             };
             
-            this.HandleIfContainer<TElem>(newContainer, elem);
+            HandleIfContainer(newContainer, elem);
             this.Value.Insert(index, newContainer);
             this.NotifyChange(RpcPropertySyncOperation.InsertElem, newContainer.Name, null, elem);
             
@@ -136,7 +136,7 @@ namespace LPS.Core.Rpc.RpcProperty
             set
             {
                 ArgumentNullException.ThrowIfNull(value);
-                this.HandleIfContainer<TElem>(this.Value[index], value);
+                HandleIfContainer(this.Value[index], value);
 
                 var old = this.Value[index].Value!;
                 if (old is RpcPropertyContainer oldContainer)

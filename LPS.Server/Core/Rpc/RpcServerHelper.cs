@@ -1,14 +1,42 @@
 using System;
 using System.Collections.Generic;
-using System.Threading.Tasks;
+using System.Linq;
+using System.Reflection;
 using LPS.Core.Entity;
-using NLog.LayoutRenderers.Wrappers;
+using LPS.Core.Rpc.RpcProperty;
 
 namespace LPS.Core.Rpc
 {
     public static class RpcServerHelper
     {
         private static Dictionary<string, Type> EntityClassMap => RpcHelper.EntityClassMap;
+
+        private static void BuildPropertyTree(BaseEntity entity)
+        {
+            var type = entity.GetType();
+            var tree = type.GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
+                .Where(field =>
+                {
+                    var fieldType = field.GetType();
+
+                    if (!fieldType.IsGenericType)
+                    {
+                        return false;
+                    }
+
+                    if (fieldType.GetGenericTypeDefinition() != typeof(RpcPlainProperty<>)
+                        && fieldType.GetGenericTypeDefinition() != typeof(RpcComplexProperty<>))
+                    {
+                        return false;
+                    }
+
+                    return true;
+                }).ToDictionary(
+                    field => (field.GetValue(entity) as RpcProperty.RpcProperty)!.Name,
+                    field => (field.GetValue(entity) as RpcProperty.RpcProperty)!);
+            
+            entity.SetPropertyTree(tree);
+        }
 
         public static DistributeEntity CreateEntityLocally(string entityClassName, string desc)
         {
@@ -18,10 +46,14 @@ namespace LPS.Core.Rpc
                 if (entityClass.IsSubclassOf(typeof(DistributeEntity)))
                 {
                     var obj = (Activator.CreateInstance(entityClass, desc) as DistributeEntity)!;
+                    BuildPropertyTree(obj);
                     return obj;
                 }
-                throw new Exception($"Invalid class {entityClassName}, only DistributeEntity and its subclass can be created by CreateEntityLocally.");
+
+                throw new Exception(
+                    $"Invalid class {entityClassName}, only DistributeEntity and its subclass can be created by CreateEntityLocally.");
             }
+
             throw new Exception($"Invalid entity class name {entityClassName}");
         }
 
@@ -37,10 +69,14 @@ namespace LPS.Core.Rpc
                     var obj = (Activator.CreateInstance(entityClass, null) as DistributeEntity)!;
                     obj.MailBox = entityMailBox;
                     obj.Deserialize(serialContent);
+                    BuildPropertyTree(obj);
                     return obj;
                 }
-                throw new Exception($"Invalid class {entityClassName}, only DistributeEntity and its subclass can be created by CreateEntityLocally.");
+
+                throw new Exception(
+                    $"Invalid class {entityClassName}, only DistributeEntity and its subclass can be created by CreateEntityLocally.");
             }
+
             throw new Exception($"Invalid entity class name {entityClassName}");
         }
 
@@ -48,5 +84,5 @@ namespace LPS.Core.Rpc
         // {
         //     return null;
         // }
-    }    
+    }
 }

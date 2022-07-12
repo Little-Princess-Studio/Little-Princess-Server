@@ -72,7 +72,7 @@ namespace LPS.Core.Rpc.RpcProperty
                 ArgumentNullException.ThrowIfNull(value);
                 if (this.Value.ContainsKey(key))
                 {
-                    this.HandleIfContainer(this.Value[key], value);
+                    HandleIfContainer(this.Value[key], value);
 
                     var old = this.Value[key].Value;
                     if (old is RpcPropertyContainer container)
@@ -92,7 +92,7 @@ namespace LPS.Core.Rpc.RpcProperty
                         IsReffered = true,
                     };
 
-                    this.HandleIfContainer<TV>(newContainer, value);
+                    HandleIfContainer(newContainer, value);
                     this.Value[key] = newContainer;
                     this.NotifyChange(RpcPropertySyncOperation.UpdateDict, newContainer.Name, null, value);
 
