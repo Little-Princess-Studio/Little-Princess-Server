@@ -217,6 +217,8 @@ namespace LPS.Core.Rpc
         {
             var lastTimeCircleTickTimestamp = DateTime.UtcNow;
             var currentTimeCircleTickTimestamp = DateTime.UtcNow;
+            timeCircle_.Start();
+            
             while (!stopFlag_)
             {
                 var deltaTime = (currentTimeCircleTickTimestamp - lastTimeCircleTickTimestamp).Milliseconds;

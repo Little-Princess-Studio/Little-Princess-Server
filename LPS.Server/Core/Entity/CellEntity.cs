@@ -7,7 +7,7 @@ using LPS.Core.Rpc;
 namespace LPS.Core.Entity
 {
     [EntityClass]
-    public abstract class CellEntity : BaseEntity
+    public abstract class CellEntity : DistributeEntity
     {
         public readonly Dictionary<string, DistributeEntity> Entities = new();
         public Action<DistributeEntity> EntityLeaveCallBack { get; init; }

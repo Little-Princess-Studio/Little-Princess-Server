@@ -34,9 +34,9 @@ namespace LPS.Core
         private readonly Dictionary<string, CellEntity> cells_ = new();
 
         private readonly TcpServer tcpServer_;
-        
+
         private Connection[] GateConnections => tcpServer_.AllConnections;
-        
+
         private readonly CountdownEvent localEntityGeneratedEvent_;
 
         // private static readonly Random Random = new Random();
@@ -49,8 +49,8 @@ namespace LPS.Core
             this.HostNum = hostnum;
 
             localEntityGeneratedEvent_ = new(2);
-            
-            tcpServer_ = new(ip, port)
+
+            tcpServer_ = new TcpServer(ip, port)
             {
                 OnInit = this.RegisterServerMessageHandlers,
                 OnDispose = this.UnregisterServerMessageHandlers
@@ -63,7 +63,7 @@ namespace LPS.Core
             DbHelper.GenerateNewGlobalId().ContinueWith(task =>
             {
                 var newId = task.Result;
-                entity_ = new(new(newId, ip, port, hostnum))
+                entity_ = new ServerEntity(new MailBox(newId, ip, port, hostnum))
                 {
                     // todo: insert local rpc call operation to pump queue, instead of directly calling local entity rpc here.
                     OnSend = entityRpc => SendEntityRpc(entity_!, entityRpc),
@@ -90,10 +90,11 @@ namespace LPS.Core
                             var gateConn = this.GateConnections.First(conn => conn.MailBox.CompareFull(gateMailBox));
                             serverClientEntity.BindGateConn(gateConn);
                         }
+
                         localEntityDict_.Add(entity.MailBox.Id, entity);
                     },
                 };
-                
+
                 Logger.Info($"default cell generated, {defaultCell_.MailBox}.");
                 // localEntityDict_.Add(newId, defaultCell_);
                 cells_.Add(newId, defaultCell_);
@@ -162,12 +163,19 @@ namespace LPS.Core
 
             Logger.Info($"Server create a new entity with mailbox {mailBox}");
 
-            // todo: determain if the entity is a ServerClientEntity
+            entity.SendSyncMessage = (keepOrder, delayTime, syncMsg) =>
+            {
+                Logger.Info($"Send sync msg {syncMsg.Operation} {syncMsg.MailBox} {syncMsg.RpcPropertyPath}"
+                            + $"{syncMsg.RpcSyncPropertyType}:{delayTime}:{keepOrder}");
+                tcpServer_.AddMessageToTimeCircle(syncMsg, delayTime, keepOrder);
+            };
+
             if (entity is ServerClientEntity serverClientEntity)
             {
                 // bind gate conn to client entity
                 serverClientEntity.BindGateConn(gateConn);
             }
+
             entity.OnSend = entityRpc => SendEntityRpc(entity, entityRpc);
             entity.MailBox = mailBox;
             localEntityDict_[mailBox.Id] = entity;

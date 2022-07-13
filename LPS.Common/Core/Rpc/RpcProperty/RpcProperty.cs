@@ -47,13 +47,13 @@ namespace LPS.Core.Rpc.RpcProperty
 {
     public enum RpcPropertySetting
     {
-        None = 0x00000000,
-        Permanent = 0x00000001,
-        ServerOnly = 0x00000010,
-        ServerClient = 0x00000100,
-        FastSync = 0x00001000,
-        KeepSendOrder = 0x00010000,
-        Shadow = 0x00100000,
+        None = 0x00000000, // None prop acts same as normal prop
+        Permanent = 0x00000001, // Permanent prop will be saved into DB
+        ServerOnly = 0x00000010, // ServerOnly prop will not sync with client-side, but will be serialized/deserialized when entity transferred  
+        ServerClient = 0x00000100, // ServerClient is same as ServerOnly prop, but also for sync to shadow entities
+        FastSync = 0x00001000, // FastSync will sync as fast as possiable to shadow, ignoring prop change order
+        KeepSendOrder = 0x00010000, // KeepSendOrder will sync props with keeping prop change order
+        Shadow = 0x00100000, // Shadow is for shadow entities
     }
 
     public abstract class RpcProperty
@@ -77,6 +77,23 @@ namespace LPS.Core.Rpc.RpcProperty
         public void OnNotify(RpcPropertySyncOperation operation, List<string> path, object? old, object? @new)
         {
             Console.WriteLine($"[OnNotify] {operation}, {string.Join(".", path)}, {old} -> {@new}");
+            switch (operation)
+            {
+                case RpcPropertySyncOperation.SetValue:
+                    break;
+                case RpcPropertySyncOperation.UpdateDict:
+                    break;
+                case RpcPropertySyncOperation.AddListElem:
+                    break;
+                case RpcPropertySyncOperation.RemoveElem:
+                    break;
+                case RpcPropertySyncOperation.Clear:
+                    break;
+                case RpcPropertySyncOperation.InsertElem:
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(operation), operation, null);
+            }
         }
 
         public void OnChange(List<string> path, object? oldVal, object? newVal)

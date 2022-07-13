@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using LPS.Core.Debug;
+using LPS.Core.Ipc.SyncMessage;
 using LPS.Core.Rpc;
 
 namespace LPS.Core.Entity
@@ -9,6 +10,8 @@ namespace LPS.Core.Entity
     public abstract class DistributeEntity : BaseEntity
     {
         public CellEntity Cell { get; set; } = null!;
+
+        public Action<bool, uint, RpcPropertySyncMessage>? SendSyncMessage;
         
         protected DistributeEntity(string desc)
         {

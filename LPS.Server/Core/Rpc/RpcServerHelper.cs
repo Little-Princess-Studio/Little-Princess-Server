@@ -35,6 +35,11 @@ namespace LPS.Core.Rpc
                     field => (field.GetValue(entity) as RpcProperty.RpcProperty)!.Name,
                     field => (field.GetValue(entity) as RpcProperty.RpcProperty)!);
             
+            foreach (var (_, prop) in tree)
+            {
+                prop.Owner = entity;
+            }
+            
             entity.SetPropertyTree(tree);
         }
 
