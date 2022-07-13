@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
@@ -170,7 +171,7 @@ public class TimeCircleUnitTest
         }
     }
 
-    private static void CheckAddListMsg<TElemType>(RpcPropertySyncMessage rpcMsg, TElemType[] data)
+    private static void CheckAddListMsg<TElemType>(RpcPropertySyncMessage rpcMsg, TElemType[] data) where TElemType : IComparable
     {
         var msg = (RpcListPropertySyncMessage)rpcMsg;
         Assert.NotNull(msg);
@@ -256,7 +257,7 @@ public class TimeCircleUnitTest
         }
     }
 
-    private static void CheckUpdateDictMsg<TElemType>(RpcPropertySyncMessage rpcMsg, Dictionary<object, TElemType> checkDict)
+    private static void CheckUpdateDictMsg<TElemType>(RpcPropertySyncMessage rpcMsg, Dictionary<object, TElemType> checkDict) where TElemType : IComparable
     {
         var msg = (RpcDictPropertySyncMessage)rpcMsg;
         Assert.NotNull(msg);

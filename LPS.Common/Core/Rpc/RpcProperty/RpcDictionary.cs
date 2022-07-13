@@ -2,6 +2,7 @@
 // using System.Linq.Expressions;
 //
 
+using System.Collections.ObjectModel;
 using System.Diagnostics.CodeAnalysis;
 using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
@@ -13,16 +14,33 @@ namespace LPS.Core.Rpc.RpcProperty
     public class RpcDictionary<TK, TV> : RpcPropertyContainer
         where TK : notnull
     {
-        private Dictionary<TK, RpcPropertyContainer<TV>> value_;
+        private Dictionary<TK, RpcPropertyContainer> value_;
 
-        public Dictionary<TK, RpcPropertyContainer<TV>> Value
+        public Dictionary<TK, RpcPropertyContainer> Value
         {
             get => value_;
             set
             {
                 ArgumentNullException.ThrowIfNull(value);
-                this.NotifyChange(RpcPropertySyncOperation.SetValue, this.Name!, old: value_!, value);
+                
+                foreach (var (_, old) in this.Value)
+                {
+                    old.Parent = null;
+                    old.IsReferred = false;
+                    old.UpdateTopOwner(null);   
+                }
+
+                this.Children!.Clear();
+                foreach (var (_, @new) in value)
+                {
+                    @new.Parent = this;
+                    @new.IsReferred = true;
+                    @new.UpdateTopOwner(this.TopOwner);
+                    this.Children[@new.Name!] = @new;
+                }
+                
                 this.value_ = value;
+                this.NotifyChange(RpcPropertySyncOperation.SetValue, this.Name!, old: value_!, value);
             }
         }
 
@@ -31,10 +49,15 @@ namespace LPS.Core.Rpc.RpcProperty
             RpcGenericArgTypeCheckHelper.AssertIsValidKeyType<TK>();
         }
 
-        public RpcDictionary() : base()
+        public RpcDictionary()
         {
             this.value_ = new();
             this.Children = new();
+        }
+
+        public override object GetRawValue()
+        {
+            return this.value_;
         }
 
         public override Any ToRpcArg()
@@ -66,22 +89,32 @@ namespace LPS.Core.Rpc.RpcProperty
 
         public TV this[TK key]
         {
-            get => this.Value[key].Value;
+            get
+            {
+                //todo: how can we remove this `if`?
+                if (typeof(TV).IsSubclassOf(typeof(RpcPropertyContainer)))
+                {
+                    return (TV)this.Value[key].GetRawValue();
+                }
+
+                return ((RpcPropertyContainer<TV>) this.Value[key]).Value;
+            }
             set
             {
                 ArgumentNullException.ThrowIfNull(value);
                 if (this.Value.ContainsKey(key))
                 {
-                    this.HandleIfContainer(this.Value[key], value);
-
                     var old = this.Value[key].Value;
                     if (old is RpcPropertyContainer container)
                     {
-                        container.IsReffered = false;
+                        container.IsReferred = false;
+                        container.UpdateTopOwner(null);
                     }
 
-                    this.Value[key].SetWithoutNotify(value);
-                    this.NotifyChange(RpcPropertySyncOperation.UpdateDict, this.Value[key].Name!, old!, value);
+                    var val = this.Value[key];
+                    val.SetWithoutNotify(value);
+                    val.UpdateTopOwner(this.TopOwner);
+                    this.NotifyChange(RpcPropertySyncOperation.UpdateDict, val.Name!, old!, value);
                 }
                 else
                 {
@@ -89,10 +122,9 @@ namespace LPS.Core.Rpc.RpcProperty
                     {
                         Parent = this,
                         Name = $"{key}",
-                        IsReffered = true,
+                        IsReferred = true,
                     };
-
-                    this.HandleIfContainer<TV>(newContainer, value);
+                    
                     this.Value[key] = newContainer;
                     this.NotifyChange(RpcPropertySyncOperation.UpdateDict, newContainer.Name, null, value);
 
@@ -104,7 +136,7 @@ namespace LPS.Core.Rpc.RpcProperty
         public void Remove(TK key)
         {
             var elem = this.Value[key];
-            elem.IsReffered = false;
+            elem.IsReferred = false;
             elem.Parent = null;
             elem.Name = string.Empty;
             this.Value.Remove(key);
@@ -120,28 +152,8 @@ namespace LPS.Core.Rpc.RpcProperty
             this.NotifyChange(RpcPropertySyncOperation.Clear, this.Name!, null, null);
         }
 
+        public ReadOnlyDictionary<TK, RpcPropertyContainer<TV>> AsReadOnly() => new(value_);
+        
         public int Count => this.Value.Count;
     }
 }
-
-//
-//     public class ShadowRpcDictionary<TK, TV> : ShadowRpcProperty<Dictionary<TK, RpcContainerNode<TV>>>
-//         where TK : notnull
-//     {
-//         public ShadowRpcDictionary(string name) : base(name)
-//         {
-//             // this.GetType().GetProperty("111").SetMethod.GetMethodBody().
-//             Expression<Func<int>> add = () => 1 + 2;
-//             var func = add.Compile(); // Create Delegate
-//             // func.Method.GetMethodBody()
-//         }
-//         
-//         public TV this[TK key]
-//         {
-//             get => value_[key].Value;
-//             set => throw new Exception("ShadowRpcDictionary is readonly.");
-//         }
-//         
-//         public ReadOnlyDictionary<TK, RpcContainerNode<TV>> AsReadOnly() => new(value_);
-//     }
-// }

@@ -62,7 +62,7 @@ public class RpcPropertyUnitTest
     [Fact]
     public void TestRpcDict()
     {
-        RpcComplexProperty<RpcDictionary<string, int>> rpcProp = new("test_dict_prop", RpcPropertySetting.ClientOwn, new RpcDictionary<string, int>());
+        RpcComplexProperty<RpcDictionary<string, int>> rpcProp = new("test_dict_prop", RpcPropertySetting.ServerOnly, new RpcDictionary<string, int>());
         rpcProp.Val["test_key_1"] = 123;
 
         RpcDictionary<string, int> rpcDict = rpcProp;
@@ -72,14 +72,14 @@ public class RpcPropertyUnitTest
         Assert.True(rpcDict["test_key_2"] == 321);
     }
 
-    // [Fact]
+    [Fact]
     public void TestRpcComplexDict()
     {
         var rpcList = new RpcList<int>();
         var rpcList2 = new RpcList<int>();
 
         RpcComplexProperty<RpcDictionary<string, RpcDictionary<int, RpcList<int>>>> rpcProp =
-            new("test_dict_prop", RpcPropertySetting.ClientOwn, new())
+            new("test_dict_prop", RpcPropertySetting.ServerOnly, new())
                 {
                     Val =
                     {
@@ -93,8 +93,8 @@ public class RpcPropertyUnitTest
         rpcProp.Val["n1"][123] = rpcList2;
         rpcProp.Val["n1"][123].Add(333);
 
-        Assert.False(rpcList.IsReffered);
-        Assert.True(rpcList2.IsReffered);
+        Assert.False(rpcList.IsReferred);
+        Assert.True(rpcList2.IsReferred);
         Assert.Equal(333, rpcProp.Val["n1"][123][0]);
     }
 
@@ -110,8 +110,8 @@ public class RpcPropertyUnitTest
         CostumeRpcContainerProperty1 cprop = rpcProp;
         cprop.SubCostumerContainerRpcContainerProperty.SubFloatProperty = 1.0f;
         
-        Assert.True(costumeRpcContainerProp.IsReffered);
-        Assert.True(costumeRpcContainerProp.SubCostumerContainerRpcContainerProperty.IsReffered);
+        Assert.True(costumeRpcContainerProp.IsReferred);
+        Assert.True(costumeRpcContainerProp.SubCostumerContainerRpcContainerProperty.IsReferred);
         Assert.Equal("111", rpcProp.Val.SubListProperty[0]);
         Assert.Equal(1.0f, rpcProp.Val.SubCostumerContainerRpcContainerProperty.SubFloatProperty);
     }
