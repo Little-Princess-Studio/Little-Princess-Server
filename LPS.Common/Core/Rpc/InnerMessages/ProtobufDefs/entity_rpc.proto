@@ -53,6 +53,18 @@ message DictWithIntKeyArg
     map<sint32, google.protobuf.Any> PayLoad = 1;
 }
 
+message DictWithMailBoxKeyPair
+{
+    MailBox Key= 1;
+    google.protobuf.Any Value = 2;
+}
+
+message DictWithMailBoxKeyArg
+{
+    repeated DictWithMailBoxKeyPair PayLoad = 1;
+}
+
+
 message DictWithValueTupleKeyPair
 {
     google.protobuf.Any Key = 1;

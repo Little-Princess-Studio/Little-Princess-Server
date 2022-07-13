@@ -3,7 +3,6 @@ using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
 using LPS.Core.Ipc.SyncMessage;
 using LPS.Core.Rpc.InnerMessages;
-using LPS.Core.Rpc.Utils;
 
 namespace LPS.Core.Rpc.RpcProperty
 {

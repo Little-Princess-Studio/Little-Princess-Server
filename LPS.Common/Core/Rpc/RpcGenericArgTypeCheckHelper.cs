@@ -1,6 +1,6 @@
 ﻿using LPS.Core.Rpc.RpcProperty;
 
-namespace LPS.Core.Rpc.Utils;
+namespace LPS.Core.Rpc;
 
 public static class RpcGenericArgTypeCheckHelper
 {
@@ -8,9 +8,9 @@ public static class RpcGenericArgTypeCheckHelper
     {
         bool r = typeof(T) == typeof(int) ||
                  typeof(T) == typeof(string) ||
-                 typeof(T) == typeof(bool) ||
-                 typeof(T) == typeof(MailBox) ||
-                 RpcHelper.IsValueTuple(typeof(T));
+                 typeof(T) == typeof(MailBox);
+        // RpcHelper.IsValueTuple(typeof(T));
+        // it's ard to impl value tuple as rpc property dict key, disable it currently
 
         if (!r)
         {

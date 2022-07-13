@@ -2,7 +2,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using Google.Protobuf.WellKnownTypes;
 using LPS.Core.Ipc.SyncMessage;
-using LPS.Core.Rpc.Utils;
 
 namespace LPS.Core.Rpc.RpcProperty
 {
@@ -52,7 +51,8 @@ namespace LPS.Core.Rpc.RpcProperty
         {
             if (this.GetType().IsDefined(typeof(RpcCostumePropertyContainerAttribute)))
             {
-                var rpcFields = this.GetType().GetFields(BindingFlags.Public | BindingFlags.NonPublic)
+                var rpcFields = this.GetType()
+                    .GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
                     .Where(field => field.IsDefined(typeof(RpcCostumePropertyAttribute))
                                     && field.FieldType.IsSubclassOf(typeof(RpcPropertyContainer)));
 
