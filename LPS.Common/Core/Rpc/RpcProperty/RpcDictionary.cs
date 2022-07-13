@@ -56,26 +56,14 @@ namespace LPS.Core.Rpc.RpcProperty
         public override Any ToRpcArg()
         {
             IMessage? pbDictVal = null;
-            DictWithStringKeyArg? pbChildren = null;
 
             if (this.Value.Count > 0)
             {
                 pbDictVal = RpcHelper.RpcContainerDictToProtoBufAny(this);
             }
-
-            if (this.Children!.Count > 0)
-            {
-                pbChildren = new DictWithStringKeyArg();
-
-                foreach (var (name, value) in this.Children)
-                {
-                    pbChildren.PayLoad.Add(name, value.ToRpcArg());
-                }
-            }
-
+            
             var pbRpc = new DictWithStringKeyArg();
             pbRpc.PayLoad.Add("value", pbDictVal == null ? Any.Pack(new NullArg()) : Any.Pack(pbDictVal));
-            pbRpc.PayLoad.Add("children", pbChildren == null ? Any.Pack(new NullArg()) : Any.Pack(pbChildren));
 
             return Any.Pack(pbRpc);
         }
@@ -163,10 +151,10 @@ namespace LPS.Core.Rpc.RpcProperty
             this.NotifyChange(RpcPropertySyncOperation.Clear, this.Name!, null, null);
         }
 
-        public ReadOnlyDictionary<TK, TV> AsReadOnly() =>
-            new(this.Value.ToDictionary(
+        public Dictionary<TK, TV> ToCopy() =>
+            this.Value.ToDictionary(
                 pair => pair.Key,
-                pair => (TV) pair.Value.GetRawValue()));
+                pair => (TV) pair.Value.GetRawValue());
 
         public int Count => this.Value.Count;
     }

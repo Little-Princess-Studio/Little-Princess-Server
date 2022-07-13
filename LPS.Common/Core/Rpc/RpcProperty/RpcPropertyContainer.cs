@@ -1,7 +1,9 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
+using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
 using LPS.Core.Ipc.SyncMessage;
+using LPS.Core.Rpc.InnerMessages;
 
 namespace LPS.Core.Rpc.RpcProperty
 {
@@ -106,10 +108,24 @@ namespace LPS.Core.Rpc.RpcProperty
             }
         }
         
-        // public string ToJson();
         public virtual Any ToRpcArg()
         {
-            throw new NotImplementedException();
+            DictWithStringKeyArg? pbChildren = null;
+
+            if (this.Children!.Count > 0)
+            {
+                pbChildren = new DictWithStringKeyArg();
+
+                foreach (var (name, value) in this.Children)
+                {
+                    pbChildren.PayLoad.Add(name, value.ToRpcArg());
+                }
+            }
+
+            var pbRpc = new DictWithStringKeyArg();
+            pbRpc.PayLoad.Add("children", pbChildren == null ? Any.Pack(new NullArg()) : Any.Pack(pbChildren));
+
+            return Any.Pack(pbRpc);
         }
     }
 
