@@ -49,10 +49,11 @@ namespace LPS.Core.Rpc.RpcProperty
     {
         None = 0x00000000,
         Permanent = 0x00000001,
-        ServerOwn = 0x00000010,
-        ClientOwn = 0x00000100,
+        ServerOnly = 0x00000010,
+        ServerClient = 0x00000100,
         FastSync = 0x00001000,
         KeepSendOrder = 0x00010000,
+        Shadow = 0x00100000,
     }
 
     public abstract class RpcProperty
@@ -62,6 +63,8 @@ namespace LPS.Core.Rpc.RpcProperty
         public BaseEntity? Owner;
         protected readonly RpcPropertyContainer Value;
 
+        public bool IsShadowProperty => ((uint)this.Setting & (uint)RpcPropertySetting.Shadow) == 1;
+        
         protected RpcProperty(string name, RpcPropertySetting setting, RpcPropertyContainer value)
         {
             Name = name;
@@ -98,14 +101,18 @@ namespace LPS.Core.Rpc.RpcProperty
         {
             this.Value.Owner = this;
             this.Value.Name = name;
-            this.Value.IsReffered = true;
+            this.Value.IsReferred = true;
+            
+            this.Value.UpdateTopOwner(this);
         }
 
         public void Set(T value)
         {
             var container = ((RpcPropertyContainer<T>) this.Value);
-            container.Value = value;
-            container.Value.IsReffered = true;
+            var old = container.Value;
+
+            old.RemoveFromPropTree();
+            container.InsertToPropTree(null, this.Name, this);
         }
 
         public T Get()
@@ -129,37 +136,17 @@ namespace LPS.Core.Rpc.RpcProperty
 
     public class RpcPlainProperty<T> : RpcProperty
     {
-        public RpcPlainProperty(string name, RpcPropertySetting setting, string value)
-            : this(setting, name, new RpcPropertyContainer<string>(value))
+        static RpcPlainProperty()
         {
-        }
-
-        public RpcPlainProperty(string name, RpcPropertySetting setting, int value)
-            : this(setting, name, new RpcPropertyContainer<int>(value))
-        {
-        }
-
-        public RpcPlainProperty(string name, RpcPropertySetting setting, float value)
-            : this(setting, name, new RpcPropertyContainer<float>(value))
-        {
-        }
-
-        public RpcPlainProperty(string name, RpcPropertySetting setting, bool value)
-            : this(setting, name, new RpcPropertyContainer<bool>(value))
-        {
-        }
-
-        public RpcPlainProperty(string name, RpcPropertySetting setting, MailBox value)
-            : this(setting, name, new RpcPropertyContainer<MailBox>(value))
-        {
+            RpcGenericArgTypeCheckHelper.AssertIsValidPlaintType<T>();
         }
 
         private RpcPlainProperty() : base("", RpcPropertySetting.None, null)
         {
         }
 
-        private RpcPlainProperty(RpcPropertySetting setting, string name, RpcPropertyContainer value)
-            : base(name, setting, value)
+        public RpcPlainProperty(string name, RpcPropertySetting setting, T value)
+            : base(name, setting, new RpcPropertyContainer<T>(value))
         {
             this.Value.Owner = this;
             this.Value.Name = name;
@@ -188,15 +175,4 @@ namespace LPS.Core.Rpc.RpcProperty
             return RpcHelper.RpcArgToProtobuf(this.Val);
         }
     }
-
-    // public class ShadowRpcProperty<T> : RpcProperty
-    // {
-    //     protected T value_;
-    //     
-    //     public Action<T, T>? OnChanged { get; set; }
-    //
-    //     public ShadowRpcProperty(string name) : base(name)
-    //     {
-    //     }
-    // }
 }

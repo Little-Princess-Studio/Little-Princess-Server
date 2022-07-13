@@ -358,7 +358,8 @@ namespace LPS.Core.Rpc
 
             var msg = new ListArg();
             list.Value.ForEach(e => msg.PayLoad.Add(
-                Google.Protobuf.WellKnownTypes.Any.Pack(new StringArg {PayLoad = e.Value})
+                Google.Protobuf.WellKnownTypes.Any.Pack(new StringArg
+                    {PayLoad = ((RpcPropertyContainer<string>) e).Value})
             ));
 
             return msg;
@@ -373,12 +374,13 @@ namespace LPS.Core.Rpc
 
             var msg = new ListArg();
             list.Value.ForEach(e => msg.PayLoad.Add(
-                Google.Protobuf.WellKnownTypes.Any.Pack(new FloatArg {PayLoad = e.Value})
+                Google.Protobuf.WellKnownTypes.Any.Pack(
+                    new FloatArg {PayLoad = ((RpcPropertyContainer<float>) e).Value})
             ));
 
             return msg;
         }
-        
+
         public static IMessage RpcContainerListToProtoBufAny<T>(RpcList<bool> list)
         {
             if (list.Value.Count == 0)
@@ -388,12 +390,12 @@ namespace LPS.Core.Rpc
 
             var msg = new ListArg();
             list.Value.ForEach(e => msg.PayLoad.Add(
-                Google.Protobuf.WellKnownTypes.Any.Pack(new BoolArg {PayLoad = e.Value})
+                Google.Protobuf.WellKnownTypes.Any.Pack(new BoolArg {PayLoad = ((RpcPropertyContainer<bool>) e).Value})
             ));
 
             return msg;
         }
-        
+
         public static IMessage RpcContainerListToProtoBufAny<T>(RpcList<MailBox> list)
         {
             if (list.Value.Count == 0)
@@ -403,7 +405,8 @@ namespace LPS.Core.Rpc
 
             var msg = new ListArg();
             list.Value.ForEach(e => msg.PayLoad.Add(
-                Google.Protobuf.WellKnownTypes.Any.Pack(new MailBoxArg() {PayLoad = RpcMailBoxToPbMailBox(e)})
+                Google.Protobuf.WellKnownTypes.Any.Pack(new MailBoxArg()
+                    {PayLoad = RpcMailBoxToPbMailBox((RpcPropertyContainer<MailBox>) e)})
             ));
 
             return msg;
@@ -418,7 +421,7 @@ namespace LPS.Core.Rpc
 
             var msg = new ListArg();
             list.Value.ForEach(e => msg.PayLoad.Add(
-                Google.Protobuf.WellKnownTypes.Any.Pack(new IntArg {PayLoad = e.Value})
+                Google.Protobuf.WellKnownTypes.Any.Pack(new IntArg {PayLoad = ((RpcPropertyContainer<int>) e).Value})
             ));
 
             return msg;
@@ -433,8 +436,8 @@ namespace LPS.Core.Rpc
 
             var msg = new ListArg();
             list.Value.ForEach(e => msg.PayLoad.Add(
-                Google.Protobuf.WellKnownTypes.Any.Pack(RpcArgToProtobuf(e.Value))
-            ));
+                Google.Protobuf.WellKnownTypes.Any.Pack(e.ToRpcArg()))
+            );
 
             return msg;
         }

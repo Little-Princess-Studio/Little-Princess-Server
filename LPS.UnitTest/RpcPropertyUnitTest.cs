@@ -17,11 +17,6 @@ public class RpcPropertyUnitTest
             get => subFloatProperty_.Value;
             set => subFloatProperty_.Value = value;
         }
-
-        public override Any ToRpcArg()
-        {
-            throw new System.NotImplementedException();
-        }
     }
     
     [RpcCostumePropertyContainer]
@@ -31,11 +26,6 @@ public class RpcPropertyUnitTest
         public readonly RpcList<string> SubListProperty = new();
         [RpcCostumeProperty]
         public readonly CostumeRpcContainerProperty2 SubCostumerContainerRpcContainerProperty = new();
-
-        public override Any ToRpcArg()
-        {
-            throw new System.NotImplementedException();
-        }
     }
 
     [Fact]
@@ -62,7 +52,7 @@ public class RpcPropertyUnitTest
     [Fact]
     public void TestRpcDict()
     {
-        RpcComplexProperty<RpcDictionary<string, int>> rpcProp = new("test_dict_prop", RpcPropertySetting.ClientOwn, new RpcDictionary<string, int>());
+        RpcComplexProperty<RpcDictionary<string, int>> rpcProp = new("test_dict_prop", RpcPropertySetting.ServerOnly, new RpcDictionary<string, int>());
         rpcProp.Val["test_key_1"] = 123;
 
         RpcDictionary<string, int> rpcDict = rpcProp;
@@ -79,7 +69,7 @@ public class RpcPropertyUnitTest
         var rpcList2 = new RpcList<int>();
 
         RpcComplexProperty<RpcDictionary<string, RpcDictionary<int, RpcList<int>>>> rpcProp =
-            new("test_dict_prop", RpcPropertySetting.ClientOwn, new())
+            new("test_dict_prop", RpcPropertySetting.ServerOnly, new())
                 {
                     Val =
                     {
@@ -93,8 +83,8 @@ public class RpcPropertyUnitTest
         rpcProp.Val["n1"][123] = rpcList2;
         rpcProp.Val["n1"][123].Add(333);
 
-        Assert.False(rpcList.IsReffered);
-        Assert.True(rpcList2.IsReffered);
+        Assert.False(rpcList.IsReferred);
+        Assert.True(rpcList2.IsReferred);
         Assert.Equal(333, rpcProp.Val["n1"][123][0]);
     }
 
@@ -110,8 +100,8 @@ public class RpcPropertyUnitTest
         CostumeRpcContainerProperty1 cprop = rpcProp;
         cprop.SubCostumerContainerRpcContainerProperty.SubFloatProperty = 1.0f;
         
-        Assert.True(costumeRpcContainerProp.IsReffered);
-        Assert.True(costumeRpcContainerProp.SubCostumerContainerRpcContainerProperty.IsReffered);
+        Assert.True(costumeRpcContainerProp.IsReferred);
+        Assert.True(costumeRpcContainerProp.SubCostumerContainerRpcContainerProperty.IsReferred);
         Assert.Equal("111", rpcProp.Val.SubListProperty[0]);
         Assert.Equal(1.0f, rpcProp.Val.SubCostumerContainerRpcContainerProperty.SubFloatProperty);
     }

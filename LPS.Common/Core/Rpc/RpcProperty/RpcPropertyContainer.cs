@@ -20,9 +20,46 @@ namespace LPS.Core.Rpc.RpcProperty
         public string? Name { get; set; }
         public RpcPropertyContainer? Parent { get; set; }
         public RpcProperty? Owner { get; set; }
-        public bool IsProxyContainer { get; set; }
-        public bool IsReffered { get; set; }
+        public bool IsReferred { get; set; }
         public Dictionary<string, RpcPropertyContainer>? Children { get; set; }
+        public RpcProperty? TopOwner { get; private set; }
+
+        public virtual object GetRawValue()
+        {
+            return this;
+        }
+        
+        public bool IsShadow => this.TopOwner?.IsShadowProperty ?? false;
+
+        public void RemoveFromPropTree()
+        {
+            this.Name = string.Empty;
+            this.Parent = null;
+            this.Owner = null;
+            this.IsReferred = false;
+            this.UpdateTopOwner(null);
+        }
+
+        public void InsertToPropTree(RpcPropertyContainer? parent, string name, RpcProperty? topOwner)
+        {
+            this.Name = name;
+            this.Parent = parent;
+            this.IsReferred = true;
+            this.UpdateTopOwner(topOwner);
+        }
+        
+        public void UpdateTopOwner(RpcProperty? topOwner)
+        {
+            this.TopOwner = topOwner;
+
+            if (Children != null)
+            {
+                foreach (var (_, child) in this.Children)
+                {
+                    child.UpdateTopOwner(topOwner);
+                }
+            }
+        }
 
         protected void NotifyChange(RpcPropertySyncOperation operation, string name, object? old, object? @new)
         {
@@ -32,10 +69,7 @@ namespace LPS.Core.Rpc.RpcProperty
 
         protected void NotifyChange(RpcPropertySyncOperation operation, List<string> path, object? old, object? @new)
         {
-            if (!IsProxyContainer)
-            {
-                path.Insert(0, Name!);
-            }
+            path.Insert(0, Name!);
 
             if (this.Owner != null)
             {
@@ -63,37 +97,27 @@ namespace LPS.Core.Rpc.RpcProperty
                 {
                     var prop = (fieldInfo.GetValue(this) as RpcPropertyContainer)!;
                     prop.Parent = this;
-                    prop.IsReffered = true;
+                    prop.IsReferred = true;
                     prop.Name = fieldInfo.Name;
+                    prop.TopOwner = this.TopOwner;
+
                     this.Children.Add(prop.Name, prop);
                 }
             }
         }
-
-        protected static void HandleIfContainer<TT>(RpcPropertyContainer parent, [DisallowNull] TT value)
-        {
-            if (value is RpcPropertyContainer container)
-            {
-                if (container.IsReffered)
-                {
-                    throw new Exception("Each object in rpc property can only be referred once");
-                }
-
-                container.IsReffered = true;
-                container.IsProxyContainer = true;
-                container.Parent = parent;
-            }
-        }
-
+        
         // public string ToJson();
-        public abstract Any ToRpcArg();
+        public virtual Any ToRpcArg()
+        {
+            throw new NotImplementedException();
+        }
     }
 
     public class RpcPropertyContainer<T> : RpcPropertyContainer
     {
         static RpcPropertyContainer()
         {
-            RpcGenericArgTypeCheckHelper.AssertIsValidValueType<T>();
+            RpcGenericArgTypeCheckHelper.AssertIsValidPlaintType<T>();
         }
 
         private T value_;
@@ -104,8 +128,13 @@ namespace LPS.Core.Rpc.RpcProperty
             set
             {
                 ArgumentNullException.ThrowIfNull(value);
-                this.NotifyChange(RpcPropertySyncOperation.SetValue, this.Name, old: value_!, value);
-                this.value_ = value;
+                if (value.Equals(this.value_))
+                {
+                    return;
+                }
+
+                this.SetWithoutNotify(value);
+                this.NotifyChange(RpcPropertySyncOperation.SetValue, this.Name!, old: value_!, value);
             }
         }
 
@@ -120,6 +149,11 @@ namespace LPS.Core.Rpc.RpcProperty
         public RpcPropertyContainer(T initVal)
         {
             value_ = initVal;
+        }
+
+        public override object GetRawValue()
+        {
+            return this.Value!;
         }
 
         public override Any ToRpcArg()

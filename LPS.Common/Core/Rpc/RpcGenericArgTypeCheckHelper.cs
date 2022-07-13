@@ -18,6 +18,21 @@ public static class RpcGenericArgTypeCheckHelper
         }
     }
 
+    public static void AssertIsValidPlaintType<T>()
+    {
+        var type = typeof(T);
+        if (type == typeof(int)
+            || type == typeof(float)
+            || type == typeof(string)
+            || type == typeof(MailBox)
+            || type == typeof(bool))
+        {
+            return;
+        }
+        
+        throw new Exception($"Invalid Plaint Type {typeof(T)}");
+    }
+
     public static void AssertIsValidValueType<T>()
     {
         var type = typeof(T);
@@ -25,9 +40,7 @@ public static class RpcGenericArgTypeCheckHelper
             || type == typeof(float)
             || type == typeof(string)
             || type == typeof(MailBox)
-            || type == typeof(bool)
-            || RpcHelper.IsTuple(typeof(T))
-            || RpcHelper.IsValueTuple(typeof(T)))
+            || type == typeof(bool))
         {
             return;
         }

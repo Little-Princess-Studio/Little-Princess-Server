@@ -407,7 +407,7 @@ namespace LPS.Core
                         else
                         {
                             Logger.Warn(
-                                $"invalid rpc target mailbox: ${targetEntityMailBox.IP} {targetEntityMailBox.Port} {targetEntityMailBox.ID}" +
+                                $"invalid rpc target mailbox: {targetEntityMailBox.IP} {targetEntityMailBox.Port} {targetEntityMailBox.ID}" +
                                 $"{targetEntityMailBox.HostNum}");
                         }
                     }
