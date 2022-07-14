@@ -25,6 +25,7 @@ namespace LPS.Core.Entity
         private readonly Dictionary<uint, (Action<object>, Type)> rpcDict_ = new();
         private readonly Dictionary<uint, Action> rpcBlankDict_ = new();
         private Dictionary<string, RpcProperty>? propertyTree_ = null;
+        protected Dictionary<string, RpcProperty>? PropertyTree => propertyTree_;
 
         public void SetPropertyTree(Dictionary<string, RpcProperty> propertyTree)
         {

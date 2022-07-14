@@ -68,6 +68,11 @@ namespace LPS.Core.Rpc.RpcProperty
             return Any.Pack(pbRpc);
         }
 
+        public override void FromRpcArg(Any content)
+        {
+            
+        }
+
         public TV this[TK key]
         {
             get { return (TV) this.Value[key].GetRawValue(); }
@@ -155,7 +160,7 @@ namespace LPS.Core.Rpc.RpcProperty
             this.Value.ToDictionary(
                 pair => pair.Key,
                 pair => (TV) pair.Value.GetRawValue());
-
+        
         public int Count => this.Value.Count;
     }
 }

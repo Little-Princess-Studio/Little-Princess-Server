@@ -57,6 +57,32 @@ namespace LPS.Core.Rpc.RpcProperty
             return Any.Pack(pbRpc);
         }
 
+        public override void FromRpcArg(Any content)
+        {
+            if (content.Is(DictWithStringKeyArg.Descriptor))
+            {
+                var pbDict = content.Unpack<DictWithStringKeyArg>();
+                var value = pbDict.PayLoad["value"];
+
+                if (value.Is(ListArg.Descriptor))
+                {
+                    var list = value.Unpack<ListArg>();
+                    List<RpcPropertyContainer> tmpVal = new(list.PayLoad.Count);
+                    for (int i = 0; i < list.PayLoad.Count; i++)
+                    {
+                        if (typeof(TElem).IsSubclassOf(typeof(RpcPropertyContainer)))
+                        {
+                            // tmpVal[i] = (RpcPropertyContainer)()
+                        }
+                        else
+                        {
+                            
+                        }
+                    }
+                }
+            }
+        }
+        
         public RpcList(int size, [DisallowNull] TElem defaultVal)
         {
             ArgumentNullException.ThrowIfNull(defaultVal);

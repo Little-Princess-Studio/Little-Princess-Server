@@ -50,7 +50,7 @@ namespace LPS.Core.Rpc.RpcProperty
         None = 0x00000000, // None prop acts same as normal prop
         Permanent = 0x00000001, // Permanent prop will be saved into DB
         ServerOnly = 0x00000010, // ServerOnly prop will not sync with client-side, but will be serialized/deserialized when entity transferred  
-        ServerClient = 0x00000100, // ServerClient is same as ServerOnly prop, but also for sync to shadow entities
+        ServerToShadow = 0x00000100, // ServerClient is same as ServerOnly prop, but also for sync to shadow entities
         FastSync = 0x00001000, // FastSync will sync as fast as possiable to shadow, ignoring prop change order
         KeepSendOrder = 0x00010000, // KeepSendOrder will sync props with keeping prop change order
         Shadow = 0x00100000, // Shadow is for shadow entities
@@ -64,6 +64,7 @@ namespace LPS.Core.Rpc.RpcProperty
         protected readonly RpcPropertyContainer Value;
 
         public bool IsShadowProperty => ((uint)this.Setting & (uint)RpcPropertySetting.Shadow) == 1;
+        public bool ShouldSyncToClient => ((uint)this.Setting & (uint)RpcPropertySetting.ServerToShadow) == 1;
         
         protected RpcProperty(string name, RpcPropertySetting setting, RpcPropertyContainer value)
         {
@@ -73,6 +74,7 @@ namespace LPS.Core.Rpc.RpcProperty
         }
 
         public abstract IMessage ToProtobuf();
+        public abstract void FromProtobuf(Any content);
 
         public void OnNotify(RpcPropertySyncOperation operation, List<string> path, object? old, object? @new)
         {
@@ -149,6 +151,12 @@ namespace LPS.Core.Rpc.RpcProperty
         {
             return this.Val.ToRpcArg();
         }
+
+        public override void FromProtobuf(Any content)
+        {
+            this.Val.FromRpcArg(content);
+            this.Val.UpdateTopOwner(this);
+        }
     }
 
     public class RpcPlainProperty<T> : RpcProperty
@@ -190,6 +198,18 @@ namespace LPS.Core.Rpc.RpcProperty
         public override IMessage ToProtobuf()
         {
             return RpcHelper.RpcArgToProtobuf(this.Val);
+        }
+
+        public override void FromProtobuf(Any content)
+        {
+            try
+            {
+                this.Val = (T) RpcHelper.ProtobufToRpcArg(content, typeof(T))!;
+            }
+            catch (Exception e)
+            {
+                Debug.Logger.Warn(e, "Error when sync prop");
+            }
         }
     }
 }

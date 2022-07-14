@@ -1,8 +1,11 @@
 using System;
 using System.Threading.Tasks;
+using Google.Protobuf.WellKnownTypes;
 using LPS.Core.Debug;
 using LPS.Core.Ipc.SyncMessage;
 using LPS.Core.Rpc;
+using LPS.Core.Rpc.InnerMessages;
+using MailBox = LPS.Core.Rpc.MailBox;
 
 namespace LPS.Core.Entity
 {
@@ -12,13 +15,37 @@ namespace LPS.Core.Entity
         public CellEntity Cell { get; set; } = null!;
 
         public Action<bool, uint, RpcPropertySyncMessage>? SendSyncMessage;
-        
+        public Action<string, Any>? SendFullSyncMessage;
+
         protected DistributeEntity(string desc)
         {
+            this.IsFrozen = true;
         }
 
         protected DistributeEntity()
         {
+            this.IsFrozen = true;
+        }
+
+        public void FullSync()
+        {
+            var treeDict = new DictWithStringKeyArg();
+
+            foreach (var (key, value) in this.PropertyTree!)
+            {
+                if (value.ShouldSyncToClient)
+                {
+                    treeDict.PayLoad.Add(key, Any.Pack(value.ToProtobuf()));
+                }
+            }
+
+            this.SendFullSyncMessage!.Invoke(this.MailBox.Id, Any.Pack(treeDict));
+        }
+
+        public void FullSyncAck()
+        {
+            // todo: timeout of sync
+            this.IsFrozen = false;
         }
 
         /*
@@ -40,12 +67,12 @@ namespace LPS.Core.Entity
             {
                 return;
             }
-            
+
             this.IsFrozen = true;
 
             //todo: serialContent is the serialized rpc property tree of entity
             Logger.Debug($"start transfer to {targetCellMailBox}");
-            
+
             var serialContent = "";
             try
             {
@@ -61,9 +88,9 @@ namespace LPS.Core.Entity
                     this.IsFrozen = false;
                     throw new Exception("Error when transfer to cell");
                 }
-                
+
                 this.Cell.OnEntityLeave(this);
-                
+
                 Logger.Debug($"transfer success, new mailbox {mailbox}");
             }
             catch (Exception e)
@@ -71,7 +98,7 @@ namespace LPS.Core.Entity
                 Logger.Error(e, "Error when transfer to cell");
                 throw;
             }
-            
+
             this.Destroy();
         }
 

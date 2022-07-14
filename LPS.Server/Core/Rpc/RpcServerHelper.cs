@@ -11,37 +11,6 @@ namespace LPS.Core.Rpc
     {
         private static Dictionary<string, Type> EntityClassMap => RpcHelper.EntityClassMap;
 
-        private static void BuildPropertyTree(BaseEntity entity)
-        {
-            var type = entity.GetType();
-            var tree = type.GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
-                .Where(field =>
-                {
-                    var fieldType = field.GetType();
-
-                    if (!fieldType.IsGenericType)
-                    {
-                        return false;
-                    }
-
-                    if (fieldType.GetGenericTypeDefinition() != typeof(RpcPlainProperty<>)
-                        && fieldType.GetGenericTypeDefinition() != typeof(RpcComplexProperty<>))
-                    {
-                        return false;
-                    }
-
-                    return true;
-                }).ToDictionary(
-                    field => (field.GetValue(entity) as RpcProperty.RpcProperty)!.Name,
-                    field => (field.GetValue(entity) as RpcProperty.RpcProperty)!);
-            
-            foreach (var (_, prop) in tree)
-            {
-                prop.Owner = entity;
-            }
-            
-            entity.SetPropertyTree(tree);
-        }
 
         public static DistributeEntity CreateEntityLocally(string entityClassName, string desc)
         {
@@ -51,7 +20,7 @@ namespace LPS.Core.Rpc
                 if (entityClass.IsSubclassOf(typeof(DistributeEntity)))
                 {
                     var obj = (Activator.CreateInstance(entityClass, desc) as DistributeEntity)!;
-                    BuildPropertyTree(obj);
+                    RpcHelper.BuildPropertyTree(obj);
                     return obj;
                 }
 
@@ -74,7 +43,7 @@ namespace LPS.Core.Rpc
                     var obj = (Activator.CreateInstance(entityClass, null) as DistributeEntity)!;
                     obj.MailBox = entityMailBox;
                     obj.Deserialize(serialContent);
-                    BuildPropertyTree(obj);
+                    RpcHelper.BuildPropertyTree(obj);
                     return obj;
                 }
 

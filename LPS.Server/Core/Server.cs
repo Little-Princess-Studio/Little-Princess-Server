@@ -178,6 +178,7 @@ namespace LPS.Core
 
             entity.OnSend = entityRpc => SendEntityRpc(entity, entityRpc);
             entity.MailBox = mailBox;
+            
             localEntityDict_[mailBox.Id] = entity;
 
             defaultCell_!.ManualyAdd(entity);

@@ -76,6 +76,12 @@ namespace LPS.Core.Rpc.InnerMessages
         ExchangeMailBoxRes = 5,
         Control = 6,
         ClientCreateEntity = 7,
+        RequirePropertyFullSync = 8,
+        PropertyFullSync = 9,
+        PropertySync = 10,
+        PropertyFullSyncAck = 11,
+        PropertySyncAck = 12,
+
     }
 
     public static class PackageHelper

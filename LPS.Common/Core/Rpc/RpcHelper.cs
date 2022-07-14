@@ -1042,5 +1042,37 @@ namespace LPS.Core.Rpc
                     break;
             }
         }
+
+        public static void BuildPropertyTree(BaseEntity entity)
+        {
+            var type = entity.GetType();
+            var tree = type.GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
+                .Where(field =>
+                {
+                    var fieldType = field.GetType();
+
+                    if (!fieldType.IsGenericType)
+                    {
+                        return false;
+                    }
+
+                    if (fieldType.GetGenericTypeDefinition() != typeof(RpcPlainProperty<>)
+                        && fieldType.GetGenericTypeDefinition() != typeof(RpcComplexProperty<>))
+                    {
+                        return false;
+                    }
+
+                    return true;
+                }).ToDictionary(
+                    field => (field.GetValue(entity) as RpcProperty.RpcProperty)!.Name,
+                    field => (field.GetValue(entity) as RpcProperty.RpcProperty)!);
+            
+            foreach (var (_, prop) in tree)
+            {
+                prop.Owner = entity;
+            }
+            
+            entity.SetPropertyTree(tree);
+        }
     }
 }

@@ -127,6 +127,11 @@ namespace LPS.Core.Rpc.RpcProperty
 
             return Any.Pack(pbRpc);
         }
+
+        public virtual void FromRpcArg(Any content)
+        {
+            // todo: normal sync
+        }
     }
 
     public class RpcPropertyContainer<T> : RpcPropertyContainer
@@ -174,7 +179,20 @@ namespace LPS.Core.Rpc.RpcProperty
 
         public override Any ToRpcArg()
         {
-            throw new NotImplementedException();
+            return Any.Pack(RpcHelper.RpcArgToProtobuf(this.value_));
+        }
+        
+        public override void FromRpcArg(Any content)
+        {
+            try
+            {
+                var value = RpcHelper.ProtobufToRpcArg(content, typeof(T));
+                this.value_ = (T) value!;
+            }
+            catch (Exception e)
+            {
+                Debug.Logger.Warn(e, "Error when sync prop");
+            }
         }
     }
 }
