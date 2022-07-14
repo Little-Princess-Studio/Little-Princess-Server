@@ -112,10 +112,7 @@ namespace LPS.Core.Rpc.RpcProperty
         public void RemoveAt(int index)
         {
             var elem = this.Value[index];
-            elem.IsReferred = false;
-            elem.Parent = null;
-            elem.Name = string.Empty;
-            elem.UpdateTopOwner(null);
+            elem.RemoveFromPropTree();
 
             this.Value.RemoveAt(index);
             this.Children!.Remove($"{index}");
@@ -137,10 +134,7 @@ namespace LPS.Core.Rpc.RpcProperty
         {
             foreach (var (_, container) in this.Children!)
             {
-                container.Parent = null;
-                container.Name = string.Empty;
-                container.IsReferred = false;
-                container.UpdateTopOwner(null);
+                container.RemoveFromPropTree();
             }
 
             this.Value.Clear();
