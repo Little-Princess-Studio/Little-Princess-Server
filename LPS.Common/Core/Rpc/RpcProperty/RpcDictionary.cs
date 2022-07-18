@@ -13,6 +13,7 @@ using LPS.Core.Rpc.InnerMessages;
 
 namespace LPS.Core.Rpc.RpcProperty
 {
+    [RpcPropertyContainer]
     public class RpcDictionary<TK, TV> : RpcPropertyContainer
         where TK : notnull
     {
@@ -21,30 +22,52 @@ namespace LPS.Core.Rpc.RpcProperty
         public Dictionary<TK, RpcPropertyContainer> Value
         {
             get => value_;
-            set
-            {
-                ArgumentNullException.ThrowIfNull(value);
+            set => this.SetValueIntern(value, true);
+        }
 
+        private void SetValueIntern(Dictionary<TK, RpcPropertyContainer> value, bool withNotify)
+        {
+            ArgumentNullException.ThrowIfNull(value);
+
+            if (withNotify)
+            {
                 foreach (var (_, old) in this.Value)
                 {
                     old.RemoveFromPropTree();
                 }
+            }
+            
+            this.Children!.Clear();
 
-                this.Children!.Clear();
+            if (withNotify)
+            {
                 foreach (var (k, @new) in value)
                 {
                     @new.InsertToPropTree(this, $"{k}", this.TopOwner);
                     this.Children[@new.Name!] = @new;
                 }
+            }
+            else
+            {
+                foreach (var (k, @new) in value)
+                {
+                    @new.Name = $"{k}";
+                    this.Children[@new.Name!] = @new;
+                }
+            }
 
-                this.value_ = value;
+            this.value_ = value;
+
+            if (withNotify)
+            {
                 this.NotifyChange(RpcPropertySyncOperation.SetValue, this.Name!, old: value_!, value);
             }
         }
-
+        
         static RpcDictionary()
         {
             RpcGenericArgTypeCheckHelper.AssertIsValidKeyType<TK>();
+            RpcHelper.RegisterRpcPropertyContainer(typeof(RpcDictionary<TK, TV>));
         }
 
         public RpcDictionary()
@@ -61,21 +84,72 @@ namespace LPS.Core.Rpc.RpcProperty
             {
                 pbDictVal = RpcHelper.RpcContainerDictToProtoBufAny(this);
             }
-            
-            var pbRpc = new DictWithStringKeyArg();
-            pbRpc.PayLoad.Add("value", pbDictVal == null ? Any.Pack(new NullArg()) : Any.Pack(pbDictVal));
+            else
+            {
+                pbDictVal = new NullArg();
+            }
 
-            return Any.Pack(pbRpc);
+            return Any.Pack(pbDictVal);
         }
 
-        public override void FromRpcArg(Any content)
+        [RpcPropertyContainerDeserializeEntry]
+        public static RpcPropertyContainer FromRpcArg(Any content)
         {
-            
+            if (content.Is(DictWithStringKeyArg.Descriptor) && typeof(string) == typeof(TK))
+            {
+                var payload = content.Unpack<DictWithStringKeyArg>().PayLoad;
+
+                RpcDictionary<string, TV> rpcDict = new();
+                Dictionary<string, RpcPropertyContainer> rawDict = new();
+
+                foreach (var (key, value) in payload)
+                {
+                    rawDict[key!] = RpcHelper.CreateRpcPropertyContainerByType(typeof(TV), value!);
+                }
+
+                rpcDict.SetValueIntern(rawDict, false);
+                return rpcDict;
+            }
+
+            if (content.Is(DictWithIntKeyArg.Descriptor) && typeof(int) == typeof(TK))
+            {
+                var payload = content.Unpack<DictWithIntKeyArg>().PayLoad;
+
+                RpcDictionary<int, TV> rpcDict = new();
+                Dictionary<int, RpcPropertyContainer> rawDict = new();
+
+                foreach (var (key, value) in payload)
+                {
+                    rawDict[key!] = RpcHelper.CreateRpcPropertyContainerByType(typeof(TV), value!);
+                }
+                
+                rpcDict.SetValueIntern(rawDict, false);
+                return rpcDict;
+            }
+
+            if (content.Is(DictWithMailBoxKeyArg.Descriptor) && typeof(MailBox) == typeof(TK))
+            {
+                var payload = content.Unpack<DictWithMailBoxKeyArg>().PayLoad;
+
+                RpcDictionary<MailBox, TV> rpcDict = new();
+                Dictionary<MailBox, RpcPropertyContainer> rawDict = new();
+
+                foreach (var pair in payload)
+                {
+                    rawDict[RpcHelper.PbMailBoxToRpcMailBox(pair.Key)] =
+                        RpcHelper.CreateRpcPropertyContainerByType(typeof(TV), pair.Value);
+                }
+                
+                rpcDict.SetValueIntern(rawDict, false);
+                return rpcDict;
+            }
+
+            throw new Exception($"Invalid dict content : {content}");
         }
 
         public TV this[TK key]
         {
-            get { return (TV) this.Value[key].GetRawValue(); }
+            get => (TV) this.Value[key].GetRawValue();
             set
             {
                 ArgumentNullException.ThrowIfNull(value);
@@ -160,7 +234,7 @@ namespace LPS.Core.Rpc.RpcProperty
             this.Value.ToDictionary(
                 pair => pair.Key,
                 pair => (TV) pair.Value.GetRawValue());
-        
+
         public int Count => this.Value.Count;
     }
 }

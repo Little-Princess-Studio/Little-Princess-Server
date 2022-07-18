@@ -4,10 +4,10 @@ using LPS.Core.Rpc.RpcProperty;
 
 namespace LPS.BenchMark;
 
-[RpcCostumePropertyContainer]
+[RpcPropertyContainer]
 internal class CostumeRpcContainerProperty2 : RpcPropertyContainer
 {
-    [RpcCostumePropertyAttribute]
+    [RpcProperty]
     private readonly RpcPropertyContainer<float> subFloatProperty_ = 0.0f;
 
     public float SubFloatProperty
@@ -22,12 +22,12 @@ internal class CostumeRpcContainerProperty2 : RpcPropertyContainer
     }
 }
     
-[RpcCostumePropertyContainer]
+[RpcPropertyContainer]
 internal class CostumeRpcContainerProperty1 : RpcPropertyContainer
 {
-    [RpcCostumePropertyAttribute]
+    [RpcProperty]
     public readonly RpcList<string> SubListProperty = new();
-    [RpcCostumePropertyAttribute]
+    [RpcProperty]
     public readonly CostumeRpcContainerProperty2 SubCostumerContainerRpcContainerProperty = new();
 
     public override Any ToRpcArg()

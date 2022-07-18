@@ -6,10 +6,10 @@ namespace LPS.UnitTest;
 
 public class RpcPropertyUnitTest
 {
-    [RpcCostumePropertyContainer]
+    [RpcPropertyContainer]
     private class CostumeRpcContainerProperty2 : RpcPropertyContainer
     {
-        [RpcCostumeProperty] 
+        [RpcProperty] 
         private readonly RpcPropertyContainer<float> subFloatProperty_ = 0.0f;
 
         public float SubFloatProperty
@@ -19,12 +19,12 @@ public class RpcPropertyUnitTest
         }
     }
     
-    [RpcCostumePropertyContainer]
+    [RpcPropertyContainer]
     private class CostumeRpcContainerProperty1 : RpcPropertyContainer
     {
-        [RpcCostumeProperty]
+        [RpcProperty]
         public readonly RpcList<string> SubListProperty = new();
-        [RpcCostumeProperty]
+        [RpcProperty]
         public readonly CostumeRpcContainerProperty2 SubCostumerContainerRpcContainerProperty = new();
     }
 

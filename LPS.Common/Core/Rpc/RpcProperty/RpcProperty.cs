@@ -49,7 +49,9 @@ namespace LPS.Core.Rpc.RpcProperty
     {
         None = 0x00000000, // None prop acts same as normal prop
         Permanent = 0x00000001, // Permanent prop will be saved into DB
-        ServerOnly = 0x00000010, // ServerOnly prop will not sync with client-side, but will be serialized/deserialized when entity transferred  
+
+        ServerOnly =
+            0x00000010, // ServerOnly prop will not sync with client-side, but will be serialized/deserialized when entity transferred  
         ServerToShadow = 0x00000100, // ServerClient is same as ServerOnly prop, but also for sync to shadow entities
         FastSync = 0x00001000, // FastSync will sync as fast as possiable to shadow, ignoring prop change order
         KeepSendOrder = 0x00010000, // KeepSendOrder will sync props with keeping prop change order
@@ -61,11 +63,11 @@ namespace LPS.Core.Rpc.RpcProperty
         public readonly string Name;
         public readonly RpcPropertySetting Setting;
         public BaseEntity? Owner;
-        protected readonly RpcPropertyContainer Value;
+        protected RpcPropertyContainer Value;
 
-        public bool IsShadowProperty => ((uint)this.Setting & (uint)RpcPropertySetting.Shadow) == 1;
-        public bool ShouldSyncToClient => ((uint)this.Setting & (uint)RpcPropertySetting.ServerToShadow) == 1;
-        
+        public bool IsShadowProperty => ((uint) this.Setting & (uint) RpcPropertySetting.Shadow) == 1;
+        public bool ShouldSyncToClient => ((uint) this.Setting & (uint) RpcPropertySetting.ServerToShadow) == 1;
+
         protected RpcProperty(string name, RpcPropertySetting setting, RpcPropertyContainer value)
         {
             Name = name;
@@ -121,11 +123,11 @@ namespace LPS.Core.Rpc.RpcProperty
             this.Value.Owner = this;
             this.Value.Name = name;
             this.Value.IsReferred = true;
-            
+
             this.Value.UpdateTopOwner(this);
         }
 
-        public void Set(T value)
+        private void Set(T value)
         {
             var container = ((RpcPropertyContainer<T>) this.Value);
             var old = container.Value;
@@ -134,7 +136,7 @@ namespace LPS.Core.Rpc.RpcProperty
             container.InsertToPropTree(null, this.Name, this);
         }
 
-        public T Get()
+        private T Get()
         {
             return (T) this.Value;
         }
@@ -154,7 +156,8 @@ namespace LPS.Core.Rpc.RpcProperty
 
         public override void FromProtobuf(Any content)
         {
-            this.Val.FromRpcArg(content);
+            this.Val.RemoveFromPropTree();
+            this.Value = (T) RpcHelper.CreateRpcPropertyContainerByType(typeof(T), content);
             this.Val.UpdateTopOwner(this);
         }
     }
@@ -177,12 +180,12 @@ namespace LPS.Core.Rpc.RpcProperty
             this.Value.Name = name;
         }
 
-        public void Set(T value)
+        private void Set(T value)
         {
             ((RpcPropertyContainer<T>) this.Value).Value = value;
         }
 
-        public T Get()
+        private T Get()
         {
             return (RpcPropertyContainer<T>) this.Value;
         }
@@ -202,14 +205,10 @@ namespace LPS.Core.Rpc.RpcProperty
 
         public override void FromProtobuf(Any content)
         {
-            try
-            {
-                this.Val = (T) RpcHelper.ProtobufToRpcArg(content, typeof(T))!;
-            }
-            catch (Exception e)
-            {
-                Debug.Logger.Warn(e, "Error when sync prop");
-            }
+            this.Value =
+                (RpcPropertyContainer<T>) RpcHelper.CreateRpcPropertyContainerByType(
+                    typeof(RpcPlainProperty<T>),
+                    content);
         }
     }
 }

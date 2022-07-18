@@ -18,7 +18,62 @@ namespace LPS.Core.Rpc
         private static readonly Dictionary<Type, Dictionary<string, MethodInfo>> RpcMethodInfo_ = new();
         public static readonly Dictionary<string, Type> EntityClassMap = new();
 
+        private delegate RpcPropertyContainer RpcPropertyContainerDeserializeEntry(
+            Google.Protobuf.WellKnownTypes.Any content);
+
+        private static readonly Dictionary<Type, RpcPropertyContainerDeserializeEntry>
+            RpcPropertyContainerDeserializeFactory_ = new();
+
         public static readonly object?[] EmptyRes = {null};
+
+        private static void RegisterRpcPropertyContainerIntern(Type type, RpcPropertyContainerDeserializeEntry entry)
+        {
+            if (RpcPropertyContainerDeserializeFactory_.ContainsKey(type))
+            {
+                throw new Exception($"Type already exist: {type}");
+            }
+
+            RpcPropertyContainerDeserializeFactory_[type] = entry;
+        }
+
+        public static void RegisterRpcPropertyContainer(Type containerType)
+        {
+            if (containerType.IsDefined(typeof(RpcPropertyContainerAttribute)))
+            {
+                var entry = containerType.GetMethods().Where(mtd =>
+                        mtd.IsStatic && mtd.IsDefined(typeof(RpcPropertyContainerDeserializeEntryAttribute)))
+                    .FirstOrDefault(default(MethodInfo));
+
+                if (entry == null)
+                {
+                    throw new Exception($"RpcContainerType {entry} not have deserialize entry.");
+                }
+
+                if (entry.ReturnType != typeof(RpcPropertyContainer)
+                    || entry.GetParameters().Length != 1
+                    || entry.GetParameters()[0].GetType() != typeof(Google.Protobuf.WellKnownTypes.Any))
+                {
+                    throw new Exception(
+                        $"Wrong signature of RpcContainerProperty deserialize entry method of {containerType}");
+                }
+
+                RegisterRpcPropertyContainerIntern(containerType,
+                    (RpcPropertyContainerDeserializeEntry) Delegate.CreateDelegate(
+                        typeof(RpcPropertyContainerDeserializeEntry), entry));
+            }
+        }
+
+        public static RpcPropertyContainer CreateRpcPropertyContainerByType(Type type,
+            Google.Protobuf.WellKnownTypes.Any content)
+        {
+            if (RpcPropertyContainerDeserializeFactory_.ContainsKey(type))
+            {
+                var gen = RpcPropertyContainerDeserializeFactory_[type];
+                return gen.Invoke(content);
+            }
+
+            throw new Exception($"No registered deserialize entry for type {type}");
+        }
 
         public static MailBox PbMailBoxToRpcMailBox(InnerMessages.MailBox mb) =>
             new(mb.ID, mb.IP, (int) mb.Port, (int) mb.HostNum);
@@ -93,7 +148,6 @@ namespace LPS.Core.Rpc
                 socket.Close();
             }
         }
-
 
         #region Rpc method registration and validation
 
@@ -210,6 +264,43 @@ namespace LPS.Core.Rpc
                     }
                 }
             );
+        }
+
+        public static RpcPropertyContainer ProtoBufAnyToRpcPropertyContainer<T>(
+            Google.Protobuf.WellKnownTypes.Any content)
+        {
+            do
+            {
+                if (typeof(T).IsGenericType && typeof(T).GetGenericTypeDefinition() == typeof(RpcList<>))
+                {
+                    if (content.Is(NullArg.Descriptor))
+                    {
+                    }
+
+                    if (!content.Is(ListArg.Descriptor))
+                    {
+                        break;
+                    }
+                }
+                else if (typeof(T).IsGenericType && typeof(T).GetGenericTypeDefinition() == typeof(RpcDictionary<,>))
+                {
+                    if (!content.Is(DictWithStringKeyArg.Descriptor))
+                    {
+                        break;
+                    }
+                }
+                else
+                {
+                    if (!content.Is(IntArg.Descriptor) && !content.Is(FloatArg.Descriptor) &&
+                        !content.Is(StringArg.Descriptor)
+                        && !content.Is(MailBoxArg.Descriptor) && !content.Is(BoolArg.Descriptor))
+                    {
+                        break;
+                    }
+                }
+            } while (false);
+
+            throw new Exception("Deserialize failed.");
         }
 
         public static bool IsTuple(Type tuple)
@@ -444,29 +535,6 @@ namespace LPS.Core.Rpc
 
         public static IMessage RpcContainerDictToProtoBufAny<TK, TV>(RpcDictionary<TK, TV> dict) where TK : notnull
         {
-            // if (!IsValueTuple(typeof(TK)))
-            // {
-            //     throw new Exception($"Invalid Key Type: {typeof(TK)}");
-            // }
-
-            // if (dict.Value.Count == 0)
-            // {
-            //     return new NullArg();
-            // }
-            //
-            // var msg = new DictWithValueTupleKeyArg();
-            //
-            // foreach (var (key, value) in dict.Value)
-            // {
-            //     msg.PayLoad.Add(new DictWithValueTupleKeyPair
-            //     {
-            //         Key = Google.Protobuf.WellKnownTypes.Any.Pack(RpcValueTupleArgToProtoBuf(key)),
-            //         Value = value.ToRpcArg()
-            //     });
-            // }
-            //
-            // return msg;
-
             throw new Exception($"Invalid Key Type: {typeof(TK)}");
         }
 
@@ -1066,12 +1134,12 @@ namespace LPS.Core.Rpc
                 }).ToDictionary(
                     field => (field.GetValue(entity) as RpcProperty.RpcProperty)!.Name,
                     field => (field.GetValue(entity) as RpcProperty.RpcProperty)!);
-            
+
             foreach (var (_, prop) in tree)
             {
                 prop.Owner = entity;
             }
-            
+
             entity.SetPropertyTree(tree);
         }
     }

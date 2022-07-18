@@ -8,12 +8,17 @@ using LPS.Core.Rpc.InnerMessages;
 namespace LPS.Core.Rpc.RpcProperty
 {
     [AttributeUsage(AttributeTargets.Field)]
-    public class RpcCostumePropertyAttribute : Attribute
+    public class RpcPropertyAttribute : Attribute
     {
     }
 
     [AttributeUsage(AttributeTargets.Class)]
-    public class RpcCostumePropertyContainerAttribute : Attribute
+    public class RpcPropertyContainerAttribute : Attribute
+    {
+    }
+
+    [AttributeUsage(AttributeTargets.Method)]
+    public class RpcPropertyContainerDeserializeEntryAttribute : Attribute
     {
     }
 
@@ -30,7 +35,7 @@ namespace LPS.Core.Rpc.RpcProperty
         {
             return this;
         }
-        
+
         public bool IsShadow => this.TopOwner?.IsShadowProperty ?? false;
 
         public void RemoveFromPropTree()
@@ -49,7 +54,7 @@ namespace LPS.Core.Rpc.RpcProperty
             this.IsReferred = true;
             this.UpdateTopOwner(topOwner);
         }
-        
+
         public void UpdateTopOwner(RpcProperty? topOwner)
         {
             this.TopOwner = topOwner;
@@ -85,11 +90,11 @@ namespace LPS.Core.Rpc.RpcProperty
 
         protected RpcPropertyContainer()
         {
-            if (this.GetType().IsDefined(typeof(RpcCostumePropertyContainerAttribute)))
+            if (this.GetType().IsDefined(typeof(RpcPropertyContainerAttribute)))
             {
                 var rpcFields = this.GetType()
                     .GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
-                    .Where(field => field.IsDefined(typeof(RpcCostumePropertyAttribute))
+                    .Where(field => field.IsDefined(typeof(RpcPropertyAttribute))
                                     && field.FieldType.IsSubclassOf(typeof(RpcPropertyContainer)));
 
                 // build children
@@ -107,7 +112,7 @@ namespace LPS.Core.Rpc.RpcProperty
                 }
             }
         }
-        
+
         public virtual Any ToRpcArg()
         {
             DictWithStringKeyArg? pbChildren = null;
@@ -127,18 +132,15 @@ namespace LPS.Core.Rpc.RpcProperty
 
             return Any.Pack(pbRpc);
         }
-
-        public virtual void FromRpcArg(Any content)
-        {
-            // todo: normal sync
-        }
     }
 
+    [RpcPropertyContainer]
     public class RpcPropertyContainer<T> : RpcPropertyContainer
     {
         static RpcPropertyContainer()
         {
             RpcGenericArgTypeCheckHelper.AssertIsValidPlaintType<T>();
+            RpcHelper.RegisterRpcPropertyContainer(typeof(RpcPropertyContainer<T>));
         }
 
         private T value_;
@@ -182,17 +184,26 @@ namespace LPS.Core.Rpc.RpcProperty
             return Any.Pack(RpcHelper.RpcArgToProtobuf(this.value_));
         }
         
-        public override void FromRpcArg(Any content)
+        [RpcPropertyContainerDeserializeEntry]
+        public static RpcPropertyContainer FromRpcArg(Any content)
         {
-            try
+            RpcPropertyContainer container = content switch
             {
-                var value = RpcHelper.ProtobufToRpcArg(content, typeof(T));
-                this.value_ = (T) value!;
-            }
-            catch (Exception e)
-            {
-                Debug.Logger.Warn(e, "Error when sync prop");
-            }
+                _ when content.Is(IntArg.Descriptor) && typeof(T) == typeof(int) => new RpcPropertyContainer<int>(
+                    content.Unpack<IntArg>().PayLoad),
+                _ when content.Is(FloatArg.Descriptor) && typeof(T) == typeof(float) => new RpcPropertyContainer<float>(
+                    content.Unpack<FloatArg>().PayLoad),
+                _ when content.Is(StringArg.Descriptor) && typeof(T) == typeof(string) => new
+                    RpcPropertyContainer<string>(
+                        content.Unpack<StringArg>().PayLoad),
+                _ when content.Is(StringArg.Descriptor) && typeof(T) == typeof(bool) => new RpcPropertyContainer<bool>(
+                    content.Unpack<BoolArg>().PayLoad),
+                _ when content.Is(MailBoxArg.Descriptor) && typeof(T) == typeof(MailBoxArg) => new
+                    RpcPropertyContainer<MailBox>(
+                        RpcHelper.PbMailBoxToRpcMailBox(content.Unpack<MailBoxArg>().PayLoad)),
+                _ => throw new Exception($"Invalid Rpc arg content: {content}"),
+            };
+            return container;
         }
     }
 }

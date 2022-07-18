@@ -6,33 +6,60 @@ using LPS.Core.Rpc.InnerMessages;
 
 namespace LPS.Core.Rpc.RpcProperty
 {
+    [RpcPropertyContainer]
     public class RpcList<TElem> : RpcPropertyContainer
     {
+        static RpcList()
+        {
+            RpcHelper.RegisterRpcPropertyContainer(typeof(RpcList<TElem>));
+        }
+
         private List<RpcPropertyContainer> value_;
 
         public List<RpcPropertyContainer> Value
         {
             get => value_;
-            set
-            {
-                ArgumentNullException.ThrowIfNull(value);
+            set => this.SetValueIntern(value, true);
+        }
 
+        private void SetValueIntern(List<RpcPropertyContainer> value, bool withNotify)
+        {
+            ArgumentNullException.ThrowIfNull(value);
+
+            if (withNotify)
+            {
                 foreach (var old in this.Value)
                 {
                     old.RemoveFromPropTree();
                 }
+            }
 
-                this.Children!.Clear();
+            this.Children!.Clear();
+
+            int i = 0;
+
+            if (withNotify)
+            {
                 foreach (var @new in value)
                 {
-                    @new.Parent = this;
-                    @new.IsReferred = true;
-                    @new.UpdateTopOwner(this.TopOwner);
+                    @new.InsertToPropTree(this, $"{++i}", this.TopOwner);
                     this.Children[@new.Name!] = @new;
                 }
+            }
+            else
+            {
+                foreach (var @new in value)
+                {
+                    @new.Name = $"{++i}";
+                    this.Children[@new.Name!] = @new;
+                }
+            }
 
-                this.value_ = value;
-                this.NotifyChange(RpcPropertySyncOperation.SetValue, this.Name!, old: value_!, value);
+            this.value_ = value;
+
+            if (withNotify)
+            {
+                this.NotifyChange(RpcPropertySyncOperation.SetValue, this.Name!, old: value_, value);
             }
         }
 
@@ -50,39 +77,48 @@ namespace LPS.Core.Rpc.RpcProperty
             {
                 pbList = RpcHelper.RpcContainerListToProtoBufAny(this);
             }
-            
-            var pbRpc = new DictWithStringKeyArg();
-            pbRpc.PayLoad.Add("value", pbList == null ? Any.Pack(new NullArg()) : Any.Pack(pbList));
+            else
+            {
+                pbList = new NullArg();
+            }
 
-            return Any.Pack(pbRpc);
+            return Any.Pack(pbList);
         }
 
-        public override void FromRpcArg(Any content)
+        [RpcPropertyContainerDeserializeEntry]
+        public static RpcPropertyContainer FromRpcArg(Any content)
         {
-            if (content.Is(DictWithStringKeyArg.Descriptor))
+            if (content.Is(ListArg.Descriptor))
             {
-                var pbDict = content.Unpack<DictWithStringKeyArg>();
-                var value = pbDict.PayLoad["value"];
+                var rpcList = content.Unpack<ListArg>();
 
-                if (value.Is(ListArg.Descriptor))
+                if (typeof(TElem).IsSubclassOf(typeof(RpcPropertyContainer)))
                 {
-                    var list = value.Unpack<ListArg>();
-                    List<RpcPropertyContainer> tmpVal = new(list.PayLoad.Count);
-                    for (int i = 0; i < list.PayLoad.Count; i++)
-                    {
-                        if (typeof(TElem).IsSubclassOf(typeof(RpcPropertyContainer)))
-                        {
-                            // tmpVal[i] = (RpcPropertyContainer)()
-                        }
-                        else
-                        {
-                            
-                        }
-                    }
+                    List<RpcPropertyContainer> rawList = rpcList.PayLoad
+                        .Select(e => RpcHelper.CreateRpcPropertyContainerByType(typeof(TElem), e))
+                        .ToList();
+
+                    RpcList<TElem> propList = new();
+                    propList.SetValueIntern(rawList, false);
+
+                    return propList;
+                }
+                else
+                {
+                    List<RpcPropertyContainer> rawList = rpcList.PayLoad
+                        .Select(e => RpcHelper.CreateRpcPropertyContainerByType(typeof(RpcPropertyContainer<TElem>), e))
+                        .ToList();
+
+                    RpcList<TElem> propList = new();
+                    propList.SetValueIntern(rawList, false);
+
+                    return propList;
                 }
             }
+
+            throw new Exception($"Invalid list content: {content}");
         }
-        
+
         public RpcList(int size, [DisallowNull] TElem defaultVal)
         {
             ArgumentNullException.ThrowIfNull(defaultVal);
