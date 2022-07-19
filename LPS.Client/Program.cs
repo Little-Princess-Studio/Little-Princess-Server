@@ -85,6 +85,9 @@ namespace LPS.Client
                 throw new Exception(
                     $"Invalid property full sync {propertyFullSyncMsg.EntityId} {ClientGlobal.ShadowClientEntity.MailBox.Id}");
             }
+
+            Logger.Info("On Full Sync Msg");
+            ClientGlobal.ShadowClientEntity.FromSyncContent(propertyFullSyncMsg.PropertyTree);
         }
     }
 }

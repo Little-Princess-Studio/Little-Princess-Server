@@ -18,8 +18,6 @@ namespace LPS.Core.Rpc
             { PackageType.RequirePropertyFullSync, (in Package pkg) => PackageHelper.GetProtoBufObject<RequirePropertyFullSync>(pkg) },
             { PackageType.PropertyFullSync, (in Package pkg) => PackageHelper.GetProtoBufObject<PropertyFullSync>(pkg) },
             { PackageType.PropertySync, (in Package pkg) => PackageHelper.GetProtoBufObject<PropertySync>(pkg) },
-            { PackageType.PropertySyncAck, (in Package pkg) => PackageHelper.GetProtoBufObject<PropertySyncAck>(pkg) },
-            { PackageType.PropertyFullSyncAck, (in Package pkg) => PackageHelper.GetProtoBufObject<PropertyFullSyncAck>(pkg) },
         };
 
         private static readonly Dictionary<Type, PackageType> Type2Enum_ = new()
@@ -35,8 +33,6 @@ namespace LPS.Core.Rpc
             { typeof(RequirePropertyFullSync), PackageType.RequirePropertyFullSync },
             { typeof(PropertyFullSync), PackageType.PropertyFullSync },
             { typeof(PropertySync), PackageType.PropertySync },
-            { typeof(PropertySyncAck), PackageType.PropertySyncAck },
-            { typeof(PropertyFullSyncAck), PackageType.PropertyFullSyncAck },
         };
 
         public static void Initialize()

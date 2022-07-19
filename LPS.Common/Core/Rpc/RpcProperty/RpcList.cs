@@ -178,7 +178,7 @@ namespace LPS.Core.Rpc.RpcProperty
 
             this.Value.RemoveAt(index);
             this.Children!.Remove($"{index}");
-            this.NotifyChange(RpcPropertySyncOperation.RemoveElem, elem.Name, elem, null);
+            this.NotifyChange(RpcPropertySyncOperation.RemoveElem, elem.Name!, elem, null);
         }
 
         public void Insert(int index, [DisallowNull] TElem elem)

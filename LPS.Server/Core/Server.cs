@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Sockets;
 using System.Threading;
 using Google.Protobuf;
 using LPS.Core.Database;
@@ -204,6 +205,8 @@ namespace LPS.Core
             tcpServer_.RegisterMessageHandler(PackageType.EntityRpc, this.HandleEntityRpc);
             tcpServer_.RegisterMessageHandler(PackageType.CreateEntity, this.HandleCreateEntity);
             tcpServer_.RegisterMessageHandler(PackageType.ExchangeMailBox, this.HandleExchangeMailBox);
+            tcpServer_.RegisterMessageHandler(PackageType.RequirePropertyFullSync, this.HandleRequirePropertyFullSync);
+
         }
 
         private void UnregisterServerMessageHandlers()
@@ -211,6 +214,7 @@ namespace LPS.Core
             tcpServer_.UnregisterMessageHandler(PackageType.EntityRpc, this.HandleEntityRpc);
             tcpServer_.UnregisterMessageHandler(PackageType.CreateEntity, this.HandleCreateEntity);
             tcpServer_.UnregisterMessageHandler(PackageType.ExchangeMailBox, this.HandleExchangeMailBox);
+            tcpServer_.UnregisterMessageHandler(PackageType.RequirePropertyFullSync, this.HandleRequirePropertyFullSync);
         }
 
         // how server handle entity rpc
@@ -352,6 +356,31 @@ namespace LPS.Core
 
             var pkg = PackageHelper.FromProtoBuf(res, id);
             socket.Send(pkg.ToBytes());
+        }
+
+        private void HandleRequirePropertyFullSync(object arg)
+        {
+            var (msg, conn, id) = ((IMessage, Connection, UInt32)) arg;
+            var requirePropertyFullSyncMsg = (msg as RequirePropertyFullSync)!;
+            var entityId = requirePropertyFullSyncMsg.EntityId;
+
+            if (localEntityDict_.ContainsKey(entityId))
+            {
+                var entity = localEntityDict_[entityId];
+                entity.FullSync(((_, content) =>
+                {
+                    var fullSync = new PropertyFullSync
+                    {
+                        EntityId = entityId,
+                        PropertyTree = content,
+                    };
+                    conn.Socket.SendAsync(fullSync.ToByteArray(), SocketFlags.None);
+                }));
+            }
+            else
+            {
+                throw new Exception($"Entity not exist: {entityId}");
+            }
         }
     }
 }

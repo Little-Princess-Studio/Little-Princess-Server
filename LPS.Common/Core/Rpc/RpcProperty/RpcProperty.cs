@@ -207,7 +207,7 @@ namespace LPS.Core.Rpc.RpcProperty
         {
             this.Value =
                 (RpcPropertyContainer<T>) RpcHelper.CreateRpcPropertyContainerByType(
-                    typeof(RpcPlainProperty<T>),
+                    typeof(RpcPropertyContainer<T>),
                     content);
         }
     }

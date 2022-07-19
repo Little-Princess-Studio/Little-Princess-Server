@@ -141,6 +141,7 @@ namespace LPS.Core
             tcpGateServer_.RegisterMessageHandler(PackageType.Authentication, this.HandleAuthenticationFromClient);
             tcpGateServer_.RegisterMessageHandler(PackageType.Control, this.HandleControlMessage);
             tcpGateServer_.RegisterMessageHandler(PackageType.EntityRpc, this.HandleEntityRpcFromClient);
+            tcpGateServer_.RegisterMessageHandler(PackageType.PropertyFullSync, this.HandleRequireFullSyncFromClient);
         }
 
         private void UnregisterMessageFromServerAndOtherGateHandlers()
@@ -222,6 +223,27 @@ namespace LPS.Core
             }
         }
 
+        private void HandleRequireFullSyncFromClient(object? arg)
+        {
+            Logger.Info("HandleEntityRpcFromServer");
+
+            var (msg, conn, _) = ((IMessage, Connection, UInt32)) arg!;
+            var requirePropertyFullSyncMsg = (msg as RequirePropertyFullSync)!;
+
+            var mb = entityIdToClientConnMapping_[requirePropertyFullSyncMsg.EntityId].Item1;
+            
+            var clientToServer = FindServerOfEntity(mb);
+
+            if (clientToServer != null)
+            {
+                clientToServer.Send(msg, false);
+            }
+            else
+            {
+                Logger.Warn($"gate's server client not found: {requirePropertyFullSyncMsg.EntityId}");
+            }
+        }
+
         private static string DecryptedCiphertext(Authentication auth)
         {
             var rsa = RSA.Create();
@@ -249,10 +271,14 @@ namespace LPS.Core
 
             var entityRpcHandler = (object arg) => this.HandleEntityRpcFromServer(client, arg);
             tcpClientsActions_[(idx, PackageType.EntityRpc)] = entityRpcHandler;
+            
+            var propertyFullSync = (object arg) => this.HandlePropertyFullSyncFromServer(client, arg);
+            tcpClientsActions_[(idx, PackageType.PropertyFullSync)] = propertyFullSync;
 
             client.RegisterMessageHandler(PackageType.CreateEntityRes, createMailBoxResHandler);
             client.RegisterMessageHandler(PackageType.ExchangeMailBoxRes, exchangeMailBoxResHandler);
             client.RegisterMessageHandler(PackageType.EntityRpc, entityRpcHandler);
+            client.RegisterMessageHandler(PackageType.PropertyFullSync, propertyFullSync);
 
             Logger.Info($"client {idx} registered msg");
         }
@@ -271,6 +297,10 @@ namespace LPS.Core
             client.UnregisterMessageHandler(
                 PackageType.EntityRpc,
                 tcpClientsActions_[(idx, PackageType.EntityRpc)]);
+            
+            client.UnregisterMessageHandler(
+                PackageType.PropertyFullSync,
+                tcpClientsActions_[(idx, PackageType.PropertyFullSync)]);
         }
 
         private void HandleCreateEntityResFromServer(TcpClient client, object arg)
@@ -331,16 +361,25 @@ namespace LPS.Core
             }
             
         }
-
+        
         private TcpClient? FindServerOfEntity(MailBox targetMailBox)
         {
             var clientToServer = tcpClientsToServer_
                 .FirstOrDefault(clientToServer => clientToServer?.MailBox.Ip == targetMailBox.IP
+                                                  && clientToServer.MailBox.Port == targetMailBox.Port
+                                                  && clientToServer.MailBox.HostNum == targetMailBox.HostNum, null);
+            return clientToServer;
+        }
+        
+        private TcpClient? FindServerOfEntity(Rpc.MailBox targetMailBox)
+        {
+            var clientToServer = tcpClientsToServer_
+                .FirstOrDefault(clientToServer => clientToServer?.MailBox.Ip == targetMailBox.Ip
                                          && clientToServer.MailBox.Port == targetMailBox.Port
                                          && clientToServer.MailBox.HostNum == targetMailBox.HostNum, null);
             return clientToServer;
         }
-
+        
         private void HandleExchangeMailBoxResFromServer(TcpClient client, object arg)
         {
             var (msg, conn, _) = ((IMessage, Connection, UInt32)) arg;
@@ -364,6 +403,19 @@ namespace LPS.Core
             this.HandleEntityRpcMessageOnGate(entityRpc);
         }
 
+        private void HandlePropertyFullSyncFromServer(TcpClient client, object arg)
+        {
+            Logger.Info("HandlePropertyFullSyncFromServer");
+            
+            var (msg, _, _) = ((IMessage, Connection, UInt32)) arg!;
+            var fullSync = (msg as PropertyFullSync)!;
+            
+            Logger.Info("send fullSync to client");
+            var conn = entityIdToClientConnMapping_[fullSync.EntityId].Item2;
+            var pkg = PackageHelper.FromProtoBuf(msg, 0);
+            conn.Socket.Send(pkg.ToBytes());
+        }
+        
         #endregion
 
         private void HandleEntityRpcMessageOnGate(EntityRpc entityRpc)

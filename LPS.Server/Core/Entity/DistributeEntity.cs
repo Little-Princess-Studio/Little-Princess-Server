@@ -15,7 +15,6 @@ namespace LPS.Core.Entity
         public CellEntity Cell { get; set; } = null!;
 
         public Action<bool, uint, RpcPropertySyncMessage>? SendSyncMessage;
-        public Action<string, Any>? SendFullSyncMessage;
 
         protected DistributeEntity(string desc)
         {
@@ -27,7 +26,7 @@ namespace LPS.Core.Entity
             this.IsFrozen = true;
         }
 
-        public void FullSync()
+        public void FullSync(Action<string, Any> onSyncContentReady)
         {
             var treeDict = new DictWithStringKeyArg();
 
@@ -39,7 +38,7 @@ namespace LPS.Core.Entity
                 }
             }
 
-            this.SendFullSyncMessage!.Invoke(this.MailBox.Id, Any.Pack(treeDict));
+            onSyncContentReady.Invoke(this.MailBox.Id, Any.Pack(treeDict));
         }
 
         public void FullSyncAck()
