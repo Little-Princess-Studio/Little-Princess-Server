@@ -29,6 +29,7 @@ namespace LPS.Client
             // Client.Instance.Init("52.175.74.209", 11001);
             Client.Instance.RegisterMessageHandler(PackageType.ClientCreateEntity, HandleClientCreateEntity);
             Client.Instance.RegisterMessageHandler(PackageType.EntityRpc, HandleEntityRpc);
+            Client.Instance.RegisterMessageHandler(PackageType.PropertyFullSync, HandlePropertyFullSync);
 
             Client.Instance.Start();
 
@@ -88,6 +89,12 @@ namespace LPS.Client
 
             Logger.Info("On Full Sync Msg");
             ClientGlobal.ShadowClientEntity.FromSyncContent(propertyFullSyncMsg.PropertyTree);
+
+            var ack = new PropertyFullSyncAck()
+            {
+                EntityId = ClientGlobal.ShadowClientEntity.MailBox.Id,
+            };
+            Client.Instance.Send(ack);
         }
     }
 }

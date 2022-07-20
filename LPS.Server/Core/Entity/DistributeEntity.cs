@@ -34,7 +34,7 @@ namespace LPS.Core.Entity
             {
                 if (value.ShouldSyncToClient)
                 {
-                    treeDict.PayLoad.Add(key, Any.Pack(value.ToProtobuf()));
+                    treeDict.PayLoad.Add(key, value.ToProtobuf());
                 }
             }
 

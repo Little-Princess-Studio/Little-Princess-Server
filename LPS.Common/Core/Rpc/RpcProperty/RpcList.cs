@@ -114,6 +114,11 @@ namespace LPS.Core.Rpc.RpcProperty
 
                     return propList;
                 }
+            } 
+            
+            if (content.Is(NullArg.Descriptor))
+            {
+                return new RpcList<TElem>();
             }
 
             throw new Exception($"Invalid list content: {content}");

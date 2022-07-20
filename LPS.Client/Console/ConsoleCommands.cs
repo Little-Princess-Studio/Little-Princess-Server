@@ -66,7 +66,7 @@ namespace LPS.Client.Console
         }
 
         [ConsoleCommand("send.transfer")]
-        public static async void Transsfer(string id, string ip, int port, int hostNum)
+        public static async void Transfer(string id, string ip, int port, int hostNum)
         {
             var cellMailBox = new Core.Rpc.MailBox(id, ip, port, hostNum);
 

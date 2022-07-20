@@ -206,7 +206,7 @@ namespace LPS.Core
             tcpServer_.RegisterMessageHandler(PackageType.CreateEntity, this.HandleCreateEntity);
             tcpServer_.RegisterMessageHandler(PackageType.ExchangeMailBox, this.HandleExchangeMailBox);
             tcpServer_.RegisterMessageHandler(PackageType.RequirePropertyFullSync, this.HandleRequirePropertyFullSync);
-
+            tcpServer_.RegisterMessageHandler(PackageType.PropertyFullSyncAck, this.HandlePropertyFullSyncAck);
         }
 
         private void UnregisterServerMessageHandlers()
@@ -215,6 +215,7 @@ namespace LPS.Core
             tcpServer_.UnregisterMessageHandler(PackageType.CreateEntity, this.HandleCreateEntity);
             tcpServer_.UnregisterMessageHandler(PackageType.ExchangeMailBox, this.HandleExchangeMailBox);
             tcpServer_.UnregisterMessageHandler(PackageType.RequirePropertyFullSync, this.HandleRequirePropertyFullSync);
+            tcpServer_.UnregisterMessageHandler(PackageType.PropertyFullSyncAck, this.HandlePropertyFullSyncAck);
         }
 
         // how server handle entity rpc
@@ -309,6 +310,8 @@ namespace LPS.Core
                     ConnectionID = createEntity.ConnectionID,
                     EntityClassName = createEntity.EntityClassName
                 };
+                
+                Logger.Debug("Create Entity Anywhere");
                 var pkg = PackageHelper.FromProtoBuf(createEntityRes, id);
                 conn.Socket.Send(pkg.ToBytes());
             });
@@ -360,15 +363,19 @@ namespace LPS.Core
 
         private void HandleRequirePropertyFullSync(object arg)
         {
+            Logger.Debug("HandleRequirePropertyFullSync");
             var (msg, conn, id) = ((IMessage, Connection, UInt32)) arg;
             var requirePropertyFullSyncMsg = (msg as RequirePropertyFullSync)!;
             var entityId = requirePropertyFullSyncMsg.EntityId;
 
             if (localEntityDict_.ContainsKey(entityId))
             {
+                Logger.Debug("Prepare for full sync");
                 var entity = localEntityDict_[entityId];
                 entity.FullSync(((_, content) =>
                 {
+                    Logger.Debug("Full sync send back");
+
                     var fullSync = new PropertyFullSync
                     {
                         EntityId = entityId,
@@ -376,6 +383,23 @@ namespace LPS.Core
                     };
                     conn.Socket.SendAsync(fullSync.ToByteArray(), SocketFlags.None);
                 }));
+            }
+            else
+            {
+                throw new Exception($"Entity not exist: {entityId}");
+            }
+        }
+
+        private void HandlePropertyFullSyncAck(object arg)
+        {
+            var (msg, conn, id) = ((IMessage, Connection, UInt32)) arg;
+            var propertyFullSyncAckMsg = (msg as PropertyFullSyncAck)!;
+            var entityId = propertyFullSyncAckMsg.EntityId;
+
+            if (localEntityDict_.ContainsKey(entityId))
+            {
+                var entity = localEntityDict_[entityId];
+                entity.FullSyncAck();
             }
             else
             {

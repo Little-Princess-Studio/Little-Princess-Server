@@ -183,26 +183,43 @@ namespace LPS.Core.Rpc.RpcProperty
         {
             return Any.Pack(RpcHelper.RpcArgToProtobuf(this.value_));
         }
-        
+
         [RpcPropertyContainerDeserializeEntry]
         public static RpcPropertyContainer FromRpcArg(Any content)
         {
-            RpcPropertyContainer container = content switch
+            RpcPropertyContainer? container = null;
+
+            if (content.Is(IntArg.Descriptor) && typeof(T) == typeof(int))
             {
-                _ when content.Is(IntArg.Descriptor) && typeof(T) == typeof(int) => new RpcPropertyContainer<int>(
-                    content.Unpack<IntArg>().PayLoad),
-                _ when content.Is(FloatArg.Descriptor) && typeof(T) == typeof(float) => new RpcPropertyContainer<float>(
-                    content.Unpack<FloatArg>().PayLoad),
-                _ when content.Is(StringArg.Descriptor) && typeof(T) == typeof(string) => new
-                    RpcPropertyContainer<string>(
-                        content.Unpack<StringArg>().PayLoad),
-                _ when content.Is(StringArg.Descriptor) && typeof(T) == typeof(bool) => new RpcPropertyContainer<bool>(
-                    content.Unpack<BoolArg>().PayLoad),
-                _ when content.Is(MailBoxArg.Descriptor) && typeof(T) == typeof(MailBoxArg) => new
-                    RpcPropertyContainer<MailBox>(
-                        RpcHelper.PbMailBoxToRpcMailBox(content.Unpack<MailBoxArg>().PayLoad)),
-                _ => throw new Exception($"Invalid Rpc arg content: {content}"),
-            };
+                container = new RpcPropertyContainer<int>(content.Unpack<IntArg>().PayLoad);
+            }
+
+            if (content.Is(FloatArg.Descriptor) && typeof(T) == typeof(float))
+            {
+                container = new RpcPropertyContainer<float>(content.Unpack<FloatArg>().PayLoad);
+            }
+
+            if (content.Is(StringArg.Descriptor) && typeof(T) == typeof(string))
+            {
+                container = new RpcPropertyContainer<string>(content.Unpack<StringArg>().PayLoad);
+            }
+
+            if (content.Is(BoolArg.Descriptor) && typeof(T) == typeof(bool))
+            {
+                container = new RpcPropertyContainer<bool>(content.Unpack<BoolArg>().PayLoad);
+            }
+
+            if (content.Is(MailBoxArg.Descriptor) && typeof(T) == typeof(MailBox))
+            {
+                container = new RpcPropertyContainer<MailBox>(
+                    RpcHelper.PbMailBoxToRpcMailBox(content.Unpack<MailBoxArg>().PayLoad));
+            }
+
+            if (container == null)
+            {
+                throw new Exception($"Invalid deserialize content {content}");
+            }
+
             return container;
         }
     }

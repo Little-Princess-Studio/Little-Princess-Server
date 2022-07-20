@@ -95,6 +95,11 @@ namespace LPS.Core.Rpc.RpcProperty
         [RpcPropertyContainerDeserializeEntry]
         public static RpcPropertyContainer FromRpcArg(Any content)
         {
+            if (content.Is(NullArg.Descriptor))
+            {
+                return new RpcDictionary<TK, TV>();
+            }
+            
             if (content.Is(DictWithStringKeyArg.Descriptor) && typeof(string) == typeof(TK))
             {
                 var payload = content.Unpack<DictWithStringKeyArg>().PayLoad;
@@ -214,7 +219,7 @@ namespace LPS.Core.Rpc.RpcProperty
             elem.RemoveFromPropTree();
 
             this.Value.Remove(key);
-            this.NotifyChange(RpcPropertySyncOperation.RemoveElem, elem.Name, elem.GetRawValue(), null);
+            this.NotifyChange(RpcPropertySyncOperation.RemoveElem, elem.Name!, elem.GetRawValue(), null);
         }
 
         public void Clear()

@@ -51,7 +51,7 @@ namespace LPS.Core.Rpc
 
                 if (entry.ReturnType != typeof(RpcPropertyContainer)
                     || entry.GetParameters().Length != 1
-                    || entry.GetParameters()[0].GetType() != typeof(Google.Protobuf.WellKnownTypes.Any))
+                    || entry.GetParameters()[0].ParameterType != typeof(Google.Protobuf.WellKnownTypes.Any))
                 {
                     throw new Exception(
                         $"Wrong signature of RpcContainerProperty deserialize entry method of {containerType}");
@@ -527,7 +527,7 @@ namespace LPS.Core.Rpc
 
             var msg = new ListArg();
             list.Value.ForEach(e => msg.PayLoad.Add(
-                Google.Protobuf.WellKnownTypes.Any.Pack(e.ToRpcArg()))
+                e.ToRpcArg())
             );
 
             return msg;
@@ -842,6 +842,7 @@ namespace LPS.Core.Rpc
 
         public static void CallLocalEntity(BaseEntity entity, EntityRpc entityRpc)
         {
+            // todo: impl jit to compile methodInfo.invoke to expression.invoke to improve perf.
             var methodInfo = GetRpcMethodArgTypes(entity.GetType(), entityRpc.MethodName);
 
             // OnResult is a special rpc method.
@@ -1117,7 +1118,7 @@ namespace LPS.Core.Rpc
             var tree = type.GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
                 .Where(field =>
                 {
-                    var fieldType = field.GetType();
+                    var fieldType = field.FieldType;
 
                     if (!fieldType.IsGenericType)
                     {

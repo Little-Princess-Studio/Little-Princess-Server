@@ -45,6 +45,7 @@ using LPS.Core.Rpc.InnerMessages;
 
 namespace LPS.Core.Rpc.RpcProperty
 {
+    [Flags]
     public enum RpcPropertySetting
     {
         None = 0x00000000, // None prop acts same as normal prop
@@ -65,8 +66,8 @@ namespace LPS.Core.Rpc.RpcProperty
         public BaseEntity? Owner;
         protected RpcPropertyContainer Value;
 
-        public bool IsShadowProperty => ((uint) this.Setting & (uint) RpcPropertySetting.Shadow) == 1;
-        public bool ShouldSyncToClient => ((uint) this.Setting & (uint) RpcPropertySetting.ServerToShadow) == 1;
+        public bool IsShadowProperty => this.Setting.HasFlag(RpcPropertySetting.Shadow);
+        public bool ShouldSyncToClient => this.Setting.HasFlag(RpcPropertySetting.ServerToShadow);
 
         protected RpcProperty(string name, RpcPropertySetting setting, RpcPropertyContainer value)
         {
@@ -75,7 +76,7 @@ namespace LPS.Core.Rpc.RpcProperty
             Value = value;
         }
 
-        public abstract IMessage ToProtobuf();
+        public abstract Any ToProtobuf();
         public abstract void FromProtobuf(Any content);
 
         public void OnNotify(RpcPropertySyncOperation operation, List<string> path, object? old, object? @new)
@@ -198,9 +199,9 @@ namespace LPS.Core.Rpc.RpcProperty
 
         public static implicit operator T(RpcPlainProperty<T> container) => container.Val;
 
-        public override IMessage ToProtobuf()
+        public override Any ToProtobuf()
         {
-            return RpcHelper.RpcArgToProtobuf(this.Val);
+            return Any.Pack(RpcHelper.RpcArgToProtobuf(this.Val));
         }
 
         public override void FromProtobuf(Any content)
