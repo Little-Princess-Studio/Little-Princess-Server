@@ -23,6 +23,7 @@ namespace LPS.Client
             Logger.Init("client");
             RpcProtobufDefs.Init();
             RpcHelper.ScanRpcMethods("LPS.Client.Entity");
+            RpcHelper.ScanRpcPropertyContainer("LPS.Client.Entity.RpcProperties");
             CommandParser.ScanCommands("LPS.Client");
 
             Client.Instance.Init("127.0.0.1", 11001);

@@ -115,21 +115,43 @@ namespace LPS.Core.Rpc.RpcProperty
         }
     }
 
+    public class RpcShadowPlaintProperty<T> : RpcPlainProperty<T>
+    {
+        public RpcShadowPlaintProperty(string name) : base(name, RpcPropertySetting.Shadow, default(T)!)
+        {
+        }
+    }
+
+    public class RpcShadowComplexProperty<T> : RpcComplexProperty<T>
+        where T : RpcPropertyContainer
+    {
+        public RpcShadowComplexProperty(string name) : base(name, RpcPropertySetting.Shadow, null!)
+        {
+        }
+    }
+
     public class RpcComplexProperty<T> : RpcProperty
         where T : RpcPropertyContainer
     {
         public RpcComplexProperty(string name, RpcPropertySetting setting, T value)
             : base(name, setting, value)
         {
-            this.Value.Owner = this;
-            this.Value.Name = name;
-            this.Value.IsReferred = true;
+            if (!this.IsShadowProperty)
+            {
+                this.Value.Name = name;
+                this.Value.IsReferred = true;
 
-            this.Value.UpdateTopOwner(this);
+                this.Value.UpdateTopOwner(this);
+            }
         }
 
         private void Set(T value)
         {
+            if (this.IsShadowProperty)
+            {
+                throw new Exception("Shadow property cannot be modified manually");
+            }
+            
             var container = ((RpcPropertyContainer<T>) this.Value);
             var old = container.Value;
 
@@ -157,9 +179,12 @@ namespace LPS.Core.Rpc.RpcProperty
 
         public override void FromProtobuf(Any content)
         {
-            this.Val.RemoveFromPropTree();
+            if (!this.IsShadowProperty)
+            {
+                this.Val.RemoveFromPropTree();
+            }
             this.Value = (T) RpcHelper.CreateRpcPropertyContainerByType(typeof(T), content);
-            this.Val.UpdateTopOwner(this);
+            this.Val.InsertToPropTree(null, this.Name, this);
         }
     }
 
@@ -177,12 +202,16 @@ namespace LPS.Core.Rpc.RpcProperty
         public RpcPlainProperty(string name, RpcPropertySetting setting, T value)
             : base(name, setting, new RpcPropertyContainer<T>(value))
         {
-            this.Value.Owner = this;
             this.Value.Name = name;
         }
 
         private void Set(T value)
         {
+            if (this.IsShadowProperty)
+            {
+                throw new Exception("Shadow property cannot be modified manually");
+            }
+
             ((RpcPropertyContainer<T>) this.Value).Value = value;
         }
 
@@ -210,6 +239,8 @@ namespace LPS.Core.Rpc.RpcProperty
                 (RpcPropertyContainer<T>) RpcHelper.CreateRpcPropertyContainerByType(
                     typeof(RpcPropertyContainer<T>),
                     content);
+            this.Value.Name = this.Name;
+            this.Value.IsReferred = true;
         }
     }
 }

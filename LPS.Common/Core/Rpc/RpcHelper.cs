@@ -75,6 +75,31 @@ namespace LPS.Core.Rpc
             throw new Exception($"No registered deserialize entry for type {type}");
         }
 
+        public static void ScanRpcPropertyContainer(string namespaceName)
+        {
+            var typesEntry = Assembly.GetCallingAssembly().GetTypes()
+                .Where(
+                    type => type.IsClass
+                            && type.Namespace == namespaceName
+                            && Attribute.IsDefined(type, typeof(RpcPropertyContainerAttribute))
+                );
+
+            var types = Assembly.GetExecutingAssembly().GetTypes()
+                .Where(
+                    type => type.IsClass
+                            && type.Namespace == namespaceName
+                            && Attribute.IsDefined(type, typeof(RpcPropertyContainerAttribute))
+                )
+                .Concat(typesEntry)
+                .Distinct()
+                .ToList();
+            
+            foreach (var type in types)
+            {
+                RegisterRpcPropertyContainer(type);
+            }
+        }
+
         public static MailBox PbMailBoxToRpcMailBox(InnerMessages.MailBox mb) =>
             new(mb.ID, mb.IP, (int) mb.Port, (int) mb.HostNum);
 
@@ -1125,8 +1150,11 @@ namespace LPS.Core.Rpc
                         return false;
                     }
 
-                    if (fieldType.GetGenericTypeDefinition() != typeof(RpcPlainProperty<>)
-                        && fieldType.GetGenericTypeDefinition() != typeof(RpcComplexProperty<>))
+                    var genType = fieldType.GetGenericTypeDefinition(); 
+                    if (genType != typeof(RpcPlainProperty<>)
+                        && genType != typeof(RpcComplexProperty<>)
+                        && genType != typeof(RpcShadowComplexProperty<>)
+                        && genType != typeof(RpcShadowPlaintProperty<>))
                     {
                         return false;
                     }

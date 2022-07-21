@@ -9,7 +9,7 @@ namespace LPS.UnitTest;
 public class RpcPropertyUnitTest
 {
     [RpcPropertyContainer]
-    private class CostumeRpcContainerProperty2 : RpcPropertyContainer
+    private class CostumeRpcContainerProperty2 : RpcPropertyCostumeContainer
     {
         [RpcProperty] private readonly RpcPropertyContainer<float> subFloatProperty_ = 0.0f;
 
@@ -18,13 +18,21 @@ public class RpcPropertyUnitTest
             get => subFloatProperty_.Value;
             set => subFloatProperty_.Value = value;
         }
+
+        [RpcPropertyContainerDeserializeEntry]
+        public static RpcPropertyContainer DeserializeStatic(Any content) =>
+            CreateSerializedContainer<CostumeRpcContainerProperty2>(content);
     }
 
     [RpcPropertyContainer]
-    private class CostumeRpcContainerProperty1 : RpcPropertyContainer
+    private class CostumeRpcContainerProperty1 : RpcPropertyCostumeContainer
     {
         [RpcProperty] public readonly RpcList<string> SubListProperty = new();
         [RpcProperty] public readonly CostumeRpcContainerProperty2 SubCostumerContainerRpcContainerProperty = new();
+
+        [RpcPropertyContainerDeserializeEntry]
+        public static RpcPropertyContainer DeserializeStatic(Any content) =>
+            CreateSerializedContainer<CostumeRpcContainerProperty1>(content);
     }
 
     private class TestEntity : DistributeEntity
@@ -36,16 +44,29 @@ public class RpcPropertyUnitTest
         public readonly RpcPlainProperty<string> TestRpcPlainPropStr =
             new(nameof(TestEntity.TestRpcPlainPropStr),
                 RpcPropertySetting.Permanent | RpcPropertySetting.ServerToShadow, "");
+
+        public readonly RpcComplexProperty<CostumeRpcContainerProperty1> TestCostumeRpcContainerProperty1
+            = new(nameof(TestCostumeRpcContainerProperty1),
+                RpcPropertySetting.Permanent | RpcPropertySetting.ServerToShadow, new());
+
+        public readonly RpcComplexProperty<CostumeRpcContainerProperty2> TestCostumeRpcContainerProperty2
+            = new(nameof(TestCostumeRpcContainerProperty2),
+                RpcPropertySetting.Permanent | RpcPropertySetting.ServerToShadow, new());
     }
 
     private class TestShadowEntity : ShadowEntity
     {
-        public readonly RpcComplexProperty<RpcList<string>> TestRpcProp =
-            new(nameof(TestShadowEntity.TestRpcProp), RpcPropertySetting.Shadow,
-                new RpcList<string>());
+        public readonly RpcShadowComplexProperty<RpcList<string>> TestRpcProp =
+            new(nameof(TestShadowEntity.TestRpcProp));
 
-        public readonly RpcPlainProperty<string> TestRpcPlainPropStr =
-            new(nameof(TestShadowEntity.TestRpcPlainPropStr), RpcPropertySetting.Shadow, "");
+        public readonly RpcShadowPlaintProperty<string> TestRpcPlainPropStr =
+            new(nameof(TestShadowEntity.TestRpcPlainPropStr));
+
+        public readonly RpcShadowComplexProperty<CostumeRpcContainerProperty1> TestCostumeRpcContainerProperty1 =
+            new(nameof(TestCostumeRpcContainerProperty1));
+
+        public readonly RpcShadowComplexProperty<CostumeRpcContainerProperty2> TestCostumeRpcContainerProperty2 =
+            new(nameof(TestCostumeRpcContainerProperty2));
     }
 
     [Fact]
@@ -131,6 +152,8 @@ public class RpcPropertyUnitTest
     [Fact]
     public void TestPropertySerialization()
     {
+        RpcHelper.ScanRpcPropertyContainer("LPS.UnitTest");
+
         var entity = new TestEntity();
         var shadowEntity = new TestShadowEntity();
         RpcHelper.BuildPropertyTree(entity);
@@ -142,8 +165,31 @@ public class RpcPropertyUnitTest
 
         entity.TestRpcPlainPropStr.Val = "hello, LPS";
 
+        entity.TestCostumeRpcContainerProperty1.Val.SubListProperty.Add("a");
+        entity.TestCostumeRpcContainerProperty1.Val.SubListProperty.Add("b");
+        entity.TestCostumeRpcContainerProperty1.Val.SubListProperty.Add("c");
+
+        entity.TestCostumeRpcContainerProperty1.Val.SubCostumerContainerRpcContainerProperty.SubFloatProperty = 100.0f;
+
+        entity.TestCostumeRpcContainerProperty2.Val.SubFloatProperty = 200.0f;
+
         entity.FullSync((id, content) => { shadowEntity.FromSyncContent(content); });
 
-        Assert.True(true);
+        Assert.Equal("1", shadowEntity.TestRpcProp.Val[0]);
+        Assert.Equal("2", shadowEntity.TestRpcProp.Val[1]);
+        Assert.Equal("3", shadowEntity.TestRpcProp.Val[2]);
+
+        Assert.Equal("hello, LPS", shadowEntity.TestRpcPlainPropStr);
+
+        Assert.Equal("a", shadowEntity.TestCostumeRpcContainerProperty1.Val.SubListProperty[0]);
+        Assert.Equal("b", shadowEntity.TestCostumeRpcContainerProperty1.Val.SubListProperty[1]);
+        Assert.Equal("c", shadowEntity.TestCostumeRpcContainerProperty1.Val.SubListProperty[2]);
+
+        Assert.Equal(100.0f,
+            shadowEntity.TestCostumeRpcContainerProperty1.Val.SubCostumerContainerRpcContainerProperty
+                .SubFloatProperty);
+
+        Assert.Equal(200.0f,
+            shadowEntity.TestCostumeRpcContainerProperty2.Val.SubFloatProperty);
     }
 }

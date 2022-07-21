@@ -19,11 +19,16 @@ namespace LPS.Core.Rpc.RpcProperty
         public List<RpcPropertyContainer> Value
         {
             get => value_;
-            set => this.SetValueIntern(value, true);
+            set => this.SetValueIntern(value, true, false);
         }
 
-        private void SetValueIntern(List<RpcPropertyContainer> value, bool withNotify)
+        private void SetValueIntern(List<RpcPropertyContainer> value, bool withNotify, bool bySync)
         {
+            if (!bySync)
+            {
+                AssertNotShadowPropertyChange();
+            }
+
             ArgumentNullException.ThrowIfNull(value);
 
             if (withNotify)
@@ -95,27 +100,40 @@ namespace LPS.Core.Rpc.RpcProperty
                 if (typeof(TElem).IsSubclassOf(typeof(RpcPropertyContainer)))
                 {
                     List<RpcPropertyContainer> rawList = rpcList.PayLoad
-                        .Select(e => RpcHelper.CreateRpcPropertyContainerByType(typeof(TElem), e))
+                        .Select((e, i) =>
+                        {
+                            var container = RpcHelper.CreateRpcPropertyContainerByType(typeof(TElem), e);
+                            container.Name = $"{i}";
+                            container.IsReferred = true;
+                            return container;
+                        })
                         .ToList();
 
                     RpcList<TElem> propList = new();
-                    propList.SetValueIntern(rawList, false);
+                    propList.SetValueIntern(rawList, true, true);
 
                     return propList;
                 }
                 else
                 {
                     List<RpcPropertyContainer> rawList = rpcList.PayLoad
-                        .Select(e => RpcHelper.CreateRpcPropertyContainerByType(typeof(RpcPropertyContainer<TElem>), e))
+                        .Select((e, i) =>
+                        {
+                            var container =
+                                RpcHelper.CreateRpcPropertyContainerByType(typeof(RpcPropertyContainer<TElem>), e);
+                            container.Name = $"{i}";
+                            container.IsReferred = true;
+                            return container;
+                        })
                         .ToList();
 
                     RpcList<TElem> propList = new();
-                    propList.SetValueIntern(rawList, false);
+                    propList.SetValueIntern(rawList, true, true);
 
                     return propList;
                 }
-            } 
-            
+            }
+
             if (content.Is(NullArg.Descriptor))
             {
                 return new RpcList<TElem>();
@@ -167,6 +185,8 @@ namespace LPS.Core.Rpc.RpcProperty
 
         public void Add([DisallowNull] TElem elem)
         {
+            AssertNotShadowPropertyChange();
+
             ArgumentNullException.ThrowIfNull(elem);
             var newContainer = HandleValue(elem, this.Value.Count);
             newContainer.UpdateTopOwner(this.TopOwner);
@@ -176,8 +196,10 @@ namespace LPS.Core.Rpc.RpcProperty
             this.NotifyChange(RpcPropertySyncOperation.AddListElem, newContainer.Name!, null, elem);
         }
 
-        public void RemoveAt(int index)
+        public void Remove(int index)
         {
+            AssertNotShadowPropertyChange();
+
             var elem = this.Value[index];
             elem.RemoveFromPropTree();
 
@@ -188,6 +210,8 @@ namespace LPS.Core.Rpc.RpcProperty
 
         public void Insert(int index, [DisallowNull] TElem elem)
         {
+            AssertNotShadowPropertyChange();
+
             ArgumentNullException.ThrowIfNull(elem);
             var newContainer = HandleValue(elem, index);
             newContainer.UpdateTopOwner(this.TopOwner);
@@ -199,6 +223,8 @@ namespace LPS.Core.Rpc.RpcProperty
 
         public void Clear()
         {
+            AssertNotShadowPropertyChange();
+
             foreach (var (_, container) in this.Children!)
             {
                 container.RemoveFromPropTree();
@@ -216,6 +242,7 @@ namespace LPS.Core.Rpc.RpcProperty
             get => (TElem) this.Value[index].GetRawValue();
             set
             {
+                AssertNotShadowPropertyChange();
                 ArgumentNullException.ThrowIfNull(value);
                 var old = this.Value[index];
                 var oldName = old.Name!;
@@ -232,7 +259,7 @@ namespace LPS.Core.Rpc.RpcProperty
                 {
                     var oldWithContainer = (RpcPropertyContainer<TElem>) old;
                     var oldVal = oldWithContainer.Value;
-                    oldWithContainer.SetWithoutNotify(value);
+                    oldWithContainer.Set(value, false, false);
                     this.NotifyChange(RpcPropertySyncOperation.SetValue, this.Value[index].Name!, oldVal, value);
                 }
             }

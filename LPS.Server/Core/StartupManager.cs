@@ -242,6 +242,7 @@ namespace LPS.Core
             RpcProtobufDefs.Initialize();
             RpcHelper.ScanRpcMethods("LPS.Core.Entity");
             RpcHelper.ScanRpcMethods("LPS.Logic.Entity");
+            RpcHelper.ScanRpcPropertyContainer("LPS.Logic.RpcProperties");
             DbHelper.Initialize().Wait();
 
             var json = GetJson(confFilePath);

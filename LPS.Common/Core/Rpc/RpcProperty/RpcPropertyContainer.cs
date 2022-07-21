@@ -26,7 +26,6 @@ namespace LPS.Core.Rpc.RpcProperty
     {
         public string? Name { get; set; }
         public RpcPropertyContainer? Parent { get; set; }
-        public RpcProperty? Owner { get; set; }
         public bool IsReferred { get; set; }
         public Dictionary<string, RpcPropertyContainer>? Children { get; set; }
         public RpcProperty? TopOwner { get; private set; }
@@ -42,7 +41,6 @@ namespace LPS.Core.Rpc.RpcProperty
         {
             this.Name = string.Empty;
             this.Parent = null;
-            this.Owner = null;
             this.IsReferred = false;
             this.UpdateTopOwner(null);
         }
@@ -78,13 +76,13 @@ namespace LPS.Core.Rpc.RpcProperty
         {
             path.Insert(0, Name!);
 
-            if (this.Owner != null)
+            if (this.Parent == null)
             {
-                this.Owner.OnNotify(operation, path, old, @new);
+                this.TopOwner?.OnNotify(operation, path, old, @new);
             }
             else
             {
-                this.Parent?.NotifyChange(operation, path, old, @new);
+                this.Parent.NotifyChange(operation, path, old, @new);
             }
         }
 
@@ -103,11 +101,8 @@ namespace LPS.Core.Rpc.RpcProperty
                 foreach (var fieldInfo in rpcFields)
                 {
                     var prop = (fieldInfo.GetValue(this) as RpcPropertyContainer)!;
-                    prop.Parent = this;
                     prop.IsReferred = true;
                     prop.Name = fieldInfo.Name;
-                    prop.TopOwner = this.TopOwner;
-
                     this.Children.Add(prop.Name, prop);
                 }
             }
@@ -127,10 +122,55 @@ namespace LPS.Core.Rpc.RpcProperty
                 }
             }
 
-            var pbRpc = new DictWithStringKeyArg();
-            pbRpc.PayLoad.Add("children", pbChildren == null ? Any.Pack(new NullArg()) : Any.Pack(pbChildren));
+            return Any.Pack(pbChildren != null ? pbChildren : new NullArg());
+        }
 
-            return Any.Pack(pbRpc);
+        public void AssertNotShadowPropertyChange()
+        {
+            if (this.TopOwner is {IsShadowProperty: true})
+            {
+                throw new Exception("Shadow property cannot be modified manually");
+            }
+        }
+    }
+
+    public abstract class RpcPropertyCostumeContainer : RpcPropertyContainer
+    {
+        public virtual void Deserialize(Any content)
+        {
+            if (content.Is(DictWithStringKeyArg.Descriptor))
+            {
+                var dict = content.Unpack<DictWithStringKeyArg>();
+                var props = this.GetType()
+                    .GetFields(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public)
+                    .Where(field => field.IsDefined(typeof(RpcPropertyAttribute)));
+
+                this.Children!.Clear();
+
+                foreach (var fieldInfo in props)
+                {
+                    var rpcProperty = (fieldInfo.GetValue(this) as RpcPropertyContainer)!;
+
+                    if (dict.PayLoad.ContainsKey(rpcProperty.Name!))
+                    {
+                        var fieldValue = RpcHelper.CreateRpcPropertyContainerByType(fieldInfo.FieldType,
+                            dict.PayLoad[rpcProperty.Name!]);
+
+                        fieldValue.Name = rpcProperty.Name!;
+                        fieldValue.IsReferred = true;
+                        fieldInfo.SetValue(this, fieldValue);
+                        this.Children.Add(rpcProperty.Name!, fieldValue);
+                    }
+                }
+            }
+        }
+
+        public static RpcPropertyContainer CreateSerializedContainer<T>(Any content)
+            where T : RpcPropertyCostumeContainer, new()
+        {
+            var obj = new T();
+            obj.Deserialize(content);
+            return obj;
         }
     }
 
@@ -148,22 +188,28 @@ namespace LPS.Core.Rpc.RpcProperty
         public T Value
         {
             get => value_;
-            set
-            {
-                ArgumentNullException.ThrowIfNull(value);
-                if (value.Equals(this.value_))
-                {
-                    return;
-                }
-
-                this.SetWithoutNotify(value);
-                this.NotifyChange(RpcPropertySyncOperation.SetValue, this.Name!, old: value_!, value);
-            }
+            set => this.Set(value, true, false);
         }
 
-        public void SetWithoutNotify(T v)
+        public void Set(T value, bool withNotify, bool bySync)
         {
-            this.value_ = v;
+            if (!bySync)
+            {
+                AssertNotShadowPropertyChange();
+            }
+
+            ArgumentNullException.ThrowIfNull(value);
+            if (value.Equals(this.value_))
+            {
+                return;
+            }
+
+            this.value_ = value;
+
+            if (withNotify)
+            {
+                this.NotifyChange(RpcPropertySyncOperation.SetValue, this.Name!, old: value_!, value);
+            }
         }
 
         public static implicit operator T(RpcPropertyContainer<T> container) => container.Value;

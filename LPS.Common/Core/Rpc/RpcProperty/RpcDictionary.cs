@@ -22,11 +22,15 @@ namespace LPS.Core.Rpc.RpcProperty
         public Dictionary<TK, RpcPropertyContainer> Value
         {
             get => value_;
-            set => this.SetValueIntern(value, true);
+            set => this.SetValueInternal(value, true, false);
         }
 
-        private void SetValueIntern(Dictionary<TK, RpcPropertyContainer> value, bool withNotify)
+        private void SetValueInternal(Dictionary<TK, RpcPropertyContainer> value, bool withNotify, bool bySync)
         {
+            if (!bySync)
+            {
+                AssertNotShadowPropertyChange();
+            }
             ArgumentNullException.ThrowIfNull(value);
 
             if (withNotify)
@@ -93,7 +97,7 @@ namespace LPS.Core.Rpc.RpcProperty
         }
 
         [RpcPropertyContainerDeserializeEntry]
-        public static RpcPropertyContainer FromRpcArg(Any content)
+        public new static RpcPropertyContainer FromRpcArg(Any content)
         {
             if (content.Is(NullArg.Descriptor))
             {
@@ -109,10 +113,13 @@ namespace LPS.Core.Rpc.RpcProperty
 
                 foreach (var (key, value) in payload)
                 {
-                    rawDict[key!] = RpcHelper.CreateRpcPropertyContainerByType(typeof(TV), value!);
+                    var val = RpcHelper.CreateRpcPropertyContainerByType(typeof(TV), value!);
+                    val.Name = key;
+                    val.IsReferred = true;
+                    rawDict[key!] = val;
                 }
 
-                rpcDict.SetValueIntern(rawDict, false);
+                rpcDict.SetValueInternal(rawDict, true, true);
                 return rpcDict;
             }
 
@@ -125,10 +132,13 @@ namespace LPS.Core.Rpc.RpcProperty
 
                 foreach (var (key, value) in payload)
                 {
-                    rawDict[key!] = RpcHelper.CreateRpcPropertyContainerByType(typeof(TV), value!);
+                    var val = RpcHelper.CreateRpcPropertyContainerByType(typeof(TV), value!);
+                    val.Name = $"{key}";
+                    val.IsReferred = true;
+                    rawDict[key!] = val;
                 }
                 
-                rpcDict.SetValueIntern(rawDict, false);
+                rpcDict.SetValueInternal(rawDict, true, true);
                 return rpcDict;
             }
 
@@ -141,11 +151,14 @@ namespace LPS.Core.Rpc.RpcProperty
 
                 foreach (var pair in payload)
                 {
-                    rawDict[RpcHelper.PbMailBoxToRpcMailBox(pair.Key)] =
-                        RpcHelper.CreateRpcPropertyContainerByType(typeof(TV), pair.Value);
+                    var key = RpcHelper.PbMailBoxToRpcMailBox(pair.Key);
+                    var val = RpcHelper.CreateRpcPropertyContainerByType(typeof(TV), pair.Value);
+                    val.Name = $"{key}";
+                    val.IsReferred = true;
+                    rawDict[key] = val;
                 }
                 
-                rpcDict.SetValueIntern(rawDict, false);
+                rpcDict.SetValueInternal(rawDict, true, true);
                 return rpcDict;
             }
 
@@ -215,6 +228,7 @@ namespace LPS.Core.Rpc.RpcProperty
 
         public void Remove(TK key)
         {
+            AssertNotShadowPropertyChange();
             var elem = this.Value[key];
             elem.RemoveFromPropTree();
 
@@ -224,6 +238,8 @@ namespace LPS.Core.Rpc.RpcProperty
 
         public void Clear()
         {
+            AssertNotShadowPropertyChange();
+
             foreach (var (_, value) in this.Value)
             {
                 value.RemoveFromPropTree();
