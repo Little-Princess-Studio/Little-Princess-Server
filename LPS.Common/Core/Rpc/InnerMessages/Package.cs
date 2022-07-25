@@ -81,7 +81,6 @@ namespace LPS.Core.Rpc.InnerMessages
         PropertySync = 10,
         PropertyFullSyncAck = 11,
         PropertySyncAck = 12,
-
     }
 
     public static class PackageHelper

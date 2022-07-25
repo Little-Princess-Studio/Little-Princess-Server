@@ -7,10 +7,10 @@ namespace LPS.Client.Entity
     [EntityClass]
     public class Untrusted : ShadowClientEntity
     {
-        public readonly RpcComplexProperty<RpcList<string>> TestRpcProp =
-            new(nameof(Untrusted.TestRpcProp), RpcPropertySetting.Permanent, new RpcList<string>());
+        public readonly RpcShadowComplexProperty<RpcList<string>> TestRpcProp =
+            new(nameof(Untrusted.TestRpcProp));
 
-        public readonly RpcPlainProperty<string> TestRpcPlainPropStr =
-            new(nameof(Untrusted.TestRpcPlainPropStr), RpcPropertySetting.Permanent, "");
+        public readonly RpcShadowPlaintProperty<string> TestRpcPlainPropStr =
+            new(nameof(Untrusted.TestRpcPlainPropStr));
     }
 }

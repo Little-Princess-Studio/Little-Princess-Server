@@ -149,6 +149,22 @@ public class RpcPropertyUnitTest
         Assert.Equal(1.0f, rpcProp.Val.SubCostumerContainerRpcContainerProperty.SubFloatProperty);
     }
 
+    private bool CheckReferred(RpcPropertyContainer? container)
+    {
+        if (container == null) {
+            return false;
+        }
+
+        foreach (var (_, value)  in container.Children!)
+        {
+            if (!value.IsReferred)
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
     [Fact]
     public void TestPropertySerialization()
     {
@@ -191,5 +207,9 @@ public class RpcPropertyUnitTest
 
         Assert.Equal(200.0f,
             shadowEntity.TestCostumeRpcContainerProperty2.Val.SubFloatProperty);
-    }
+        
+        Assert.True(this.CheckReferred(shadowEntity.TestRpcProp.Val));
+        Assert.True(this.CheckReferred(shadowEntity.TestCostumeRpcContainerProperty1.Val));
+        Assert.True(this.CheckReferred(shadowEntity.TestCostumeRpcContainerProperty2.Val));
+    }    
 }

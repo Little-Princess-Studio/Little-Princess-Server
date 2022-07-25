@@ -30,7 +30,8 @@ namespace LPS.Core.Rpc
         {
             if (RpcPropertyContainerDeserializeFactory_.ContainsKey(type))
             {
-                throw new Exception($"Type already exist: {type}");
+                Logger.Warn(
+                    $"Type already exist: {type}, register may duplicated (ignore this message if it's for generic rpc container type)");
             }
 
             RpcPropertyContainerDeserializeFactory_[type] = entry;
@@ -63,6 +64,9 @@ namespace LPS.Core.Rpc
             }
         }
 
+        public static bool IsRpcContainerRegistered(Type type) =>
+            RpcPropertyContainerDeserializeFactory_.ContainsKey(type);
+
         public static RpcPropertyContainer CreateRpcPropertyContainerByType(Type type,
             Google.Protobuf.WellKnownTypes.Any content)
         {
@@ -93,7 +97,7 @@ namespace LPS.Core.Rpc
                 .Concat(typesEntry)
                 .Distinct()
                 .ToList();
-            
+
             foreach (var type in types)
             {
                 RegisterRpcPropertyContainer(type);
@@ -1150,7 +1154,7 @@ namespace LPS.Core.Rpc
                         return false;
                     }
 
-                    var genType = fieldType.GetGenericTypeDefinition(); 
+                    var genType = fieldType.GetGenericTypeDefinition();
                     if (genType != typeof(RpcPlainProperty<>)
                         && genType != typeof(RpcComplexProperty<>)
                         && genType != typeof(RpcShadowComplexProperty<>)

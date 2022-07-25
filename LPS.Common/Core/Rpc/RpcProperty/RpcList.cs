@@ -154,7 +154,7 @@ namespace LPS.Core.Rpc.RpcProperty
             {
                 var newContainer = HandleValue(defaultVal, i);
 
-                this.Value[i] = newContainer;
+                this.Value.Add(newContainer);
                 this.Children.Add($"{i}", newContainer);
             }
         }

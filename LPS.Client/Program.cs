@@ -91,7 +91,7 @@ namespace LPS.Client
             Logger.Info("On Full Sync Msg");
             ClientGlobal.ShadowClientEntity.FromSyncContent(propertyFullSyncMsg.PropertyTree);
 
-            var ack = new PropertyFullSyncAck()
+            var ack = new PropertyFullSyncAck
             {
                 EntityId = ClientGlobal.ShadowClientEntity.MailBox.Id,
             };

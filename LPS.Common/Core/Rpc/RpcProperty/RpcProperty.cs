@@ -183,6 +183,14 @@ namespace LPS.Core.Rpc.RpcProperty
             {
                 this.Val.RemoveFromPropTree();
             }
+            else
+            {
+                // for shadow property, generic rpc container may not be registered
+                if (!RpcHelper.IsRpcContainerRegistered(typeof(T)))
+                {
+                    RpcHelper.RegisterRpcPropertyContainer(typeof(T));
+                }
+            }
             this.Value = (T) RpcHelper.CreateRpcPropertyContainerByType(typeof(T), content);
             this.Val.InsertToPropTree(null, this.Name, this);
         }

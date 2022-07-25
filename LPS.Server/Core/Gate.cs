@@ -239,9 +239,9 @@ namespace LPS.Core
         {
             Logger.Info("HandlePropertyFullSyncAck");
             var (msg, conn, _) = ((IMessage, Connection, UInt32)) arg!;
-            var propertySyncAck = (msg as PropertySyncAck)!;
+            var propertyFullSyncAck = (msg as PropertyFullSyncAck)!;
 
-            this.RedirectMsgToEntityOnServer(propertySyncAck.EntityId, msg);
+            this.RedirectMsgToEntityOnServer(propertyFullSyncAck.EntityId, msg);
         }
 
         private static string DecryptedCiphertext(Authentication auth)

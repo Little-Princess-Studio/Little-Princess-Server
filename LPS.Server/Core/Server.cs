@@ -381,7 +381,9 @@ namespace LPS.Core
                         EntityId = entityId,
                         PropertyTree = content,
                     };
-                    conn.Socket.SendAsync(fullSync.ToByteArray(), SocketFlags.None);
+                    // conn.Socket.SendAsync(fullSync.ToByteArray(), SocketFlags.None);
+                    var pkg = PackageHelper.FromProtoBuf(fullSync, id);
+                    conn.Socket.Send(pkg.ToBytes());
                 }));
             }
             else
