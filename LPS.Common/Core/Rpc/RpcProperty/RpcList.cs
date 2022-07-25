@@ -9,6 +9,13 @@ namespace LPS.Core.Rpc.RpcProperty
     [RpcPropertyContainer]
     public class RpcList<TElem> : RpcPropertyContainer
     {
+        public OnSetValueCallBack<List<TElem>>? OnSetValue { get; set; }
+        public OnUpdateValueCallBack<int, TElem>? OnUpdateValue {get; set; }
+        public OnAddListElemCallBack<TElem>? OnAddElem { get; set; }
+        public OnRemoveElemCallBack<int, TElem>? OnRemoveElem { get; set; }
+        public OnClearCallBack? OnClear { get; set; }
+        public OnInsertItemCallBack<TElem>? OnInsertItem { get; set; }
+
         static RpcList()
         {
             RpcHelper.RegisterRpcPropertyContainer(typeof(RpcList<TElem>));
@@ -60,11 +67,25 @@ namespace LPS.Core.Rpc.RpcProperty
                 }
             }
 
-            this.value_ = value;
 
             if (withNotify)
             {
-                this.NotifyChange(RpcPropertySyncOperation.SetValue, this.Name!, old: value_, value);
+                if (this.OnSetValue != null)
+                {
+                    var old = this.ToCopy();
+                    this.value_ = value;
+                    this.NotifyChange(RpcPropertySyncOperation.SetValue, this.Name!, old: value_, value);
+                    this.OnSetValue.Invoke(old, this.ToCopy());
+                }
+                else
+                {
+                    this.value_ = value;
+                    this.NotifyChange(RpcPropertySyncOperation.SetValue, this.Name!, old: value_, value);
+                }
+            }
+            else
+            {
+                this.value_ = value;
             }
         }
 
@@ -194,6 +215,7 @@ namespace LPS.Core.Rpc.RpcProperty
             this.Value.Add(newContainer);
             this.Children!.Add(newContainer.Name!, newContainer);
             this.NotifyChange(RpcPropertySyncOperation.AddListElem, newContainer.Name!, null, elem);
+            this.OnAddElem?.Invoke(elem);
         }
 
         public void Remove(int index)
@@ -206,6 +228,7 @@ namespace LPS.Core.Rpc.RpcProperty
             this.Value.RemoveAt(index);
             this.Children!.Remove($"{index}");
             this.NotifyChange(RpcPropertySyncOperation.RemoveElem, elem.Name!, elem, null);
+            this.OnRemoveElem?.Invoke(index, (TElem) elem.GetRawValue());
         }
 
         public void Insert(int index, [DisallowNull] TElem elem)
@@ -219,6 +242,7 @@ namespace LPS.Core.Rpc.RpcProperty
             this.Value.Insert(index, newContainer);
             this.Children!.Add(newContainer.Name!, newContainer);
             this.NotifyChange(RpcPropertySyncOperation.InsertElem, newContainer.Name!, null, elem);
+            this.OnInsertItem?.Invoke(index, elem);
         }
 
         public void Clear()
@@ -233,6 +257,7 @@ namespace LPS.Core.Rpc.RpcProperty
             this.Value.Clear();
             this.Children!.Clear();
             this.NotifyChange(RpcPropertySyncOperation.Clear, this.Name!, null, null);
+            this.OnClear?.Invoke();
         }
 
         public int Count => this.Value.Count;
@@ -254,6 +279,7 @@ namespace LPS.Core.Rpc.RpcProperty
 
                     this.value_[index] = container;
                     this.NotifyChange(RpcPropertySyncOperation.SetValue, this.Value[index].Name!, old, value);
+                    this.OnUpdateValue?.Invoke(index, (TElem)old.GetRawValue(), value);
                 }
                 else
                 {
@@ -261,6 +287,7 @@ namespace LPS.Core.Rpc.RpcProperty
                     var oldVal = oldWithContainer.Value;
                     oldWithContainer.Set(value, false, false);
                     this.NotifyChange(RpcPropertySyncOperation.SetValue, this.Value[index].Name!, oldVal, value);
+                    this.OnUpdateValue?.Invoke(index, oldVal,value);
                 }
             }
         }

@@ -69,6 +69,11 @@ public class RpcPropertyUnitTest
             new(nameof(TestCostumeRpcContainerProperty2));
     }
 
+    public RpcPropertyUnitTest()
+    {
+        RpcHelper.ScanRpcPropertyContainer("LPS.UnitTest");
+    }
+    
     [Fact]
     public void TestRpcList()
     {
@@ -168,8 +173,6 @@ public class RpcPropertyUnitTest
     [Fact]
     public void TestPropertySerialization()
     {
-        RpcHelper.ScanRpcPropertyContainer("LPS.UnitTest");
-
         var entity = new TestEntity();
         var shadowEntity = new TestShadowEntity();
         RpcHelper.BuildPropertyTree(entity);
@@ -211,5 +214,10 @@ public class RpcPropertyUnitTest
         Assert.True(this.CheckReferred(shadowEntity.TestRpcProp.Val));
         Assert.True(this.CheckReferred(shadowEntity.TestCostumeRpcContainerProperty1.Val));
         Assert.True(this.CheckReferred(shadowEntity.TestCostumeRpcContainerProperty2.Val));
-    }    
+    }
+
+    [Fact]
+    public void TestPropertyChangeNotification()
+    {
+    }
 }

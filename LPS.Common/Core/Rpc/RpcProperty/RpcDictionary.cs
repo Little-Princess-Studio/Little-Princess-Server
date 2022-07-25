@@ -19,6 +19,11 @@ namespace LPS.Core.Rpc.RpcProperty
     {
         private Dictionary<TK, RpcPropertyContainer> value_;
 
+        public OnSetValueCallBack<Dictionary<TK, TV>>? OnSetValue { get; set; }
+        public OnUpdateValueCallBack<TK, TV?>? OnUpdateValue {get; set; }
+        public OnRemoveElemCallBack<TK, TV>? OnRemoveElem { get; set; }
+        public OnClearCallBack? OnClear { get; set; }
+
         public Dictionary<TK, RpcPropertyContainer> Value
         {
             get => value_;
@@ -64,7 +69,22 @@ namespace LPS.Core.Rpc.RpcProperty
 
             if (withNotify)
             {
-                this.NotifyChange(RpcPropertySyncOperation.SetValue, this.Name!, old: value_!, value);
+                if (this.OnSetValue != null)
+                {
+                    var old = this.ToCopy();
+                    this.value_ = value;
+                    this.NotifyChange(RpcPropertySyncOperation.SetValue, this.Name!, old: value_!, value);
+                    this.OnSetValue(old, this.ToCopy());
+                }
+                else
+                {
+                    this.value_ = value;
+                    this.NotifyChange(RpcPropertySyncOperation.SetValue, this.Name!, old: value_!, value);
+                }
+            }
+            else
+            {
+                this.value_ = value;
             }
         }
         
@@ -193,6 +213,7 @@ namespace LPS.Core.Rpc.RpcProperty
                             ? old.GetRawValue()
                             : null,
                         container.GetRawValue());
+                    this.OnUpdateValue?.Invoke(key, old != null ? (TV)old.GetRawValue() : default(TV), value);
                 }
                 else
                 {
@@ -212,6 +233,7 @@ namespace LPS.Core.Rpc.RpcProperty
                                 ? old.GetRawValue()
                                 : null,
                             newContainer.GetRawValue());
+                        this.OnUpdateValue?.Invoke(key, old != null ? (TV)old.GetRawValue() : default(TV), value);
                     }
                     else // reuse old
                     {
@@ -221,6 +243,7 @@ namespace LPS.Core.Rpc.RpcProperty
                         this.NotifyChange(
                             RpcPropertySyncOperation.UpdateDict,
                             old.Name!, oldVal, oldWithType.GetRawValue());
+                        this.OnUpdateValue?.Invoke(key, (TV)oldWithType.GetRawValue(), value);
                     }
                 }
             }
@@ -234,6 +257,7 @@ namespace LPS.Core.Rpc.RpcProperty
 
             this.Value.Remove(key);
             this.NotifyChange(RpcPropertySyncOperation.RemoveElem, elem.Name!, elem.GetRawValue(), null);
+            this.OnRemoveElem?.Invoke(key, (TV)elem.GetRawValue());
         }
 
         public void Clear()
@@ -249,6 +273,7 @@ namespace LPS.Core.Rpc.RpcProperty
             this.Children!.Clear();
 
             this.NotifyChange(RpcPropertySyncOperation.Clear, this.Name!, null, null);
+            this.OnClear?.Invoke();
         }
 
         public Dictionary<TK, TV> ToCopy() =>

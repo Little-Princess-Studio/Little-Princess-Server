@@ -45,6 +45,13 @@ using LPS.Core.Rpc.InnerMessages;
 
 namespace LPS.Core.Rpc.RpcProperty
 {
+    public delegate void OnSetValueCallBack<in T>(T oldVal, T newVal);
+    public delegate void OnUpdateValueCallBack<in TK, in TV>(TK key, TV oldVal, TV newVal);
+    public delegate void OnAddListElemCallBack<in T>(T newVal);
+    public delegate void OnRemoveElemCallBack<in TK, in TV>(TK key, TV oldVal);
+    public delegate void OnClearCallBack();
+    public delegate void OnInsertItemCallBack<in T>(int index, T newVal);
+    
     [Flags]
     public enum RpcPropertySetting
     {
@@ -85,23 +92,29 @@ namespace LPS.Core.Rpc.RpcProperty
             switch (operation)
             {
                 case RpcPropertySyncOperation.SetValue:
+                    this.OnSetValueInternal(path, old, @new);
                     break;
                 case RpcPropertySyncOperation.UpdateDict:
+                    this.OnUpdateDictInternal(path, old, @new);
                     break;
                 case RpcPropertySyncOperation.AddListElem:
+                    this.OnAddListElemInternal(path, @new);
                     break;
                 case RpcPropertySyncOperation.RemoveElem:
+                    this.OnRemoveElemInternal(path, old);
                     break;
                 case RpcPropertySyncOperation.Clear:
+                    this.OnClearInternal(path);
                     break;
                 case RpcPropertySyncOperation.InsertElem:
+                    this.OnInsertItem(path, @new);
                     break;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(operation), operation, null);
             }
         }
 
-        public void OnChange(List<string> path, object? oldVal, object? newVal)
+        public void OnSetValueInternal(List<string> path, object? oldVal, object? newVal)
         {
             // var syncRpc = new PropertySync();
             //
@@ -112,6 +125,31 @@ namespace LPS.Core.Rpc.RpcProperty
             //
             // syncRpc.SyncType = (uint)RpcPropertySyncOperation.SetValue;
             // syncRpc.SyncArg = (Any)RpcHelper.RpcArgToProtobuf(newVal);
+        }
+
+        public void OnUpdateDictInternal(List<string> path, object? oldVal, object? newVal)
+        {
+            
+        }
+
+        public void OnAddListElemInternal(List<string> path, object? newVal)
+        {
+            
+        }
+
+        public void OnRemoveElemInternal(List<string> path, object? oldVal)
+        {
+            
+        }
+
+        public void OnClearInternal(List<string> path)
+        {
+            
+        }
+
+        public void OnInsertItem(List<string> path, object? newVal)
+        {
+            
         }
     }
 

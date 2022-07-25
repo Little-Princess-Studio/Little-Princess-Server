@@ -100,7 +100,18 @@ namespace LPS.Core.Rpc.RpcProperty
 
                 foreach (var fieldInfo in rpcFields)
                 {
+                    if (!fieldInfo.IsInitOnly)
+                    {
+                        throw new Exception("Rpc property must be init-only.");
+                    }
+                    
                     var prop = (fieldInfo.GetValue(this) as RpcPropertyContainer)!;
+
+                    if (prop == null)
+                    {
+                        throw new Exception("Rpc property must be initialized with a non-null value.");
+                    }
+                    
                     prop.IsReferred = true;
                     prop.Name = fieldInfo.Name;
                     this.Children.Add(prop.Name, prop);
