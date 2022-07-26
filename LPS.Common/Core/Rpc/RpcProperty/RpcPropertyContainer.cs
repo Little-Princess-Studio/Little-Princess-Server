@@ -30,6 +30,8 @@ namespace LPS.Core.Rpc.RpcProperty
         public Dictionary<string, RpcPropertyContainer>? Children { get; set; }
         public RpcProperty? TopOwner { get; private set; }
 
+        public abstract void AssignInternal(RpcPropertyContainer target);
+
         public virtual object GetRawValue()
         {
             return this;
@@ -104,14 +106,14 @@ namespace LPS.Core.Rpc.RpcProperty
                     {
                         throw new Exception("Rpc property must be init-only.");
                     }
-                    
+
                     var prop = (fieldInfo.GetValue(this) as RpcPropertyContainer)!;
 
                     if (prop == null)
                     {
                         throw new Exception("Rpc property must be initialized with a non-null value.");
                     }
-                    
+
                     prop.IsReferred = true;
                     prop.Name = fieldInfo.Name;
                     this.Children.Add(prop.Name, prop);
@@ -145,8 +147,53 @@ namespace LPS.Core.Rpc.RpcProperty
         }
     }
 
-    public abstract class RpcPropertyCostumeContainer : RpcPropertyContainer
+    public abstract class RpcPropertyCostumeContainer<TSub> : RpcPropertyContainer
+        where TSub : RpcPropertyContainer, new()
     {
+        public OnSetValueCallBack<TSub>? OnSetValue { get; set; }
+
+        public void Assign(TSub target)
+        {
+            if (target == null)
+            {
+                throw new ArgumentNullException(nameof(target));
+            }
+            
+            this.NotifyChange(RpcPropertySyncOperation.SetValue, this.Name!, this, target);
+            this.OnSetValue?.Invoke((this as TSub)!, (target as TSub)!);
+
+            this.AssignInternal(target);
+        }
+        
+        public override void AssignInternal(RpcPropertyContainer target)
+        {
+            if (target == null)
+            {
+                throw new ArgumentNullException(nameof(target));
+            }
+
+            if (typeof(TSub) != target.GetType())
+            {
+                throw new Exception("Cannot apply assign between different types.");
+            }
+
+            target.RemoveFromPropTree();
+            var props = this.GetType()
+                .GetFields(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public)
+                .Where(field => field.IsDefined(typeof(RpcPropertyAttribute)));
+            
+            foreach (var fieldInfo in props)
+            {
+                var rpcPropertyOld = (fieldInfo.GetValue(this) as RpcPropertyContainer)!;
+                var rpcPropertyNew = (fieldInfo.GetValue(target) as RpcPropertyContainer)!;
+
+                if (this.Children!.ContainsKey(rpcPropertyOld.Name!))
+                {
+                    rpcPropertyOld.AssignInternal(rpcPropertyNew);
+                }
+            }
+        }
+
         public virtual void Deserialize(Any content)
         {
             if (content.Is(DictWithStringKeyArg.Descriptor))
@@ -177,7 +224,7 @@ namespace LPS.Core.Rpc.RpcProperty
         }
 
         public static RpcPropertyContainer CreateSerializedContainer<T>(Any content)
-            where T : RpcPropertyCostumeContainer, new()
+            where T : RpcPropertyCostumeContainer<T>, new()
         {
             var obj = new T();
             obj.Deserialize(content);
@@ -188,6 +235,8 @@ namespace LPS.Core.Rpc.RpcProperty
     [RpcPropertyContainer]
     public class RpcPropertyContainer<T> : RpcPropertyContainer
     {
+        public OnSetValueCallBack<T>? OnSetValue { get; set; }
+
         static RpcPropertyContainer()
         {
             RpcGenericArgTypeCheckHelper.AssertIsValidPlaintType<T>();
@@ -215,11 +264,16 @@ namespace LPS.Core.Rpc.RpcProperty
                 return;
             }
 
-            this.value_ = value;
-
             if (withNotify)
             {
-                this.NotifyChange(RpcPropertySyncOperation.SetValue, this.Name!, old: value_!, value);
+                var old = this.value_;
+                this.value_ = value;
+                this.NotifyChange(RpcPropertySyncOperation.SetValue, this.Name!, old: old, value);
+                this.OnSetValue?.Invoke(old, value);
+            }
+            else
+            {
+                this.value_ = value;
             }
         }
 
@@ -229,6 +283,22 @@ namespace LPS.Core.Rpc.RpcProperty
         public RpcPropertyContainer(T initVal)
         {
             value_ = initVal;
+        }
+
+        public override void AssignInternal(RpcPropertyContainer target)
+        {
+            if (target == null)
+            {
+                throw new ArgumentNullException(nameof(target));
+            }
+
+            if (target.GetType() != typeof(RpcPropertyContainer<T>))
+            {
+                throw new Exception("Cannot apply assign between different types.");
+            }
+
+            var targetContainer = (target as RpcPropertyContainer<T>)!;
+            this.value_ = targetContainer.value_;
         }
 
         public override object GetRawValue()

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Google.Protobuf.WellKnownTypes;
 using LPS.Core.Entity;
 using LPS.Core.Rpc;
@@ -9,7 +10,7 @@ namespace LPS.UnitTest;
 public class RpcPropertyUnitTest
 {
     [RpcPropertyContainer]
-    private class CostumeRpcContainerProperty2 : RpcPropertyCostumeContainer
+    private class CostumeRpcContainerProperty2 : RpcPropertyCostumeContainer<CostumeRpcContainerProperty2>
     {
         [RpcProperty] private readonly RpcPropertyContainer<float> subFloatProperty_ = 0.0f;
 
@@ -25,7 +26,7 @@ public class RpcPropertyUnitTest
     }
 
     [RpcPropertyContainer]
-    private class CostumeRpcContainerProperty1 : RpcPropertyCostumeContainer
+    private class CostumeRpcContainerProperty1 : RpcPropertyCostumeContainer<CostumeRpcContainerProperty1>
     {
         [RpcProperty] public readonly RpcList<string> SubListProperty = new();
         [RpcProperty] public readonly CostumeRpcContainerProperty2 SubCostumerContainerRpcContainerProperty = new();
@@ -217,7 +218,56 @@ public class RpcPropertyUnitTest
     }
 
     [Fact]
-    public void TestPropertyChangeNotification()
+    public void TestListPropertyChangeNotification()
     {
+        var entity = new TestEntity();
+        var addElemCnt = 0;
+        var clearCnt = 0;
+        var updateCnt = 0;
+        var removeCnt = 0;
+        var setCnt = 0;
+        
+        entity.TestRpcProp.Val.OnAddElem = val =>
+        {
+            ++addElemCnt;
+            Assert.Equal("111", val);
+        };
+        entity.TestRpcProp.Val.OnClear = () =>
+        {
+            ++clearCnt;
+        };
+        entity.TestRpcProp.Val.OnUpdateValue = (key, val, newVal) =>
+        {
+            ++updateCnt;
+            Assert.Equal(1, key);
+            Assert.Equal("111", val);
+            Assert.Equal("222", newVal);
+        };
+        entity.TestRpcProp.Val.OnRemoveElem = (key, val) =>
+        {
+            ++removeCnt;
+            Assert.Equal(2, key);
+            Assert.Equal("111", val);
+        };
+        entity.TestRpcProp.Val.OnSetValue = (val, newVal) =>
+        {
+            ++setCnt;
+            Assert.Equal(new List<string>{"111", "222"}, val);
+            Assert.Equal(new List<string> {"333", "333", "333"}, newVal);
+        };
+        
+        entity.TestRpcProp.Val.Add("111");
+        entity.TestRpcProp.Val.Add("111");
+        entity.TestRpcProp.Val.Add("111");
+        entity.TestRpcProp.Val[1] = "222";
+        entity.TestRpcProp.Val.Remove(2);
+        entity.TestRpcProp.Val.Assign(new RpcList<string>(3, "333"));
+        entity.TestRpcProp.Val.Clear();
+        
+        Assert.Equal(3, addElemCnt);
+        Assert.Equal(1, setCnt);
+        Assert.Equal(1, removeCnt);
+        Assert.Equal(1, updateCnt);
+        Assert.Equal(1, clearCnt);
     }
 }

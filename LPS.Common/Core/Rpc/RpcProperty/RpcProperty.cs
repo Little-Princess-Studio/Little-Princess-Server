@@ -183,18 +183,22 @@ namespace LPS.Core.Rpc.RpcProperty
             }
         }
 
-        private void Set(T value)
+        public void Set(T value)
         {
             if (this.IsShadowProperty)
             {
                 throw new Exception("Shadow property cannot be modified manually");
             }
             
-            var container = ((RpcPropertyContainer<T>) this.Value);
-            var old = container.Value;
+            var container = this.Value;
+            var old = this.Value;
 
             old.RemoveFromPropTree();
-            container.InsertToPropTree(null, this.Name, this);
+            old.InsertToPropTree(null, this.Name, this);
+
+            this.Value = value;
+            var path = new List<string> {this.Name};
+            this.OnNotify(RpcPropertySyncOperation.SetValue, path, old, value);
         }
 
         private T Get()
@@ -205,7 +209,7 @@ namespace LPS.Core.Rpc.RpcProperty
         public T Val
         {
             get => Get();
-            set => Set(value);
+            private set => Set(value);
         }
 
         public static implicit operator T(RpcComplexProperty<T> complex) => complex.Val;
@@ -258,7 +262,11 @@ namespace LPS.Core.Rpc.RpcProperty
                 throw new Exception("Shadow property cannot be modified manually");
             }
 
+            var old = ((RpcPropertyContainer<T>) this.Value).Value;
             ((RpcPropertyContainer<T>) this.Value).Value = value;
+            
+            var path = new List<string> {this.Name};
+            this.OnNotify(RpcPropertySyncOperation.SetValue, path, old, value);
         }
 
         private T Get()

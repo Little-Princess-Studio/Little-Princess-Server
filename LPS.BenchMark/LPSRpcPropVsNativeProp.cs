@@ -5,7 +5,7 @@ using LPS.Core.Rpc.RpcProperty;
 namespace LPS.BenchMark;
 
 [RpcPropertyContainer]
-internal class CostumeRpcContainerProperty2 : RpcPropertyContainer
+internal class CostumeRpcContainerProperty2 : RpcPropertyCostumeContainer<CostumeRpcContainerProperty2>
 {
     [RpcProperty]
     private readonly RpcPropertyContainer<float> subFloatProperty_ = 0.0f;
@@ -23,7 +23,7 @@ internal class CostumeRpcContainerProperty2 : RpcPropertyContainer
 }
     
 [RpcPropertyContainer]
-internal class CostumeRpcContainerProperty1 : RpcPropertyContainer
+internal class CostumeRpcContainerProperty1 : RpcPropertyCostumeContainer<CostumeRpcContainerProperty1>
 {
     [RpcProperty]
     public readonly RpcList<string> SubListProperty = new();

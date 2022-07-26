@@ -100,6 +100,28 @@ namespace LPS.Core.Rpc.RpcProperty
             this.Children = new();
         }
 
+        public override void AssignInternal(RpcPropertyContainer target)
+        {
+            if (target == null)
+            {
+                throw new ArgumentNullException(nameof(target));
+            }
+
+            if (target.GetType() != typeof(RpcDictionary<TK, TV>))
+            {
+                throw new Exception("Cannot apply assign between different types.");
+            }
+
+            var targetContainer = (target as RpcDictionary<TK, TV>)!;
+            targetContainer.RemoveFromPropTree();
+            
+            foreach (var (k, @new) in targetContainer.value_)
+            {
+                @new.InsertToPropTree(this, $"{k}", this.TopOwner);
+                this.Children![@new.Name!] = @new;
+            }
+        }
+
         public override Any ToRpcArg()
         {
             IMessage? pbDictVal = null;

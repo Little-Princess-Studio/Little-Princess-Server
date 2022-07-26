@@ -95,6 +95,29 @@ namespace LPS.Core.Rpc.RpcProperty
             this.Children = new Dictionary<string, RpcPropertyContainer>();
         }
 
+        public override void AssignInternal(RpcPropertyContainer target)
+        {
+            if (target == null)
+            {
+                throw new ArgumentNullException(nameof(target));
+            }
+
+            if (target.GetType() != typeof(RpcList<TElem>))
+            {
+                throw new Exception("Cannot apply assign between different types.");
+            }
+
+            var targetContainer = (target as RpcList<TElem>)!;
+            targetContainer.RemoveFromPropTree();
+
+            int i = 0;
+            foreach (var @new in targetContainer.value_)
+            {
+                @new.InsertToPropTree(this, $"{++i}", this.TopOwner);
+                this.Children![@new.Name!] = @new;
+            }
+        }
+
         public override Any ToRpcArg()
         {
             IMessage? pbList = null;
@@ -293,5 +316,18 @@ namespace LPS.Core.Rpc.RpcProperty
         }
 
         List<TElem> ToCopy() => this.Value.Select(e => (TElem) e.GetRawValue()).ToList();
+
+        public void Assign(RpcList<TElem> target)
+        {
+            if (target == null)
+            {
+                throw new ArgumentNullException(nameof(target));
+            }
+
+            this.OnSetValue?.Invoke(this.ToCopy(), target.ToCopy());
+            this.NotifyChange(RpcPropertySyncOperation.SetValue, this.Name!, this, target);
+            
+            this.AssignInternal(target);
+        }
     }
 }
