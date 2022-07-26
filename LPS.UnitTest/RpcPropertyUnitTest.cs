@@ -53,6 +53,9 @@ public class RpcPropertyUnitTest
         public readonly RpcComplexProperty<CostumeRpcContainerProperty2> TestCostumeRpcContainerProperty2
             = new(nameof(TestCostumeRpcContainerProperty2),
                 RpcPropertySetting.Permanent | RpcPropertySetting.ServerToShadow, new());
+
+        public readonly RpcComplexProperty<RpcDictionary<string, RpcList<int>>> TestComplexRpcProp =
+            new(nameof(TestComplexRpcProp), RpcPropertySetting.Permanent | RpcPropertySetting.ServerToShadow, new());
     }
 
     private class TestShadowEntity : ShadowEntity
@@ -74,7 +77,7 @@ public class RpcPropertyUnitTest
     {
         RpcHelper.ScanRpcPropertyContainer("LPS.UnitTest");
     }
-    
+
     [Fact]
     public void TestRpcList()
     {
@@ -157,17 +160,19 @@ public class RpcPropertyUnitTest
 
     private bool CheckReferred(RpcPropertyContainer? container)
     {
-        if (container == null) {
+        if (container == null)
+        {
             return false;
         }
 
-        foreach (var (_, value)  in container.Children!)
+        foreach (var (_, value) in container.Children!)
         {
             if (!value.IsReferred)
             {
                 return false;
             }
         }
+
         return true;
     }
 
@@ -211,7 +216,7 @@ public class RpcPropertyUnitTest
 
         Assert.Equal(200.0f,
             shadowEntity.TestCostumeRpcContainerProperty2.Val.SubFloatProperty);
-        
+
         Assert.True(this.CheckReferred(shadowEntity.TestRpcProp.Val));
         Assert.True(this.CheckReferred(shadowEntity.TestCostumeRpcContainerProperty1.Val));
         Assert.True(this.CheckReferred(shadowEntity.TestCostumeRpcContainerProperty2.Val));
@@ -226,16 +231,13 @@ public class RpcPropertyUnitTest
         var updateCnt = 0;
         var removeCnt = 0;
         var setCnt = 0;
-        
+
         entity.TestRpcProp.Val.OnAddElem = val =>
         {
             ++addElemCnt;
             Assert.Equal("111", val);
         };
-        entity.TestRpcProp.Val.OnClear = () =>
-        {
-            ++clearCnt;
-        };
+        entity.TestRpcProp.Val.OnClear = () => { ++clearCnt; };
         entity.TestRpcProp.Val.OnUpdateValue = (key, val, newVal) =>
         {
             ++updateCnt;
@@ -252,10 +254,10 @@ public class RpcPropertyUnitTest
         entity.TestRpcProp.Val.OnSetValue = (val, newVal) =>
         {
             ++setCnt;
-            Assert.Equal(new List<string>{"111", "222"}, val);
+            Assert.Equal(new List<string> {"111", "222"}, val);
             Assert.Equal(new List<string> {"333", "333", "333"}, newVal);
         };
-        
+
         entity.TestRpcProp.Val.Add("111");
         entity.TestRpcProp.Val.Add("111");
         entity.TestRpcProp.Val.Add("111");
@@ -263,11 +265,47 @@ public class RpcPropertyUnitTest
         entity.TestRpcProp.Val.Remove(2);
         entity.TestRpcProp.Val.Assign(new RpcList<string>(3, "333"));
         entity.TestRpcProp.Val.Clear();
-        
+
         Assert.Equal(3, addElemCnt);
         Assert.Equal(1, setCnt);
         Assert.Equal(1, removeCnt);
         Assert.Equal(1, updateCnt);
+        Assert.Equal(1, clearCnt);
+    }
+
+    [Fact]
+    public void TestDictPropertyChangeNotification()
+    {
+        var entity = new TestEntity();
+        var removeCnt = 0;
+        var updateCnt = 0;
+        var clearCnt = 0;
+        
+        entity.TestComplexRpcProp.Val.OnRemoveElem = (key, val) =>
+        {
+            ++removeCnt;
+            Assert.Equal("key_1", key);
+        };
+
+        entity.TestComplexRpcProp.Val.OnUpdateValue = (key, val, newVal) =>
+        {
+            if (key is "key_1" or "key_2")
+            {
+                ++updateCnt;
+            }
+            Assert.Null(val);
+        };
+
+        entity.TestComplexRpcProp.Val.OnClear = () => ++clearCnt;
+
+        entity.TestComplexRpcProp.Val.OnClear = () => ++clearCnt;
+        entity.TestComplexRpcProp.Val["key_1"] = new RpcList<int>();
+        entity.TestComplexRpcProp.Val["key_2"] = new RpcList<int>();
+        entity.TestComplexRpcProp.Val.Remove("key_1");
+        entity.TestComplexRpcProp.Val.Clear();
+
+        Assert.Equal(1, removeCnt);
+        Assert.Equal(2, updateCnt);
         Assert.Equal(1, clearCnt);
     }
 }

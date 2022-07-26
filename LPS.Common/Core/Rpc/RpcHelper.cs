@@ -471,13 +471,13 @@ namespace LPS.Core.Rpc
 
         public static IMessage RpcContainerListToProtoBufAny<T>(RpcList<string> list)
         {
-            if (list.Value.Count == 0)
+            if (list.RawValue.Count == 0)
             {
                 return new NullArg();
             }
 
             var msg = new ListArg();
-            list.Value.ForEach(e => msg.PayLoad.Add(
+            list.RawValue.ForEach(e => msg.PayLoad.Add(
                 Google.Protobuf.WellKnownTypes.Any.Pack(new StringArg
                     {PayLoad = ((RpcPropertyContainer<string>) e).Value})
             ));
@@ -487,13 +487,13 @@ namespace LPS.Core.Rpc
 
         public static IMessage RpcContainerListToProtoBufAny<T>(RpcList<float> list)
         {
-            if (list.Value.Count == 0)
+            if (list.RawValue.Count == 0)
             {
                 return new NullArg();
             }
 
             var msg = new ListArg();
-            list.Value.ForEach(e => msg.PayLoad.Add(
+            list.RawValue.ForEach(e => msg.PayLoad.Add(
                 Google.Protobuf.WellKnownTypes.Any.Pack(
                     new FloatArg {PayLoad = ((RpcPropertyContainer<float>) e).Value})
             ));
@@ -503,13 +503,13 @@ namespace LPS.Core.Rpc
 
         public static IMessage RpcContainerListToProtoBufAny<T>(RpcList<bool> list)
         {
-            if (list.Value.Count == 0)
+            if (list.RawValue.Count == 0)
             {
                 return new NullArg();
             }
 
             var msg = new ListArg();
-            list.Value.ForEach(e => msg.PayLoad.Add(
+            list.RawValue.ForEach(e => msg.PayLoad.Add(
                 Google.Protobuf.WellKnownTypes.Any.Pack(new BoolArg {PayLoad = ((RpcPropertyContainer<bool>) e).Value})
             ));
 
@@ -518,13 +518,13 @@ namespace LPS.Core.Rpc
 
         public static IMessage RpcContainerListToProtoBufAny<T>(RpcList<MailBox> list)
         {
-            if (list.Value.Count == 0)
+            if (list.RawValue.Count == 0)
             {
                 return new NullArg();
             }
 
             var msg = new ListArg();
-            list.Value.ForEach(e => msg.PayLoad.Add(
+            list.RawValue.ForEach(e => msg.PayLoad.Add(
                 Google.Protobuf.WellKnownTypes.Any.Pack(new MailBoxArg()
                     {PayLoad = RpcMailBoxToPbMailBox((RpcPropertyContainer<MailBox>) e)})
             ));
@@ -534,13 +534,13 @@ namespace LPS.Core.Rpc
 
         public static IMessage RpcContainerListToProtoBufAny<T>(RpcList<int> list)
         {
-            if (list.Value.Count == 0)
+            if (list.RawValue.Count == 0)
             {
                 return new NullArg();
             }
 
             var msg = new ListArg();
-            list.Value.ForEach(e => msg.PayLoad.Add(
+            list.RawValue.ForEach(e => msg.PayLoad.Add(
                 Google.Protobuf.WellKnownTypes.Any.Pack(new IntArg {PayLoad = ((RpcPropertyContainer<int>) e).Value})
             ));
 
@@ -549,13 +549,13 @@ namespace LPS.Core.Rpc
 
         public static IMessage RpcContainerListToProtoBufAny<T>(RpcList<T> list)
         {
-            if (list.Value.Count == 0)
+            if (list.RawValue.Count == 0)
             {
                 return new NullArg();
             }
 
             var msg = new ListArg();
-            list.Value.ForEach(e => msg.PayLoad.Add(
+            list.RawValue.ForEach(e => msg.PayLoad.Add(
                 e.ToRpcArg())
             );
 
@@ -569,14 +569,14 @@ namespace LPS.Core.Rpc
 
         public static IMessage RpcContainerDictToProtoBufAny<TV>(RpcDictionary<int, TV> dict) where TV : notnull
         {
-            if (dict.Value.Count == 0)
+            if (dict.RawValue.Count == 0)
             {
                 return new NullArg();
             }
 
             var msg = new DictWithIntKeyArg();
 
-            foreach (var (key, value) in dict.Value)
+            foreach (var (key, value) in dict.RawValue)
             {
                 msg.PayLoad.Add(key, value.ToRpcArg());
             }
@@ -586,14 +586,14 @@ namespace LPS.Core.Rpc
 
         public static IMessage RpcContainerDictToProtoBufAny<TV>(RpcDictionary<string, TV> dict) where TV : notnull
         {
-            if (dict.Value.Count == 0)
+            if (dict.RawValue.Count == 0)
             {
                 return new NullArg();
             }
 
             var msg = new DictWithStringKeyArg();
 
-            foreach (var (key, value) in dict.Value)
+            foreach (var (key, value) in dict.RawValue)
             {
                 msg.PayLoad.Add(key, value.ToRpcArg());
             }
@@ -603,14 +603,14 @@ namespace LPS.Core.Rpc
 
         public static IMessage RpcContainerDictToProtoBufAny<TV>(RpcDictionary<MailBox, TV> dict) where TV : notnull
         {
-            if (dict.Value.Count == 0)
+            if (dict.RawValue.Count == 0)
             {
                 return new NullArg();
             }
 
             var msg = new DictWithMailBoxKeyArg();
 
-            foreach (var (key, value) in dict.Value)
+            foreach (var (key, value) in dict.RawValue)
             {
                 msg.PayLoad.Add(new DictWithMailBoxKeyPair
                 {

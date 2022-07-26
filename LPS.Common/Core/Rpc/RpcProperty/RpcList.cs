@@ -21,12 +21,12 @@ namespace LPS.Core.Rpc.RpcProperty
             RpcHelper.RegisterRpcPropertyContainer(typeof(RpcList<TElem>));
         }
 
-        private List<RpcPropertyContainer> value_;
+        private List<RpcPropertyContainer> rawValue_;
 
-        public List<RpcPropertyContainer> Value
+        public List<RpcPropertyContainer> RawValue
         {
-            get => value_;
-            set => this.SetValueIntern(value, true, false);
+            get => rawValue_;
+            private set => this.SetValueIntern(value, true, false);
         }
 
         private void SetValueIntern(List<RpcPropertyContainer> value, bool withNotify, bool bySync)
@@ -40,7 +40,7 @@ namespace LPS.Core.Rpc.RpcProperty
 
             if (withNotify)
             {
-                foreach (var old in this.Value)
+                foreach (var old in this.RawValue)
                 {
                     old.RemoveFromPropTree();
                 }
@@ -73,25 +73,25 @@ namespace LPS.Core.Rpc.RpcProperty
                 if (this.OnSetValue != null)
                 {
                     var old = this.ToCopy();
-                    this.value_ = value;
-                    this.NotifyChange(RpcPropertySyncOperation.SetValue, this.Name!, old: value_, value);
+                    this.rawValue_ = value;
+                    this.NotifyChange(RpcPropertySyncOperation.SetValue, this.Name!, old: rawValue_, value);
                     this.OnSetValue.Invoke(old, this.ToCopy());
                 }
                 else
                 {
-                    this.value_ = value;
-                    this.NotifyChange(RpcPropertySyncOperation.SetValue, this.Name!, old: value_, value);
+                    this.rawValue_ = value;
+                    this.NotifyChange(RpcPropertySyncOperation.SetValue, this.Name!, old: rawValue_, value);
                 }
             }
             else
             {
-                this.value_ = value;
+                this.rawValue_ = value;
             }
         }
 
         public RpcList()
         {
-            this.value_ = new List<RpcPropertyContainer>();
+            this.rawValue_ = new List<RpcPropertyContainer>();
             this.Children = new Dictionary<string, RpcPropertyContainer>();
         }
 
@@ -111,7 +111,7 @@ namespace LPS.Core.Rpc.RpcProperty
             targetContainer.RemoveFromPropTree();
 
             int i = 0;
-            foreach (var @new in targetContainer.value_)
+            foreach (var @new in targetContainer.rawValue_)
             {
                 @new.InsertToPropTree(this, $"{++i}", this.TopOwner);
                 this.Children![@new.Name!] = @new;
@@ -122,7 +122,7 @@ namespace LPS.Core.Rpc.RpcProperty
         {
             IMessage? pbList = null;
 
-            if (this.Value.Count > 0)
+            if (this.RawValue.Count > 0)
             {
                 pbList = RpcHelper.RpcContainerListToProtoBufAny(this);
             }
@@ -190,7 +190,7 @@ namespace LPS.Core.Rpc.RpcProperty
         {
             ArgumentNullException.ThrowIfNull(defaultVal);
 
-            this.value_ = new List<RpcPropertyContainer>(size);
+            this.rawValue_ = new List<RpcPropertyContainer>(size);
 
             this.Children = new();
 
@@ -198,7 +198,7 @@ namespace LPS.Core.Rpc.RpcProperty
             {
                 var newContainer = HandleValue(defaultVal, i);
 
-                this.Value.Add(newContainer);
+                this.RawValue.Add(newContainer);
                 this.Children.Add($"{i}", newContainer);
             }
         }
@@ -232,10 +232,10 @@ namespace LPS.Core.Rpc.RpcProperty
             AssertNotShadowPropertyChange();
 
             ArgumentNullException.ThrowIfNull(elem);
-            var newContainer = HandleValue(elem, this.Value.Count);
+            var newContainer = HandleValue(elem, this.RawValue.Count);
             newContainer.UpdateTopOwner(this.TopOwner);
 
-            this.Value.Add(newContainer);
+            this.RawValue.Add(newContainer);
             this.Children!.Add(newContainer.Name!, newContainer);
             this.NotifyChange(RpcPropertySyncOperation.AddListElem, newContainer.Name!, null, elem);
             this.OnAddElem?.Invoke(elem);
@@ -245,10 +245,10 @@ namespace LPS.Core.Rpc.RpcProperty
         {
             AssertNotShadowPropertyChange();
 
-            var elem = this.Value[index];
+            var elem = this.RawValue[index];
             elem.RemoveFromPropTree();
 
-            this.Value.RemoveAt(index);
+            this.RawValue.RemoveAt(index);
             this.Children!.Remove($"{index}");
             this.NotifyChange(RpcPropertySyncOperation.RemoveElem, elem.Name!, elem, null);
             this.OnRemoveElem?.Invoke(index, (TElem) elem.GetRawValue());
@@ -262,7 +262,7 @@ namespace LPS.Core.Rpc.RpcProperty
             var newContainer = HandleValue(elem, index);
             newContainer.UpdateTopOwner(this.TopOwner);
 
-            this.Value.Insert(index, newContainer);
+            this.RawValue.Insert(index, newContainer);
             this.Children!.Add(newContainer.Name!, newContainer);
             this.NotifyChange(RpcPropertySyncOperation.InsertElem, newContainer.Name!, null, elem);
             this.OnInsertItem?.Invoke(index, elem);
@@ -277,22 +277,22 @@ namespace LPS.Core.Rpc.RpcProperty
                 container.RemoveFromPropTree();
             }
 
-            this.Value.Clear();
+            this.RawValue.Clear();
             this.Children!.Clear();
             this.NotifyChange(RpcPropertySyncOperation.Clear, this.Name!, null, null);
             this.OnClear?.Invoke();
         }
 
-        public int Count => this.Value.Count;
+        public int Count => this.RawValue.Count;
 
         public TElem this[int index]
         {
-            get => (TElem) this.Value[index].GetRawValue();
+            get => (TElem) this.RawValue[index].GetRawValue();
             set
             {
                 AssertNotShadowPropertyChange();
                 ArgumentNullException.ThrowIfNull(value);
-                var old = this.Value[index];
+                var old = this.RawValue[index];
                 var oldName = old.Name!;
 
                 if (value is RpcPropertyContainer container)
@@ -300,8 +300,8 @@ namespace LPS.Core.Rpc.RpcProperty
                     old.RemoveFromPropTree();
                     container.InsertToPropTree(this, oldName, this.TopOwner);
 
-                    this.value_[index] = container;
-                    this.NotifyChange(RpcPropertySyncOperation.SetValue, this.Value[index].Name!, old, value);
+                    this.rawValue_[index] = container;
+                    this.NotifyChange(RpcPropertySyncOperation.SetValue, this.RawValue[index].Name!, old, value);
                     this.OnUpdateValue?.Invoke(index, (TElem)old.GetRawValue(), value);
                 }
                 else
@@ -309,13 +309,13 @@ namespace LPS.Core.Rpc.RpcProperty
                     var oldWithContainer = (RpcPropertyContainer<TElem>) old;
                     var oldVal = oldWithContainer.Value;
                     oldWithContainer.Set(value, false, false);
-                    this.NotifyChange(RpcPropertySyncOperation.SetValue, this.Value[index].Name!, oldVal, value);
+                    this.NotifyChange(RpcPropertySyncOperation.SetValue, this.RawValue[index].Name!, oldVal, value);
                     this.OnUpdateValue?.Invoke(index, oldVal,value);
                 }
             }
         }
 
-        List<TElem> ToCopy() => this.Value.Select(e => (TElem) e.GetRawValue()).ToList();
+        List<TElem> ToCopy() => this.RawValue.Select(e => (TElem) e.GetRawValue()).ToList();
 
         public void Assign(RpcList<TElem> target)
         {

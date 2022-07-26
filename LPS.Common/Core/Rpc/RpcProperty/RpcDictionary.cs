@@ -17,17 +17,17 @@ namespace LPS.Core.Rpc.RpcProperty
     public class RpcDictionary<TK, TV> : RpcPropertyContainer
         where TK : notnull
     {
-        private Dictionary<TK, RpcPropertyContainer> value_;
+        private Dictionary<TK, RpcPropertyContainer> rawValue_;
 
         public OnSetValueCallBack<Dictionary<TK, TV>>? OnSetValue { get; set; }
         public OnUpdateValueCallBack<TK, TV?>? OnUpdateValue {get; set; }
         public OnRemoveElemCallBack<TK, TV>? OnRemoveElem { get; set; }
         public OnClearCallBack? OnClear { get; set; }
 
-        public Dictionary<TK, RpcPropertyContainer> Value
+        public Dictionary<TK, RpcPropertyContainer> RawValue
         {
-            get => value_;
-            set => this.SetValueInternal(value, true, false);
+            get => rawValue_;
+            private set => this.SetValueInternal(value, true, false);
         }
 
         private void SetValueInternal(Dictionary<TK, RpcPropertyContainer> value, bool withNotify, bool bySync)
@@ -40,7 +40,7 @@ namespace LPS.Core.Rpc.RpcProperty
 
             if (withNotify)
             {
-                foreach (var (_, old) in this.Value)
+                foreach (var (_, old) in this.RawValue)
                 {
                     old.RemoveFromPropTree();
                 }
@@ -65,26 +65,26 @@ namespace LPS.Core.Rpc.RpcProperty
                 }
             }
 
-            this.value_ = value;
+            this.rawValue_ = value;
 
             if (withNotify)
             {
                 if (this.OnSetValue != null)
                 {
                     var old = this.ToCopy();
-                    this.value_ = value;
-                    this.NotifyChange(RpcPropertySyncOperation.SetValue, this.Name!, old: value_!, value);
+                    this.rawValue_ = value;
+                    this.NotifyChange(RpcPropertySyncOperation.SetValue, this.Name!, old: rawValue_!, value);
                     this.OnSetValue(old, this.ToCopy());
                 }
                 else
                 {
-                    this.value_ = value;
-                    this.NotifyChange(RpcPropertySyncOperation.SetValue, this.Name!, old: value_!, value);
+                    this.rawValue_ = value;
+                    this.NotifyChange(RpcPropertySyncOperation.SetValue, this.Name!, old: rawValue_!, value);
                 }
             }
             else
             {
-                this.value_ = value;
+                this.rawValue_ = value;
             }
         }
         
@@ -96,7 +96,7 @@ namespace LPS.Core.Rpc.RpcProperty
 
         public RpcDictionary()
         {
-            this.value_ = new();
+            this.rawValue_ = new();
             this.Children = new();
         }
 
@@ -115,7 +115,7 @@ namespace LPS.Core.Rpc.RpcProperty
             var targetContainer = (target as RpcDictionary<TK, TV>)!;
             targetContainer.RemoveFromPropTree();
             
-            foreach (var (k, @new) in targetContainer.value_)
+            foreach (var (k, @new) in targetContainer.rawValue_)
             {
                 @new.InsertToPropTree(this, $"{k}", this.TopOwner);
                 this.Children![@new.Name!] = @new;
@@ -126,7 +126,7 @@ namespace LPS.Core.Rpc.RpcProperty
         {
             IMessage? pbDictVal = null;
 
-            if (this.Value.Count > 0)
+            if (this.RawValue.Count > 0)
             {
                 pbDictVal = RpcHelper.RpcContainerDictToProtoBufAny(this);
             }
@@ -209,15 +209,15 @@ namespace LPS.Core.Rpc.RpcProperty
 
         public TV this[TK key]
         {
-            get => (TV) this.Value[key].GetRawValue();
+            get => (TV) this.RawValue[key].GetRawValue();
             set
             {
                 ArgumentNullException.ThrowIfNull(value);
                 RpcPropertyContainer? old = null;
 
-                if (this.Value.ContainsKey(key))
+                if (this.RawValue.ContainsKey(key))
                 {
-                    old = this.Value[key];
+                    old = this.RawValue[key];
                 }
 
                 if (value is RpcPropertyContainer container)
@@ -229,7 +229,7 @@ namespace LPS.Core.Rpc.RpcProperty
 
                     container.InsertToPropTree(this, $"{key}", this.TopOwner);
 
-                    this.Value[key] = container;
+                    this.RawValue[key] = container;
                     this.Children![container.Name!] = container;
                     this.NotifyChange(RpcPropertySyncOperation.UpdateDict, container.Name!, old != null
                             ? old.GetRawValue()
@@ -249,7 +249,7 @@ namespace LPS.Core.Rpc.RpcProperty
                         };
                         newContainer.UpdateTopOwner(this.TopOwner);
 
-                        this.Value[key] = newContainer;
+                        this.RawValue[key] = newContainer;
                         this.Children![newContainer.Name] = newContainer;
                         this.NotifyChange(RpcPropertySyncOperation.UpdateDict, newContainer.Name!, old != null
                                 ? old.GetRawValue()
@@ -274,10 +274,11 @@ namespace LPS.Core.Rpc.RpcProperty
         public void Remove(TK key)
         {
             AssertNotShadowPropertyChange();
-            var elem = this.Value[key];
+            var elem = this.RawValue[key];
             elem.RemoveFromPropTree();
 
-            this.Value.Remove(key);
+            this.RawValue.Remove(key);
+            this.Children!.Remove($"{key}");
             this.NotifyChange(RpcPropertySyncOperation.RemoveElem, elem.Name!, elem.GetRawValue(), null);
             this.OnRemoveElem?.Invoke(key, (TV)elem.GetRawValue());
         }
@@ -286,12 +287,12 @@ namespace LPS.Core.Rpc.RpcProperty
         {
             AssertNotShadowPropertyChange();
 
-            foreach (var (_, value) in this.Value)
+            foreach (var (_, value) in this.RawValue)
             {
                 value.RemoveFromPropTree();
             }
 
-            this.Value.Clear();
+            this.RawValue.Clear();
             this.Children!.Clear();
 
             this.NotifyChange(RpcPropertySyncOperation.Clear, this.Name!, null, null);
@@ -299,10 +300,10 @@ namespace LPS.Core.Rpc.RpcProperty
         }
 
         public Dictionary<TK, TV> ToCopy() =>
-            this.Value.ToDictionary(
+            this.RawValue.ToDictionary(
                 pair => pair.Key,
                 pair => (TV) pair.Value.GetRawValue());
 
-        public int Count => this.Value.Count;
+        public int Count => this.RawValue.Count;
     }
 }
