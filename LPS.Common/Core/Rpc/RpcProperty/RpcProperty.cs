@@ -85,59 +85,69 @@ namespace LPS.Core.Rpc.RpcProperty
 
         public abstract Any ToProtobuf();
         public abstract void FromProtobuf(Any content);
-
-        public void OnNotify(RpcPropertySyncOperation operation, List<string> path, object? old, object? @new)
+        
+        public void OnNotify(RpcPropertySyncOperation operation, List<string> path, RpcPropertyContainer? @new)
         {
-            Console.WriteLine($"[OnNotify] {operation}, {string.Join(".", path)}, {old} -> {@new}");
+            Console.WriteLine($"[OnNotify] {operation}, {string.Join(".", path)}, {@new}");
             switch (operation)
             {
                 case RpcPropertySyncOperation.SetValue:
-                    this.OnSetValueInternal(path, old, @new);
+                    this.OnSetValueInternal(path, @new!);
                     break;
                 case RpcPropertySyncOperation.UpdateDict:
-                    this.OnUpdateDictInternal(path, old, @new);
+                    this.OnUpdateDictInternal(path, @new!);
                     break;
                 case RpcPropertySyncOperation.AddListElem:
-                    this.OnAddListElemInternal(path, @new);
+                    this.OnAddListElemInternal(path, @new!);
                     break;
                 case RpcPropertySyncOperation.RemoveElem:
-                    this.OnRemoveElemInternal(path, old);
+                    this.OnRemoveElemInternal(path);
                     break;
                 case RpcPropertySyncOperation.Clear:
                     this.OnClearInternal(path);
                     break;
                 case RpcPropertySyncOperation.InsertElem:
-                    this.OnInsertItem(path, @new);
+                    this.OnInsertItem(path, @new!);
                     break;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(operation), operation, null);
             }
         }
 
-        public void OnSetValueInternal(List<string> path, object? oldVal, object? newVal)
+        public void OnSetValueInternal(List<string> path, RpcPropertyContainer newVal)
         {
-            // var syncRpc = new PropertySync();
-            //
-            // foreach (var p in path)
-            // {
-            //     syncRpc.Path.Add(p);
-            // }
-            //
-            // syncRpc.SyncType = (uint)RpcPropertySyncOperation.SetValue;
-            // syncRpc.SyncArg = (Any)RpcHelper.RpcArgToProtobuf(newVal);
+            var newType = newVal.GetType();
+            if (newType.IsGenericType)
+            {
+                if (newType.GetGenericTypeDefinition() == typeof(RpcList<>))
+                {
+                    
+                }
+                else if (newType.GetGenericTypeDefinition() == typeof(RpcDictionary<,>))
+                {
+                    
+                }
+
+                throw new Exception($"Invalid value type {newVal.GetType()}");
+            }
+
+            if (newType.IsSubclassOf(typeof(RpcPropertyContainer)))
+            {
+                
+            }
         }
 
-        public void OnUpdateDictInternal(List<string> path, object? oldVal, object? newVal)
+        public void OnUpdateDictInternal(List<string> path, RpcPropertyContainer newVal)
         {
             
         }
 
-        public void OnAddListElemInternal(List<string> path, object? newVal)
+        public void OnAddListElemInternal(List<string> path, RpcPropertyContainer newVal)
         {
             
         }
 
-        public void OnRemoveElemInternal(List<string> path, object? oldVal)
+        public void OnRemoveElemInternal(List<string> path)
         {
             
         }
@@ -147,7 +157,7 @@ namespace LPS.Core.Rpc.RpcProperty
             
         }
 
-        public void OnInsertItem(List<string> path, object? newVal)
+        public void OnInsertItem(List<string> path, RpcPropertyContainer newVal)
         {
             
         }
@@ -198,7 +208,7 @@ namespace LPS.Core.Rpc.RpcProperty
 
             this.Value = value;
             var path = new List<string> {this.Name};
-            this.OnNotify(RpcPropertySyncOperation.SetValue, path, old, value);
+            this.OnNotify(RpcPropertySyncOperation.SetValue, path, value);
         }
 
         private T Get()
@@ -266,7 +276,7 @@ namespace LPS.Core.Rpc.RpcProperty
             ((RpcPropertyContainer<T>) this.Value).Value = value;
             
             var path = new List<string> {this.Name};
-            this.OnNotify(RpcPropertySyncOperation.SetValue, path, old, value);
+            this.OnNotify(RpcPropertySyncOperation.SetValue, path, this.Value);
         }
 
         private T Get()

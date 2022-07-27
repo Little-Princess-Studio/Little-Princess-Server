@@ -73,13 +73,13 @@ namespace LPS.Core.Rpc.RpcProperty
                 {
                     var old = this.ToCopy();
                     this.rawValue_ = value;
-                    this.NotifyChange(RpcPropertySyncOperation.SetValue, this.Name!, old: rawValue_!, value);
+                    this.NotifyChange(RpcPropertySyncOperation.SetValue, this.Name!, this);
                     this.OnSetValue(old, this.ToCopy());
                 }
                 else
                 {
                     this.rawValue_ = value;
-                    this.NotifyChange(RpcPropertySyncOperation.SetValue, this.Name!, old: rawValue_!, value);
+                    this.NotifyChange(RpcPropertySyncOperation.SetValue, this.Name!, this);
                 }
             }
             else
@@ -231,10 +231,7 @@ namespace LPS.Core.Rpc.RpcProperty
 
                     this.RawValue[key] = container;
                     this.Children![container.Name!] = container;
-                    this.NotifyChange(RpcPropertySyncOperation.UpdateDict, container.Name!, old != null
-                            ? old.GetRawValue()
-                            : null,
-                        container.GetRawValue());
+                    this.NotifyChange(RpcPropertySyncOperation.UpdateDict, container.Name!, container);
                     this.OnUpdateValue?.Invoke(key, old != null ? (TV)old.GetRawValue() : default(TV), value);
                 }
                 else
@@ -251,10 +248,7 @@ namespace LPS.Core.Rpc.RpcProperty
 
                         this.RawValue[key] = newContainer;
                         this.Children![newContainer.Name] = newContainer;
-                        this.NotifyChange(RpcPropertySyncOperation.UpdateDict, newContainer.Name!, old != null
-                                ? old.GetRawValue()
-                                : null,
-                            newContainer.GetRawValue());
+                        this.NotifyChange(RpcPropertySyncOperation.UpdateDict, newContainer.Name!, newContainer);
                         this.OnUpdateValue?.Invoke(key, old != null ? (TV)old.GetRawValue() : default(TV), value);
                     }
                     else // reuse old
@@ -262,9 +256,7 @@ namespace LPS.Core.Rpc.RpcProperty
                         var oldWithType = (RpcPropertyContainer<TV>) old;
                         var oldVal = oldWithType.GetRawValue();
                         oldWithType.Value = value;
-                        this.NotifyChange(
-                            RpcPropertySyncOperation.UpdateDict,
-                            old.Name!, oldVal, oldWithType.GetRawValue());
+                        this.NotifyChange(RpcPropertySyncOperation.UpdateDict, old.Name!, oldWithType);
                         this.OnUpdateValue?.Invoke(key, (TV)oldWithType.GetRawValue(), value);
                     }
                 }
@@ -279,7 +271,7 @@ namespace LPS.Core.Rpc.RpcProperty
 
             this.RawValue.Remove(key);
             this.Children!.Remove($"{key}");
-            this.NotifyChange(RpcPropertySyncOperation.RemoveElem, elem.Name!, elem.GetRawValue(), null);
+            this.NotifyChange(RpcPropertySyncOperation.RemoveElem, elem.Name!, null);
             this.OnRemoveElem?.Invoke(key, (TV)elem.GetRawValue());
         }
 
@@ -295,7 +287,7 @@ namespace LPS.Core.Rpc.RpcProperty
             this.RawValue.Clear();
             this.Children!.Clear();
 
-            this.NotifyChange(RpcPropertySyncOperation.Clear, this.Name!, null, null);
+            this.NotifyChange(RpcPropertySyncOperation.Clear, this.Name!, null);
             this.OnClear?.Invoke();
         }
 

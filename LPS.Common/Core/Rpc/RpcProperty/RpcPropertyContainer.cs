@@ -68,23 +68,23 @@ namespace LPS.Core.Rpc.RpcProperty
             }
         }
 
-        protected void NotifyChange(RpcPropertySyncOperation operation, string name, object? old, object? @new)
+        protected void NotifyChange(RpcPropertySyncOperation operation, string name, RpcPropertyContainer? @new)
         {
             var pathList = new List<string> {name};
-            this.NotifyChange(operation, pathList, old, @new);
+            this.NotifyChange(operation, pathList, @new);
         }
 
-        protected void NotifyChange(RpcPropertySyncOperation operation, List<string> path, object? old, object? @new)
+        protected void NotifyChange(RpcPropertySyncOperation operation, List<string> path, RpcPropertyContainer? @new)
         {
             path.Insert(0, Name!);
 
             if (this.Parent == null)
             {
-                this.TopOwner?.OnNotify(operation, path, old, @new);
+                this.TopOwner?.OnNotify(operation, path, @new);
             }
             else
             {
-                this.Parent.NotifyChange(operation, path, old, @new);
+                this.Parent.NotifyChange(operation, path, @new);
             }
         }
 
@@ -159,7 +159,7 @@ namespace LPS.Core.Rpc.RpcProperty
                 throw new ArgumentNullException(nameof(target));
             }
             
-            this.NotifyChange(RpcPropertySyncOperation.SetValue, this.Name!, this, target);
+            this.NotifyChange(RpcPropertySyncOperation.SetValue, this.Name!, target);
             this.OnSetValue?.Invoke((this as TSub)!, (target as TSub)!);
 
             this.AssignInternal(target);
@@ -268,7 +268,7 @@ namespace LPS.Core.Rpc.RpcProperty
             {
                 var old = this.value_;
                 this.value_ = value;
-                this.NotifyChange(RpcPropertySyncOperation.SetValue, this.Name!, old: old, value);
+                this.NotifyChange(RpcPropertySyncOperation.SetValue, this.Name!, this);
                 this.OnSetValue?.Invoke(old, value);
             }
             else

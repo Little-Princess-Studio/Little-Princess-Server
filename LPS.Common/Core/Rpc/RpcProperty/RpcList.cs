@@ -74,13 +74,13 @@ namespace LPS.Core.Rpc.RpcProperty
                 {
                     var old = this.ToCopy();
                     this.rawValue_ = value;
-                    this.NotifyChange(RpcPropertySyncOperation.SetValue, this.Name!, old: rawValue_, value);
+                    this.NotifyChange(RpcPropertySyncOperation.SetValue, this.Name!, this);
                     this.OnSetValue.Invoke(old, this.ToCopy());
                 }
                 else
                 {
                     this.rawValue_ = value;
-                    this.NotifyChange(RpcPropertySyncOperation.SetValue, this.Name!, old: rawValue_, value);
+                    this.NotifyChange(RpcPropertySyncOperation.SetValue, this.Name!, this);
                 }
             }
             else
@@ -237,7 +237,7 @@ namespace LPS.Core.Rpc.RpcProperty
 
             this.RawValue.Add(newContainer);
             this.Children!.Add(newContainer.Name!, newContainer);
-            this.NotifyChange(RpcPropertySyncOperation.AddListElem, newContainer.Name!, null, elem);
+            this.NotifyChange(RpcPropertySyncOperation.AddListElem, newContainer.Name!, newContainer);
             this.OnAddElem?.Invoke(elem);
         }
 
@@ -250,7 +250,7 @@ namespace LPS.Core.Rpc.RpcProperty
 
             this.RawValue.RemoveAt(index);
             this.Children!.Remove($"{index}");
-            this.NotifyChange(RpcPropertySyncOperation.RemoveElem, elem.Name!, elem, null);
+            this.NotifyChange(RpcPropertySyncOperation.RemoveElem, elem.Name!, null);
             this.OnRemoveElem?.Invoke(index, (TElem) elem.GetRawValue());
         }
 
@@ -264,7 +264,7 @@ namespace LPS.Core.Rpc.RpcProperty
 
             this.RawValue.Insert(index, newContainer);
             this.Children!.Add(newContainer.Name!, newContainer);
-            this.NotifyChange(RpcPropertySyncOperation.InsertElem, newContainer.Name!, null, elem);
+            this.NotifyChange(RpcPropertySyncOperation.InsertElem, newContainer.Name!, newContainer);
             this.OnInsertItem?.Invoke(index, elem);
         }
 
@@ -279,7 +279,7 @@ namespace LPS.Core.Rpc.RpcProperty
 
             this.RawValue.Clear();
             this.Children!.Clear();
-            this.NotifyChange(RpcPropertySyncOperation.Clear, this.Name!, null, null);
+            this.NotifyChange(RpcPropertySyncOperation.Clear, this.Name!, null);
             this.OnClear?.Invoke();
         }
 
@@ -301,7 +301,7 @@ namespace LPS.Core.Rpc.RpcProperty
                     container.InsertToPropTree(this, oldName, this.TopOwner);
 
                     this.rawValue_[index] = container;
-                    this.NotifyChange(RpcPropertySyncOperation.SetValue, this.RawValue[index].Name!, old, value);
+                    this.NotifyChange(RpcPropertySyncOperation.SetValue, this.RawValue[index].Name!, container);
                     this.OnUpdateValue?.Invoke(index, (TElem)old.GetRawValue(), value);
                 }
                 else
@@ -309,7 +309,7 @@ namespace LPS.Core.Rpc.RpcProperty
                     var oldWithContainer = (RpcPropertyContainer<TElem>) old;
                     var oldVal = oldWithContainer.Value;
                     oldWithContainer.Set(value, false, false);
-                    this.NotifyChange(RpcPropertySyncOperation.SetValue, this.RawValue[index].Name!, oldVal, value);
+                    this.NotifyChange(RpcPropertySyncOperation.SetValue, this.RawValue[index].Name!, oldWithContainer);
                     this.OnUpdateValue?.Invoke(index, oldVal,value);
                 }
             }
@@ -325,7 +325,7 @@ namespace LPS.Core.Rpc.RpcProperty
             }
 
             this.OnSetValue?.Invoke(this.ToCopy(), target.ToCopy());
-            this.NotifyChange(RpcPropertySyncOperation.SetValue, this.Name!, this, target);
+            this.NotifyChange(RpcPropertySyncOperation.SetValue, this.Name!, target);
             
             this.AssignInternal(target);
         }

@@ -48,13 +48,11 @@ public class TimeCircleUnitTest
     private static void AddPlainMessage(TimeCircle timeCircle, bool keepOrder)
     {
         var mailbox1 = new MailBox("test_id1", "127.0.0.1", 88, 9999);
-        var plainMsg1 = new RpcPlainPropertySyncMessage(mailbox1, RpcPropertySyncOperation.SetValue, "testpath",
-            RpcSyncPropertyType.Plaint);
-        plainMsg1.Val = new RpcPropertyContainer<string>("1111");
+        var plainMsg1 = new RpcPlaintAndCostumePropertySyncMessage(mailbox1, RpcPropertySyncOperation.SetValue, "testpath",
+            RpcSyncPropertyType.Plaint,  new RpcPropertyContainer<string>("1111"));
 
-        var plainMsg2 = new RpcPlainPropertySyncMessage(mailbox1, RpcPropertySyncOperation.SetValue, "testpath",
-            RpcSyncPropertyType.Plaint);
-        plainMsg2.Val = new RpcPropertyContainer<string>("2222");
+        var plainMsg2 = new RpcPlaintAndCostumePropertySyncMessage(mailbox1, RpcPropertySyncOperation.SetValue, "testpath",
+            RpcSyncPropertyType.Plaint, new RpcPropertyContainer<string>("2222"));
 
         timeCircle.AddPropertySyncMessage(
             plainMsg1,
@@ -76,7 +74,7 @@ public class TimeCircleUnitTest
             var arr = queue!.ToArray();
             Assert.Single(arr);
 
-            var msg = (RpcPlainPropertySyncMessage)arr[0];
+            var msg = (RpcPlaintAndCostumePropertySyncMessage)arr[0];
             Assert.NotNull(msg);
         
             Assert.Equal(RpcPropertySyncOperation.SetValue, msg.Operation);
@@ -93,7 +91,7 @@ public class TimeCircleUnitTest
 
             Assert.Single(arr);
             
-            var msg = (RpcPlainPropertySyncMessage)arr[0];
+            var msg = (RpcPlaintAndCostumePropertySyncMessage)arr[0];
             Assert.NotNull(msg);
         
             Assert.Equal(RpcPropertySyncOperation.SetValue, msg.Operation);
