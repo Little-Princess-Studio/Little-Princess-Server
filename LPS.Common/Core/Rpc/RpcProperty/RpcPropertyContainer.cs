@@ -1,11 +1,9 @@
-using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
-using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
-using LPS.Core.Ipc.SyncMessage;
-using LPS.Core.Rpc.InnerMessages;
+using LPS.Common.Core.Rpc.InnerMessages;
+using LPS.Common.Core.Rpc.RpcPropertySync;
 
-namespace LPS.Core.Rpc.RpcProperty
+namespace LPS.Common.Core.Rpc.RpcProperty
 {
     [AttributeUsage(AttributeTargets.Field)]
     public class RpcPropertyAttribute : Attribute
@@ -28,7 +26,7 @@ namespace LPS.Core.Rpc.RpcProperty
         public RpcPropertyContainer? Parent { get; set; }
         public bool IsReferred { get; set; }
         public Dictionary<string, RpcPropertyContainer>? Children { get; set; }
-        public RpcProperty? TopOwner { get; private set; }
+        public Common.Core.Rpc.RpcProperty.RpcProperty? TopOwner { get; private set; }
 
         public abstract void AssignInternal(RpcPropertyContainer target);
 
@@ -47,7 +45,7 @@ namespace LPS.Core.Rpc.RpcProperty
             this.UpdateTopOwner(null);
         }
 
-        public void InsertToPropTree(RpcPropertyContainer? parent, string name, RpcProperty? topOwner)
+        public void InsertToPropTree(RpcPropertyContainer? parent, string name, Common.Core.Rpc.RpcProperty.RpcProperty? topOwner)
         {
             this.Name = name;
             this.Parent = parent;
@@ -55,7 +53,7 @@ namespace LPS.Core.Rpc.RpcProperty
             this.UpdateTopOwner(topOwner);
         }
 
-        public void UpdateTopOwner(RpcProperty? topOwner)
+        public void UpdateTopOwner(Common.Core.Rpc.RpcProperty.RpcProperty? topOwner)
         {
             this.TopOwner = topOwner;
 

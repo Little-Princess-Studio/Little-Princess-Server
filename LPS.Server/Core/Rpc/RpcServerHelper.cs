@@ -2,10 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using LPS.Core.Entity;
-using LPS.Core.Rpc.RpcProperty;
+using LPS.Common.Core.Entity;
+using LPS.Common.Core.Rpc;
+using LPS.Server.Core.Entity;
+using LPS.Server.Core.Rpc.RpcProperty;
 
-namespace LPS.Core.Rpc
+namespace LPS.Server.Core.Rpc
 {
     public static class RpcServerHelper
     {
@@ -20,7 +22,7 @@ namespace LPS.Core.Rpc
                 if (entityClass.IsSubclassOf(typeof(DistributeEntity)))
                 {
                     var obj = (Activator.CreateInstance(entityClass, desc) as DistributeEntity)!;
-                    RpcHelper.BuildPropertyTree(obj);
+                    BuildPropertyTree(obj);
                     return obj;
                 }
 
@@ -43,7 +45,7 @@ namespace LPS.Core.Rpc
                     var obj = (Activator.CreateInstance(entityClass, null) as DistributeEntity)!;
                     obj.MailBox = entityMailBox;
                     obj.Deserialize(serialContent);
-                    RpcHelper.BuildPropertyTree(obj);
+                    BuildPropertyTree(obj);
                     return obj;
                 }
 
@@ -54,9 +56,39 @@ namespace LPS.Core.Rpc
             throw new Exception($"Invalid entity class name {entityClassName}");
         }
 
-        // public static Task<DistributeEntity> CreateEntityAnywhere()
-        // {
-        //     return null;
-        // }
+        public static void BuildPropertyTree(BaseEntity entity)
+        {
+            var type = entity.GetType();
+            var tree = type.GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
+                .Where(field =>
+                {
+                    var fieldType = field.FieldType;
+
+                    if (!fieldType.IsGenericType)
+                    {
+                        return false;
+                    }
+
+                    var genType = fieldType.GetGenericTypeDefinition();
+                    if (genType != typeof(RpcPlaintProperty<>)
+                        && genType != typeof(RpcComplexProperty<>))
+                        // && genType != typeof(RpcShadowComplexProperty<>)
+                        // && genType != typeof(RpcShadowPlaintProperty<>))
+                    {
+                        return false;
+                    }
+
+                    return true;
+                }).ToDictionary(
+                    field => (field.GetValue(entity) as Common.Core.Rpc.RpcProperty.RpcProperty)!.Name,
+                    field => (field.GetValue(entity) as Common.Core.Rpc.RpcProperty.RpcProperty)!);
+
+            foreach (var (_, prop) in tree)
+            {
+                prop.Owner = entity;
+            }
+
+            entity.SetPropertyTree(tree);
+        }
     }
 }

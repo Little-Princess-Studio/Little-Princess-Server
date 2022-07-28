@@ -1,11 +1,11 @@
 using System;
 using System.Threading.Tasks;
-using LPS.Core.Debug;
-using LPS.Core.Rpc;
-using LPS.Core.Rpc.InnerMessages;
-using MailBox = LPS.Core.Rpc.MailBox;
+using LPS.Common.Core.Debug;
+using LPS.Common.Core.Rpc;
+using LPS.Common.Core.Rpc.InnerMessages;
+using MailBox = LPS.Common.Core.Rpc.MailBox;
 
-namespace LPS.Core.Entity
+namespace LPS.Server.Core.Entity
 {
     public class ClientProxy
     {

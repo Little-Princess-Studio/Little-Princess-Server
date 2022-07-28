@@ -1,6 +1,7 @@
-using LPS.Core.Rpc;
+using LPS.Common.Core.Rpc;
+using LPS.Server.Core.Rpc;
 
-namespace LPS.Core
+namespace LPS.Server.Core
 {
     public class HostManager
     {

@@ -1,9 +1,11 @@
 ﻿using Google.Protobuf;
-using LPS.Core.Debug;
 using LPS.Client.Console;
 using LPS.Client.LPS.Core.Rpc;
-using LPS.Core.Rpc;
-using LPS.Core.Rpc.InnerMessages;
+using LPS.Common.Core.Debug;
+using LPS.Common.Core.Rpc;
+using LPS.Common.Core.Rpc.InnerMessages;
+using LPS.Server.Core.Rpc;
+using LPS.Server.Core.Rpc.InnerMessages;
 
 namespace LPS.Client
 {

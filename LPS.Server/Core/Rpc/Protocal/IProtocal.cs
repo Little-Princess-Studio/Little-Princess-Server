@@ -1,4 +1,4 @@
-namespace LPS.Core.RPC.Protocal
+namespace LPS.Server.Core.RPC.Protocal
 {
     public interface IProtocal { }
 }

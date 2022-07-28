@@ -9,7 +9,7 @@ using pb = global::Google.Protobuf;
 using pbc = global::Google.Protobuf.Collections;
 using pbr = global::Google.Protobuf.Reflection;
 using scg = global::System.Collections.Generic;
-namespace LPS.Core.Rpc.InnerMessages {
+namespace LPS.Server.Core.Rpc.InnerMessages {
 
   /// <summary>Holder for reflection information generated from control.proto</summary>
   public static partial class ControlReflection {
@@ -24,17 +24,18 @@ namespace LPS.Core.Rpc.InnerMessages {
     static ControlReflection() {
       byte[] descriptorData = global::System.Convert.FromBase64String(
           string.Concat(
-            "Cg1jb250cm9sLnByb3RvEhpMUFMuQ29yZS5ScGMuSW5uZXJNZXNzYWdlcyJ8",
-            "CgdDb250cm9sEjQKBEZyb20YASABKA4yJi5MUFMuQ29yZS5ScGMuSW5uZXJN",
-            "ZXNzYWdlcy5SZW1vdGVUeXBlEjsKB01lc3NhZ2UYAiABKA4yKi5MUFMuQ29y",
-            "ZS5ScGMuSW5uZXJNZXNzYWdlcy5Db250cm9sTWVzc2FnZSo2Cg5Db250cm9s",
-            "TWVzc2FnZRIJCgVSZWFkeRAAEgsKB1Jlc3RhcnQQARIMCghTaHV0RG93bhAC",
-            "KkIKClJlbW90ZVR5cGUSDwoLSG9zdE1hbmFnZXIQABINCglEQk1hbmFnZXIQ",
-            "ARIKCgZTZXJ2ZXIQAhIICgRHYXRlEANiBnByb3RvMw=="));
+            "Cg1jb250cm9sLnByb3RvEiFMUFMuU2VydmVyLkNvcmUuUnBjLklubmVyTWVz",
+            "c2FnZXMiigEKB0NvbnRyb2wSOwoERnJvbRgBIAEoDjItLkxQUy5TZXJ2ZXIu",
+            "Q29yZS5ScGMuSW5uZXJNZXNzYWdlcy5SZW1vdGVUeXBlEkIKB01lc3NhZ2UY",
+            "AiABKA4yMS5MUFMuU2VydmVyLkNvcmUuUnBjLklubmVyTWVzc2FnZXMuQ29u",
+            "dHJvbE1lc3NhZ2UqNgoOQ29udHJvbE1lc3NhZ2USCQoFUmVhZHkQABILCgdS",
+            "ZXN0YXJ0EAESDAoIU2h1dERvd24QAipCCgpSZW1vdGVUeXBlEg8KC0hvc3RN",
+            "YW5hZ2VyEAASDQoJREJNYW5hZ2VyEAESCgoGU2VydmVyEAISCAoER2F0ZRAD",
+            "YgZwcm90bzM="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { },
-          new pbr::GeneratedClrTypeInfo(new[] {typeof(global::LPS.Core.Rpc.InnerMessages.ControlMessage), typeof(global::LPS.Core.Rpc.InnerMessages.RemoteType), }, null, new pbr::GeneratedClrTypeInfo[] {
-            new pbr::GeneratedClrTypeInfo(typeof(global::LPS.Core.Rpc.InnerMessages.Control), global::LPS.Core.Rpc.InnerMessages.Control.Parser, new[]{ "From", "Message" }, null, null, null, null)
+          new pbr::GeneratedClrTypeInfo(new[] {typeof(global::LPS.Server.Core.Rpc.InnerMessages.ControlMessage), typeof(global::LPS.Server.Core.Rpc.InnerMessages.RemoteType), }, null, new pbr::GeneratedClrTypeInfo[] {
+            new pbr::GeneratedClrTypeInfo(typeof(global::LPS.Server.Core.Rpc.InnerMessages.Control), global::LPS.Server.Core.Rpc.InnerMessages.Control.Parser, new[]{ "From", "Message" }, null, null, null, null)
           }));
     }
     #endregion
@@ -71,7 +72,7 @@ namespace LPS.Core.Rpc.InnerMessages {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::LPS.Core.Rpc.InnerMessages.ControlReflection.Descriptor.MessageTypes[0]; }
+      get { return global::LPS.Server.Core.Rpc.InnerMessages.ControlReflection.Descriptor.MessageTypes[0]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -104,10 +105,10 @@ namespace LPS.Core.Rpc.InnerMessages {
 
     /// <summary>Field number for the "From" field.</summary>
     public const int FromFieldNumber = 1;
-    private global::LPS.Core.Rpc.InnerMessages.RemoteType from_ = global::LPS.Core.Rpc.InnerMessages.RemoteType.HostManager;
+    private global::LPS.Server.Core.Rpc.InnerMessages.RemoteType from_ = global::LPS.Server.Core.Rpc.InnerMessages.RemoteType.HostManager;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public global::LPS.Core.Rpc.InnerMessages.RemoteType From {
+    public global::LPS.Server.Core.Rpc.InnerMessages.RemoteType From {
       get { return from_; }
       set {
         from_ = value;
@@ -116,10 +117,10 @@ namespace LPS.Core.Rpc.InnerMessages {
 
     /// <summary>Field number for the "Message" field.</summary>
     public const int MessageFieldNumber = 2;
-    private global::LPS.Core.Rpc.InnerMessages.ControlMessage message_ = global::LPS.Core.Rpc.InnerMessages.ControlMessage.Ready;
+    private global::LPS.Server.Core.Rpc.InnerMessages.ControlMessage message_ = global::LPS.Server.Core.Rpc.InnerMessages.ControlMessage.Ready;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public global::LPS.Core.Rpc.InnerMessages.ControlMessage Message {
+    public global::LPS.Server.Core.Rpc.InnerMessages.ControlMessage Message {
       get { return message_; }
       set {
         message_ = value;
@@ -150,8 +151,8 @@ namespace LPS.Core.Rpc.InnerMessages {
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override int GetHashCode() {
       int hash = 1;
-      if (From != global::LPS.Core.Rpc.InnerMessages.RemoteType.HostManager) hash ^= From.GetHashCode();
-      if (Message != global::LPS.Core.Rpc.InnerMessages.ControlMessage.Ready) hash ^= Message.GetHashCode();
+      if (From != global::LPS.Server.Core.Rpc.InnerMessages.RemoteType.HostManager) hash ^= From.GetHashCode();
+      if (Message != global::LPS.Server.Core.Rpc.InnerMessages.ControlMessage.Ready) hash ^= Message.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -170,11 +171,11 @@ namespace LPS.Core.Rpc.InnerMessages {
     #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       output.WriteRawMessage(this);
     #else
-      if (From != global::LPS.Core.Rpc.InnerMessages.RemoteType.HostManager) {
+      if (From != global::LPS.Server.Core.Rpc.InnerMessages.RemoteType.HostManager) {
         output.WriteRawTag(8);
         output.WriteEnum((int) From);
       }
-      if (Message != global::LPS.Core.Rpc.InnerMessages.ControlMessage.Ready) {
+      if (Message != global::LPS.Server.Core.Rpc.InnerMessages.ControlMessage.Ready) {
         output.WriteRawTag(16);
         output.WriteEnum((int) Message);
       }
@@ -188,11 +189,11 @@ namespace LPS.Core.Rpc.InnerMessages {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
-      if (From != global::LPS.Core.Rpc.InnerMessages.RemoteType.HostManager) {
+      if (From != global::LPS.Server.Core.Rpc.InnerMessages.RemoteType.HostManager) {
         output.WriteRawTag(8);
         output.WriteEnum((int) From);
       }
-      if (Message != global::LPS.Core.Rpc.InnerMessages.ControlMessage.Ready) {
+      if (Message != global::LPS.Server.Core.Rpc.InnerMessages.ControlMessage.Ready) {
         output.WriteRawTag(16);
         output.WriteEnum((int) Message);
       }
@@ -206,10 +207,10 @@ namespace LPS.Core.Rpc.InnerMessages {
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public int CalculateSize() {
       int size = 0;
-      if (From != global::LPS.Core.Rpc.InnerMessages.RemoteType.HostManager) {
+      if (From != global::LPS.Server.Core.Rpc.InnerMessages.RemoteType.HostManager) {
         size += 1 + pb::CodedOutputStream.ComputeEnumSize((int) From);
       }
-      if (Message != global::LPS.Core.Rpc.InnerMessages.ControlMessage.Ready) {
+      if (Message != global::LPS.Server.Core.Rpc.InnerMessages.ControlMessage.Ready) {
         size += 1 + pb::CodedOutputStream.ComputeEnumSize((int) Message);
       }
       if (_unknownFields != null) {
@@ -224,10 +225,10 @@ namespace LPS.Core.Rpc.InnerMessages {
       if (other == null) {
         return;
       }
-      if (other.From != global::LPS.Core.Rpc.InnerMessages.RemoteType.HostManager) {
+      if (other.From != global::LPS.Server.Core.Rpc.InnerMessages.RemoteType.HostManager) {
         From = other.From;
       }
-      if (other.Message != global::LPS.Core.Rpc.InnerMessages.ControlMessage.Ready) {
+      if (other.Message != global::LPS.Server.Core.Rpc.InnerMessages.ControlMessage.Ready) {
         Message = other.Message;
       }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
@@ -246,11 +247,11 @@ namespace LPS.Core.Rpc.InnerMessages {
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
           case 8: {
-            From = (global::LPS.Core.Rpc.InnerMessages.RemoteType) input.ReadEnum();
+            From = (global::LPS.Server.Core.Rpc.InnerMessages.RemoteType) input.ReadEnum();
             break;
           }
           case 16: {
-            Message = (global::LPS.Core.Rpc.InnerMessages.ControlMessage) input.ReadEnum();
+            Message = (global::LPS.Server.Core.Rpc.InnerMessages.ControlMessage) input.ReadEnum();
             break;
           }
         }
@@ -269,11 +270,11 @@ namespace LPS.Core.Rpc.InnerMessages {
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
           case 8: {
-            From = (global::LPS.Core.Rpc.InnerMessages.RemoteType) input.ReadEnum();
+            From = (global::LPS.Server.Core.Rpc.InnerMessages.RemoteType) input.ReadEnum();
             break;
           }
           case 16: {
-            Message = (global::LPS.Core.Rpc.InnerMessages.ControlMessage) input.ReadEnum();
+            Message = (global::LPS.Server.Core.Rpc.InnerMessages.ControlMessage) input.ReadEnum();
             break;
           }
         }

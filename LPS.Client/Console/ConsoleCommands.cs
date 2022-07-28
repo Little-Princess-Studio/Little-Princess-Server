@@ -1,7 +1,9 @@
 using System.Security.Cryptography;
 using System.Text;
-using LPS.Core.Debug;
-using LPS.Core.Rpc.InnerMessages;
+using LPS.Common.Core.Debug;
+using LPS.Common.Core.Rpc.InnerMessages;
+using MailBox = LPS.Common.Core.Rpc.MailBox;
+
 
 namespace LPS.Client.Console
 {
@@ -68,7 +70,7 @@ namespace LPS.Client.Console
         [ConsoleCommand("send.transfer")]
         public static async void Transfer(string id, string ip, int port, int hostNum)
         {
-            var cellMailBox = new Core.Rpc.MailBox(id, ip, port, hostNum);
+            var cellMailBox = new MailBox(id, ip, port, hostNum);
 
             ClientGlobal.ShadowClientEntity.Server.Notify(
                 "TransferIntoCell",

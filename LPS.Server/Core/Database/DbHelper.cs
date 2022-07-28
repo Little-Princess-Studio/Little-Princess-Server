@@ -1,10 +1,10 @@
 using System;
 using System.Globalization;
 using System.Threading.Tasks;
-using LPS.Core.Database.GlobalCache;
-using LPS.Core.Debug;
+using LPS.Common.Core.Debug;
+using LPS.Server.Core.Database.GlobalCache;
 
-namespace LPS.Core.Database
+namespace LPS.Server.Core.Database
 {
     public static class DbHelper
     {

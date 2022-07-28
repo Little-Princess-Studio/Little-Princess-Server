@@ -1,7 +1,7 @@
 using System.Runtime.InteropServices;
 using Google.Protobuf;
 
-namespace LPS.Core.Rpc.InnerMessages
+namespace LPS.Common.Core.Rpc.InnerMessages
 {
     /// <summary>
     /// Package is the unit send and recv inside LPS

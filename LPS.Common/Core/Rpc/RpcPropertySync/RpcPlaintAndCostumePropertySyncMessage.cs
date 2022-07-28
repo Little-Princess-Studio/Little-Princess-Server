@@ -1,8 +1,6 @@
-using LPS.Core.Rpc;
-using LPS.Core.Rpc.RpcProperty;
-using LPS.Core.Rpc.RpcPropertySync;
+using LPS.Common.Core.Rpc.RpcProperty;
 
-namespace LPS.Core.Ipc.SyncMessage
+namespace LPS.Common.Core.Rpc.RpcPropertySync
 {
     public class RpcPlaintAndCostumePropertySyncMessage : RpcPropertySyncMessage
     {
@@ -11,9 +9,8 @@ namespace LPS.Core.Ipc.SyncMessage
         public RpcPlaintAndCostumePropertySyncMessage(MailBox mailbox, 
             RpcPropertySyncOperation operation,
             string rpcPropertyPath,
-            RpcSyncPropertyType rpcSyncPropertyType,
             RpcPropertyContainer val) 
-            : base(mailbox, operation, rpcPropertyPath, rpcSyncPropertyType)
+            : base(mailbox, operation, rpcPropertyPath, RpcSyncPropertyType.PlaintAndCostume)
         {
             this.Val = val;
         }

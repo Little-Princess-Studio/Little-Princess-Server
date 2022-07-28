@@ -1,6 +1,7 @@
-using LPS.Core.Entity;
-using LPS.Core.Rpc;
-using LPS.Core.Rpc.RpcProperty;
+using LPS.Client.Core.Entity;
+using LPS.Client.Core.Rpc.RpcProperty;
+using LPS.Common.Core.Rpc;
+using LPS.Common.Core.Rpc.RpcProperty;
 
 namespace LPS.Client.Entity
 {

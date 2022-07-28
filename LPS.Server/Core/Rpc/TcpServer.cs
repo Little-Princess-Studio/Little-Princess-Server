@@ -7,13 +7,14 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using Google.Protobuf;
-using LPS.Core.Debug;
-using LPS.Core.Ipc;
-using LPS.Core.Ipc.SyncMessage;
-using LPS.Core.Rpc.InnerMessages;
-using Microsoft.VisualBasic;
+using LPS.Common.Core.Debug;
+using LPS.Common.Core.Ipc;
+using LPS.Common.Core.Rpc;
+using LPS.Common.Core.Rpc.InnerMessages;
+using LPS.Common.Core.Rpc.RpcPropertySync;
+using MailBox = LPS.Common.Core.Rpc.MailBox;
 
-namespace LPS.Core.Rpc
+namespace LPS.Server.Core.Rpc
 {
     /*
     TcpServer is common server for LPS inner usage.

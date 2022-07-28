@@ -1,5 +1,5 @@
 using Mono.Terminal;
-using Logger = LPS.Core.Debug.Logger;
+using Logger = LPS.Common.Core.Debug.Logger;
 
 namespace LPS.Client.Console
 {

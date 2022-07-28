@@ -5,10 +5,11 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using Google.Protobuf;
-using LPS.Core.Debug;
-using LPS.Core.Ipc;
+using LPS.Common.Core.Debug;
+using LPS.Common.Core.Ipc;
+using LPS.Common.Core.Rpc;
 
-namespace LPS.Core.Rpc
+namespace LPS.Server.Core.Rpc
 {
     internal class TcpClient
     {

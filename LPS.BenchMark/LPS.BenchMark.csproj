@@ -9,6 +9,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\LPS.Common\LPS.Common.csproj" />
+      <ProjectReference Include="..\LPS.Server\LPS.Server.csproj" />
     </ItemGroup>
 
     <ItemGroup>

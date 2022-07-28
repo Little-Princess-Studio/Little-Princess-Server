@@ -1,5 +1,5 @@
 syntax = "proto3";
-package LPS.Core.Rpc.InnerMessages;
+package LPS.Server.Core.Rpc.InnerMessages;
 
 enum CreateType {
   Local = 0;

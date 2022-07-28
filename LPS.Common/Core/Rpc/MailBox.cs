@@ -1,4 +1,4 @@
-namespace LPS.Core.Rpc
+namespace LPS.Common.Core.Rpc
 {
     public struct MailBox
     {

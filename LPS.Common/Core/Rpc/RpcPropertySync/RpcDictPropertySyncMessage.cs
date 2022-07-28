@@ -1,8 +1,6 @@
-using LPS.Core.Rpc;
-using LPS.Core.Rpc.RpcProperty;
-using LPS.Core.Rpc.RpcPropertySync;
+using LPS.Common.Core.Rpc.RpcProperty;
 
-namespace LPS.Core.Ipc.SyncMessage
+namespace LPS.Common.Core.Rpc.RpcPropertySync
 {
     interface IRpcDictPropertySyncMessageImpl
     {
@@ -164,9 +162,8 @@ namespace LPS.Core.Ipc.SyncMessage
 
         public RpcDictPropertySyncMessage(MailBox mailbox,
             RpcPropertySyncOperation operation,
-            string rpcPropertyPath,
-            RpcSyncPropertyType rpcSyncPropertyType)
-            : base(mailbox, operation, rpcPropertyPath, rpcSyncPropertyType)
+            string rpcPropertyPath)
+            : base(mailbox, operation, rpcPropertyPath, RpcSyncPropertyType.Dict)
         {
             switch (operation)
             {

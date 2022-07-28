@@ -1,4 +1,4 @@
-namespace LPS.Core.Database
+namespace LPS.Server.Core.Database
 {
     public interface IDatabase {
         

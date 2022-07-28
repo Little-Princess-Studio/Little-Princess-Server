@@ -3,12 +3,12 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using LPS.Core.Debug;
-using LPS.Core.Ipc.SyncMessage;
-using LPS.Core.Rpc;
-using LPS.Core.Rpc.RpcPropertySync;
+using LPS.Common.Core.Debug;
+using LPS.Common.Core.Rpc;
+using LPS.Common.Core.Rpc.RpcPropertySync;
+using LPS.Server.Core.Rpc;
 
-namespace LPS.Core.Ipc
+namespace LPS.Common.Core.Ipc
 {
     public class TimeCircleSlot
     {
@@ -124,7 +124,7 @@ namespace LPS.Core.Ipc
             {
                 Func<RpcPropertySyncInfo> getSyncInfoFunc = incomeMsg.RpcSyncPropertyType switch
                 {
-                    RpcSyncPropertyType.Plaint => () => new RpcPlaintPropertySyncInfo(),
+                    RpcSyncPropertyType.PlaintAndCostume => () => new RpcPlaintPropertySyncInfo(),
                     RpcSyncPropertyType.List => () => new RpcListPropertySyncInfo(),
                     RpcSyncPropertyType.Dict => () => new RpcDictPropertySyncInfo(),
                     _ => throw new ArgumentOutOfRangeException()

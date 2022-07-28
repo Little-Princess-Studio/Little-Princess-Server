@@ -1,9 +1,6 @@
-using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
-using LPS.Core.Debug;
-using LPS.Core.Entity;
-using LPS.Core.Ipc.SyncMessage;
-using LPS.Core.Rpc.InnerMessages;
+using LPS.Common.Core.Entity;
+using LPS.Common.Core.Rpc.RpcPropertySync;
 
 /*
  * There are 3 way to implement rpc property:
@@ -43,7 +40,7 @@ using LPS.Core.Rpc.InnerMessages;
  * And how can we define costume rpc prop type?
  */
 
-namespace LPS.Core.Rpc.RpcProperty
+namespace LPS.Common.Core.Rpc.RpcProperty
 {
     public delegate void OnSetValueCallBack<in T>(T oldVal, T newVal);
     public delegate void OnUpdateValueCallBack<in TK, in TV>(TK key, TV oldVal, TV newVal);
@@ -72,6 +69,8 @@ namespace LPS.Core.Rpc.RpcProperty
         public readonly RpcPropertySetting Setting;
         public BaseEntity? Owner;
         protected RpcPropertyContainer Value;
+        public IRpcPropertyOnNotifyResolver? NotifyResolver { get; set; }
+        public bool NeedResolve => this.NotifyResolver != null;
 
         public bool IsShadowProperty => this.Setting.HasFlag(RpcPropertySetting.Shadow);
         public bool ShouldSyncToClient => this.Setting.HasFlag(RpcPropertySetting.ServerToShadow);
@@ -88,6 +87,8 @@ namespace LPS.Core.Rpc.RpcProperty
         
         public void OnNotify(RpcPropertySyncOperation operation, List<string> path, RpcPropertyContainer? @new)
         {
+            this.NotifyResolver?.OnNotify(operation, path, @new);
+            
             Console.WriteLine($"[OnNotify] {operation}, {string.Join(".", path)}, {@new}");
             switch (operation)
             {
@@ -114,197 +115,62 @@ namespace LPS.Core.Rpc.RpcProperty
             }
         }
 
-        public void OnSetValueInternal(List<string> path, RpcPropertyContainer newVal)
+        private void OnSetValueInternal(List<string> path, RpcPropertyContainer newVal)
         {
-            var newType = newVal.GetType();
-            if (newType.IsGenericType)
-            {
-                if (newType.GetGenericTypeDefinition() == typeof(RpcList<>))
-                {
-                    
-                }
-                else if (newType.GetGenericTypeDefinition() == typeof(RpcDictionary<,>))
-                {
-                    
-                }
-
-                throw new Exception($"Invalid value type {newVal.GetType()}");
-            }
-
-            if (newType.IsSubclassOf(typeof(RpcPropertyContainer)))
-            {
-                
-            }
+            // var entity = this.Owner;
+            //
+            // if (entity == null)
+            // {
+            //     return;
+            // }
+            //
+            // var newType = newVal.GetType();
+            // var pathStr = string.Join(",", path);
+            // if (newType.IsGenericType)
+            // {
+            //     if (newType.GetGenericTypeDefinition() == typeof(RpcList<>))
+            //     {
+            //         var msg = new RpcListPropertySyncMessage(entity.MailBox, RpcPropertySyncOperation.SetValue,
+            //             pathStr);
+            //         return;
+            //     }
+            //     else if (newType.GetGenericTypeDefinition() == typeof(RpcDictionary<,>))
+            //     {
+            //         var msg = new RpcDictPropertySyncMessage(entity.MailBox, RpcPropertySyncOperation.SetValue,
+            //             pathStr);
+            //         return;
+            //     }
+            //
+            //     throw new Exception($"Invalid value type {newVal.GetType()}");
+            // }
+            //
+            // var msg = new RpcPlaintAndCostumePropertySyncMessage(entity.MailBox, RpcPropertySyncOperation.SetValue,
+            //     pathStr, newVal);
         }
 
-        public void OnUpdateDictInternal(List<string> path, RpcPropertyContainer newVal)
+        private void OnUpdateDictInternal(List<string> path, RpcPropertyContainer newVal)
         {
             
         }
 
-        public void OnAddListElemInternal(List<string> path, RpcPropertyContainer newVal)
+        private void OnAddListElemInternal(List<string> path, RpcPropertyContainer newVal)
         {
             
         }
 
-        public void OnRemoveElemInternal(List<string> path)
+        private void OnRemoveElemInternal(List<string> path)
         {
             
         }
 
-        public void OnClearInternal(List<string> path)
+        private void OnClearInternal(List<string> path)
         {
             
         }
 
-        public void OnInsertItem(List<string> path, RpcPropertyContainer newVal)
+        private void OnInsertItem(List<string> path, RpcPropertyContainer newVal)
         {
             
-        }
-    }
-
-    public class RpcShadowPlaintProperty<T> : RpcPlainProperty<T>
-    {
-        public RpcShadowPlaintProperty(string name) : base(name, RpcPropertySetting.Shadow, default(T)!)
-        {
-        }
-    }
-
-    public class RpcShadowComplexProperty<T> : RpcComplexProperty<T>
-        where T : RpcPropertyContainer
-    {
-        public RpcShadowComplexProperty(string name) : base(name, RpcPropertySetting.Shadow, null!)
-        {
-        }
-    }
-
-    public class RpcComplexProperty<T> : RpcProperty
-        where T : RpcPropertyContainer
-    {
-        public RpcComplexProperty(string name, RpcPropertySetting setting, T value)
-            : base(name, setting, value)
-        {
-            if (!this.IsShadowProperty)
-            {
-                this.Value.Name = name;
-                this.Value.IsReferred = true;
-
-                this.Value.UpdateTopOwner(this);
-            }
-        }
-
-        public void Set(T value)
-        {
-            if (this.IsShadowProperty)
-            {
-                throw new Exception("Shadow property cannot be modified manually");
-            }
-            
-            var container = this.Value;
-            var old = this.Value;
-
-            old.RemoveFromPropTree();
-            old.InsertToPropTree(null, this.Name, this);
-
-            this.Value = value;
-            var path = new List<string> {this.Name};
-            this.OnNotify(RpcPropertySyncOperation.SetValue, path, value);
-        }
-
-        private T Get()
-        {
-            return (T) this.Value;
-        }
-
-        public T Val
-        {
-            get => Get();
-            private set => Set(value);
-        }
-
-        public static implicit operator T(RpcComplexProperty<T> complex) => complex.Val;
-
-        public override Any ToProtobuf()
-        {
-            return this.Val.ToRpcArg();
-        }
-
-        public override void FromProtobuf(Any content)
-        {
-            if (!this.IsShadowProperty)
-            {
-                this.Val.RemoveFromPropTree();
-            }
-            else
-            {
-                // for shadow property, generic rpc container may not be registered
-                if (!RpcHelper.IsRpcContainerRegistered(typeof(T)))
-                {
-                    RpcHelper.RegisterRpcPropertyContainer(typeof(T));
-                }
-            }
-            this.Value = (T) RpcHelper.CreateRpcPropertyContainerByType(typeof(T), content);
-            this.Val.InsertToPropTree(null, this.Name, this);
-        }
-    }
-
-    public class RpcPlainProperty<T> : RpcProperty
-    {
-        static RpcPlainProperty()
-        {
-            RpcGenericArgTypeCheckHelper.AssertIsValidPlaintType<T>();
-        }
-
-        private RpcPlainProperty() : base("", RpcPropertySetting.None, null)
-        {
-        }
-
-        public RpcPlainProperty(string name, RpcPropertySetting setting, T value)
-            : base(name, setting, new RpcPropertyContainer<T>(value))
-        {
-            this.Value.Name = name;
-        }
-
-        private void Set(T value)
-        {
-            if (this.IsShadowProperty)
-            {
-                throw new Exception("Shadow property cannot be modified manually");
-            }
-
-            var old = ((RpcPropertyContainer<T>) this.Value).Value;
-            ((RpcPropertyContainer<T>) this.Value).Value = value;
-            
-            var path = new List<string> {this.Name};
-            this.OnNotify(RpcPropertySyncOperation.SetValue, path, this.Value);
-        }
-
-        private T Get()
-        {
-            return (RpcPropertyContainer<T>) this.Value;
-        }
-
-        public T Val
-        {
-            get => Get();
-            set => Set(value);
-        }
-
-        public static implicit operator T(RpcPlainProperty<T> container) => container.Val;
-
-        public override Any ToProtobuf()
-        {
-            return Any.Pack(RpcHelper.RpcArgToProtobuf(this.Val));
-        }
-
-        public override void FromProtobuf(Any content)
-        {
-            this.Value =
-                (RpcPropertyContainer<T>) RpcHelper.CreateRpcPropertyContainerByType(
-                    typeof(RpcPropertyContainer<T>),
-                    content);
-            this.Value.Name = this.Name;
-            this.Value.IsReferred = true;
         }
     }
 }

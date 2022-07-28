@@ -1,6 +1,7 @@
-using LPS.Core.Debug;
+using LPS.Common.Core.Debug;
+using LPS.Common.Core.Rpc.InnerMessages;
 
-namespace LPS.Core.Rpc.InnerMessages
+namespace LPS.Server.Core.Rpc.InnerMessages
 {
     public class MessageBuffer
     {

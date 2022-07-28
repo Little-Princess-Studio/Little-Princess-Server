@@ -1,4 +1,4 @@
-namespace LPS.Core.Entity
+namespace LPS.Server.Core.Entity
 {
     public class ServerDefaultCellEntity : CellEntity
     {

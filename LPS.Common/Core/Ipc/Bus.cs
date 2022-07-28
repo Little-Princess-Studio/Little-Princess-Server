@@ -1,6 +1,6 @@
 using System.Collections.Concurrent;
 
-namespace LPS.Core.Ipc
+namespace LPS.Common.Core.Ipc
 {
     public class Bus
     {

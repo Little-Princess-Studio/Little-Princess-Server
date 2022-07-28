@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using CommandLine;
-using LPS.Core;
-using LPS.Core.Debug;
+using LPS.Common.Core.Debug;
+using LPS.Server.Core;
 
 namespace DistServer
 {
