@@ -1,24 +1,24 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net.Sockets;
 using System.Threading;
 using Google.Protobuf;
-using LPS.Core.Database;
-using LPS.Core.Debug;
-using LPS.Core.Entity;
-using LPS.Core.Ipc;
-using LPS.Core.Rpc;
-using LPS.Core.Rpc.InnerMessages;
-using LPS.Logic.Entity;
-using MailBox = LPS.Core.Rpc.MailBox;
+using LPS.Common.Core.Debug;
+using LPS.Common.Core.Entity;
+using LPS.Common.Core.Rpc;
+using LPS.Common.Core.Rpc.InnerMessages;
+using LPS.Server.Core.Database;
+using LPS.Server.Core.Entity;
+using LPS.Server.Core.Rpc;
+using LPS.Server.Core.Rpc.InnerMessages;
+using MailBox = LPS.Common.Core.Rpc.MailBox;
 
 
 /*
  * Each server instance has connections to every gates, rpc message from server's entity will ben sent to gate and
  * redirect to target server instance. 
  */
-namespace LPS.Core
+namespace LPS.Server.Core
 {
     public class Server
     {
@@ -324,7 +324,7 @@ namespace LPS.Core
                 var newId = task.Result;
                 var entityMailBox = new CreateEntityRes
                 {
-                    Mailbox = new Rpc.InnerMessages.MailBox
+                    Mailbox = new LPS.Common.Core.Rpc.InnerMessages.MailBox
                     {
                         IP = "",
                         Port = 0,

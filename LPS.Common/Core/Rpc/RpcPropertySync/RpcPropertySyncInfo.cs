@@ -1,13 +1,13 @@
-using LPS.Core.Rpc.InnerMessages;
+using LPS.Common.Core.Rpc.InnerMessages;
 
-namespace LPS.Core.Rpc.RpcPropertySync
+namespace LPS.Common.Core.Rpc.RpcPropertySync;
+
+public enum RpcSyncPropertyType
 {
-    public enum RpcSyncPropertyType
-    {
-        PlaintAndCostume = 0,
-        List = 1,
-        Dict = 2,
-    }
+    PlaintAndCostume = 0,
+    List = 1,
+    Dict = 2,
+}
     
     public abstract class RpcPropertySyncInfo
     {

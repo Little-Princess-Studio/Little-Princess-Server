@@ -1,4 +1,4 @@
-namespace LPS.Core.Ipc
+namespace LPS.Common.Core.Ipc
 {
     public struct Message
     {

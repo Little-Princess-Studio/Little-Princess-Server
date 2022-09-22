@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package LPS.Core.Rpc.InnerMessages;
+package LPS.Common.Core.Rpc.InnerMessages;
  
 message Authentication {
   string Content = 1;

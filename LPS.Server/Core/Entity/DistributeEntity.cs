@@ -1,15 +1,14 @@
 using System;
-using System.Collections.Generic;
 using System.Threading.Tasks;
 using Google.Protobuf.WellKnownTypes;
-using LPS.Core.Debug;
-using LPS.Core.Rpc;
-using LPS.Core.Rpc.InnerMessages;
-using LPS.Core.Rpc.RpcProperty;
-using LPS.Core.Rpc.RpcPropertySync;
-using MailBox = LPS.Core.Rpc.MailBox;
+using LPS.Common.Core.Debug;
+using LPS.Common.Core.Entity;
+using LPS.Common.Core.Rpc;
+using LPS.Common.Core.Rpc.InnerMessages;
+using LPS.Common.Core.Rpc.RpcPropertySync;
+using MailBox = LPS.Common.Core.Rpc.MailBox;
 
-namespace LPS.Core.Entity
+namespace LPS.Server.Core.Entity
 {
     [EntityClass]
     public abstract class DistributeEntity : BaseEntity, ISendPropertySyncMessage
@@ -20,6 +19,7 @@ namespace LPS.Core.Entity
 
         protected DistributeEntity(string desc) : this()
         {
+            this.IsFrozen = true;
         }
 
         protected DistributeEntity()
@@ -51,7 +51,7 @@ namespace LPS.Core.Entity
 
             foreach (var (key, value) in this.PropertyTree!)
             {
-                if (value.ShouldSyncToShadow)
+                if (value.ShouldSyncToClient)
                 {
                     treeDict.PayLoad.Add(key, value.ToProtobuf());
                 }

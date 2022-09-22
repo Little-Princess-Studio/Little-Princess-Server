@@ -1,6 +1,6 @@
 using System.Threading.Tasks;
 
-namespace LPS.Core.Database.GlobalCache
+namespace LPS.Server.Core.Database.GlobalCache
 {
     public class MqGlobalCacheAccessor : IGlobalCache
     {

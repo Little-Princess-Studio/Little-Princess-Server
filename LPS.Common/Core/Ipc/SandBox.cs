@@ -1,6 +1,6 @@
-using LPS.Core.Debug;
+using LPS.Common.Core.Debug;
 
-namespace LPS.Core.Ipc
+namespace LPS.Common.Core.Ipc
 {
     // Every thread work int a isolate sandbox
     public class SandBox

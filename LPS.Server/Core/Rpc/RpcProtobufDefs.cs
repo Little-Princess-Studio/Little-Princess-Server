@@ -1,9 +1,10 @@
 using System;
 using System.Collections.Generic;
 using Google.Protobuf;
-using LPS.Core.Rpc.InnerMessages;
+using LPS.Common.Core.Rpc.InnerMessages;
+using LPS.Server.Core.Rpc.InnerMessages;
 
-namespace LPS.Core.Rpc
+namespace LPS.Server.Core.Rpc
 {
     public static class RpcProtobufDefs
     {

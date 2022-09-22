@@ -1,9 +1,9 @@
-using LPS.Core.Rpc.RpcProperty;
+using LPS.Common.Core.Rpc.RpcProperty;
 
 // operation on List is very complex, so RpcListPropertySyncInfo
 // will only merge same operation for a continuous operation sequence
 
-namespace LPS.Core.Rpc.RpcPropertySync
+namespace LPS.Common.Core.Rpc.RpcPropertySync
 {
     interface IRpcListPropertySyncMessageImpl
     {
@@ -192,9 +192,8 @@ namespace LPS.Core.Rpc.RpcPropertySync
         public RpcListPropertySyncMessage(
             MailBox mailbox,
             RpcPropertySyncOperation operation,
-            string rpcPropertyPath, 
-            RpcSyncPropertyType rpcSyncPropertyType) 
-            : base(mailbox, operation, rpcPropertyPath, rpcSyncPropertyType)
+            string rpcPropertyPath) 
+            : base(mailbox, operation, rpcPropertyPath, RpcSyncPropertyType.List)
         {
             switch (operation)
             {

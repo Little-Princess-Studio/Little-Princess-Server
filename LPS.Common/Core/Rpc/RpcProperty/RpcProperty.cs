@@ -1,9 +1,7 @@
 using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
-using LPS.Core.Debug;
-using LPS.Core.Entity;
-using LPS.Core.Rpc.InnerMessages;
-using LPS.Core.Rpc.RpcPropertySync;
+using LPS.Common.Core.Entity;
+using LPS.Common.Core.Rpc.RpcPropertySync;
 
 /*
  * There are 3 way to implement rpc property:
@@ -43,7 +41,7 @@ using LPS.Core.Rpc.RpcPropertySync;
  * And how can we define costume rpc prop type?
  */
 
-namespace LPS.Core.Rpc.RpcProperty
+namespace LPS.Common.Core.Rpc.RpcProperty
 {
     public delegate void OnSetValueCallBack<in T>(T oldVal, T newVal);
 
@@ -82,6 +80,8 @@ namespace LPS.Core.Rpc.RpcProperty
         public readonly RpcPropertySetting Setting;
         public BaseEntity? Owner;
         protected RpcPropertyContainer Value;
+        public IRpcPropertyOnNotifyResolver? NotifyResolver { get; set; }
+        public bool NeedResolve => this.NotifyResolver != null;
 
         public bool IsShadowProperty => this.Setting.HasFlag(RpcPropertySetting.Shadow);
         public bool ShouldSyncToShadow => this.Setting.HasFlag(RpcPropertySetting.ServerToShadow);

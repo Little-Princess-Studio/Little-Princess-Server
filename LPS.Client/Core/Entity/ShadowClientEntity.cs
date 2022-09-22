@@ -1,10 +1,10 @@
-using LPS.Core.Debug;
-using LPS.Core.Entity;
-using LPS.Core.Rpc;
-using LPS.Core.Rpc.InnerMessages;
-using MailBox = LPS.Core.Rpc.MailBox;
+using LPS.Common.Core.Debug;
+using LPS.Common.Core.Entity;
+using LPS.Common.Core.Rpc;
+using LPS.Common.Core.Rpc.InnerMessages;
+using MailBox = LPS.Common.Core.Rpc.MailBox;
 
-namespace LPS.Client.Entity
+namespace LPS.Client.Core.Entity
 {
     public class ServerProxy
     {

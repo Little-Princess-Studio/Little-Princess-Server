@@ -1,10 +1,10 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
-using LPS.Core.Rpc.InnerMessages;
-using LPS.Core.Rpc.RpcPropertySync;
+using LPS.Common.Core.Rpc.InnerMessages;
+using LPS.Common.Core.Rpc.RpcPropertySync;
 
-namespace LPS.Core.Rpc.RpcProperty
+namespace LPS.Common.Core.Rpc.RpcProperty
 {
     [RpcPropertyContainer]
     public class RpcList<TElem> : RpcPropertyContainer

@@ -1,8 +1,13 @@
 using System.Collections.Generic;
 using Google.Protobuf.WellKnownTypes;
-using LPS.Core.Entity;
-using LPS.Core.Rpc;
-using LPS.Core.Rpc.RpcProperty;
+using LPS.Client;
+using LPS.Client.Core.Rpc.RpcProperty;
+using LPS.Common.Core.Entity;
+using LPS.Common.Core.Rpc;
+using LPS.Common.Core.Rpc.RpcProperty;
+using LPS.Server.Core.Entity;
+using LPS.Server.Core.Rpc;
+using LPS.Server.Core.Rpc.RpcProperty;
 using Xunit;
 
 namespace LPS.UnitTest;
@@ -42,8 +47,8 @@ public class RpcPropertyUnitTest
             new(nameof(TestEntity.TestRpcProp), RpcPropertySetting.Permanent | RpcPropertySetting.ServerToShadow,
                 new RpcList<string>());
 
-        public readonly RpcPlainProperty<string> TestRpcPlainPropStr =
-            new(nameof(TestEntity.TestRpcPlainPropStr),
+        public readonly RpcPlaintProperty<string> TestRpcPlaintPropStr =
+            new(nameof(TestEntity.TestRpcPlaintPropStr),
                 RpcPropertySetting.Permanent | RpcPropertySetting.ServerToShadow, "");
 
         public readonly RpcComplexProperty<CostumeRpcContainerProperty1> TestCostumeRpcContainerProperty1
@@ -61,16 +66,16 @@ public class RpcPropertyUnitTest
     private class TestShadowEntity : ShadowEntity
     {
         public readonly RpcShadowComplexProperty<RpcList<string>> TestRpcProp =
-            new(nameof(TestShadowEntity.TestRpcProp));
+            new((string) nameof(TestRpcProp));
 
-        public readonly RpcShadowPlaintProperty<string> TestRpcPlainPropStr =
-            new(nameof(TestShadowEntity.TestRpcPlainPropStr));
+        public readonly RpcShadowPlaintProperty<string> TestRpcPlaintPropStr =
+            new((string) nameof(TestRpcPlaintPropStr));
 
         public readonly RpcShadowComplexProperty<CostumeRpcContainerProperty1> TestCostumeRpcContainerProperty1 =
-            new(nameof(TestCostumeRpcContainerProperty1));
+            new((string) nameof(TestCostumeRpcContainerProperty1));
 
         public readonly RpcShadowComplexProperty<CostumeRpcContainerProperty2> TestCostumeRpcContainerProperty2 =
-            new(nameof(TestCostumeRpcContainerProperty2));
+            new((string) nameof(TestCostumeRpcContainerProperty2));
     }
 
     public RpcPropertyUnitTest()
@@ -95,9 +100,9 @@ public class RpcPropertyUnitTest
     [Fact]
     public void TestRpcString()
     {
-        RpcPlainProperty<string> rpcPlainStrProp = new("test_str_prop", RpcPropertySetting.Permanent, "");
-        rpcPlainStrProp.Val = "321";
-        Assert.True(rpcPlainStrProp.Val == "321");
+        RpcPlaintProperty<string> rpcPlaintStrProp = new("test_str_prop", RpcPropertySetting.Permanent, "");
+        rpcPlaintStrProp.Val = "321";
+        Assert.True(rpcPlaintStrProp.Val == "321");
     }
 
     [Fact]
@@ -120,7 +125,7 @@ public class RpcPropertyUnitTest
         var rpcList = new RpcList<int>();
         var rpcList2 = new RpcList<int>();
 
-        RpcComplexProperty<RpcDictionary<string, RpcDictionary<int, RpcList<int>>>> rpcProp =
+        RpcComplexPropertyBase<RpcDictionary<string, RpcDictionary<int, RpcList<int>>>> rpcProp =
             new("test_dict_prop", RpcPropertySetting.ServerOnly, new())
             {
                 Val =
@@ -144,7 +149,7 @@ public class RpcPropertyUnitTest
     public void TestCostumeRpcProp()
     {
         var costumeRpcContainerProp = new CostumeRpcContainerProperty1();
-        RpcComplexProperty<CostumeRpcContainerProperty1> rpcProp =
+        RpcComplexPropertyBase<CostumeRpcContainerProperty1> rpcProp =
             new("test_costume_rpc_prop", RpcPropertySetting.FastSync, costumeRpcContainerProp);
 
         rpcProp.Val.SubListProperty.Add("111");
@@ -181,14 +186,14 @@ public class RpcPropertyUnitTest
     {
         var entity = new TestEntity();
         var shadowEntity = new TestShadowEntity();
-        RpcHelper.BuildPropertyTree(entity);
-        RpcHelper.BuildPropertyTree(shadowEntity);
+        RpcServerHelper.BuildPropertyTree(entity);
+        RpcClientHelper.BuildPropertyTree(shadowEntity);
 
         entity.TestRpcProp.Val.Add("1");
         entity.TestRpcProp.Val.Add("2");
         entity.TestRpcProp.Val.Add("3");
 
-        entity.TestRpcPlainPropStr.Val = "hello, LPS";
+        entity.TestRpcPlaintPropStr.Val = "hello, LPS";
 
         entity.TestCostumeRpcContainerProperty1.Val.SubListProperty.Add("a");
         entity.TestCostumeRpcContainerProperty1.Val.SubListProperty.Add("b");
@@ -204,7 +209,7 @@ public class RpcPropertyUnitTest
         Assert.Equal("2", shadowEntity.TestRpcProp.Val[1]);
         Assert.Equal("3", shadowEntity.TestRpcProp.Val[2]);
 
-        Assert.Equal("hello, LPS", shadowEntity.TestRpcPlainPropStr);
+        Assert.Equal("hello, LPS", shadowEntity.TestRpcPlaintPropStr);
 
         Assert.Equal("a", shadowEntity.TestCostumeRpcContainerProperty1.Val.SubListProperty[0]);
         Assert.Equal("b", shadowEntity.TestCostumeRpcContainerProperty1.Val.SubListProperty[1]);

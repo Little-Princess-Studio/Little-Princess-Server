@@ -1,9 +1,9 @@
 using System;
 using System.Threading.Tasks;
 using CSRedis;
-using LPS.Core.Debug;
+using LPS.Common.Core.Debug;
 
-namespace LPS.Core.Database.GlobalCache
+namespace LPS.Server.Core.Database.GlobalCache
 {
     public class Redis : IGlobalCache
     {

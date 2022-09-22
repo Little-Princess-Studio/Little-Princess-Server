@@ -1,4 +1,4 @@
-namespace LPS.Core.Ipc
+namespace LPS.Common.Core.Ipc
 {
     /*
     Token sequence is a class which control the message waiting queue for Rpc calling.

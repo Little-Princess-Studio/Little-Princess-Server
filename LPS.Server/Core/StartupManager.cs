@@ -4,12 +4,13 @@ using System.Diagnostics;
 using System.Diagnostics.Metrics;
 using System.IO;
 using System.Linq;
-using LPS.Core.Database;
-using LPS.Core.Debug;
-using LPS.Core.Rpc;
+using LPS.Common.Core.Debug;
+using LPS.Common.Core.Rpc;
+using LPS.Server.Core.Database;
+using LPS.Server.Core.Rpc;
 using Newtonsoft.Json.Linq;
 
-namespace LPS.Core
+namespace LPS.Server.Core
 {
     public static class StartupManager
     {

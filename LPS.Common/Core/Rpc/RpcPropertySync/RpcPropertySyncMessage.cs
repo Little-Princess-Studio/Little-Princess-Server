@@ -1,4 +1,4 @@
-namespace LPS.Core.Rpc.RpcPropertySync
+namespace LPS.Common.Core.Rpc.RpcPropertySync
 {
     public enum RpcPropertySyncOperation
     {

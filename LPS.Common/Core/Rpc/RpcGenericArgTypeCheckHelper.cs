@@ -1,6 +1,6 @@
-﻿using LPS.Core.Rpc.RpcProperty;
+﻿using LPS.Common.Core.Rpc.RpcProperty;
 
-namespace LPS.Core.Rpc;
+namespace LPS.Common.Core.Rpc;
 
 public static class RpcGenericArgTypeCheckHelper
 {

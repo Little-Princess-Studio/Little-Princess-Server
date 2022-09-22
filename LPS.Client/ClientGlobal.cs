@@ -1,3 +1,4 @@
+using LPS.Client.Core.Entity;
 using LPS.Client.Entity;
 
 namespace LPS.Client

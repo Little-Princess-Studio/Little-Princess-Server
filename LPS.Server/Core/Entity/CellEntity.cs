@@ -1,10 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using LPS.Core.Debug;
-using LPS.Core.Rpc;
+using LPS.Common.Core.Debug;
+using LPS.Common.Core.Rpc;
+using LPS.Server.Core.Rpc;
 
-namespace LPS.Core.Entity
+namespace LPS.Server.Core.Entity
 {
     [EntityClass]
     public abstract class CellEntity : DistributeEntity

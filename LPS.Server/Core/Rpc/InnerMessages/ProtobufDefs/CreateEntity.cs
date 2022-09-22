@@ -9,7 +9,7 @@ using pb = global::Google.Protobuf;
 using pbc = global::Google.Protobuf.Collections;
 using pbr = global::Google.Protobuf.Reflection;
 using scg = global::System.Collections.Generic;
-namespace LPS.Core.Rpc.InnerMessages {
+namespace LPS.Server.Core.Rpc.InnerMessages {
 
   /// <summary>Holder for reflection information generated from create_entity.proto</summary>
   public static partial class CreateEntityReflection {
@@ -24,19 +24,19 @@ namespace LPS.Core.Rpc.InnerMessages {
     static CreateEntityReflection() {
       byte[] descriptorData = global::System.Convert.FromBase64String(
           string.Concat(
-            "ChNjcmVhdGVfZW50aXR5LnByb3RvEhpMUFMuQ29yZS5ScGMuSW5uZXJNZXNz",
-            "YWdlcyLKAQoMQ3JlYXRlRW50aXR5EhcKD0VudGl0eUNsYXNzTmFtZRgBIAEo",
-            "CRI6CgpDcmVhdGVUeXBlGAIgASgOMiYuTFBTLkNvcmUuUnBjLklubmVyTWVz",
-            "c2FnZXMuQ3JlYXRlVHlwZRITCgtEZXNjcmlwdGlvbhgDIAEoCRI6CgpFbnRp",
-            "dHlUeXBlGAQgASgOMiYuTFBTLkNvcmUuUnBjLklubmVyTWVzc2FnZXMuRW50",
-            "aXR5VHlwZRIUCgxDb25uZWN0aW9uSUQYBSABKA0qMQoKQ3JlYXRlVHlwZRIJ",
-            "CgVMb2NhbBAAEgwKCEFueXdoZXJlEAESCgoGTWFudWFsEAIqNAoKRW50aXR5",
-            "VHlwZRIWChJTZXJ2ZXJDbGllbnRFbnRpdHkQABIOCgpHYXRlRW50aXR5EAFi",
-            "BnByb3RvMw=="));
+            "ChNjcmVhdGVfZW50aXR5LnByb3RvEiFMUFMuU2VydmVyLkNvcmUuUnBjLklu",
+            "bmVyTWVzc2FnZXMi2AEKDENyZWF0ZUVudGl0eRIXCg9FbnRpdHlDbGFzc05h",
+            "bWUYASABKAkSQQoKQ3JlYXRlVHlwZRgCIAEoDjItLkxQUy5TZXJ2ZXIuQ29y",
+            "ZS5ScGMuSW5uZXJNZXNzYWdlcy5DcmVhdGVUeXBlEhMKC0Rlc2NyaXB0aW9u",
+            "GAMgASgJEkEKCkVudGl0eVR5cGUYBCABKA4yLS5MUFMuU2VydmVyLkNvcmUu",
+            "UnBjLklubmVyTWVzc2FnZXMuRW50aXR5VHlwZRIUCgxDb25uZWN0aW9uSUQY",
+            "BSABKA0qMQoKQ3JlYXRlVHlwZRIJCgVMb2NhbBAAEgwKCEFueXdoZXJlEAES",
+            "CgoGTWFudWFsEAIqNAoKRW50aXR5VHlwZRIWChJTZXJ2ZXJDbGllbnRFbnRp",
+            "dHkQABIOCgpHYXRlRW50aXR5EAFiBnByb3RvMw=="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { },
-          new pbr::GeneratedClrTypeInfo(new[] {typeof(global::LPS.Core.Rpc.InnerMessages.CreateType), typeof(global::LPS.Core.Rpc.InnerMessages.EntityType), }, null, new pbr::GeneratedClrTypeInfo[] {
-            new pbr::GeneratedClrTypeInfo(typeof(global::LPS.Core.Rpc.InnerMessages.CreateEntity), global::LPS.Core.Rpc.InnerMessages.CreateEntity.Parser, new[]{ "EntityClassName", "CreateType", "Description", "EntityType", "ConnectionID" }, null, null, null, null)
+          new pbr::GeneratedClrTypeInfo(new[] {typeof(global::LPS.Server.Core.Rpc.InnerMessages.CreateType), typeof(global::LPS.Server.Core.Rpc.InnerMessages.EntityType), }, null, new pbr::GeneratedClrTypeInfo[] {
+            new pbr::GeneratedClrTypeInfo(typeof(global::LPS.Server.Core.Rpc.InnerMessages.CreateEntity), global::LPS.Server.Core.Rpc.InnerMessages.CreateEntity.Parser, new[]{ "EntityClassName", "CreateType", "Description", "EntityType", "ConnectionID" }, null, null, null, null)
           }));
     }
     #endregion
@@ -71,7 +71,7 @@ namespace LPS.Core.Rpc.InnerMessages {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::LPS.Core.Rpc.InnerMessages.CreateEntityReflection.Descriptor.MessageTypes[0]; }
+      get { return global::LPS.Server.Core.Rpc.InnerMessages.CreateEntityReflection.Descriptor.MessageTypes[0]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -119,10 +119,10 @@ namespace LPS.Core.Rpc.InnerMessages {
 
     /// <summary>Field number for the "CreateType" field.</summary>
     public const int CreateTypeFieldNumber = 2;
-    private global::LPS.Core.Rpc.InnerMessages.CreateType createType_ = global::LPS.Core.Rpc.InnerMessages.CreateType.Local;
+    private global::LPS.Server.Core.Rpc.InnerMessages.CreateType createType_ = global::LPS.Server.Core.Rpc.InnerMessages.CreateType.Local;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public global::LPS.Core.Rpc.InnerMessages.CreateType CreateType {
+    public global::LPS.Server.Core.Rpc.InnerMessages.CreateType CreateType {
       get { return createType_; }
       set {
         createType_ = value;
@@ -143,10 +143,10 @@ namespace LPS.Core.Rpc.InnerMessages {
 
     /// <summary>Field number for the "EntityType" field.</summary>
     public const int EntityTypeFieldNumber = 4;
-    private global::LPS.Core.Rpc.InnerMessages.EntityType entityType_ = global::LPS.Core.Rpc.InnerMessages.EntityType.ServerClientEntity;
+    private global::LPS.Server.Core.Rpc.InnerMessages.EntityType entityType_ = global::LPS.Server.Core.Rpc.InnerMessages.EntityType.ServerClientEntity;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public global::LPS.Core.Rpc.InnerMessages.EntityType EntityType {
+    public global::LPS.Server.Core.Rpc.InnerMessages.EntityType EntityType {
       get { return entityType_; }
       set {
         entityType_ = value;
@@ -193,9 +193,9 @@ namespace LPS.Core.Rpc.InnerMessages {
     public override int GetHashCode() {
       int hash = 1;
       if (EntityClassName.Length != 0) hash ^= EntityClassName.GetHashCode();
-      if (CreateType != global::LPS.Core.Rpc.InnerMessages.CreateType.Local) hash ^= CreateType.GetHashCode();
+      if (CreateType != global::LPS.Server.Core.Rpc.InnerMessages.CreateType.Local) hash ^= CreateType.GetHashCode();
       if (Description.Length != 0) hash ^= Description.GetHashCode();
-      if (EntityType != global::LPS.Core.Rpc.InnerMessages.EntityType.ServerClientEntity) hash ^= EntityType.GetHashCode();
+      if (EntityType != global::LPS.Server.Core.Rpc.InnerMessages.EntityType.ServerClientEntity) hash ^= EntityType.GetHashCode();
       if (ConnectionID != 0) hash ^= ConnectionID.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
@@ -219,7 +219,7 @@ namespace LPS.Core.Rpc.InnerMessages {
         output.WriteRawTag(10);
         output.WriteString(EntityClassName);
       }
-      if (CreateType != global::LPS.Core.Rpc.InnerMessages.CreateType.Local) {
+      if (CreateType != global::LPS.Server.Core.Rpc.InnerMessages.CreateType.Local) {
         output.WriteRawTag(16);
         output.WriteEnum((int) CreateType);
       }
@@ -227,7 +227,7 @@ namespace LPS.Core.Rpc.InnerMessages {
         output.WriteRawTag(26);
         output.WriteString(Description);
       }
-      if (EntityType != global::LPS.Core.Rpc.InnerMessages.EntityType.ServerClientEntity) {
+      if (EntityType != global::LPS.Server.Core.Rpc.InnerMessages.EntityType.ServerClientEntity) {
         output.WriteRawTag(32);
         output.WriteEnum((int) EntityType);
       }
@@ -249,7 +249,7 @@ namespace LPS.Core.Rpc.InnerMessages {
         output.WriteRawTag(10);
         output.WriteString(EntityClassName);
       }
-      if (CreateType != global::LPS.Core.Rpc.InnerMessages.CreateType.Local) {
+      if (CreateType != global::LPS.Server.Core.Rpc.InnerMessages.CreateType.Local) {
         output.WriteRawTag(16);
         output.WriteEnum((int) CreateType);
       }
@@ -257,7 +257,7 @@ namespace LPS.Core.Rpc.InnerMessages {
         output.WriteRawTag(26);
         output.WriteString(Description);
       }
-      if (EntityType != global::LPS.Core.Rpc.InnerMessages.EntityType.ServerClientEntity) {
+      if (EntityType != global::LPS.Server.Core.Rpc.InnerMessages.EntityType.ServerClientEntity) {
         output.WriteRawTag(32);
         output.WriteEnum((int) EntityType);
       }
@@ -278,13 +278,13 @@ namespace LPS.Core.Rpc.InnerMessages {
       if (EntityClassName.Length != 0) {
         size += 1 + pb::CodedOutputStream.ComputeStringSize(EntityClassName);
       }
-      if (CreateType != global::LPS.Core.Rpc.InnerMessages.CreateType.Local) {
+      if (CreateType != global::LPS.Server.Core.Rpc.InnerMessages.CreateType.Local) {
         size += 1 + pb::CodedOutputStream.ComputeEnumSize((int) CreateType);
       }
       if (Description.Length != 0) {
         size += 1 + pb::CodedOutputStream.ComputeStringSize(Description);
       }
-      if (EntityType != global::LPS.Core.Rpc.InnerMessages.EntityType.ServerClientEntity) {
+      if (EntityType != global::LPS.Server.Core.Rpc.InnerMessages.EntityType.ServerClientEntity) {
         size += 1 + pb::CodedOutputStream.ComputeEnumSize((int) EntityType);
       }
       if (ConnectionID != 0) {
@@ -305,13 +305,13 @@ namespace LPS.Core.Rpc.InnerMessages {
       if (other.EntityClassName.Length != 0) {
         EntityClassName = other.EntityClassName;
       }
-      if (other.CreateType != global::LPS.Core.Rpc.InnerMessages.CreateType.Local) {
+      if (other.CreateType != global::LPS.Server.Core.Rpc.InnerMessages.CreateType.Local) {
         CreateType = other.CreateType;
       }
       if (other.Description.Length != 0) {
         Description = other.Description;
       }
-      if (other.EntityType != global::LPS.Core.Rpc.InnerMessages.EntityType.ServerClientEntity) {
+      if (other.EntityType != global::LPS.Server.Core.Rpc.InnerMessages.EntityType.ServerClientEntity) {
         EntityType = other.EntityType;
       }
       if (other.ConnectionID != 0) {
@@ -337,7 +337,7 @@ namespace LPS.Core.Rpc.InnerMessages {
             break;
           }
           case 16: {
-            CreateType = (global::LPS.Core.Rpc.InnerMessages.CreateType) input.ReadEnum();
+            CreateType = (global::LPS.Server.Core.Rpc.InnerMessages.CreateType) input.ReadEnum();
             break;
           }
           case 26: {
@@ -345,7 +345,7 @@ namespace LPS.Core.Rpc.InnerMessages {
             break;
           }
           case 32: {
-            EntityType = (global::LPS.Core.Rpc.InnerMessages.EntityType) input.ReadEnum();
+            EntityType = (global::LPS.Server.Core.Rpc.InnerMessages.EntityType) input.ReadEnum();
             break;
           }
           case 40: {
@@ -372,7 +372,7 @@ namespace LPS.Core.Rpc.InnerMessages {
             break;
           }
           case 16: {
-            CreateType = (global::LPS.Core.Rpc.InnerMessages.CreateType) input.ReadEnum();
+            CreateType = (global::LPS.Server.Core.Rpc.InnerMessages.CreateType) input.ReadEnum();
             break;
           }
           case 26: {
@@ -380,7 +380,7 @@ namespace LPS.Core.Rpc.InnerMessages {
             break;
           }
           case 32: {
-            EntityType = (global::LPS.Core.Rpc.InnerMessages.EntityType) input.ReadEnum();
+            EntityType = (global::LPS.Server.Core.Rpc.InnerMessages.EntityType) input.ReadEnum();
             break;
           }
           case 40: {

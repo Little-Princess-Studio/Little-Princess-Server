@@ -1,8 +1,10 @@
 using Google.Protobuf.WellKnownTypes;
-using LPS.Core.Rpc;
-using LPS.Core.Rpc.InnerMessages;
+using LPS.Common.Core.Rpc;
+using LPS.Common.Core.Rpc.InnerMessages;
+using LPS.Server.Core.Rpc;
+using LPS.Server.Core.Rpc.InnerMessages;
 
-namespace LPS.Core.Entity
+namespace LPS.Common.Core.Entity
 {
     [EntityClass]
     public class ShadowEntity : BaseEntity

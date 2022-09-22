@@ -1,13 +1,11 @@
 using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
-using System.Security.Cryptography;
-using System.Text;
 using Google.Protobuf;
-using LPS.Core.Debug;
-using LPS.Core.Ipc;
-using LPS.Core.Rpc;
-using LPS.Core.Rpc.InnerMessages;
+using LPS.Common.Core.Debug;
+using LPS.Common.Core.Ipc;
+using LPS.Common.Core.Rpc;
+using LPS.Common.Core.Rpc.InnerMessages;
 
 namespace LPS.Client
 {

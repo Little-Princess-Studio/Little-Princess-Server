@@ -1,7 +1,7 @@
-using LPS.Core.Debug;
-using LPS.Core.Rpc;
+using LPS.Common.Core.Debug;
+using LPS.Server.Core.Rpc;
 
-namespace LPS.Core
+namespace LPS.Server.Core
 {
     public class DbManager
     {

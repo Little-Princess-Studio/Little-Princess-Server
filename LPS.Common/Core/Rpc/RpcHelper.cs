@@ -1,17 +1,17 @@
 using System.Collections;
-using System.Net;
 using System.Net.Sockets;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using Google.Protobuf;
-using LPS.Core.Debug;
-using LPS.Core.Entity;
-using LPS.Core.Ipc;
-using LPS.Core.Rpc.InnerMessages;
-using LPS.Core.Rpc.RpcProperty;
+using LPS.Common.Core.Debug;
+using LPS.Common.Core.Entity;
+using LPS.Common.Core.Ipc;
+using LPS.Common.Core.Rpc.InnerMessages;
+using LPS.Common.Core.Rpc.RpcProperty;
+using LPS.Server.Core.Rpc.InnerMessages;
 using Newtonsoft.Json;
 
-namespace LPS.Core.Rpc
+namespace LPS.Common.Core.Rpc
 {
     public static class RpcHelper
     {
@@ -104,10 +104,10 @@ namespace LPS.Core.Rpc
             }
         }
 
-        public static MailBox PbMailBoxToRpcMailBox(InnerMessages.MailBox mb) =>
+        public static MailBox PbMailBoxToRpcMailBox(LPS.Common.Core.Rpc.InnerMessages.MailBox mb) =>
             new(mb.ID, mb.IP, (int) mb.Port, (int) mb.HostNum);
 
-        public static InnerMessages.MailBox RpcMailBoxToPbMailBox(MailBox mb) => new()
+        public static LPS.Common.Core.Rpc.InnerMessages.MailBox RpcMailBoxToPbMailBox(MailBox mb) => new()
         {
             ID = mb.Id,
             IP = mb.Ip,
@@ -1002,7 +1002,7 @@ namespace LPS.Core.Rpc
         }
 
         private static void SendValueTaskResult(BaseEntity entity, EntityRpc entityRpc,
-            InnerMessages.MailBox senderMailBox, RpcType sendRpcType, in object res)
+            LPS.Common.Core.Rpc.InnerMessages.MailBox senderMailBox, RpcType sendRpcType, in object res)
         {
             void SendDynamic(dynamic t) =>
                 entity.SendWithRpcId(
@@ -1094,7 +1094,8 @@ namespace LPS.Core.Rpc
             }
         }
 
-        private static void SendTaskResult(BaseEntity entity, EntityRpc entityRpc, InnerMessages.MailBox senderMailBox,
+        private static void SendTaskResult(BaseEntity entity, EntityRpc entityRpc,
+            LPS.Common.Core.Rpc.InnerMessages.MailBox senderMailBox,
             RpcType sendRpcType, in object res)
         {
             void SendDynamic(dynamic t) =>
@@ -1139,41 +1140,6 @@ namespace LPS.Core.Rpc
                 }
                     break;
             }
-        }
-
-        public static void BuildPropertyTree(BaseEntity entity)
-        {
-            var type = entity.GetType();
-            var tree = type.GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
-                .Where(field =>
-                {
-                    var fieldType = field.FieldType;
-
-                    if (!fieldType.IsGenericType)
-                    {
-                        return false;
-                    }
-
-                    var genType = fieldType.GetGenericTypeDefinition();
-                    if (genType != typeof(RpcPlainProperty<>)
-                        && genType != typeof(RpcComplexProperty<>)
-                        && genType != typeof(RpcShadowComplexProperty<>)
-                        && genType != typeof(RpcShadowPlaintProperty<>))
-                    {
-                        return false;
-                    }
-
-                    return true;
-                }).ToDictionary(
-                    field => (field.GetValue(entity) as RpcProperty.RpcProperty)!.Name,
-                    field => (field.GetValue(entity) as RpcProperty.RpcProperty)!);
-
-            foreach (var (_, prop) in tree)
-            {
-                prop.Owner = entity;
-            }
-
-            entity.SetPropertyTree(tree);
         }
     }
 }

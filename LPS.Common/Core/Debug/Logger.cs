@@ -1,6 +1,6 @@
 using NLog;
 
-namespace LPS.Core.Debug
+namespace LPS.Common.Core.Debug
 {
     public static class Logger
     {

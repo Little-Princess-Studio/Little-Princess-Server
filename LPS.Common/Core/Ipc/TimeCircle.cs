@@ -3,11 +3,12 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using LPS.Core.Debug;
-using LPS.Core.Rpc;
-using LPS.Core.Rpc.RpcPropertySync;
+using LPS.Common.Core.Debug;
+using LPS.Common.Core.Rpc;
+using LPS.Common.Core.Rpc.RpcPropertySync;
+using LPS.Server.Core.Rpc;
 
-namespace LPS.Core.Ipc
+namespace LPS.Common.Core.Ipc
 {
     public class TimeCircleSlot
     {

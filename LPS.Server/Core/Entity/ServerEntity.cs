@@ -2,12 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using LPS.Core.Database;
-using LPS.Core.Debug;
-using LPS.Core.Rpc;
-using MailBox = LPS.Core.Rpc.MailBox;
+using LPS.Common.Core.Debug;
+using LPS.Common.Core.Rpc;
+using LPS.Server.Core.Rpc;
+using LPS.Server.Core.Database;
+using MailBox = LPS.Common.Core.Rpc.MailBox;
 
-namespace LPS.Core.Entity
+namespace LPS.Server.Core.Entity
 {
     [EntityClass]
     public class ServerEntity : UniqueEntity

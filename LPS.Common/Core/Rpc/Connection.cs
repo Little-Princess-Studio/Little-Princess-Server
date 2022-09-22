@@ -1,6 +1,6 @@
 using System.Net.Sockets;
 
-namespace LPS.Core.Rpc
+namespace LPS.Common.Core.Rpc
 {
     public enum ConnectStatus
     {

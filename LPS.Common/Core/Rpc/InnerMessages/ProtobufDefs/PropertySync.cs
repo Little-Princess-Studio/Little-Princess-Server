@@ -9,7 +9,7 @@ using pb = global::Google.Protobuf;
 using pbc = global::Google.Protobuf.Collections;
 using pbr = global::Google.Protobuf.Reflection;
 using scg = global::System.Collections.Generic;
-namespace LPS.Core.Rpc.InnerMessages {
+namespace LPS.Common.Core.Rpc.InnerMessages {
 
   /// <summary>Holder for reflection information generated from property_sync.proto</summary>
   public static partial class PropertySyncReflection {
@@ -24,29 +24,30 @@ namespace LPS.Core.Rpc.InnerMessages {
     static PropertySyncReflection() {
       byte[] descriptorData = global::System.Convert.FromBase64String(
           string.Concat(
-            "ChNwcm9wZXJ0eV9zeW5jLnByb3RvEhpMUFMuQ29yZS5ScGMuSW5uZXJNZXNz",
-            "YWdlcxoZZ29vZ2xlL3Byb3RvYnVmL2FueS5wcm90byIrChdSZXF1aXJlUHJv",
-            "cGVydHlGdWxsU3luYxIQCghFbnRpdHlJZBgBIAEoCSJQChBQcm9wZXJ0eUZ1",
-            "bGxTeW5jEhAKCEVudGl0eUlkGAEgASgJEioKDFByb3BlcnR5VHJlZRgCIAEo",
-            "CzIULmdvb2dsZS5wcm90b2J1Zi5BbnkizwEKDFByb3BlcnR5U3luYxI6CghQ",
-            "cm9wVHlwZRgBIAEoDjIoLkxQUy5Db3JlLlJwYy5Jbm5lck1lc3NhZ2VzLlN5",
-            "bmNQcm9wVHlwZRI8CglPcGVyYXRpb24YAiABKA4yKS5MUFMuQ29yZS5ScGMu",
-            "SW5uZXJNZXNzYWdlcy5TeW5jT3BlcmF0aW9uEhAKCEVudGl0eUlkGAMgASgJ",
-            "EgwKBFBhdGgYBCADKAkSJQoHU3luY0FyZxgFIAEoCzIULmdvb2dsZS5wcm90",
-            "b2J1Zi5BbnkiJwoTUHJvcGVydHlGdWxsU3luY0FjaxIQCghFbnRpdHlJZBgB",
-            "IAEoCSIjCg9Qcm9wZXJ0eVN5bmNBY2sSEAoIRW50aXR5SWQYASABKAkqOwoM",
-            "U3luY1Byb3BUeXBlEgoKBlBsYWludBAAEggKBERpY3QQARIICgRMaXN0EAIS",
-            "CwoHQ29zdHVtZRADKmkKDVN5bmNPcGVyYXRpb24SDAoIU2V0VmFsdWUQABIO",
-            "CgpVcGRhdGVEaWN0EAESDwoLQWRkTGlzdEVsZW0QAhIOCgpSZW1vdmVFbGVt",
-            "EAMSCQoFQ2xlYXIQBBIOCgpJbnNlcnRFbGVtEAViBnByb3RvMw=="));
+            "ChNwcm9wZXJ0eV9zeW5jLnByb3RvEiFMUFMuQ29tbW9uLkNvcmUuUnBjLklu",
+            "bmVyTWVzc2FnZXMaGWdvb2dsZS9wcm90b2J1Zi9hbnkucHJvdG8iKwoXUmVx",
+            "dWlyZVByb3BlcnR5RnVsbFN5bmMSEAoIRW50aXR5SWQYASABKAkiUAoQUHJv",
+            "cGVydHlGdWxsU3luYxIQCghFbnRpdHlJZBgBIAEoCRIqCgxQcm9wZXJ0eVRy",
+            "ZWUYAiABKAsyFC5nb29nbGUucHJvdG9idWYuQW55It0BCgxQcm9wZXJ0eVN5",
+            "bmMSQQoIUHJvcFR5cGUYASABKA4yLy5MUFMuQ29tbW9uLkNvcmUuUnBjLklu",
+            "bmVyTWVzc2FnZXMuU3luY1Byb3BUeXBlEkMKCU9wZXJhdGlvbhgCIAEoDjIw",
+            "LkxQUy5Db21tb24uQ29yZS5ScGMuSW5uZXJNZXNzYWdlcy5TeW5jT3BlcmF0",
+            "aW9uEhAKCEVudGl0eUlkGAMgASgJEgwKBFBhdGgYBCADKAkSJQoHU3luY0Fy",
+            "ZxgFIAEoCzIULmdvb2dsZS5wcm90b2J1Zi5BbnkiJwoTUHJvcGVydHlGdWxs",
+            "U3luY0FjaxIQCghFbnRpdHlJZBgBIAEoCSIjCg9Qcm9wZXJ0eVN5bmNBY2sS",
+            "EAoIRW50aXR5SWQYASABKAkqOwoMU3luY1Byb3BUeXBlEgoKBlBsYWludBAA",
+            "EggKBERpY3QQARIICgRMaXN0EAISCwoHQ29zdHVtZRADKmkKDVN5bmNPcGVy",
+            "YXRpb24SDAoIU2V0VmFsdWUQABIOCgpVcGRhdGVEaWN0EAESDwoLQWRkTGlz",
+            "dEVsZW0QAhIOCgpSZW1vdmVFbGVtEAMSCQoFQ2xlYXIQBBIOCgpJbnNlcnRF",
+            "bGVtEAViBnByb3RvMw=="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { global::Google.Protobuf.WellKnownTypes.AnyReflection.Descriptor, },
-          new pbr::GeneratedClrTypeInfo(new[] {typeof(global::LPS.Core.Rpc.InnerMessages.SyncPropType), typeof(global::LPS.Core.Rpc.InnerMessages.SyncOperation), }, null, new pbr::GeneratedClrTypeInfo[] {
-            new pbr::GeneratedClrTypeInfo(typeof(global::LPS.Core.Rpc.InnerMessages.RequirePropertyFullSync), global::LPS.Core.Rpc.InnerMessages.RequirePropertyFullSync.Parser, new[]{ "EntityId" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::LPS.Core.Rpc.InnerMessages.PropertyFullSync), global::LPS.Core.Rpc.InnerMessages.PropertyFullSync.Parser, new[]{ "EntityId", "PropertyTree" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::LPS.Core.Rpc.InnerMessages.PropertySync), global::LPS.Core.Rpc.InnerMessages.PropertySync.Parser, new[]{ "PropType", "Operation", "EntityId", "Path", "SyncArg" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::LPS.Core.Rpc.InnerMessages.PropertyFullSyncAck), global::LPS.Core.Rpc.InnerMessages.PropertyFullSyncAck.Parser, new[]{ "EntityId" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::LPS.Core.Rpc.InnerMessages.PropertySyncAck), global::LPS.Core.Rpc.InnerMessages.PropertySyncAck.Parser, new[]{ "EntityId" }, null, null, null, null)
+          new pbr::GeneratedClrTypeInfo(new[] {typeof(global::LPS.Common.Core.Rpc.InnerMessages.SyncPropType), typeof(global::LPS.Common.Core.Rpc.InnerMessages.SyncOperation), }, null, new pbr::GeneratedClrTypeInfo[] {
+            new pbr::GeneratedClrTypeInfo(typeof(global::LPS.Common.Core.Rpc.InnerMessages.RequirePropertyFullSync), global::LPS.Common.Core.Rpc.InnerMessages.RequirePropertyFullSync.Parser, new[]{ "EntityId" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::LPS.Common.Core.Rpc.InnerMessages.PropertyFullSync), global::LPS.Common.Core.Rpc.InnerMessages.PropertyFullSync.Parser, new[]{ "EntityId", "PropertyTree" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::LPS.Common.Core.Rpc.InnerMessages.PropertySync), global::LPS.Common.Core.Rpc.InnerMessages.PropertySync.Parser, new[]{ "PropType", "Operation", "EntityId", "Path", "SyncArg" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::LPS.Common.Core.Rpc.InnerMessages.PropertyFullSyncAck), global::LPS.Common.Core.Rpc.InnerMessages.PropertyFullSyncAck.Parser, new[]{ "EntityId" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::LPS.Common.Core.Rpc.InnerMessages.PropertySyncAck), global::LPS.Common.Core.Rpc.InnerMessages.PropertySyncAck.Parser, new[]{ "EntityId" }, null, null, null, null)
           }));
     }
     #endregion
@@ -86,7 +87,7 @@ namespace LPS.Core.Rpc.InnerMessages {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::LPS.Core.Rpc.InnerMessages.PropertySyncReflection.Descriptor.MessageTypes[0]; }
+      get { return global::LPS.Common.Core.Rpc.InnerMessages.PropertySyncReflection.Descriptor.MessageTypes[0]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -275,7 +276,7 @@ namespace LPS.Core.Rpc.InnerMessages {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::LPS.Core.Rpc.InnerMessages.PropertySyncReflection.Descriptor.MessageTypes[1]; }
+      get { return global::LPS.Common.Core.Rpc.InnerMessages.PropertySyncReflection.Descriptor.MessageTypes[1]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -510,7 +511,7 @@ namespace LPS.Core.Rpc.InnerMessages {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::LPS.Core.Rpc.InnerMessages.PropertySyncReflection.Descriptor.MessageTypes[2]; }
+      get { return global::LPS.Common.Core.Rpc.InnerMessages.PropertySyncReflection.Descriptor.MessageTypes[2]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -546,10 +547,10 @@ namespace LPS.Core.Rpc.InnerMessages {
 
     /// <summary>Field number for the "PropType" field.</summary>
     public const int PropTypeFieldNumber = 1;
-    private global::LPS.Core.Rpc.InnerMessages.SyncPropType propType_ = global::LPS.Core.Rpc.InnerMessages.SyncPropType.Plaint;
+    private global::LPS.Common.Core.Rpc.InnerMessages.SyncPropType propType_ = global::LPS.Common.Core.Rpc.InnerMessages.SyncPropType.Plaint;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public global::LPS.Core.Rpc.InnerMessages.SyncPropType PropType {
+    public global::LPS.Common.Core.Rpc.InnerMessages.SyncPropType PropType {
       get { return propType_; }
       set {
         propType_ = value;
@@ -558,10 +559,10 @@ namespace LPS.Core.Rpc.InnerMessages {
 
     /// <summary>Field number for the "Operation" field.</summary>
     public const int OperationFieldNumber = 2;
-    private global::LPS.Core.Rpc.InnerMessages.SyncOperation operation_ = global::LPS.Core.Rpc.InnerMessages.SyncOperation.SetValue;
+    private global::LPS.Common.Core.Rpc.InnerMessages.SyncOperation operation_ = global::LPS.Common.Core.Rpc.InnerMessages.SyncOperation.SetValue;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public global::LPS.Core.Rpc.InnerMessages.SyncOperation Operation {
+    public global::LPS.Common.Core.Rpc.InnerMessages.SyncOperation Operation {
       get { return operation_; }
       set {
         operation_ = value;
@@ -630,8 +631,8 @@ namespace LPS.Core.Rpc.InnerMessages {
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override int GetHashCode() {
       int hash = 1;
-      if (PropType != global::LPS.Core.Rpc.InnerMessages.SyncPropType.Plaint) hash ^= PropType.GetHashCode();
-      if (Operation != global::LPS.Core.Rpc.InnerMessages.SyncOperation.SetValue) hash ^= Operation.GetHashCode();
+      if (PropType != global::LPS.Common.Core.Rpc.InnerMessages.SyncPropType.Plaint) hash ^= PropType.GetHashCode();
+      if (Operation != global::LPS.Common.Core.Rpc.InnerMessages.SyncOperation.SetValue) hash ^= Operation.GetHashCode();
       if (EntityId.Length != 0) hash ^= EntityId.GetHashCode();
       hash ^= path_.GetHashCode();
       if (syncArg_ != null) hash ^= SyncArg.GetHashCode();
@@ -653,11 +654,11 @@ namespace LPS.Core.Rpc.InnerMessages {
     #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       output.WriteRawMessage(this);
     #else
-      if (PropType != global::LPS.Core.Rpc.InnerMessages.SyncPropType.Plaint) {
+      if (PropType != global::LPS.Common.Core.Rpc.InnerMessages.SyncPropType.Plaint) {
         output.WriteRawTag(8);
         output.WriteEnum((int) PropType);
       }
-      if (Operation != global::LPS.Core.Rpc.InnerMessages.SyncOperation.SetValue) {
+      if (Operation != global::LPS.Common.Core.Rpc.InnerMessages.SyncOperation.SetValue) {
         output.WriteRawTag(16);
         output.WriteEnum((int) Operation);
       }
@@ -680,11 +681,11 @@ namespace LPS.Core.Rpc.InnerMessages {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
-      if (PropType != global::LPS.Core.Rpc.InnerMessages.SyncPropType.Plaint) {
+      if (PropType != global::LPS.Common.Core.Rpc.InnerMessages.SyncPropType.Plaint) {
         output.WriteRawTag(8);
         output.WriteEnum((int) PropType);
       }
-      if (Operation != global::LPS.Core.Rpc.InnerMessages.SyncOperation.SetValue) {
+      if (Operation != global::LPS.Common.Core.Rpc.InnerMessages.SyncOperation.SetValue) {
         output.WriteRawTag(16);
         output.WriteEnum((int) Operation);
       }
@@ -707,10 +708,10 @@ namespace LPS.Core.Rpc.InnerMessages {
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public int CalculateSize() {
       int size = 0;
-      if (PropType != global::LPS.Core.Rpc.InnerMessages.SyncPropType.Plaint) {
+      if (PropType != global::LPS.Common.Core.Rpc.InnerMessages.SyncPropType.Plaint) {
         size += 1 + pb::CodedOutputStream.ComputeEnumSize((int) PropType);
       }
-      if (Operation != global::LPS.Core.Rpc.InnerMessages.SyncOperation.SetValue) {
+      if (Operation != global::LPS.Common.Core.Rpc.InnerMessages.SyncOperation.SetValue) {
         size += 1 + pb::CodedOutputStream.ComputeEnumSize((int) Operation);
       }
       if (EntityId.Length != 0) {
@@ -732,10 +733,10 @@ namespace LPS.Core.Rpc.InnerMessages {
       if (other == null) {
         return;
       }
-      if (other.PropType != global::LPS.Core.Rpc.InnerMessages.SyncPropType.Plaint) {
+      if (other.PropType != global::LPS.Common.Core.Rpc.InnerMessages.SyncPropType.Plaint) {
         PropType = other.PropType;
       }
-      if (other.Operation != global::LPS.Core.Rpc.InnerMessages.SyncOperation.SetValue) {
+      if (other.Operation != global::LPS.Common.Core.Rpc.InnerMessages.SyncOperation.SetValue) {
         Operation = other.Operation;
       }
       if (other.EntityId.Length != 0) {
@@ -764,11 +765,11 @@ namespace LPS.Core.Rpc.InnerMessages {
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
           case 8: {
-            PropType = (global::LPS.Core.Rpc.InnerMessages.SyncPropType) input.ReadEnum();
+            PropType = (global::LPS.Common.Core.Rpc.InnerMessages.SyncPropType) input.ReadEnum();
             break;
           }
           case 16: {
-            Operation = (global::LPS.Core.Rpc.InnerMessages.SyncOperation) input.ReadEnum();
+            Operation = (global::LPS.Common.Core.Rpc.InnerMessages.SyncOperation) input.ReadEnum();
             break;
           }
           case 26: {
@@ -802,11 +803,11 @@ namespace LPS.Core.Rpc.InnerMessages {
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
           case 8: {
-            PropType = (global::LPS.Core.Rpc.InnerMessages.SyncPropType) input.ReadEnum();
+            PropType = (global::LPS.Common.Core.Rpc.InnerMessages.SyncPropType) input.ReadEnum();
             break;
           }
           case 16: {
-            Operation = (global::LPS.Core.Rpc.InnerMessages.SyncOperation) input.ReadEnum();
+            Operation = (global::LPS.Common.Core.Rpc.InnerMessages.SyncOperation) input.ReadEnum();
             break;
           }
           case 26: {
@@ -845,7 +846,7 @@ namespace LPS.Core.Rpc.InnerMessages {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::LPS.Core.Rpc.InnerMessages.PropertySyncReflection.Descriptor.MessageTypes[3]; }
+      get { return global::LPS.Common.Core.Rpc.InnerMessages.PropertySyncReflection.Descriptor.MessageTypes[3]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -1034,7 +1035,7 @@ namespace LPS.Core.Rpc.InnerMessages {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::LPS.Core.Rpc.InnerMessages.PropertySyncReflection.Descriptor.MessageTypes[4]; }
+      get { return global::LPS.Common.Core.Rpc.InnerMessages.PropertySyncReflection.Descriptor.MessageTypes[4]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
