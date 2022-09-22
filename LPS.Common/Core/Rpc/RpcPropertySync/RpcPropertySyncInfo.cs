@@ -1,11 +1,10 @@
-using LPS.Core.Ipc.SyncMessage;
 using LPS.Core.Rpc.InnerMessages;
 
 namespace LPS.Core.Rpc.RpcPropertySync
 {
     public enum RpcSyncPropertyType
     {
-        Plaint = 0,
+        PlaintAndCostume = 0,
         List = 1,
         Dict = 2,
     }
@@ -69,7 +68,7 @@ namespace LPS.Core.Rpc.RpcPropertySync
         }
     }
 
-    public class RpcPlaintPropertySyncInfo : RpcPropertySyncInfo
+    public class RpcPlaintAndCostumePropertySyncInfo : RpcPropertySyncInfo
     {
         public override Package ToSyncPackage()
         {

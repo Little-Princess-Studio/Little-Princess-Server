@@ -1,11 +1,9 @@
-using LPS.Core.Rpc;
 using LPS.Core.Rpc.RpcProperty;
-using LPS.Core.Rpc.RpcPropertySync;
 
 // operation on List is very complex, so RpcListPropertySyncInfo
 // will only merge same operation for a continuous operation sequence
 
-namespace LPS.Core.Ipc.SyncMessage
+namespace LPS.Core.Rpc.RpcPropertySync
 {
     interface IRpcListPropertySyncMessageImpl
     {

@@ -1,7 +1,4 @@
-using LPS.Core.Rpc.RpcPropertySync;
-using MailBox = LPS.Core.Rpc.MailBox;
-
-namespace LPS.Core.Ipc.SyncMessage
+namespace LPS.Core.Rpc.RpcPropertySync
 {
     public enum RpcPropertySyncOperation
     {

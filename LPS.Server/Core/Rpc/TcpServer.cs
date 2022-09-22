@@ -9,8 +9,8 @@ using System.Threading.Tasks;
 using Google.Protobuf;
 using LPS.Core.Debug;
 using LPS.Core.Ipc;
-using LPS.Core.Ipc.SyncMessage;
 using LPS.Core.Rpc.InnerMessages;
+using LPS.Core.Rpc.RpcPropertySync;
 using Microsoft.VisualBasic;
 
 namespace LPS.Core.Rpc

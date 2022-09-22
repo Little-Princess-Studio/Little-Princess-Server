@@ -1,8 +1,6 @@
-using LPS.Core.Rpc;
 using LPS.Core.Rpc.RpcProperty;
-using LPS.Core.Rpc.RpcPropertySync;
 
-namespace LPS.Core.Ipc.SyncMessage
+namespace LPS.Core.Rpc.RpcPropertySync
 {
     public class RpcPlaintAndCostumePropertySyncMessage : RpcPropertySyncMessage
     {

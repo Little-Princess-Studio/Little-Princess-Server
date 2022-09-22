@@ -164,7 +164,7 @@ namespace LPS.Core
 
             Logger.Info($"Server create a new entity with mailbox {mailBox}");
 
-            entity.SendSyncMessage = (keepOrder, delayTime, syncMsg) =>
+            entity.SendSyncMessageHandler = (keepOrder, delayTime, syncMsg) =>
             {
                 Logger.Info($"Send sync msg {syncMsg.Operation} {syncMsg.MailBox} {syncMsg.RpcPropertyPath}"
                             + $"{syncMsg.RpcSyncPropertyType}:{delayTime}:{keepOrder}");
@@ -402,6 +402,7 @@ namespace LPS.Core
             {
                 var entity = localEntityDict_[entityId];
                 entity.FullSyncAck();
+                Debug.Logger.Info("Full sync ack succ");
             }
             else
             {

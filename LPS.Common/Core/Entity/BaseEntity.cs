@@ -27,7 +27,7 @@ namespace LPS.Core.Entity
         private Dictionary<string, RpcProperty>? propertyTree_ = null;
         protected Dictionary<string, RpcProperty>? PropertyTree => propertyTree_;
 
-        public void SetPropertyTree(Dictionary<string, RpcProperty> propertyTree)
+        public virtual void SetPropertyTree(Dictionary<string, RpcProperty> propertyTree)
         {
             propertyTree_ = propertyTree;
         }

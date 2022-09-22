@@ -1,38 +1,57 @@
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Google.Protobuf.WellKnownTypes;
 using LPS.Core.Debug;
-using LPS.Core.Ipc.SyncMessage;
 using LPS.Core.Rpc;
 using LPS.Core.Rpc.InnerMessages;
+using LPS.Core.Rpc.RpcProperty;
+using LPS.Core.Rpc.RpcPropertySync;
 using MailBox = LPS.Core.Rpc.MailBox;
 
 namespace LPS.Core.Entity
 {
     [EntityClass]
-    public abstract class DistributeEntity : BaseEntity
+    public abstract class DistributeEntity : BaseEntity, ISendPropertySyncMessage
     {
         public CellEntity Cell { get; set; } = null!;
 
-        public Action<bool, uint, RpcPropertySyncMessage>? SendSyncMessage;
+        public Action<bool, uint, RpcPropertySyncMessage>? SendSyncMessageHandler;
 
-        protected DistributeEntity(string desc)
+        protected DistributeEntity(string desc) : this()
         {
-            this.IsFrozen = true;
         }
 
         protected DistributeEntity()
         {
             this.IsFrozen = true;
         }
+        
+        public override void SetPropertyTree(Dictionary<string, RpcProperty> propertyTree)
+        {
+            base.SetPropertyTree(propertyTree);
+            foreach (var (_, v) in this.PropertyTree!)
+            {
+                v.SendSyncMsgImpl = this;
+            }
+        }
 
+        public void SendSyncMsg(bool keepOrder, uint delayTime, RpcPropertySyncMessage syncMsg)
+        {
+            if (syncMsg == null)
+            {
+                throw new ArgumentNullException(nameof(syncMsg));
+            }
+            this.SendSyncMessageHandler?.Invoke(keepOrder, delayTime, syncMsg);
+        }
+        
         public void FullSync(Action<string, Any> onSyncContentReady)
         {
             var treeDict = new DictWithStringKeyArg();
 
             foreach (var (key, value) in this.PropertyTree!)
             {
-                if (value.ShouldSyncToClient)
+                if (value.ShouldSyncToShadow)
                 {
                     treeDict.PayLoad.Add(key, value.ToProtobuf());
                 }

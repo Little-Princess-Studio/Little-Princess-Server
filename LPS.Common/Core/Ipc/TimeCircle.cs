@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using LPS.Core.Debug;
-using LPS.Core.Ipc.SyncMessage;
 using LPS.Core.Rpc;
 using LPS.Core.Rpc.RpcPropertySync;
 
@@ -124,7 +123,7 @@ namespace LPS.Core.Ipc
             {
                 Func<RpcPropertySyncInfo> getSyncInfoFunc = incomeMsg.RpcSyncPropertyType switch
                 {
-                    RpcSyncPropertyType.Plaint => () => new RpcPlaintPropertySyncInfo(),
+                    RpcSyncPropertyType.PlaintAndCostume => () => new RpcPlaintAndCostumePropertySyncInfo(),
                     RpcSyncPropertyType.List => () => new RpcListPropertySyncInfo(),
                     RpcSyncPropertyType.Dict => () => new RpcDictPropertySyncInfo(),
                     _ => throw new ArgumentOutOfRangeException()

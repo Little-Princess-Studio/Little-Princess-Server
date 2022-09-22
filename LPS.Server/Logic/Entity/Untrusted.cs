@@ -25,6 +25,14 @@ namespace LPS.Logic.Entity
         }
 
         [RpcMethod(Authority.ClientOnly)]
+        public ValueTask TestChange()
+        {
+            this.TestRpcProp.Val.Add("222");
+            this.TestRpcPlainPropStr.Val = "Little Princess";
+            return ValueTask.CompletedTask;
+        }
+
+        [RpcMethod(Authority.ClientOnly)]
         public ValueTask<string> Echo(string msg)
         {
             return ValueTask.FromResult("echo:" + msg);

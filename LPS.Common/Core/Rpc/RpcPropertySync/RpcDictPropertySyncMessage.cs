@@ -1,8 +1,6 @@
-using LPS.Core.Rpc;
 using LPS.Core.Rpc.RpcProperty;
-using LPS.Core.Rpc.RpcPropertySync;
 
-namespace LPS.Core.Ipc.SyncMessage
+namespace LPS.Core.Rpc.RpcPropertySync
 {
     interface IRpcDictPropertySyncMessageImpl
     {
@@ -12,10 +10,10 @@ namespace LPS.Core.Ipc.SyncMessage
 
     public class RpcDictPropertyUpdateSyncMessageImpl : IRpcDictPropertySyncMessageImpl
     {
-        private readonly Dictionary<object, RpcPropertyContainer> updateDictInfo_ = new();
-        public Dictionary<object, RpcPropertyContainer> GetUpdateDictInfo() => updateDictInfo_;
+        private readonly Dictionary<string, RpcPropertyContainer> updateDictInfo_ = new();
+        public Dictionary<string, RpcPropertyContainer> GetUpdateDictInfo() => updateDictInfo_;
 
-        public void Update(object key, RpcPropertyContainer value)
+        public void Update(string key, RpcPropertyContainer value)
         {
             updateDictInfo_[key] = value;
         }
@@ -83,10 +81,10 @@ namespace LPS.Core.Ipc.SyncMessage
 
     public class RpcDictPropertyRemoveSyncMessageImpl : IRpcDictPropertySyncMessageImpl
     {
-        private readonly HashSet<object> removeDictInfo_ = new();
-        public HashSet<object> GetRemoveDictInfo() => removeDictInfo_;
+        private readonly HashSet<string> removeDictInfo_ = new();
+        public HashSet<string> GetRemoveDictInfo() => removeDictInfo_;
 
-        public void Remove(object key)
+        public void Remove(string key)
         {
             removeDictInfo_.Add(key);
         }
@@ -189,7 +187,7 @@ namespace LPS.Core.Ipc.SyncMessage
             {
                 RpcPropertySyncOperation.UpdateDict => args =>
                 {
-                    var key = args[0];
+                    var key = args[0] as string;
                     var val = args[1] as RpcPropertyContainer;
 
                     if (val == null)
@@ -197,13 +195,13 @@ namespace LPS.Core.Ipc.SyncMessage
                         throw new Exception($"Invalid args {args}");
                     }
 
-                    ((RpcDictPropertyUpdateSyncMessageImpl) impl_!).Update(key, val);
+                    ((RpcDictPropertyUpdateSyncMessageImpl) impl_!).Update(key!, val);
                 },
                 RpcPropertySyncOperation.RemoveElem => args =>
                 {
-                    var key = args[0];
+                    var key = args[0] as string;
 
-                    ((RpcDictPropertyRemoveSyncMessageImpl) impl_!).Remove(key);
+                    ((RpcDictPropertyRemoveSyncMessageImpl) impl_!).Remove(key!);
                 },
                 RpcPropertySyncOperation.Clear => args => { },
                 _ => throw new Exception($"Invalid operation {operation}")

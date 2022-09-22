@@ -145,7 +145,7 @@ namespace LPS.Core.Rpc
                         var arg = (pb, conn, pkg.Header.ID);
                         var msg = new Message(type, arg);
 
-                        Logger.Info($"msg received: {pb}");
+                        Logger.Info($"msg received: {pb}, type: {type}");
 
                         onGotMessage(msg);
                     }

@@ -5,7 +5,6 @@ using System.Collections.Immutable;
 using System.Linq;
 using System.Reflection;
 using LPS.Core.Ipc;
-using LPS.Core.Ipc.SyncMessage;
 using LPS.Core.Rpc;
 using LPS.Core.Rpc.RpcProperty;
 using LPS.Core.Rpc.RpcPropertySync;
@@ -49,10 +48,10 @@ public class TimeCircleUnitTest
     {
         var mailbox1 = new MailBox("test_id1", "127.0.0.1", 88, 9999);
         var plainMsg1 = new RpcPlaintAndCostumePropertySyncMessage(mailbox1, RpcPropertySyncOperation.SetValue, "testpath",
-            RpcSyncPropertyType.Plaint,  new RpcPropertyContainer<string>("1111"));
+            RpcSyncPropertyType.PlaintAndCostume,  new RpcPropertyContainer<string>("1111"));
 
         var plainMsg2 = new RpcPlaintAndCostumePropertySyncMessage(mailbox1, RpcPropertySyncOperation.SetValue, "testpath",
-            RpcSyncPropertyType.Plaint, new RpcPropertyContainer<string>("2222"));
+            RpcSyncPropertyType.PlaintAndCostume, new RpcPropertyContainer<string>("2222"));
 
         timeCircle.AddPropertySyncMessage(
             plainMsg1,

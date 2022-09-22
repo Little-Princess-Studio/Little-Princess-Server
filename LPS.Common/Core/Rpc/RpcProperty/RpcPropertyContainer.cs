@@ -2,8 +2,8 @@ using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
-using LPS.Core.Ipc.SyncMessage;
 using LPS.Core.Rpc.InnerMessages;
+using LPS.Core.Rpc.RpcPropertySync;
 
 namespace LPS.Core.Rpc.RpcProperty
 {
@@ -68,23 +68,30 @@ namespace LPS.Core.Rpc.RpcProperty
             }
         }
 
-        protected void NotifyChange(RpcPropertySyncOperation operation, string name, RpcPropertyContainer? @new)
+        protected void NotifyChange(RpcPropertySyncOperation operation, string name, RpcPropertyContainer? @new,
+            RpcSyncPropertyType propertyType)
         {
+            if (this.TopOwner == null || this.TopOwner.SendSyncMsgImpl != null || !this.TopOwner.IsShadowProperty)
+            {
+                return;
+            }
+
             var pathList = new List<string> {name};
-            this.NotifyChange(operation, pathList, @new);
+            this.NotifyChange(operation, pathList, @new, propertyType);
         }
 
-        protected void NotifyChange(RpcPropertySyncOperation operation, List<string> path, RpcPropertyContainer? @new)
+        protected void NotifyChange(RpcPropertySyncOperation operation, List<string> path, RpcPropertyContainer? @new,
+            RpcSyncPropertyType propertyType)
         {
             path.Insert(0, Name!);
 
             if (this.Parent == null)
             {
-                this.TopOwner?.OnNotify(operation, path, @new);
+                this.TopOwner?.OnNotify(operation, path, @new, propertyType);
             }
             else
             {
-                this.Parent.NotifyChange(operation, path, @new);
+                this.Parent.NotifyChange(operation, path, @new, propertyType);
             }
         }
 
@@ -158,13 +165,14 @@ namespace LPS.Core.Rpc.RpcProperty
             {
                 throw new ArgumentNullException(nameof(target));
             }
-            
-            this.NotifyChange(RpcPropertySyncOperation.SetValue, this.Name!, target);
+
+            this.NotifyChange(RpcPropertySyncOperation.SetValue, this.Name!, target,
+                RpcSyncPropertyType.PlaintAndCostume);
             this.OnSetValue?.Invoke((this as TSub)!, (target as TSub)!);
 
             this.AssignInternal(target);
         }
-        
+
         public override void AssignInternal(RpcPropertyContainer target)
         {
             if (target == null)
@@ -181,7 +189,7 @@ namespace LPS.Core.Rpc.RpcProperty
             var props = this.GetType()
                 .GetFields(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public)
                 .Where(field => field.IsDefined(typeof(RpcPropertyAttribute)));
-            
+
             foreach (var fieldInfo in props)
             {
                 var rpcPropertyOld = (fieldInfo.GetValue(this) as RpcPropertyContainer)!;
@@ -268,7 +276,8 @@ namespace LPS.Core.Rpc.RpcProperty
             {
                 var old = this.value_;
                 this.value_ = value;
-                this.NotifyChange(RpcPropertySyncOperation.SetValue, this.Name!, this);
+                this.NotifyChange(RpcPropertySyncOperation.SetValue, this.Name!, this,
+                    RpcSyncPropertyType.PlaintAndCostume);
                 this.OnSetValue?.Invoke(old, value);
             }
             else
