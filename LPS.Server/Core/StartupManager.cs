@@ -200,7 +200,7 @@ namespace LPS.Server.Core
         private static void StartUpGate(string name, string confFilePath)
         {
             RpcProtobufDefs.Initialize();
-            RpcHelper.ScanRpcMethods("LPS.Core.Entity");
+            RpcHelper.ScanRpcMethods("LPS.Server.Core.Entity");
             DbHelper.Initialize().Wait();
 
             var json = GetJson(confFilePath);
@@ -241,8 +241,8 @@ namespace LPS.Server.Core
         private static void StartUpServer(string name, string confFilePath)
         {
             RpcProtobufDefs.Initialize();
-            RpcHelper.ScanRpcMethods("LPS.Core.Entity");
-            RpcHelper.ScanRpcMethods("LPS.Logic.Entity");
+            RpcHelper.ScanRpcMethods("LPS.Server.Core.Entity");
+            RpcHelper.ScanRpcMethods("LPS.Server.Logic.Entity");
             RpcHelper.ScanRpcPropertyContainer("LPS.Logic.RpcProperties");
             DbHelper.Initialize().Wait();
 

@@ -11,7 +11,7 @@ namespace LPS.Client.Entity
         public readonly RpcShadowComplexProperty<RpcList<string>> TestRpcProp =
             new(nameof(Untrusted.TestRpcProp));
 
-        public readonly RpcShadowPlaintProperty<string> TestRpcPlainPropStr =
-            new(nameof(Untrusted.TestRpcPlainPropStr));
+        public readonly RpcShadowPlaintProperty<string> TestRpcPlaintPropStr =
+            new(nameof(Untrusted.TestRpcPlaintPropStr));
     }
 }

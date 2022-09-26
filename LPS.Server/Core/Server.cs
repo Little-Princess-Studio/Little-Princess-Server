@@ -402,7 +402,7 @@ namespace LPS.Server.Core
             {
                 var entity = localEntityDict_[entityId];
                 entity.FullSyncAck();
-                Debug.Logger.Info("Full sync ack succ");
+                Logger.Info("Full sync ack succ");
             }
             else
             {

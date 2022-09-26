@@ -135,7 +135,7 @@ namespace LPS.Common.Core.Rpc.RpcProperty
         }
 
         [RpcPropertyContainerDeserializeEntry]
-        public new static RpcPropertyContainer FromRpcArg(Any content)
+        public static RpcPropertyContainer FromRpcArg(Any content)
         {
             if (content.Is(NullArg.Descriptor))
             {

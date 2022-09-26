@@ -5,7 +5,7 @@ using LPS.Common.Core.Rpc.RpcProperty;
 using LPS.Server.Core.Entity;
 using LPS.Server.Core.Rpc.RpcProperty;
 
-namespace LPS.Logic.Entity
+namespace LPS.Server.Logic.Entity
 {   
     [EntityClass]
     public class Untrusted : ServerClientEntity
@@ -29,7 +29,7 @@ namespace LPS.Logic.Entity
         public ValueTask TestChange()
         {
             this.TestRpcProp.Val.Add("222");
-            this.TestRpcPlainPropStr.Val = "Little Princess";
+            this.TestRpcPlaintPropStr.Val = "Little Princess";
             return ValueTask.CompletedTask;
         }
 

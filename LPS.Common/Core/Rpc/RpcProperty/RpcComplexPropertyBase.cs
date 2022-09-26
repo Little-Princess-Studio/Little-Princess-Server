@@ -33,7 +33,7 @@ public class RpcComplexPropertyBase<T> : RpcProperty
 
         this.Value = value;
         var path = new List<string> {this.Name};
-        this.OnNotify(RpcPropertySyncOperation.SetValue, path, value);
+        this.OnNotify(RpcPropertySyncOperation.SetValue, path, value, RpcSyncPropertyType.PlaintAndCostume);
     }
 
     private T Get()

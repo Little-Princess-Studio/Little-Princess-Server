@@ -1,3 +1,4 @@
+using Google.Protobuf.WellKnownTypes;
 using LPS.Common.Core.Rpc.RpcProperty;
 
 namespace LPS.Common.Core.Rpc.RpcPropertySync

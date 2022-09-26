@@ -203,7 +203,7 @@ public class TimeCircleUnitTest
         {
             var dictMsg = new RpcDictPropertySyncMessage(mailbox3,
                 RpcPropertySyncOperation.UpdateDict, "testpath3");
-            dictMsg.Action!(i, new RpcPropertyContainer<string>($"{i}"));
+            dictMsg.Action!($"{i}", new RpcPropertyContainer<string>($"{i}"));
             timeCircle.AddPropertySyncMessage(dictMsg,
                 120,
                 keepOrder);
@@ -212,7 +212,7 @@ public class TimeCircleUnitTest
             {
                 var dictMsg2 = new RpcDictPropertySyncMessage(mailbox3,
                     RpcPropertySyncOperation.RemoveElem, "testpath3");
-                dictMsg2.Action!(j);
+                dictMsg2.Action!($"{j}");
                 timeCircle.AddPropertySyncMessage(dictMsg2,
                     120,
                     keepOrder);
@@ -229,16 +229,16 @@ public class TimeCircleUnitTest
             var arr = queue!.ToArray();
             Assert.Equal(10, arr.Length);
 
-            CheckUpdateDictMsg(arr[0], new Dictionary<object, string> {{0, "0"}});
-            CheckRemoveDictMsg(arr[1], new HashSet<object> {0, 1, 2, 3, 4, 5, 6, 7, 8, 9});
-            CheckUpdateDictMsg(arr[2], new Dictionary<object, string> {{1, "1"}});
-            CheckRemoveDictMsg(arr[3], new HashSet<object> {1, 2, 3, 4, 5, 6, 7, 8, 9, 10});
-            CheckUpdateDictMsg(arr[4], new Dictionary<object, string> {{2, "2"}});
-            CheckRemoveDictMsg(arr[5], new HashSet<object> {2, 3, 4, 5, 6, 7, 8, 9, 10, 11});
-            CheckUpdateDictMsg(arr[6], new Dictionary<object, string> {{3, "3"}});
-            CheckRemoveDictMsg(arr[7], new HashSet<object> {3, 4, 5, 6, 7, 8, 9, 10, 11, 12});
-            CheckUpdateDictMsg(arr[8], new Dictionary<object, string> {{4, "4"}});
-            CheckRemoveDictMsg(arr[9], new HashSet<object> {4, 5, 6, 7, 8, 9, 10, 11, 12, 13});
+            CheckUpdateDictMsg(arr[0], new Dictionary<object, string> {{"0", "0"}});
+            CheckRemoveDictMsg(arr[1], new HashSet<string> {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9"});
+            CheckUpdateDictMsg(arr[2], new Dictionary<object, string> {{"1", "1"}});
+            CheckRemoveDictMsg(arr[3], new HashSet<string> { "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"});
+            CheckUpdateDictMsg(arr[4], new Dictionary<object, string> {{"2", "2"}});
+            CheckRemoveDictMsg(arr[5], new HashSet<string> {"2", "3", "4", "5", "6", "7", "8", "9", "10", "11"});
+            CheckUpdateDictMsg(arr[6], new Dictionary<object, string> {{"3", "3"}});
+            CheckRemoveDictMsg(arr[7], new HashSet<string> {"3", "4", "5", "6", "7", "8", "9", "10", "11", "12"});
+            CheckUpdateDictMsg(arr[8], new Dictionary<object, string> {{"4", "4"}});
+            CheckRemoveDictMsg(arr[9], new HashSet<string> {"4", "5", "6", "7", "8", "9", "10", "11", "12", "13"});
         }
         else
         {
@@ -251,7 +251,8 @@ public class TimeCircleUnitTest
             var msg = (RpcDictPropertySyncMessage) arr[0];
             Assert.NotNull(msg);
 
-            CheckRemoveDictMsg(msg, new HashSet<object> {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13});
+            CheckRemoveDictMsg(msg, new HashSet<string> 
+                {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13"});
         }
     }
 
@@ -277,7 +278,7 @@ public class TimeCircleUnitTest
             checkDict.OrderBy(kv => kv.Key));
     }
 
-    private static void CheckRemoveDictMsg(RpcPropertySyncMessage rpcMsg, HashSet<object> keys)
+    private static void CheckRemoveDictMsg(RpcPropertySyncMessage rpcMsg, HashSet<string> keys)
     {
         var msg = (RpcDictPropertySyncMessage) rpcMsg;
         Assert.NotNull(msg);

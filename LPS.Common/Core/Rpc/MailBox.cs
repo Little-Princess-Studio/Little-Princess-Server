@@ -14,10 +14,12 @@ namespace LPS.Common.Core.Rpc
             this.Port = port;
             this.HostNum = hostNum;
         }
+        
+        public MailBox(): this("", "", 0, 0) {}
 
         public override string ToString()
         {
-            return $"Mailbox: {this.Id} {this.Ip} {this.Port} {this.HostNum}";
+            return $"{this.Id} {this.Ip} {this.Port} {this.HostNum}";
         }
 
         public bool CompareOnlyID(MailBox other)

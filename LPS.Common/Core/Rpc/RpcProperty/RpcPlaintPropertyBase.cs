@@ -31,7 +31,7 @@ public abstract class RpcPlaintPropertyBase<T> : RpcProperty
         ((RpcPropertyContainer<T>) this.Value).Value = value;
         
         var path = new List<string> {this.Name};
-        this.OnNotify(RpcPropertySyncOperation.SetValue, path, this.Value);
+        this.OnNotify(RpcPropertySyncOperation.SetValue, path, this.Value, RpcSyncPropertyType.PlaintAndCostume);
     }
 
     private T Get()
