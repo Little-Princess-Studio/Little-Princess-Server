@@ -125,7 +125,7 @@ namespace LPS.Server.Core
                     CreateNoWindow = true,
                 };
             }
-            
+
             Process.Start(procStartInfo);
         }
 
@@ -136,13 +136,15 @@ namespace LPS.Server.Core
             // Linux need to remove .dll suffix to start process
             if (Environment.OSVersion.Platform == PlatformID.Unix)
             {
-                var dirName = Path.GetDirectoryName(Path.GetRelativePath(Directory.GetCurrentDirectory(), System.Reflection.Assembly.GetExecutingAssembly().Location));
+                var dirName = Path.GetDirectoryName(Path.GetRelativePath(Directory.GetCurrentDirectory(),
+                    System.Reflection.Assembly.GetExecutingAssembly().Location));
                 var exeName = System.Reflection.Assembly.GetExecutingAssembly().GetName().Name;
                 relativePath = Path.Join(dirName, exeName);
             }
             else
             {
-                relativePath = Path.GetRelativePath(Directory.GetCurrentDirectory(), System.Reflection.Assembly.GetExecutingAssembly().Location);
+                relativePath = Path.GetRelativePath(Directory.GetCurrentDirectory(),
+                    System.Reflection.Assembly.GetExecutingAssembly().Location);
             }
 
             return relativePath;
@@ -181,7 +183,7 @@ namespace LPS.Server.Core
             var port = json["port"]!.ToObject<int>();
 
             var hostManagerInfo = json["hostmanager"]!;
-            var hostManagerIP= hostManagerInfo["ip"]!.ToString();
+            var hostManagerIp = hostManagerInfo["ip"]!.ToString();
             var hostManagerPort = Convert.ToInt32(hostManagerInfo["port"]!.ToString());
 
             var globalcacheType = json["globalcache"]!["dbtype"]!.ToString();
@@ -193,7 +195,7 @@ namespace LPS.Server.Core
             var globalCacheInfo = (globalcacheIp, globalcachePort, globalcacheDefaultDb);
 
             Logger.Debug($"Startup DbManager {name} at {ip}:{port}");
-            var dbManager = new DbManager(ip, port, hostnum, hostManagerIP, hostManagerPort, globalCacheInfo);
+            var dbManager = new DbManager(ip, port, hostnum, hostManagerIp, hostManagerPort, globalCacheInfo);
             dbManager.Loop();
         }
 
@@ -212,31 +214,35 @@ namespace LPS.Server.Core
             var port = Convert.ToInt32(gateInfo["port"]!.ToString());
 
             var hostManagerInfo = json["hostmanager"]!;
-            var hostManagerIP= hostManagerInfo["ip"]!.ToString();
+            var hostManagerIp = hostManagerInfo["ip"]!.ToString();
             var hostManagerPort = Convert.ToInt32(hostManagerInfo["port"]!.ToString());
 
             #region get servers' ip/port
+
             var serverJson = GetJson(json["server_conf"]!.ToString());
             var dict = serverJson["servers"]!.ToObject<Dictionary<string, JToken>>();
 
             var servers = dict!.Select(pair => (
                 pair.Value["ip"]!.ToString(), pair.Value["port"]!.ToObject<int>())).ToArray();
+
             #endregion
 
             #region get other gate's ip/port
+
             var otherGates = json["gates"]!.ToObject<Dictionary<string, JToken>>()!
-                                        .Where(pair => pair.Key != name)
-                                        .Select(
-                                            pair => (pair.Value["innerip"]!.ToString(), pair.Value["ip"]!.ToString(), pair
-                                            .Value["port"]!
-                                            .ToObject<int>()))
-                                        .ToArray();
+                .Where(pair => pair.Key != name)
+                .Select(
+                    pair => (pair.Value["innerip"]!.ToString(), pair.Value["ip"]!.ToString(), pair
+                        .Value["port"]!
+                        .ToObject<int>()))
+                .ToArray();
+
             #endregion
 
             Logger.Debug($"Startup Gate {name} at {ip}:{port}");
-            var gate = new Gate(name, ip, port, hostnum, hostManagerIP, hostManagerPort, servers, otherGates);
+            var gate = new Gate(name, ip, port, hostnum, hostManagerIp, hostManagerPort, servers, otherGates);
             gate.Loop();
-        } 
+        }
 
         private static void StartUpServer(string name, string confFilePath)
         {
@@ -255,14 +261,13 @@ namespace LPS.Server.Core
             var port = Convert.ToInt32(serverInfo["port"]!.ToString());
 
             var hostManagerInfo = json["hostmanager"]!;
-            var hostManagerIP= hostManagerInfo["ip"]!.ToString();
+            var hostManagerIp = hostManagerInfo["ip"]!.ToString();
             var hostManagerPort = Convert.ToInt32(hostManagerInfo["port"]!.ToString());
 
             Logger.Debug($"Startup Server {name} at {ip}:{port}");
-            var server = new Server(name, ip, port, hostnum, hostManagerIP, hostManagerPort);
+            var server = new Server(name, ip, port, hostnum, hostManagerIp, hostManagerPort);
 
             server.Loop();
         }
-
     }
 }

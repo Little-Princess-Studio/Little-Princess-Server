@@ -1,3 +1,5 @@
+using LPS.Common.Core.Rpc.InnerMessages;
+
 namespace LPS.Common.Core.Rpc.RpcPropertySync
 {
     public enum RpcPropertySyncOperation
@@ -35,7 +37,7 @@ namespace LPS.Common.Core.Rpc.RpcPropertySync
                 && MailBox.CompareFull(otherMsg.MailBox);
         }
 
-        public abstract byte[] Serialize();
+        public abstract PropertySyncCommand Serialize();
     }
 
 }

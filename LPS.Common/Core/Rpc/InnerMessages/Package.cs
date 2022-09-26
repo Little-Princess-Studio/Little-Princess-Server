@@ -78,7 +78,7 @@ namespace LPS.Common.Core.Rpc.InnerMessages
         ClientCreateEntity = 7,
         RequirePropertyFullSync = 8,
         PropertyFullSync = 9,
-        PropertySync = 10,
+        PropertySyncCommandList = 10,
         PropertyFullSyncAck = 11,
         PropertySyncAck = 12,
     }

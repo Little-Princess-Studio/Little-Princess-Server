@@ -11,7 +11,6 @@ namespace LPS.Server.Core.Rpc
         private static readonly Dictionary<PackageType, PackageHelper.CreateIMessage> Type2ProBuf_ = new();
         private static readonly Dictionary<Type, PackageType> Type2Enum_ = new();
 
-
         private static void RegisterProtobufDef<TP>(PackageType type) where TP : IMessage<TP>, new()
         {
             Type2ProBuf_[type] = (in Package pkg) => PackageHelper.GetProtoBufObject<TP>(pkg);
@@ -32,7 +31,7 @@ namespace LPS.Server.Core.Rpc
             RegisterProtobufDef<ClientCreateEntity>(PackageType.ClientCreateEntity);
             RegisterProtobufDef<RequirePropertyFullSync>(PackageType.RequirePropertyFullSync);
             RegisterProtobufDef<PropertyFullSync>(PackageType.PropertyFullSync);
-            RegisterProtobufDef<PropertySync>(PackageType.PropertySync);
+            RegisterProtobufDef<PropertySyncCommandList>(PackageType.PropertySyncCommandList);
             RegisterProtobufDef<PropertySyncAck>(PackageType.PropertySyncAck);
             RegisterProtobufDef<PropertyFullSyncAck>(PackageType.PropertyFullSyncAck);
 

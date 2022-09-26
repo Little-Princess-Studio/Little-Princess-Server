@@ -1,3 +1,5 @@
+using Google.Protobuf.WellKnownTypes;
+using LPS.Common.Core.Rpc.InnerMessages;
 using LPS.Common.Core.Rpc.RpcProperty;
 
 // operation on List is very complex, so RpcListPropertySyncInfo
@@ -5,7 +7,12 @@ using LPS.Common.Core.Rpc.RpcProperty;
 
 namespace LPS.Common.Core.Rpc.RpcPropertySync
 {
-    interface IRpcListPropertySyncMessageImpl
+    interface IRpcPropertySyncMessageImpl
+    {
+        PropertySyncCommand ToSyncCommand();
+    }
+    
+    interface IRpcListPropertySyncMessageImpl: IRpcPropertySyncMessageImpl
     {
         bool MergeIntoSyncInfo(RpcListPropertySyncInfo rpcListPropertySyncInfo);
         bool MergeKeepOrder(RpcListPropertySyncMessage newMsg);
@@ -49,6 +56,21 @@ namespace LPS.Common.Core.Rpc.RpcPropertySync
             var newAddImpl = newMsg.GetImpl<RpcListPropertyAddSyncMessageImpl>();
             addInfo_.AddRange(newAddImpl.addInfo_);
             return true;
+        }
+
+        public PropertySyncCommand ToSyncCommand()
+        {
+            var cmd = new PropertySyncCommand
+            {
+                Operation = SyncOperation.AddListElem
+            };
+            
+            foreach (var rpcPropertyContainer in addInfo_)
+            {
+                cmd.Args.Add(rpcPropertyContainer.ToRpcArg());
+            }
+
+            return cmd;
         }
     }
 
@@ -97,6 +119,23 @@ namespace LPS.Common.Core.Rpc.RpcPropertySync
             }
             return true;
         }
+
+        public PropertySyncCommand ToSyncCommand()
+        {
+            var cmd = new PropertySyncCommand
+            {
+                Operation = SyncOperation.SetValue,
+            };
+
+            var dictWithIntKeyArg = new DictWithIntKeyArg();
+            foreach (var (key, value) in setValueInfo_)
+            {
+                dictWithIntKeyArg.PayLoad.Add(key, value.ToRpcArg());
+            }
+            
+            cmd.Args.Add(Any.Pack(dictWithIntKeyArg));
+            return cmd;
+        }
     }
 
     public class RpcListPropertyInsertSyncMessageImpl : IRpcListPropertySyncMessageImpl
@@ -138,6 +177,25 @@ namespace LPS.Common.Core.Rpc.RpcPropertySync
             insertInfo_.AddRange(newRemoveImpl.insertInfo_);
             return true;
         }
+
+        public PropertySyncCommand ToSyncCommand()
+        {
+            var cmd = new PropertySyncCommand
+            {
+                Operation = SyncOperation.InsertElem
+            };
+            
+            foreach (var (index, rpcPropertyContainer) in insertInfo_)
+            {
+                cmd.Args.Add(Any.Pack(new PairWithIntKey
+                {
+                    Key = index,
+                    Value = rpcPropertyContainer.ToRpcArg()
+                }));
+            }
+
+            return cmd;
+        }
     }
 
     public class RpcListPropertyRemoveElemMessageImpl : IRpcListPropertySyncMessageImpl
@@ -178,6 +236,24 @@ namespace LPS.Common.Core.Rpc.RpcPropertySync
             var newRemoveImpl = newMsg.GetImpl<RpcListPropertyRemoveElemMessageImpl>();
             removeElemInfo_.AddRange(newRemoveImpl.removeElemInfo_);
             return true;
+        }
+
+        public PropertySyncCommand ToSyncCommand()
+        {
+            var cmd = new PropertySyncCommand
+            {
+                Operation = SyncOperation.RemoveElem
+            };
+            
+            foreach (var index in removeElemInfo_)
+            {
+                cmd.Args.Add(Any.Pack(new IntArg
+                {
+                    PayLoad = index,
+                }));
+            }
+
+            return cmd;
         }
     }
     
@@ -277,9 +353,17 @@ namespace LPS.Common.Core.Rpc.RpcPropertySync
 
         public T GetImpl<T>() => (T)impl_!;
 
-        public override byte[] Serialize()
+        public override PropertySyncCommand Serialize()
         {
-            throw new NotImplementedException();
+            if (this.Operation == RpcPropertySyncOperation.Clear)
+            {
+                return new PropertySyncCommand()
+                {
+                    Operation = SyncOperation.Clear
+                };
+            }
+
+            return impl_!.ToSyncCommand();
         }
     }
 }

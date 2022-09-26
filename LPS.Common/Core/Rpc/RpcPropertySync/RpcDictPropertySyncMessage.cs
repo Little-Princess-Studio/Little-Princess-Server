@@ -1,9 +1,10 @@
 using Google.Protobuf.WellKnownTypes;
+using LPS.Common.Core.Rpc.InnerMessages;
 using LPS.Common.Core.Rpc.RpcProperty;
 
 namespace LPS.Common.Core.Rpc.RpcPropertySync
 {
-    interface IRpcDictPropertySyncMessageImpl
+    interface IRpcDictPropertySyncMessageImpl : IRpcPropertySyncMessageImpl
     {
         bool MergeIntoSyncInfo(RpcDictPropertySyncInfo rpcDictPropertySyncInfo);
         bool MergeKeepOrder(RpcDictPropertySyncMessage newMsg);
@@ -78,6 +79,23 @@ namespace LPS.Common.Core.Rpc.RpcPropertySync
 
             return true;
         }
+
+        public PropertySyncCommand ToSyncCommand()
+        {
+            var cmd = new PropertySyncCommand()
+            {
+                Operation = SyncOperation.UpdateDict
+            };
+
+            var dictWithStringKeyArg = new DictWithStringKeyArg();
+            foreach (var (key, value) in updateDictInfo_)
+            {
+                dictWithStringKeyArg.PayLoad.Add(key, value.ToRpcArg());
+            }
+
+            cmd.Args.Add(Any.Pack(dictWithStringKeyArg));
+            return cmd;
+        }
     }
 
     public class RpcDictPropertyRemoveSyncMessageImpl : IRpcDictPropertySyncMessageImpl
@@ -150,8 +168,26 @@ namespace LPS.Common.Core.Rpc.RpcPropertySync
 
             return true;
         }
-    }
 
+        public PropertySyncCommand ToSyncCommand()
+        {
+            var cmd = new PropertySyncCommand()
+            {
+                Operation = SyncOperation.RemoveElem
+            };
+
+            foreach (var key in removeDictInfo_)
+            {
+                cmd.Args.Add(Any.Pack(new StringArg()
+                {
+                    PayLoad = key
+                }));
+            }
+
+            return cmd;
+        }
+    }
+    
 
     public class RpcDictPropertySyncMessage : RpcPropertySyncMessage
     {
@@ -223,7 +259,7 @@ namespace LPS.Common.Core.Rpc.RpcPropertySync
                 dictInfo.Enque(this);
                 return;
             }
-            
+
             if (dictInfo.PropPath2SyncMsgQueue.Count == 0)
             {
                 dictInfo.Enque(this);
@@ -238,51 +274,19 @@ namespace LPS.Common.Core.Rpc.RpcPropertySync
             }
         }
 
-        // private void HandleUpdateDict(RpcDictPropertySyncMessage curDictSyncInfo)
-        // {
-        //     curDictSyncInfo.updateDictInfo_ ??= updateDictInfo_!;
-        //     
-        //     foreach (var (key, value) in updateDictInfo_!)
-        //     {
-        //         curDictSyncInfo.updateDictInfo_[key] = value;
-        //         if (curDictSyncInfo.removeDictInfo_ != null
-        //             && curDictSyncInfo.removeDictInfo_.Contains(key))
-        //         {
-        //             curDictSyncInfo.removeDictInfo_.Remove(value);
-        //         }
-        //     }
-        //
-        //     if (curDictSyncInfo.removeDictInfo_ is {Count: 0})
-        //     {
-        //         curDictSyncInfo.removeDictInfo_ = null;
-        //     }
-        // }
-        //
-        // private void HandleRemove(RpcDictPropertySyncMessage curDictSyncInfo)
-        // {
-        //     curDictSyncInfo.removeDictInfo_ ??= removeDictInfo_!;
-        //
-        //     foreach (var key in removeDictInfo_!)
-        //     {
-        //         curDictSyncInfo.removeDictInfo_.Add(key);
-        //         if (curDictSyncInfo.updateDictInfo_ != null
-        //             && curDictSyncInfo.updateDictInfo_.ContainsKey(key))
-        //         {
-        //             curDictSyncInfo.updateDictInfo_.Remove(key);
-        //         }
-        //     }
-        //
-        //     if (curDictSyncInfo.updateDictInfo_ is {Count: 0})
-        //     {
-        //         curDictSyncInfo.updateDictInfo_ = null;
-        //     }
-        // }
-
         public T GetImpl<T>() => (T) impl_!;
 
-        public override byte[] Serialize()
+        public override PropertySyncCommand Serialize()
         {
-            throw new NotImplementedException();
+            if (this.Operation == RpcPropertySyncOperation.Clear)
+            {
+                return new PropertySyncCommand()
+                {
+                    Operation = SyncOperation.Clear
+                };
+            }
+
+            return impl_!.ToSyncCommand();
         }
     }
 }

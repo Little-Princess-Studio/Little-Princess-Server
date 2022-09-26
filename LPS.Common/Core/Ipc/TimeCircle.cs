@@ -149,6 +149,7 @@ namespace LPS.Common.Core.Ipc
                 foreach (var (propPath, syncInfo) in entitySyncInfoDict)
                 {
                     Logger.Debug($"{propPath} -> {syncInfo}");
+                    var syncPkg = syncInfo.ToSyncPackage();
                 }
             }
 
@@ -161,6 +162,7 @@ namespace LPS.Common.Core.Ipc
                     {
                         var msg = syncQueue.Dequeue();
                         Logger.Debug($"{propPath} -> {msg}");
+                        var syncMsg = msg.Serialize();
                     }
                 }
             }

@@ -4,10 +4,9 @@ package LPS.Common.Core.Rpc.InnerMessages;
 
 enum SyncPropType
 {
-    Plaint = 0;
+    PlaintAndCostume = 0;
     Dict = 1;
     List = 2;
-    Costume = 3;
 }
 
 enum SyncOperation
@@ -29,13 +28,17 @@ message PropertyFullSync {
     google.protobuf.Any PropertyTree = 2;
 }
 
-message PropertySync {
+message PropertySyncCommandList {
     SyncPropType PropType = 1;
-    SyncOperation Operation = 2;
-    string EntityId = 3;
-    repeated string Path = 4;
-    google.protobuf.Any SyncArg = 5;
-};
+    string EntityId = 2;
+    string Path = 3;
+    repeated PropertySyncCommand SyncArg = 4;
+}
+
+message PropertySyncCommand {
+    SyncOperation Operation = 1;
+    repeated google.protobuf.Any Args = 2;
+}
 
 message PropertyFullSyncAck {
     string EntityId = 1;

@@ -1,3 +1,4 @@
+using LPS.Common.Core.Rpc.InnerMessages;
 using LPS.Common.Core.Rpc.RpcProperty;
 
 namespace LPS.Common.Core.Rpc.RpcPropertySync
@@ -39,9 +40,16 @@ namespace LPS.Common.Core.Rpc.RpcPropertySync
             }
         }
 
-        public override byte[] Serialize()
+        public override PropertySyncCommand Serialize()
         {
-            throw new NotImplementedException();
+            var cmd = new PropertySyncCommand()
+            {
+                Operation = SyncOperation.SetValue,
+            };
+
+            cmd.Args.Add(this.Val.ToRpcArg());
+            
+            return cmd;
         }
     }
 }

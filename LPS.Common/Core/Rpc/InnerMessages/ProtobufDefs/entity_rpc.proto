@@ -64,7 +64,6 @@ message DictWithMailBoxKeyArg
     repeated DictWithMailBoxKeyPair PayLoad = 1;
 }
 
-
 message DictWithValueTupleKeyPair
 {
     google.protobuf.Any Key = 1;
@@ -74,6 +73,11 @@ message DictWithValueTupleKeyPair
 message DictWithValueTupleKeyArg
 {
     repeated DictWithValueTupleKeyPair PayLoad = 1;
+}
+
+message PairWithIntKey {
+    sint32 Key = 1;
+    google.protobuf.Any Value = 2;
 }
 
 message NullArg

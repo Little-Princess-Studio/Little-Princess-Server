@@ -1,4 +1,5 @@
-﻿using LPS.Common.Core.Rpc.InnerMessages;
+﻿using Google.Protobuf;
+using LPS.Common.Core.Rpc.InnerMessages;
 using LPS.Server.Core.Rpc.InnerMessages;
 
 namespace LPS.Client
@@ -7,32 +8,30 @@ namespace LPS.Client
     {
         public static class RpcProtobufDefs
         {
-            private static readonly Dictionary<PackageType, PackageHelper.CreateIMessage> Type2ProBuf_ = new()
-            {
-                {PackageType.Authentication, (in Package pkg) => PackageHelper.GetProtoBufObject<Authentication>(pkg)},
-                {PackageType.EntityRpc, (in Package pkg) => PackageHelper.GetProtoBufObject<EntityRpc>(pkg)},
-                {PackageType.ClientCreateEntity, (in Package pkg) => PackageHelper.GetProtoBufObject<ClientCreateEntity>(pkg)},
-                {PackageType.RequirePropertyFullSync, (in Package pkg) => PackageHelper.GetProtoBufObject<RequirePropertyFullSync>(pkg)},
-                {PackageType.PropertyFullSync, (in Package pkg) => PackageHelper.GetProtoBufObject<PropertyFullSync>(pkg)},
-                {PackageType.PropertySync, (in Package pkg) => PackageHelper.GetProtoBufObject<PropertySync>(pkg)},
-                {PackageType.PropertySyncAck, (in Package pkg) => PackageHelper.GetProtoBufObject<PropertySyncAck>(pkg)},
-                {PackageType.PropertyFullSyncAck, (in Package pkg) => PackageHelper.GetProtoBufObject<PropertyFullSyncAck>(pkg)},
-            };
+            private static readonly Dictionary<PackageType, PackageHelper.CreateIMessage> Type2ProBuf_ = new();
+            private static readonly Dictionary<Type, PackageType> Type2Enum_ = new();
 
-            private static readonly Dictionary<Type, PackageType> Type2Enum_ = new()
+            private static void RegisterProtobufDef<TP>(PackageType type) where TP : IMessage<TP>, new()
             {
-                {typeof(Authentication), PackageType.Authentication},
-                {typeof(EntityRpc), PackageType.EntityRpc},
-                {typeof(ClientCreateEntity), PackageType.ClientCreateEntity},
-                {typeof(RequirePropertyFullSync), PackageType.RequirePropertyFullSync},
-                {typeof(PropertyFullSync), PackageType.PropertyFullSync},
-                {typeof(PropertySync), PackageType.PropertySync},
-                {typeof(PropertySyncAck), PackageType.PropertySyncAck},
-                {typeof(PropertyFullSyncAck), PackageType.PropertyFullSyncAck},
-            };
+                Type2ProBuf_[type] = (in Package pkg) => PackageHelper.GetProtoBufObject<TP>(pkg);
+                Type2Enum_[typeof(TP)] = type;
+            }
 
             public static void Init()
             {
+                #region Protobuf type mapping definition
+
+                RegisterProtobufDef<Authentication>(PackageType.Authentication);
+                RegisterProtobufDef<EntityRpc>(PackageType.EntityRpc);
+                RegisterProtobufDef<ClientCreateEntity>(PackageType.ClientCreateEntity);
+                RegisterProtobufDef<RequirePropertyFullSync>(PackageType.RequirePropertyFullSync);
+                RegisterProtobufDef<PropertyFullSync>(PackageType.PropertyFullSync);
+                RegisterProtobufDef<PropertySyncCommandList>(PackageType.PropertySyncCommandList);
+                RegisterProtobufDef<PropertySyncAck>(PackageType.PropertySyncAck);
+                RegisterProtobufDef<PropertyFullSyncAck>(PackageType.PropertyFullSyncAck);
+
+                #endregion
+
                 PackageHelper.SetType2Protobuf(Type2ProBuf_);
                 PackageHelper.SetType2Enum(Type2Enum_);
             }
