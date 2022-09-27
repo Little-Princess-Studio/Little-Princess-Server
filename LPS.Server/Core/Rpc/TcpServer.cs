@@ -37,10 +37,9 @@ namespace LPS.Server.Core.Rpc
         public Connection[] AllConnections => socketToConn_.Values.ToArray();
         private readonly ConcurrentQueue<(Connection, IMessage)> sendQueue_ = new();
         private uint serverEntityPackageId_;
-        private readonly TimeCircle timeCircle_ = new(50, 1000);
-
-        private readonly ConcurrentQueue<(bool, uint, RpcPropertySyncMessage)> timeCircleQueue_ = new();
-
+        
+        public Action<uint>? ServerTickHandler;
+        
         public bool Stopped => stopFlag_;
 
         public TcpServer(string ip, int port)
@@ -111,14 +110,7 @@ namespace LPS.Server.Core.Rpc
             sendQueueSandBox.Run();
 
             #endregion
-
-            #region init timecircle enqueue task
-
-            var timeCircleEnqueueSandBox = SandBox.Create(this.TimeCircleSyncMessageEnqueueHandler);
-            timeCircleEnqueueSandBox.Run();
-
-            #endregion
-
+            
             #region init timecircle task
 
             var timeCircleSandBox = SandBox.Create(this.TimeCircleHandler);
@@ -197,28 +189,31 @@ namespace LPS.Server.Core.Rpc
             }
         }
 
-        private void TimeCircleSyncMessageEnqueueHandler()
-        {
-            while (!stopFlag_)
-            {
-                while (!sendQueue_.IsEmpty)
-                {
-                    var res = timeCircleQueue_.TryDequeue(out var tp);
-                    if (res)
-                    {
-                        var (keepOrder, delayTime, msg) = tp;
-                        timeCircle_.AddPropertySyncMessage(msg, delayTime, keepOrder);
-                    }
-                }
-                Thread.Sleep(1);
-            }
-        }
+        // private void TimeCircleSyncMessageEnqueueHandler()
+        // {
+        //     while (!stopFlag_)
+        //     {
+        //         while (!sendQueue_.IsEmpty)
+        //         {
+        //             var res = timeCircleQueue_.TryDequeue(out var tp);
+        //             if (res)
+        //             {
+        //                 var (keepOrder, delayTime, msg) = tp;
+        //                 timeCircle_.AddPropertySyncMessage(msg, delayTime, keepOrder);
+        //             }
+        //         }
+        //         Thread.Sleep(1);
+        //     }
+        // }
+        //
+        // public void AddMessageToTimeCircle(RpcPropertySyncMessage msg, uint delayTimeByMilliseconds, bool keepOrder)
+        //     // => timeCircle_.AddPropertySyncMessage(msg, delayTimeByMilliseconds, keepOrder);
+        //     => timeCircleQueue_.Enqueue((keepOrder, delayTimeByMilliseconds, msg));
 
         private void TimeCircleHandler()
         {
             var lastTimeCircleTickTimestamp = DateTime.UtcNow;
             var currentTimeCircleTickTimestamp = DateTime.UtcNow;
-            timeCircle_.Start();
             
             while (!stopFlag_)
             {
@@ -226,7 +221,7 @@ namespace LPS.Server.Core.Rpc
                 if (deltaTime > 50)
                 {
                     lastTimeCircleTickTimestamp = currentTimeCircleTickTimestamp;
-                    timeCircle_.Tick((uint) deltaTime);
+                    this.ServerTickHandler?.Invoke((uint) deltaTime);
                 }
 
                 Thread.Sleep(25);
@@ -273,10 +268,6 @@ namespace LPS.Server.Core.Rpc
                 Logger.Error(e, "Send Error.");
             }
         }
-
-        public void AddMessageToTimeCircle(RpcPropertySyncMessage msg, uint delayTimeByMilliseconds, bool keepOrder)
-            // => timeCircle_.AddPropertySyncMessage(msg, delayTimeByMilliseconds, keepOrder);
-            => timeCircleQueue_.Enqueue((keepOrder, delayTimeByMilliseconds, msg));
         
         private async Task HandleMessage(Connection conn)
         {

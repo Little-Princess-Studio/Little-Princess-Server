@@ -2,6 +2,7 @@
 // using System.Linq.Expressions;
 //
 
+using System.Collections;
 using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
 using LPS.Common.Core.Rpc.InnerMessages;
@@ -10,13 +11,13 @@ using LPS.Common.Core.Rpc.RpcPropertySync;
 namespace LPS.Common.Core.Rpc.RpcProperty
 {
     [RpcPropertyContainer]
-    public class RpcDictionary<TK, TV> : RpcPropertyContainer
+    public class RpcDictionary<TK, TV> : RpcPropertyContainer, IDictionary<TK, TV>
         where TK : notnull
     {
         private Dictionary<TK, RpcPropertyContainer> rawValue_;
 
         public OnSetValueCallBack<Dictionary<TK, TV>>? OnSetValue { get; set; }
-        public OnUpdateValueCallBack<TK, TV?>? OnUpdateValue {get; set; }
+        public OnUpdateValueCallBack<TK, TV?>? OnUpdateValue { get; set; }
         public OnRemoveElemCallBack<TK, TV>? OnRemoveElem { get; set; }
         public OnClearCallBack? OnClear { get; set; }
 
@@ -32,6 +33,7 @@ namespace LPS.Common.Core.Rpc.RpcProperty
             {
                 AssertNotShadowPropertyChange();
             }
+
             ArgumentNullException.ThrowIfNull(value);
 
             if (withNotify)
@@ -41,7 +43,7 @@ namespace LPS.Common.Core.Rpc.RpcProperty
                     old.RemoveFromPropTree();
                 }
             }
-            
+
             this.Children!.Clear();
 
             if (withNotify)
@@ -83,7 +85,7 @@ namespace LPS.Common.Core.Rpc.RpcProperty
                 this.rawValue_ = value;
             }
         }
-        
+
         static RpcDictionary()
         {
             RpcGenericArgTypeCheckHelper.AssertIsValidKeyType<TK>();
@@ -110,7 +112,7 @@ namespace LPS.Common.Core.Rpc.RpcProperty
 
             var targetContainer = (target as RpcDictionary<TK, TV>)!;
             targetContainer.RemoveFromPropTree();
-            
+
             foreach (var (k, @new) in targetContainer.rawValue_)
             {
                 @new.InsertToPropTree(this, $"{k}", this.TopOwner);
@@ -141,7 +143,7 @@ namespace LPS.Common.Core.Rpc.RpcProperty
             {
                 return new RpcDictionary<TK, TV>();
             }
-            
+
             if (content.Is(DictWithStringKeyArg.Descriptor) && typeof(string) == typeof(TK))
             {
                 var payload = content.Unpack<DictWithStringKeyArg>().PayLoad;
@@ -175,7 +177,7 @@ namespace LPS.Common.Core.Rpc.RpcProperty
                     val.IsReferred = true;
                     rawDict[key!] = val;
                 }
-                
+
                 rpcDict.SetValueInternal(rawDict, true, true);
                 return rpcDict;
             }
@@ -195,7 +197,7 @@ namespace LPS.Common.Core.Rpc.RpcProperty
                     val.IsReferred = true;
                     rawDict[key] = val;
                 }
-                
+
                 rpcDict.SetValueInternal(rawDict, true, true);
                 return rpcDict;
             }
@@ -227,8 +229,9 @@ namespace LPS.Common.Core.Rpc.RpcProperty
 
                     this.RawValue[key] = container;
                     this.Children![container.Name!] = container;
-                    this.NotifyChange(RpcPropertySyncOperation.UpdateDict, container.Name!, container, RpcSyncPropertyType.Dict);
-                    this.OnUpdateValue?.Invoke(key, old != null ? (TV)old.GetRawValue() : default(TV), value);
+                    this.NotifyChange(RpcPropertySyncOperation.UpdateDict, container.Name!, container,
+                        RpcSyncPropertyType.Dict);
+                    this.OnUpdateValue?.Invoke(key, old != null ? (TV) old.GetRawValue() : default(TV), value);
                 }
                 else
                 {
@@ -244,16 +247,18 @@ namespace LPS.Common.Core.Rpc.RpcProperty
 
                         this.RawValue[key] = newContainer;
                         this.Children![newContainer.Name] = newContainer;
-                        this.NotifyChange(RpcPropertySyncOperation.UpdateDict, newContainer.Name!, newContainer, RpcSyncPropertyType.Dict);
-                        this.OnUpdateValue?.Invoke(key, old != null ? (TV)old.GetRawValue() : default(TV), value);
+                        this.NotifyChange(RpcPropertySyncOperation.UpdateDict, newContainer.Name!, newContainer,
+                            RpcSyncPropertyType.Dict);
+                        this.OnUpdateValue?.Invoke(key, old != null ? (TV) old.GetRawValue() : default(TV), value);
                     }
                     else // reuse old
                     {
                         var oldWithType = (RpcPropertyContainer<TV>) old;
                         var oldVal = oldWithType.GetRawValue();
                         oldWithType.Value = value;
-                        this.NotifyChange(RpcPropertySyncOperation.UpdateDict, old.Name!, oldWithType, RpcSyncPropertyType.Dict);
-                        this.OnUpdateValue?.Invoke(key, (TV)oldWithType.GetRawValue(), value);
+                        this.NotifyChange(RpcPropertySyncOperation.UpdateDict, old.Name!, oldWithType,
+                            RpcSyncPropertyType.Dict);
+                        this.OnUpdateValue?.Invoke(key, (TV) oldWithType.GetRawValue(), value);
                     }
                 }
             }
@@ -268,7 +273,7 @@ namespace LPS.Common.Core.Rpc.RpcProperty
             this.RawValue.Remove(key);
             this.Children!.Remove($"{key}");
             this.NotifyChange(RpcPropertySyncOperation.RemoveElem, elem.Name!, null, RpcSyncPropertyType.Dict);
-            this.OnRemoveElem?.Invoke(key, (TV)elem.GetRawValue());
+            this.OnRemoveElem?.Invoke(key, (TV) elem.GetRawValue());
         }
 
         public void Clear()
@@ -293,5 +298,101 @@ namespace LPS.Common.Core.Rpc.RpcProperty
                 pair => (TV) pair.Value.GetRawValue());
 
         public int Count => this.RawValue.Count;
+
+        public bool TryGetValue(TK key, out TV value)
+        {
+            if (this.RawValue.ContainsKey(key))
+            {
+                value = (TV) this.rawValue_[key].GetRawValue();
+                return true;
+            }
+
+            value = default(TV);
+            return false;
+        }
+
+        public ICollection<TK> Keys => this.rawValue_.Keys;
+        public ICollection<TV> Values => this.rawValue_.Values.Select(v => (TV) v.GetRawValue()).ToArray();
+
+        public void Add(TK key, TV value) => this[key] = value;
+
+        public bool ContainsKey(TK key) => this.rawValue_.ContainsKey(key);
+
+        bool IDictionary<TK, TV>.Remove(TK key)
+        {
+            if (this.ContainsKey(key))
+            {
+                this.Remove(key);
+                return true;
+            }
+
+            return false;
+        }
+
+        public void Add(KeyValuePair<TK, TV> item) => this[item.Key] = item.Value;
+
+        public bool Contains(KeyValuePair<TK, TV> item)
+        {
+            return this.ContainsKey(item.Key) && (this[item.Key]!.Equals(item.Value));
+        }
+
+        public void CopyTo(KeyValuePair<TK, TV>[] array, int arrayIndex)
+        {
+            var keys = this.Keys.ToArray();
+            for (int i = 0; i < this.Count; ++i)
+            {
+                array[arrayIndex++] = new KeyValuePair<TK, TV>(keys[i], this[keys[i]]);
+            }
+        }
+
+        public bool Remove(KeyValuePair<TK, TV> item)
+        {
+            if (this.Contains(item))
+            {
+                this.Remove(item.Key);
+                return true;
+            }
+
+            return false;
+        }
+
+        public bool IsReadOnly => false;
+
+        public IEnumerator<KeyValuePair<TK, TV>> GetEnumerator()
+        {
+            return new Enumerator(rawValue_);
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
+        }
+
+        public class Enumerator : IEnumerator<KeyValuePair<TK, TV>>
+        {
+            private Dictionary<TK, RpcPropertyContainer>.Enumerator enumerator_;
+            private Dictionary<TK, RpcPropertyContainer> dictionary_;
+
+            public Enumerator(Dictionary<TK, RpcPropertyContainer> dictionary)
+            {
+                enumerator_ = dictionary.GetEnumerator();
+                dictionary_ = dictionary;
+            }
+
+            public bool MoveNext() => enumerator_.MoveNext();
+
+            public void Reset()
+            {
+                enumerator_.Dispose();
+                enumerator_ = dictionary_.GetEnumerator();
+            }
+
+            public KeyValuePair<TK, TV> Current => new KeyValuePair<TK, TV>(enumerator_.Current.Key,
+                (TV) enumerator_.Current.Value.GetRawValue());
+
+            object IEnumerator.Current => Current;
+
+            public void Dispose() => enumerator_.Dispose();
+        }
     }
 }

@@ -13,7 +13,6 @@ public abstract class RpcPropertySyncInfo
 {
     private readonly LinkedList<RpcPropertySyncMessage> propPath2SyncMsgQueue_ = new();
     public LinkedList<RpcPropertySyncMessage> PropPath2SyncMsgQueue => propPath2SyncMsgQueue_;
-    public abstract Package ToSyncPackage();
     public abstract void AddNewSyncMessage(RpcPropertySyncMessage msg);
 
     public void Reset()
@@ -42,11 +41,6 @@ public abstract class RpcPropertySyncInfo
 
 public class RpcListPropertySyncInfo : RpcPropertySyncInfo
 {
-    public override Package ToSyncPackage()
-    {
-        throw new NotImplementedException();
-    }
-
     public override void AddNewSyncMessage(RpcPropertySyncMessage msg)
     {
         var newMsg = (msg as RpcListPropertySyncMessage)!;
@@ -56,11 +50,6 @@ public class RpcListPropertySyncInfo : RpcPropertySyncInfo
 
 public class RpcDictPropertySyncInfo : RpcPropertySyncInfo
 {
-    public override Package ToSyncPackage()
-    {
-        throw new NotImplementedException();
-    }
-
     public override void AddNewSyncMessage(RpcPropertySyncMessage msg)
     {
         var newMsg = (msg as RpcDictPropertySyncMessage)!;
@@ -70,11 +59,6 @@ public class RpcDictPropertySyncInfo : RpcPropertySyncInfo
 
 public class RpcPlaintAndCostumePropertySyncInfo : RpcPropertySyncInfo
 {
-    public override Package ToSyncPackage()
-    {
-        throw new NotImplementedException();
-    }
-
     public override void AddNewSyncMessage(RpcPropertySyncMessage msg)
     {
         var newMsg = (msg as RpcPlaintAndCostumePropertySyncMessage)!;

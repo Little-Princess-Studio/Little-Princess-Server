@@ -30,9 +30,9 @@ public class TimeCircleUnitTest
 
         var slots = GetSlot(timeCircle);
 
-        timeCircle.Tick(50);
-        timeCircle.Tick(50);
-        timeCircle.Tick(50);
+        timeCircle.Tick(50, command => { });
+        timeCircle.Tick(50, command => { });
+        timeCircle.Tick(50, command => { });
 
         var slot = GetSlot(timeCircle)[0];
         Assert.Equal(0, slot.GetSyncQueueLength(new MailBox("test_id1", "127.0.0.1", 99, 9999)));
@@ -232,7 +232,7 @@ public class TimeCircleUnitTest
             CheckUpdateDictMsg(arr[0], new Dictionary<object, string> {{"0", "0"}});
             CheckRemoveDictMsg(arr[1], new HashSet<string> {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9"});
             CheckUpdateDictMsg(arr[2], new Dictionary<object, string> {{"1", "1"}});
-            CheckRemoveDictMsg(arr[3], new HashSet<string> { "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"});
+            CheckRemoveDictMsg(arr[3], new HashSet<string> {"1", "2", "3", "4", "5", "6", "7", "8", "9", "10"});
             CheckUpdateDictMsg(arr[4], new Dictionary<object, string> {{"2", "2"}});
             CheckRemoveDictMsg(arr[5], new HashSet<string> {"2", "3", "4", "5", "6", "7", "8", "9", "10", "11"});
             CheckUpdateDictMsg(arr[6], new Dictionary<object, string> {{"3", "3"}});
@@ -251,7 +251,7 @@ public class TimeCircleUnitTest
             var msg = (RpcDictPropertySyncMessage) arr[0];
             Assert.NotNull(msg);
 
-            CheckRemoveDictMsg(msg, new HashSet<string> 
+            CheckRemoveDictMsg(msg, new HashSet<string>
                 {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13"});
         }
     }
@@ -303,9 +303,9 @@ public class TimeCircleUnitTest
 
         var slots = GetSlot(timeCircle);
 
-        timeCircle.Tick(50);
-        timeCircle.Tick(50);
-        timeCircle.Tick(50);
+        timeCircle.Tick(50, command => { });
+        timeCircle.Tick(50, command => { });
+        timeCircle.Tick(50, command => { });
 
         var slot = GetSlot(timeCircle)[0];
         Assert.Null(slot.FindRpcPropertySyncInfo(new MailBox("test_id", "127.0.0.1", 99, 9999), "testpath"));

@@ -4,9 +4,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using LPS.Common.Core.Debug;
-using LPS.Common.Core.Rpc;
+using LPS.Common.Core.Rpc.InnerMessages;
 using LPS.Common.Core.Rpc.RpcPropertySync;
 using LPS.Server.Core.Rpc;
+using MailBox = LPS.Common.Core.Rpc.MailBox;
 
 namespace LPS.Common.Core.Ipc
 {
@@ -140,22 +141,26 @@ namespace LPS.Common.Core.Ipc
             }
         }
 
-        public void Dispatch()
+        public void Dispatch(Action<PropertySyncCommand> dispatch)
         {
             Logger.Debug("Dispatch Message");
             foreach (var (entityId, entitySyncInfoDict) in idToSyncMsg_)
             {
-                Logger.Debug($"Dispatch entity id {entityId}");
+                Logger.Debug($"Dispatch entity id {entityId}, no ordered");
                 foreach (var (propPath, syncInfo) in entitySyncInfoDict)
                 {
-                    Logger.Debug($"{propPath} -> {syncInfo}");
-                    var syncPkg = syncInfo.ToSyncPackage();
+                    foreach (var msg in syncInfo.PropPath2SyncMsgQueue)
+                    {
+                        Logger.Debug($"{propPath} -> {msg}");
+                        var syncMsg = msg.Serialize();
+                        dispatch.Invoke(syncMsg);
+                    }
                 }
             }
 
             foreach (var (entityId, msgQueue) in idToSyncMsgWithOrder_)
             {
-                Logger.Debug($"Dispatch entity id {entityId}");
+                Logger.Debug($"Dispatch entity id {entityId}, ordered");
                 foreach (var (propPath, syncQueue) in idToSyncMsgWithOrder_)
                 {
                     while (syncQueue.Count > 0)
@@ -163,6 +168,7 @@ namespace LPS.Common.Core.Ipc
                         var msg = syncQueue.Dequeue();
                         Logger.Debug($"{propPath} -> {msg}");
                         var syncMsg = msg.Serialize();
+                        dispatch.Invoke(syncMsg);
                     }
                 }
             }
@@ -269,7 +275,7 @@ namespace LPS.Common.Core.Ipc
         // dispatch 0 [0...50] -> fill 60 to 0
         // dispatch 1 [51...100] -> fill 61 to 1
         // dispatch n [101 ... 150] -> fill n + 60 to n
-        public void Tick(uint duration)
+        public void Tick(uint duration, Action<PropertySyncCommand> dispatch)
         {
             // move forward
             var moveStep = duration / timeInterval_;
@@ -279,7 +285,7 @@ namespace LPS.Common.Core.Ipc
                 var slotCircleIndex = slotIndex_ % slotsPerCircle_;
                 var slot = slots_[slotCircleIndex];
 
-                slot.Dispatch();
+                slot.Dispatch(dispatch);
                 this.FillSlot(slot, slotIndex_ + slotsPerCircle_);
                 ++slotIndex_;
             }

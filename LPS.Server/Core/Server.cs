@@ -1,12 +1,15 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using Google.Protobuf;
 using LPS.Common.Core.Debug;
 using LPS.Common.Core.Entity;
+using LPS.Common.Core.Ipc;
 using LPS.Common.Core.Rpc;
 using LPS.Common.Core.Rpc.InnerMessages;
+using LPS.Common.Core.Rpc.RpcPropertySync;
 using LPS.Server.Core.Database;
 using LPS.Server.Core.Entity;
 using LPS.Server.Core.Rpc;
@@ -35,12 +38,13 @@ namespace LPS.Server.Core
         private readonly Dictionary<string, CellEntity> cells_ = new();
 
         private readonly TcpServer tcpServer_;
-
         private Connection[] GateConnections => tcpServer_.AllConnections;
 
         private readonly CountdownEvent localEntityGeneratedEvent_;
-
-        // private static readonly Random Random = new Random();
+        
+        private readonly ConcurrentQueue<(bool, uint, RpcPropertySyncMessage)> timeCircleQueue_ = new();
+        private readonly TimeCircle timeCircle_ = new(50, 1000);
+        private readonly Random random_ = new();
 
         public Server(string name, string ip, int port, int hostnum, string hostManagerIp, int hostManagerPort)
         {
@@ -54,9 +58,12 @@ namespace LPS.Server.Core
             tcpServer_ = new TcpServer(ip, port)
             {
                 OnInit = this.RegisterServerMessageHandlers,
-                OnDispose = this.UnregisterServerMessageHandlers
+                OnDispose = this.UnregisterServerMessageHandlers,
+                ServerTickHandler = this.OnTick,
             };
 
+            timeCircle_.Start();
+            
             hostManagerIP_ = hostManagerIp;
             hostManagerPort_ = hostManagerPort;
 
@@ -103,6 +110,35 @@ namespace LPS.Server.Core
             });
         }
 
+        private void OnTick(uint deltaTime)
+        {
+            timeCircle_.Tick((uint) deltaTime, command =>
+            {
+                // this
+            });
+        }
+        
+        private void TimeCircleSyncMessageEnqueueHandler()
+        {
+            while (!tcpServer_.Stopped)
+            {
+                while (!timeCircleQueue_.IsEmpty)
+                {
+                    var res = timeCircleQueue_.TryDequeue(out var tp);
+                    if (res)
+                    {
+                        var (keepOrder, delayTime, msg) = tp;
+                        timeCircle_.AddPropertySyncMessage(msg, delayTime, keepOrder);
+                    }
+                }
+                Thread.Sleep(1);
+            }
+        }
+        
+        public void AddMessageToTimeCircle(RpcPropertySyncMessage msg, uint delayTimeByMilliseconds, bool keepOrder)
+            // => timeCircle_.AddPropertySyncMessage(msg, delayTimeByMilliseconds, keepOrder);
+            => timeCircleQueue_.Enqueue((keepOrder, delayTimeByMilliseconds, msg));
+        
         private void SendEntityRpc(BaseEntity baseEntity, EntityRpc entityRpc)
         {
             // send this rpc to gate
@@ -168,7 +204,7 @@ namespace LPS.Server.Core
             {
                 Logger.Info($"Send sync msg {syncMsg.Operation} {syncMsg.MailBox} {syncMsg.RpcPropertyPath}"
                             + $"{syncMsg.RpcSyncPropertyType}:{delayTime}:{keepOrder}");
-                tcpServer_.AddMessageToTimeCircle(syncMsg, delayTime, keepOrder);
+                this.AddMessageToTimeCircle(syncMsg, delayTime, keepOrder);
             };
 
             if (entity is ServerClientEntity serverClientEntity)
@@ -193,7 +229,7 @@ namespace LPS.Server.Core
         public void Loop()
         {
             localEntityGeneratedEvent_.Wait();
-            Logger.Debug($"Start gate at {this.Ip}:{this.Port}");
+            Logger.Debug($"Start server at {this.Ip}:{this.Port}");
             tcpServer_.Run();
 
             // gate main thread will stuck here

@@ -1,4 +1,5 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using System.Collections;
+using System.Diagnostics.CodeAnalysis;
 using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
 using LPS.Common.Core.Rpc.InnerMessages;
@@ -7,7 +8,7 @@ using LPS.Common.Core.Rpc.RpcPropertySync;
 namespace LPS.Common.Core.Rpc.RpcProperty
 {
     [RpcPropertyContainer]
-    public class RpcList<TElem> : RpcPropertyContainer
+    public class RpcList<TElem> : RpcPropertyContainer, IEnumerable<TElem>
     {
         public OnSetValueCallBack<List<TElem>>? OnSetValue { get; set; }
         public OnUpdateValueCallBack<int, TElem>? OnUpdateValue {get; set; }
@@ -318,7 +319,7 @@ namespace LPS.Common.Core.Rpc.RpcProperty
             }
         }
 
-        List<TElem> ToCopy() => this.RawValue.Select(e => (TElem) e.GetRawValue()).ToList();
+        public List<TElem> ToCopy() => this.RawValue.Select(e => (TElem) e.GetRawValue()).ToList();
 
         public void Assign(RpcList<TElem> target)
         {
@@ -331,6 +332,42 @@ namespace LPS.Common.Core.Rpc.RpcProperty
             this.NotifyChange(RpcPropertySyncOperation.SetValue, this.Name!, target, RpcSyncPropertyType.List);
             
             this.AssignInternal(target);
+        }
+
+        public IEnumerator<TElem> GetEnumerator()
+        {
+            return new Enumerator<TElem>(rawValue_);
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
+        }
+
+        public class Enumerator<TEnumeratorElem> : IEnumerator<TEnumeratorElem>
+        {
+            private readonly List<RpcPropertyContainer> list_;
+            private List<RpcPropertyContainer>.Enumerator enumerator_;
+
+            public Enumerator(List<RpcPropertyContainer> list)
+            {
+                enumerator_ = list.GetEnumerator();
+                list_ = list;
+            }
+
+            public bool MoveNext() => enumerator_.MoveNext();
+
+            public void Reset()
+            {
+                enumerator_.Dispose();
+                enumerator_ = list_.GetEnumerator();
+            }
+
+            object IEnumerator.Current => Current!;
+
+            public TEnumeratorElem Current => (TEnumeratorElem) enumerator_.Current.GetRawValue();
+            
+            public void Dispose() => enumerator_.Dispose();
         }
     }
 }

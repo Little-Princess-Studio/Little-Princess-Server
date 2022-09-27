@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Text;
+using LPS.Client.Entity;
 using LPS.Common.Core.Debug;
 using LPS.Common.Core.Rpc.InnerMessages;
 using MailBox = LPS.Common.Core.Rpc.MailBox;
@@ -53,6 +54,15 @@ namespace LPS.Client.Console
                 
                 Thread.Sleep(50);
             }
+        }
+
+        [ConsoleCommand("local.check_property")]
+        public static void CheckProperty()
+        {
+            var untrusted = ClientGlobal.ShadowClientEntity as Untrusted;
+            var list = untrusted!.TestRpcProp.Val;
+            Logger.Debug($"TestRpcProp: {string.Join(',', list)}");
+            Logger.Debug($"TestRpcPlaintPropStr: {untrusted?.TestRpcPlaintPropStr.Val}");
         }
 
         [ConsoleCommand("help")]
