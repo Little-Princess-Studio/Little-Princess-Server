@@ -5,8 +5,8 @@ namespace LPS.Common.Core.Rpc.RpcPropertySync;
 public enum RpcSyncPropertyType
 {
     PlaintAndCostume = 0,
-    List = 1,
-    Dict = 2,
+    Dict = 1,
+    List = 2,
 }
 
 public abstract class RpcPropertySyncInfo
@@ -14,6 +14,13 @@ public abstract class RpcPropertySyncInfo
     private readonly LinkedList<RpcPropertySyncMessage> propPath2SyncMsgQueue_ = new();
     public LinkedList<RpcPropertySyncMessage> PropPath2SyncMsgQueue => propPath2SyncMsgQueue_;
     public abstract void AddNewSyncMessage(RpcPropertySyncMessage msg);
+
+    public readonly RpcSyncPropertyType RpcSyncPropertyType;
+
+    protected RpcPropertySyncInfo(RpcSyncPropertyType rpcSyncPropertyType)
+    {
+        RpcSyncPropertyType = rpcSyncPropertyType;
+    }
 
     public void Reset()
     {
@@ -41,6 +48,10 @@ public abstract class RpcPropertySyncInfo
 
 public class RpcListPropertySyncInfo : RpcPropertySyncInfo
 {
+    public RpcListPropertySyncInfo() : base(RpcSyncPropertyType.List)
+    {
+    }
+
     public override void AddNewSyncMessage(RpcPropertySyncMessage msg)
     {
         var newMsg = (msg as RpcListPropertySyncMessage)!;
@@ -50,6 +61,10 @@ public class RpcListPropertySyncInfo : RpcPropertySyncInfo
 
 public class RpcDictPropertySyncInfo : RpcPropertySyncInfo
 {
+    public RpcDictPropertySyncInfo() : base(RpcSyncPropertyType.Dict)
+    {
+    }
+
     public override void AddNewSyncMessage(RpcPropertySyncMessage msg)
     {
         var newMsg = (msg as RpcDictPropertySyncMessage)!;
@@ -59,6 +74,10 @@ public class RpcDictPropertySyncInfo : RpcPropertySyncInfo
 
 public class RpcPlaintAndCostumePropertySyncInfo : RpcPropertySyncInfo
 {
+    public RpcPlaintAndCostumePropertySyncInfo() : base(RpcSyncPropertyType.PlaintAndCostume)
+    {
+    }
+
     public override void AddNewSyncMessage(RpcPropertySyncMessage msg)
     {
         var newMsg = (msg as RpcPlaintAndCostumePropertySyncMessage)!;

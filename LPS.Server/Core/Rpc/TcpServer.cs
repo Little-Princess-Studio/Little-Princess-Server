@@ -38,7 +38,7 @@ namespace LPS.Server.Core.Rpc
         private readonly ConcurrentQueue<(Connection, IMessage)> sendQueue_ = new();
         private uint serverEntityPackageId_;
         
-        public Action<uint>? ServerTickHandler;
+        public Action<uint>? ServerTickHandler { get; init; }
         
         public bool Stopped => stopFlag_;
 

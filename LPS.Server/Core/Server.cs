@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using Google.Protobuf;
@@ -112,9 +113,12 @@ namespace LPS.Server.Core
 
         private void OnTick(uint deltaTime)
         {
-            timeCircle_.Tick((uint) deltaTime, command =>
+            timeCircle_.Tick(deltaTime, command =>
             {
-                // this
+                var gateConn = this.GateConnections[random_.Next(0, this.GateConnections.Length)];
+                tcpServer_.Send(command, gateConn);
+                
+                Logger.Debug($"[Dispatch Prop Sync msg]: {command} to {gateConn.MailBox}");
             });
         }
         

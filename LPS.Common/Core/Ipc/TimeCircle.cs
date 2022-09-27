@@ -141,7 +141,7 @@ namespace LPS.Common.Core.Ipc
             }
         }
 
-        public void Dispatch(Action<PropertySyncCommand> dispatch)
+        public void Dispatch(Action<PropertySyncCommandList> dispatch)
         {
             Logger.Debug("Dispatch Message");
             foreach (var (entityId, entitySyncInfoDict) in idToSyncMsg_)
@@ -149,12 +149,21 @@ namespace LPS.Common.Core.Ipc
                 Logger.Debug($"Dispatch entity id {entityId}, no ordered");
                 foreach (var (propPath, syncInfo) in entitySyncInfoDict)
                 {
+                    PropertySyncCommandList cmdList = new()
+                    {
+                        Path = propPath,
+                        EntityId = entityId,
+                        PropType = (SyncPropType) syncInfo.RpcSyncPropertyType
+                    };
+                    
                     foreach (var msg in syncInfo.PropPath2SyncMsgQueue)
                     {
                         Logger.Debug($"{propPath} -> {msg}");
                         var syncMsg = msg.Serialize();
-                        dispatch.Invoke(syncMsg);
+                        cmdList.SyncArg.Add(syncMsg);
                     }
+                    
+                    dispatch.Invoke(cmdList);
                 }
             }
 
@@ -168,7 +177,15 @@ namespace LPS.Common.Core.Ipc
                         var msg = syncQueue.Dequeue();
                         Logger.Debug($"{propPath} -> {msg}");
                         var syncMsg = msg.Serialize();
-                        dispatch.Invoke(syncMsg);
+                        
+                        PropertySyncCommandList cmdList = new()
+                        {
+                            Path = propPath,
+                            EntityId = entityId,
+                            PropType = (SyncPropType) msg.RpcSyncPropertyType,
+                        };
+
+                        dispatch.Invoke(cmdList);
                     }
                 }
             }
@@ -275,7 +292,7 @@ namespace LPS.Common.Core.Ipc
         // dispatch 0 [0...50] -> fill 60 to 0
         // dispatch 1 [51...100] -> fill 61 to 1
         // dispatch n [101 ... 150] -> fill n + 60 to n
-        public void Tick(uint duration, Action<PropertySyncCommand> dispatch)
+        public void Tick(uint duration, Action<PropertySyncCommandList> dispatch)
         {
             // move forward
             var moveStep = duration / timeInterval_;

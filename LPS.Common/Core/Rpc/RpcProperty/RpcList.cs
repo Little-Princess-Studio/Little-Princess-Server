@@ -8,7 +8,7 @@ using LPS.Common.Core.Rpc.RpcPropertySync;
 namespace LPS.Common.Core.Rpc.RpcProperty
 {
     [RpcPropertyContainer]
-    public class RpcList<TElem> : RpcPropertyContainer, IEnumerable<TElem>
+    public class RpcList<TElem> : RpcPropertyContainer, IList<TElem>
     {
         public OnSetValueCallBack<List<TElem>>? OnSetValue { get; set; }
         public OnUpdateValueCallBack<int, TElem>? OnUpdateValue {get; set; }
@@ -228,7 +228,7 @@ namespace LPS.Common.Core.Rpc.RpcProperty
             return newContainer;
         }
 
-        public void Add([DisallowNull] TElem elem)
+        public void Add(TElem elem)
         {
             AssertNotShadowPropertyChange();
 
@@ -242,7 +242,7 @@ namespace LPS.Common.Core.Rpc.RpcProperty
             this.OnAddElem?.Invoke(elem);
         }
 
-        public void Remove(int index)
+        public void RemoveInternal(int index)
         {
             AssertNotShadowPropertyChange();
 
@@ -254,8 +254,8 @@ namespace LPS.Common.Core.Rpc.RpcProperty
             this.NotifyChange(RpcPropertySyncOperation.RemoveElem, elem.Name!, null, RpcSyncPropertyType.List);
             this.OnRemoveElem?.Invoke(index, (TElem) elem.GetRawValue());
         }
-
-        public void Insert(int index, [DisallowNull] TElem elem)
+        
+        public void Insert(int index, TElem elem)
         {
             AssertNotShadowPropertyChange();
 
@@ -334,6 +334,45 @@ namespace LPS.Common.Core.Rpc.RpcProperty
             this.AssignInternal(target);
         }
 
+        public bool IsReadOnly => false;
+
+        public int IndexOf(TElem item)
+        {
+            for (var i = 0; i < rawValue_.Count; i++)
+            {
+                if (item!.Equals(this[i]))
+                {
+                    return i;
+                }
+            }
+
+            return -1;
+        }
+
+        public void RemoveAt(int index) => this.RemoveInternal(index);
+
+        public bool Contains(TElem item) => this.IndexOf(item) != -1;
+
+        public void CopyTo(TElem[] array, int arrayIndex)
+        {
+            for (var i = 0; i < this.rawValue_.Count; i++)
+            {
+                array[arrayIndex++] = this[i];
+            }
+        }
+
+        public bool Remove(TElem item)
+        {
+            var index = this.IndexOf(item);
+            if (index != -1)
+            {
+                this.RemoveAt(index);
+                return true;
+            }
+
+            return false;
+        }
+        
         public IEnumerator<TElem> GetEnumerator()
         {
             return new Enumerator<TElem>(rawValue_);

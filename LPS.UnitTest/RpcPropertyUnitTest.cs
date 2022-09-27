@@ -267,7 +267,7 @@ public class RpcPropertyUnitTest
         entity.TestRpcProp.Val.Add("111");
         entity.TestRpcProp.Val.Add("111");
         entity.TestRpcProp.Val[1] = "222";
-        entity.TestRpcProp.Val.Remove(2);
+        entity.TestRpcProp.Val.RemoveAt(2);
         entity.TestRpcProp.Val.Assign(new RpcList<string>(3, "333"));
         entity.TestRpcProp.Val.Clear();
 

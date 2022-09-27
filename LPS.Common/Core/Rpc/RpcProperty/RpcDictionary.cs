@@ -264,7 +264,7 @@ namespace LPS.Common.Core.Rpc.RpcProperty
             }
         }
 
-        public void Remove(TK key)
+        public void RemoveInternal(TK key)
         {
             AssertNotShadowPropertyChange();
             var elem = this.RawValue[key];
@@ -318,11 +318,11 @@ namespace LPS.Common.Core.Rpc.RpcProperty
 
         public bool ContainsKey(TK key) => this.rawValue_.ContainsKey(key);
 
-        bool IDictionary<TK, TV>.Remove(TK key)
+        public bool Remove(TK key)
         {
             if (this.ContainsKey(key))
             {
-                this.Remove(key);
+                this.RemoveInternal(key);
                 return true;
             }
 
@@ -333,7 +333,7 @@ namespace LPS.Common.Core.Rpc.RpcProperty
 
         public bool Contains(KeyValuePair<TK, TV> item)
         {
-            return this.ContainsKey(item.Key) && (this[item.Key]!.Equals(item.Value));
+            return this.ContainsKey(item.Key) && this[item.Key]!.Equals(item.Value);
         }
 
         public void CopyTo(KeyValuePair<TK, TV>[] array, int arrayIndex)
@@ -349,7 +349,7 @@ namespace LPS.Common.Core.Rpc.RpcProperty
         {
             if (this.Contains(item))
             {
-                this.Remove(item.Key);
+                this.RemoveInternal(item.Key);
                 return true;
             }
 
