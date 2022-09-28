@@ -1,5 +1,6 @@
 using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
+using LPS.Common.Core.Debug;
 using LPS.Common.Core.Entity;
 using LPS.Common.Core.Rpc.RpcPropertySync;
 
@@ -79,12 +80,19 @@ namespace LPS.Common.Core.Rpc.RpcProperty
         public readonly string Name;
         public readonly RpcPropertySetting Setting;
         public BaseEntity? Owner;
-        protected RpcPropertyContainer Value;
+        public RpcPropertyContainer Value { get; protected set; }
 
         public bool IsShadowProperty => this.Setting.HasFlag(RpcPropertySetting.Shadow);
         public bool ShouldSyncToShadow => this.Setting.HasFlag(RpcPropertySetting.ServerToShadow);
         public ISendPropertySyncMessage? SendSyncMsgImpl { get; set; }
-        public bool CanSyncToClient => this.SendSyncMsgImpl != null && !this.IsShadowProperty && ShouldSyncToShadow;
+        public bool CanSyncToClient
+        {
+            get
+            {   
+                Logger.Info($"CanSyncToClient = {this.SendSyncMsgImpl != null} && {!this.IsShadowProperty} && {ShouldSyncToShadow}");
+                return this.SendSyncMsgImpl != null && !this.IsShadowProperty && ShouldSyncToShadow;
+            }
+        }
 
         protected RpcProperty(string name, RpcPropertySetting setting, RpcPropertyContainer value)
         {
@@ -99,19 +107,20 @@ namespace LPS.Common.Core.Rpc.RpcProperty
         public void OnNotify(RpcPropertySyncOperation operation, List<string> path, RpcPropertyContainer? @new,
             RpcSyncPropertyType propertyType)
         {
+            Logger.Debug($"[OnNotify] {!this.CanSyncToClient}, {this.Owner == null}, {!this.CanSyncToClient || this.Owner == null}");
             if (!this.CanSyncToClient || this.Owner == null)
             {
                 return;
             }
 
-            Console.WriteLine($"[OnNotify] {operation}, {string.Join(".", path)}, {@new}");
+            Logger.Debug($"[OnNotify] {operation}, {string.Join(".", path)}, {@new}");
             switch (operation)
             {
                 case RpcPropertySyncOperation.SetValue:
-                    this.OnSetValueInternal(path, @new!);
+                    this.OnSetValueInternal(path, @new!, propertyType);
                     break;
-                case RpcPropertySyncOperation.UpdateDict:
-                    this.OnUpdateDictInternal(path, @new!);
+                case RpcPropertySyncOperation.UpdatePair:
+                    this.OnUpdatePairInternal(path, @new!, propertyType);
                     break;
                 case RpcPropertySyncOperation.AddListElem:
                     this.OnAddListElemInternal(path, @new!);
@@ -130,21 +139,41 @@ namespace LPS.Common.Core.Rpc.RpcProperty
             }
         }
 
-        private void OnSetValueInternal(List<string> path, RpcPropertyContainer newVal)
+        private void OnSetValueInternal(List<string> path, RpcPropertyContainer newVal, RpcSyncPropertyType propertyType)
         {
             var fullPath = String.Join(',', path);
-            var syncMsg = new RpcPlaintAndCostumePropertySyncMessage(this.Owner!.MailBox,
-                RpcPropertySyncOperation.SetValue,
-                fullPath, newVal);
+            RpcPropertySyncMessage syncMsg;
+            switch (propertyType)
+            {
+                case RpcSyncPropertyType.PlaintAndCostume:
+                    syncMsg = new RpcPlaintAndCostumePropertySyncMessage(this.Owner!.MailBox,
+                        RpcPropertySyncOperation.SetValue, fullPath, newVal);
+                    break;
+                case RpcSyncPropertyType.Dict:
+                    var syncDictMsg = new RpcDictPropertySyncMessage(this.Owner!.MailBox, RpcPropertySyncOperation.SetValue,
+                        fullPath);
+                    syncDictMsg.Action!(newVal);
+                    syncMsg = syncDictMsg;
+                    break;
+                case RpcSyncPropertyType.List:
+                    var syncListMsg = new RpcListPropertySyncMessage(this.Owner!.MailBox, RpcPropertySyncOperation.SetValue,
+                        fullPath);
+                    syncListMsg.Action!(newVal);
+                    syncMsg = syncListMsg;
+                    break;
+                default:
+                    throw new Exception($"Invalid rpc property type {propertyType}");
+            }
+
             this.SendSyncMsgImpl!.SendSyncMsg(false, 0, syncMsg!);
         }
 
-        private void OnUpdateDictInternal(List<string> path, RpcPropertyContainer newVal)
+        private void OnUpdatePairInternal(List<string> path, RpcPropertyContainer newVal, RpcSyncPropertyType propertyType)
         {
             var key = path.Last();
             path.RemoveAt(path.Count - 1);
             var fullPath = String.Join('.', path);
-            var syncMsg = new RpcDictPropertySyncMessage(this.Owner!.MailBox, RpcPropertySyncOperation.UpdateDict,
+            var syncMsg = new RpcDictPropertySyncMessage(this.Owner!.MailBox, RpcPropertySyncOperation.UpdatePair,
                 fullPath);
             syncMsg.Action!(key, newVal);
             this.SendSyncMsgImpl!.SendSyncMsg(false, 0, syncMsg!);

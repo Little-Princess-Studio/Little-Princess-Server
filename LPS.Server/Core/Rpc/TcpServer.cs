@@ -16,10 +16,29 @@ using MailBox = LPS.Common.Core.Rpc.MailBox;
 
 namespace LPS.Server.Core.Rpc
 {
+    public interface IServer
+    {
+        string Ip { get; }
+        int Port { get; }
+        Socket? Socket { get; }
+        Action? OnInit { get;  }
+        Action? OnDispose { get; }
+        Connection[] AllConnections { get; }
+        Action<uint>? ServerTickHandler { get; }
+        bool Stopped { get; }
+
+        void Run();
+        void Stop();
+        void WaitForExit();
+        void Send(IMessage msg, Connection conn);
+        void RegisterMessageHandler(IComparable key, Action<object> callback);
+        void UnregisterMessageHandler(IComparable key, Action<object> callback);
+    }
+    
     /*
     TcpServer is common server for LPS inner usage.
     */
-    public class TcpServer
+    internal class TcpServer : IServer
     {
         public string Ip { get; private set; }
         public int Port { get; private set; }
@@ -167,9 +186,7 @@ namespace LPS.Server.Core.Rpc
 
             this.OnDispose?.Invoke();
         }
-
-        public MailBox GetMailBox(Socket socket) => socketToConn_[socket].MailBox;
-
+        
         private void PumpMessageHandler()
         {
             while (!stopFlag_)
@@ -189,34 +206,13 @@ namespace LPS.Server.Core.Rpc
             }
         }
 
-        // private void TimeCircleSyncMessageEnqueueHandler()
-        // {
-        //     while (!stopFlag_)
-        //     {
-        //         while (!sendQueue_.IsEmpty)
-        //         {
-        //             var res = timeCircleQueue_.TryDequeue(out var tp);
-        //             if (res)
-        //             {
-        //                 var (keepOrder, delayTime, msg) = tp;
-        //                 timeCircle_.AddPropertySyncMessage(msg, delayTime, keepOrder);
-        //             }
-        //         }
-        //         Thread.Sleep(1);
-        //     }
-        // }
-        //
-        // public void AddMessageToTimeCircle(RpcPropertySyncMessage msg, uint delayTimeByMilliseconds, bool keepOrder)
-        //     // => timeCircle_.AddPropertySyncMessage(msg, delayTimeByMilliseconds, keepOrder);
-        //     => timeCircleQueue_.Enqueue((keepOrder, delayTimeByMilliseconds, msg));
-
         private void TimeCircleHandler()
         {
             var lastTimeCircleTickTimestamp = DateTime.UtcNow;
-            var currentTimeCircleTickTimestamp = DateTime.UtcNow;
             
             while (!stopFlag_)
             {
+                var currentTimeCircleTickTimestamp = DateTime.UtcNow;
                 var deltaTime = (currentTimeCircleTickTimestamp - lastTimeCircleTickTimestamp).Milliseconds;
                 if (deltaTime > 50)
                 {

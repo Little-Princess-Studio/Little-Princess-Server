@@ -11,7 +11,27 @@ using LPS.Common.Core.Rpc;
 
 namespace LPS.Server.Core.Rpc
 {
-    internal class TcpClient
+    public interface IClient
+    {
+        Socket? Socket { get; }
+        Action? OnInit { get; }
+        Action? OnDispose { get; }
+        Action? OnConnected { get; }
+        MailBox MailBox { get; }
+        public int TargetPort { get; }
+        string TargetIp { get; }
+        
+        uint GenerateMsgId();
+        void Send(IMessage msg, bool reentry = true);
+        void Pump();
+        void Run();
+        void WaitForExit();
+        void Stop();
+        void RegisterMessageHandler(IComparable key, Action<object> callback);
+        void UnregisterMessageHandler(IComparable key, Action<object> callback);
+    }
+
+    internal class TcpClient : IClient
     {
 #nullable enable
         public Socket? Socket { get; private set; }
@@ -114,9 +134,10 @@ namespace LPS.Server.Core.Rpc
 
         public uint GenerateMsgId() => idCounter_++;
 
-        public void Send(IMessage msg, bool reentry=true)
+        public void Send(IMessage msg, bool reentry = true)
         {
-            try {
+            try
+            {
                 sendQueue_.Enqueue((this, msg, reentry));
             }
             catch (Exception e)

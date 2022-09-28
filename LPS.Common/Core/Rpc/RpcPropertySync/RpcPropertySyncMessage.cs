@@ -5,7 +5,7 @@ namespace LPS.Common.Core.Rpc.RpcPropertySync
     public enum RpcPropertySyncOperation
     {
         SetValue = 0,
-        UpdateDict = 1,
+        UpdatePair = 1,
         AddListElem = 2,
         RemoveElem = 3,
         Clear = 4,

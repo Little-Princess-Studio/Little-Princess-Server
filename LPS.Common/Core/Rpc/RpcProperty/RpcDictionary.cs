@@ -10,17 +10,33 @@ using LPS.Common.Core.Rpc.RpcPropertySync;
 
 namespace LPS.Common.Core.Rpc.RpcProperty
 {
+    interface IRpcSyncableContainer
+    {
+        void OnSetValue(Any[] args);
+    }
+
+    interface IRpcSyncableDictionary : IRpcSyncableContainer
+    {
+        void OnUpdatePair(Any[] args);
+        void OnRemoveElem(Any[] args);
+        void OnClear();
+    }
+
     [RpcPropertyContainer]
-    public class RpcDictionary<TK, TV> : RpcPropertyContainer, IDictionary<TK, TV>
+    public class RpcDictionary<TK, TV> : RpcPropertyContainer, IDictionary<TK, TV>, IRpcSyncableDictionary
         where TK : notnull
     {
         private Dictionary<TK, RpcPropertyContainer> rawValue_;
 
         public OnSetValueCallBack<Dictionary<TK, TV>>? OnSetValue { get; set; }
-        public OnUpdateValueCallBack<TK, TV?>? OnUpdateValue { get; set; }
+        public OnUpdateValueCallBack<TK, TV?>? OnUpdatePair { get; set; }
         public OnRemoveElemCallBack<TK, TV>? OnRemoveElem { get; set; }
         public OnClearCallBack? OnClear { get; set; }
 
+        private static readonly System.Type UnpackValueType_ = typeof(TV).IsSubclassOf(typeof(RpcPropertyContainer))
+            ? typeof(TV)
+            : typeof(RpcPropertyContainer<TV>);
+        
         public Dictionary<TK, RpcPropertyContainer> RawValue
         {
             get => rawValue_;
@@ -144,6 +160,8 @@ namespace LPS.Common.Core.Rpc.RpcProperty
                 return new RpcDictionary<TK, TV>();
             }
 
+            var valueType = UnpackValueType_;
+
             if (content.Is(DictWithStringKeyArg.Descriptor) && typeof(string) == typeof(TK))
             {
                 var payload = content.Unpack<DictWithStringKeyArg>().PayLoad;
@@ -153,7 +171,7 @@ namespace LPS.Common.Core.Rpc.RpcProperty
 
                 foreach (var (key, value) in payload)
                 {
-                    var val = RpcHelper.CreateRpcPropertyContainerByType(typeof(TV), value!);
+                    var val = RpcHelper.CreateRpcPropertyContainerByType(valueType, value!);
                     val.Name = key;
                     val.IsReferred = true;
                     rawDict[key!] = val;
@@ -172,7 +190,7 @@ namespace LPS.Common.Core.Rpc.RpcProperty
 
                 foreach (var (key, value) in payload)
                 {
-                    var val = RpcHelper.CreateRpcPropertyContainerByType(typeof(TV), value!);
+                    var val = RpcHelper.CreateRpcPropertyContainerByType(valueType, value!);
                     val.Name = $"{key}";
                     val.IsReferred = true;
                     rawDict[key!] = val;
@@ -192,7 +210,7 @@ namespace LPS.Common.Core.Rpc.RpcProperty
                 foreach (var pair in payload)
                 {
                     var key = RpcHelper.PbMailBoxToRpcMailBox(pair.Key);
-                    var val = RpcHelper.CreateRpcPropertyContainerByType(typeof(TV), pair.Value);
+                    var val = RpcHelper.CreateRpcPropertyContainerByType(valueType, pair.Value);
                     val.Name = $"{key}";
                     val.IsReferred = true;
                     rawDict[key] = val;
@@ -229,9 +247,9 @@ namespace LPS.Common.Core.Rpc.RpcProperty
 
                     this.RawValue[key] = container;
                     this.Children![container.Name!] = container;
-                    this.NotifyChange(RpcPropertySyncOperation.UpdateDict, container.Name!, container,
+                    this.NotifyChange(RpcPropertySyncOperation.UpdatePair, container.Name!, container,
                         RpcSyncPropertyType.Dict);
-                    this.OnUpdateValue?.Invoke(key, old != null ? (TV) old.GetRawValue() : default(TV), value);
+                    this.OnUpdatePair?.Invoke(key, old != null ? (TV) old.GetRawValue() : default(TV), value);
                 }
                 else
                 {
@@ -247,18 +265,18 @@ namespace LPS.Common.Core.Rpc.RpcProperty
 
                         this.RawValue[key] = newContainer;
                         this.Children![newContainer.Name] = newContainer;
-                        this.NotifyChange(RpcPropertySyncOperation.UpdateDict, newContainer.Name!, newContainer,
+                        this.NotifyChange(RpcPropertySyncOperation.UpdatePair, newContainer.Name!, newContainer,
                             RpcSyncPropertyType.Dict);
-                        this.OnUpdateValue?.Invoke(key, old != null ? (TV) old.GetRawValue() : default(TV), value);
+                        this.OnUpdatePair?.Invoke(key, old != null ? (TV) old.GetRawValue() : default(TV), value);
                     }
                     else // reuse old
                     {
                         var oldWithType = (RpcPropertyContainer<TV>) old;
                         var oldVal = oldWithType.GetRawValue();
                         oldWithType.Value = value;
-                        this.NotifyChange(RpcPropertySyncOperation.UpdateDict, old.Name!, oldWithType,
+                        this.NotifyChange(RpcPropertySyncOperation.UpdatePair, old.Name!, oldWithType,
                             RpcSyncPropertyType.Dict);
-                        this.OnUpdateValue?.Invoke(key, (TV) oldWithType.GetRawValue(), value);
+                        this.OnUpdatePair?.Invoke(key, (TV) oldWithType.GetRawValue(), value);
                     }
                 }
             }
@@ -290,6 +308,24 @@ namespace LPS.Common.Core.Rpc.RpcProperty
 
             this.NotifyChange(RpcPropertySyncOperation.Clear, this.Name!, null, RpcSyncPropertyType.Dict);
             this.OnClear?.Invoke();
+        }
+        
+        public void Assign(RpcDictionary<TK, TV> target)
+        {
+            if (target == null)
+            {
+                throw new ArgumentNullException(nameof(target));
+            }
+
+            if (target == this)
+            {
+                return;
+            }
+
+            this.OnSetValue?.Invoke(this.ToCopy(), target.ToCopy());
+            this.NotifyChange(RpcPropertySyncOperation.SetValue, this.Name!, target, RpcSyncPropertyType.List);
+            
+            this.AssignInternal(target);
         }
 
         public Dictionary<TK, TV> ToCopy() =>
@@ -371,7 +407,7 @@ namespace LPS.Common.Core.Rpc.RpcProperty
         public class Enumerator : IEnumerator<KeyValuePair<TK, TV>>
         {
             private Dictionary<TK, RpcPropertyContainer>.Enumerator enumerator_;
-            private Dictionary<TK, RpcPropertyContainer> dictionary_;
+            private readonly Dictionary<TK, RpcPropertyContainer> dictionary_;
 
             public Enumerator(Dictionary<TK, RpcPropertyContainer> dictionary)
             {
@@ -394,5 +430,59 @@ namespace LPS.Common.Core.Rpc.RpcProperty
 
             public void Dispose() => enumerator_.Dispose();
         }
+
+        void IRpcSyncableContainer.OnSetValue(Any[] args)
+        {
+            var value = args[0];
+            
+            var realValue = RpcHelper.CreateRpcPropertyContainerByType(
+                typeof(RpcDictionary<TK, TV>),
+                value) as RpcDictionary<TK, TV>;
+            
+            this.Assign(realValue!);
+        }
+
+        void IRpcSyncableDictionary.OnUpdatePair(Any[] args)
+        {
+            var updateDict = args[0];
+
+            if (!updateDict.Is(DictWithStringKeyArg.Descriptor))
+            {
+                throw new Exception("Invalid update dict protobuf content.");
+            }
+
+            var dict = updateDict.Unpack<DictWithStringKeyArg>();
+            
+            foreach (var (key, value) in dict.PayLoad)
+            {
+                var realKey = RpcHelper.KeyCast<TK>(key);
+            
+                var valueType = UnpackValueType_;
+
+                var realValue = RpcHelper.CreateRpcPropertyContainerByType(
+                    valueType,
+                    value);
+                
+                // TODO: set rpc container
+                this[realKey] = (TV) realValue.GetRawValue();
+            }
+        }
+
+        void IRpcSyncableDictionary.OnRemoveElem(Any[] args)
+        {
+            foreach (var any in args)
+            {
+                if (!any.Is(StringArg.Descriptor))
+                {
+                    throw new Exception("Invalid dict remove key type");
+                }
+
+                var key = any.Unpack<StringArg>().PayLoad;
+                var realKey = RpcHelper.KeyCast<TK>(key);
+                this.Remove(realKey);
+            }
+        }
+
+        void IRpcSyncableDictionary.OnClear() => this.Clear();
     }
 }

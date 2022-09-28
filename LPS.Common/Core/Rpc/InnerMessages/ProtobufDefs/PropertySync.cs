@@ -39,7 +39,7 @@ namespace LPS.Common.Core.Rpc.InnerMessages {
             "ChNQcm9wZXJ0eUZ1bGxTeW5jQWNrEhAKCEVudGl0eUlkGAEgASgJIiMKD1By",
             "b3BlcnR5U3luY0FjaxIQCghFbnRpdHlJZBgBIAEoCSo4CgxTeW5jUHJvcFR5",
             "cGUSFAoQUGxhaW50QW5kQ29zdHVtZRAAEggKBERpY3QQARIICgRMaXN0EAIq",
-            "aQoNU3luY09wZXJhdGlvbhIMCghTZXRWYWx1ZRAAEg4KClVwZGF0ZURpY3QQ",
+            "aQoNU3luY09wZXJhdGlvbhIMCghTZXRWYWx1ZRAAEg4KClVwZGF0ZVBhaXIQ",
             "ARIPCgtBZGRMaXN0RWxlbRACEg4KClJlbW92ZUVsZW0QAxIJCgVDbGVhchAE",
             "Eg4KCkluc2VydEVsZW0QBWIGcHJvdG8z"));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
@@ -65,7 +65,7 @@ namespace LPS.Common.Core.Rpc.InnerMessages {
 
   public enum SyncOperation {
     [pbr::OriginalName("SetValue")] SetValue = 0,
-    [pbr::OriginalName("UpdateDict")] UpdateDict = 1,
+    [pbr::OriginalName("UpdatePair")] UpdatePair = 1,
     [pbr::OriginalName("AddListElem")] AddListElem = 2,
     [pbr::OriginalName("RemoveElem")] RemoveElem = 3,
     [pbr::OriginalName("Clear")] Clear = 4,

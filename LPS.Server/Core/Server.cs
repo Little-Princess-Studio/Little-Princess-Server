@@ -115,9 +115,21 @@ namespace LPS.Server.Core
         {
             timeCircle_.Tick(deltaTime, command =>
             {
-                var gateConn = this.GateConnections[random_.Next(0, this.GateConnections.Length)];
-                tcpServer_.Send(command, gateConn);
+                var entityId = command.EntityId;
+                var entity = this.localEntityDict_[entityId];
+                Connection gateConn;
                 
+                // todo: handle sync to local shadow entity
+                if (entity is ServerClientEntity serverClientEntity)
+                {
+                    gateConn = serverClientEntity.Client.GateConn;
+                }
+                else
+                {
+                    gateConn = this.GateConnections[random_.Next(0, this.GateConnections.Length)];
+                }
+                
+                tcpServer_.Send(command, gateConn);
                 Logger.Debug($"[Dispatch Prop Sync msg]: {command} to {gateConn.MailBox}");
             });
         }
@@ -131,6 +143,7 @@ namespace LPS.Server.Core
                     var res = timeCircleQueue_.TryDequeue(out var tp);
                     if (res)
                     {
+                        Logger.Debug("Time circle not empty, pump message");
                         var (keepOrder, delayTime, msg) = tp;
                         timeCircle_.AddPropertySyncMessage(msg, delayTime, keepOrder);
                     }
@@ -140,7 +153,6 @@ namespace LPS.Server.Core
         }
         
         public void AddMessageToTimeCircle(RpcPropertySyncMessage msg, uint delayTimeByMilliseconds, bool keepOrder)
-            // => timeCircle_.AddPropertySyncMessage(msg, delayTimeByMilliseconds, keepOrder);
             => timeCircleQueue_.Enqueue((keepOrder, delayTimeByMilliseconds, msg));
         
         private void SendEntityRpc(BaseEntity baseEntity, EntityRpc entityRpc)
@@ -235,6 +247,10 @@ namespace LPS.Server.Core
             localEntityGeneratedEvent_.Wait();
             Logger.Debug($"Start server at {this.Ip}:{this.Port}");
             tcpServer_.Run();
+
+            Logger.Debug($"Start time circle pump.");
+            var sendQueueSandBox = SandBox.Create(this.TimeCircleSyncMessageEnqueueHandler);
+            sendQueueSandBox.Run();
 
             // gate main thread will stuck here
             tcpServer_.WaitForExit();

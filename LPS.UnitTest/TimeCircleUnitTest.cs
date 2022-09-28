@@ -202,7 +202,7 @@ public class TimeCircleUnitTest
         for (int i = 0; i < 5; ++i)
         {
             var dictMsg = new RpcDictPropertySyncMessage(mailbox3,
-                RpcPropertySyncOperation.UpdateDict, "testpath3");
+                RpcPropertySyncOperation.UpdatePair, "testpath3");
             dictMsg.Action!($"{i}", new RpcPropertyContainer<string>($"{i}"));
             timeCircle.AddPropertySyncMessage(dictMsg,
                 120,
@@ -262,8 +262,8 @@ public class TimeCircleUnitTest
         var msg = (RpcDictPropertySyncMessage) rpcMsg;
         Assert.NotNull(msg);
 
-        Assert.Equal(RpcPropertySyncOperation.UpdateDict, msg.Operation);
-        var updateDictImpl = msg.GetImpl<RpcDictPropertyUpdateSyncMessageImpl>();
+        Assert.Equal(RpcPropertySyncOperation.UpdatePair, msg.Operation);
+        var updateDictImpl = msg.GetImpl<RpcDictPropertyUpdatePairSyncMessageImpl>();
         Assert.NotNull(updateDictImpl);
         var updateDictInfo = updateDictImpl.GetUpdateDictInfo();
         Assert.NotNull(updateDictInfo);

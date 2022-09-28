@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Threading.Tasks;
 using Google.Protobuf.WellKnownTypes;
 using LPS.Common.Core.Debug;
@@ -43,6 +44,8 @@ namespace LPS.Server.Core.Entity
             {
                 throw new ArgumentNullException(nameof(syncMsg));
             }
+            
+            Logger.Debug($"[SendSyncMsg] {keepOrder} {delayTime} {syncMsg}");
             this.SendSyncMessageHandler?.Invoke(keepOrder, delayTime, syncMsg);
         }
         

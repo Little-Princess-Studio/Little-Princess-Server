@@ -33,8 +33,8 @@ namespace LPS.Server.Core
         public int Port { get; private set; }
         public int HostNum { get; private set; }
         private readonly TcpServer tcpGateServer_;
-        private readonly Rpc.TcpClient[] tcpClientsToServer_;
-        private readonly Rpc.TcpClient[] tcpClientsToOtherGate_;
+        private readonly TcpClient[] tcpClientsToServer_;
+        private readonly TcpClient[] tcpClientsToOtherGate_;
         private readonly ConcurrentDictionary<(int, PackageType), Action<object>> tcpClientsActions_ = new();
         private readonly ConcurrentQueue<(Rpc.TcpClient Client, IMessage Message, bool IsReentry)> sendQueue_ = new();
         private readonly SandBox clientsSendQueueSandBox_;
@@ -142,8 +142,10 @@ namespace LPS.Server.Core
             tcpGateServer_.RegisterMessageHandler(PackageType.Authentication, this.HandleAuthenticationFromClient);
             tcpGateServer_.RegisterMessageHandler(PackageType.Control, this.HandleControlMessage);
             tcpGateServer_.RegisterMessageHandler(PackageType.EntityRpc, this.HandleEntityRpcFromClient);
-            tcpGateServer_.RegisterMessageHandler(PackageType.RequirePropertyFullSync, this.HandleRequireFullSyncFromClient);
-            tcpGateServer_.RegisterMessageHandler(PackageType.PropertyFullSyncAck, this.HandlePropertyFullSyncAckFromClient);
+            tcpGateServer_.RegisterMessageHandler(PackageType.RequirePropertyFullSync,
+                this.HandleRequireFullSyncFromClient);
+            tcpGateServer_.RegisterMessageHandler(PackageType.PropertyFullSyncAck,
+                this.HandlePropertyFullSyncAckFromClient);
         }
 
         private void UnregisterMessageFromServerAndOtherGateHandlers()
@@ -151,8 +153,10 @@ namespace LPS.Server.Core
             tcpGateServer_.UnregisterMessageHandler(PackageType.Authentication, this.HandleAuthenticationFromClient);
             tcpGateServer_.UnregisterMessageHandler(PackageType.Control, this.HandleControlMessage);
             tcpGateServer_.UnregisterMessageHandler(PackageType.EntityRpc, this.HandleEntityRpcFromClient);
-            tcpGateServer_.UnregisterMessageHandler(PackageType.RequirePropertyFullSync, this.HandleRequireFullSyncFromClient);
-            tcpGateServer_.UnregisterMessageHandler(PackageType.PropertyFullSyncAck, this.HandlePropertyFullSyncAckFromClient);
+            tcpGateServer_.UnregisterMessageHandler(PackageType.RequirePropertyFullSync,
+                this.HandleRequireFullSyncFromClient);
+            tcpGateServer_.UnregisterMessageHandler(PackageType.PropertyFullSyncAck,
+                this.HandlePropertyFullSyncAckFromClient);
         }
 
         private void HandleEntityRpcFromClient(object arg)
@@ -180,7 +184,7 @@ namespace LPS.Server.Core
                 Logger.Info("Auth success");
 
                 var connId = createEntityCounter_++;
-                
+
                 var createEntityMsg = new CreateEntity
                 {
                     EntityClassName = "Untrusted",
@@ -229,7 +233,7 @@ namespace LPS.Server.Core
 
         private void HandleRequireFullSyncFromClient(object? arg)
         {
-            Logger.Info("HandleEntityRpcFromServer");
+            Logger.Info("HandleRequireFullSyncFromClient");
             var (msg, conn, _) = ((IMessage, Connection, UInt32)) arg!;
             var requirePropertyFullSyncMsg = (msg as RequirePropertyFullSync)!;
 
@@ -272,14 +276,18 @@ namespace LPS.Server.Core
 
             var entityRpcHandler = (object arg) => this.HandleEntityRpcFromServer(client, arg);
             tcpClientsActions_[(serverIdx, PackageType.EntityRpc)] = entityRpcHandler;
-            
+
             var propertyFullSync = (object arg) => this.HandlePropertyFullSyncFromServer(client, arg);
             tcpClientsActions_[(serverIdx, PackageType.PropertyFullSync)] = propertyFullSync;
+
+            var propSyncCommandList = (object arg) => this.HandlePropertySyncCommandListFromServer(client, arg);
+            tcpClientsActions_[(serverIdx, PackageType.PropertySyncCommandList)] = propSyncCommandList;
 
             client.RegisterMessageHandler(PackageType.CreateEntityRes, createMailBoxResHandler);
             client.RegisterMessageHandler(PackageType.ExchangeMailBoxRes, exchangeMailBoxResHandler);
             client.RegisterMessageHandler(PackageType.EntityRpc, entityRpcHandler);
             client.RegisterMessageHandler(PackageType.PropertyFullSync, propertyFullSync);
+            client.RegisterMessageHandler(PackageType.PropertySyncCommandList, propSyncCommandList);
 
             Logger.Info($"client {serverIdx} registered msg");
         }
@@ -298,13 +306,30 @@ namespace LPS.Server.Core
             client.UnregisterMessageHandler(
                 PackageType.EntityRpc,
                 tcpClientsActions_[(idx, PackageType.EntityRpc)]);
-            
+
             client.UnregisterMessageHandler(
                 PackageType.PropertyFullSync,
                 tcpClientsActions_[(idx, PackageType.PropertyFullSync)]);
+
+            client.UnregisterMessageHandler(
+                PackageType.PropertySyncCommandList,
+                tcpClientsActions_[(idx, PackageType.PropertySyncCommandList)]);
         }
 
-        private void HandleCreateEntityResFromServer(Rpc.TcpClient client, object arg)
+        private void HandlePropertySyncCommandListFromServer(TcpClient client, object arg)
+        {
+            var (msg, _, _) = ((IMessage, Connection, UInt32)) arg;
+            var propertySyncCommandList = (msg as PropertySyncCommandList)!;
+            
+            Logger.Info($"property sync: {propertySyncCommandList.Path}" +
+                        $" {propertySyncCommandList.EntityId}" +
+                        $" {propertySyncCommandList.PropType}");
+            
+            // TODO: Redirect to shadow entity on server
+            this.RedirectMsgToEntityOnClient(propertySyncCommandList.EntityId, propertySyncCommandList);
+        }
+
+        private void HandleCreateEntityResFromServer(TcpClient client, object arg)
         {
             var (msg, _, _) = ((IMessage, Connection, UInt32)) arg;
             var createEntityRes = (msg as CreateEntityRes)!;
@@ -314,7 +339,8 @@ namespace LPS.Server.Core
             if (createEntityRes.EntityType == EntityType.GateEntity)
             {
                 Logger.Info("Create gate entity success.");
-                var serverEntityMailBox = new Common.Core.Rpc.MailBox(createEntityRes.Mailbox.ID, this.Ip, this.Port, this.HostNum);
+                var serverEntityMailBox =
+                    new Common.Core.Rpc.MailBox(createEntityRes.Mailbox.ID, this.Ip, this.Port, this.HostNum);
                 entity_ = new(serverEntityMailBox)
                 {
                     OnSend = entityRpc =>
@@ -360,10 +386,9 @@ namespace LPS.Server.Core
                     throw new Exception("Error when creating server client entity: connection id not found.");
                 }
             }
-            
         }
-        
-        private Rpc.TcpClient? FindServerOfEntity(MailBox targetMailBox)
+
+        private TcpClient? FindServerOfEntity(MailBox targetMailBox)
         {
             var clientToServer = tcpClientsToServer_
                 .FirstOrDefault(clientToServer => clientToServer?.MailBox.Ip == targetMailBox.IP
@@ -371,16 +396,16 @@ namespace LPS.Server.Core
                                                   && clientToServer.MailBox.HostNum == targetMailBox.HostNum, null);
             return clientToServer;
         }
-        
-        private Rpc.TcpClient? FindServerOfEntity(Common.Core.Rpc.MailBox targetMailBox)
+
+        private TcpClient? FindServerOfEntity(Common.Core.Rpc.MailBox targetMailBox)
         {
             var clientToServer = tcpClientsToServer_
                 .FirstOrDefault(clientToServer => clientToServer?.MailBox.Ip == targetMailBox.Ip
-                                         && clientToServer.MailBox.Port == targetMailBox.Port
-                                         && clientToServer.MailBox.HostNum == targetMailBox.HostNum, null);
+                                                  && clientToServer.MailBox.Port == targetMailBox.Port
+                                                  && clientToServer.MailBox.HostNum == targetMailBox.HostNum, null);
             return clientToServer;
         }
-        
+
         private void HandleExchangeMailBoxResFromServer(Rpc.TcpClient client, object arg)
         {
             var (msg, conn, _) = ((IMessage, Connection, UInt32)) arg;
@@ -395,7 +420,7 @@ namespace LPS.Server.Core
             Logger.Info($"got server mailbox: {serverEntityMailBox}");
         }
 
-        private void HandleEntityRpcFromServer(Rpc.TcpClient client, object arg)
+        private void HandleEntityRpcFromServer(TcpClient client, object arg)
         {
             Logger.Info("HandleEntityRpcFromServer");
 
@@ -404,17 +429,17 @@ namespace LPS.Server.Core
             this.HandleEntityRpcMessageOnGate(entityRpc);
         }
 
-        private void HandlePropertyFullSyncFromServer(Rpc.TcpClient client, object arg)
+        private void HandlePropertyFullSyncFromServer(TcpClient client, object arg)
         {
             Logger.Info("HandlePropertyFullSyncFromServer");
-            
+
             var (msg, _, _) = ((IMessage, Connection, UInt32)) arg!;
             var fullSync = (msg as PropertyFullSync)!;
-            
+
             Logger.Info("send fullSync to client");
             this.RedirectMsgToEntityOnClient(fullSync.EntityId, msg);
         }
-        
+
         #endregion
 
         private void RedirectMsgToEntityOnServer(string entityId, IMessage msg)
@@ -424,7 +449,7 @@ namespace LPS.Server.Core
                 Logger.Warn($"{entityId} not exist!");
                 return;
             }
-            
+
             var mb = entityIdToClientConnMapping_[entityId].Item1;
             var clientToServer = FindServerOfEntity(mb);
 
@@ -445,12 +470,12 @@ namespace LPS.Server.Core
                 Logger.Warn($"{entityId} not exist!");
                 return;
             }
-            
+
             var conn = entityIdToClientConnMapping_[entityId].Item2;
             var pkg = PackageHelper.FromProtoBuf(msg, 0);
             conn.Socket.Send(pkg.ToBytes());
         }
-        
+
         private void HandleEntityRpcMessageOnGate(EntityRpc entityRpc)
         {
             var targetEntityMailBox = entityRpc.EntityMailBox!;
@@ -473,7 +498,7 @@ namespace LPS.Server.Core
                     // todo: dictionary cache
                     var gate = this.tcpClientsToOtherGate_
                         .FirstOrDefault(client => client!.TargetIp == targetEntityMailBox.IP
-                                                && client.TargetPort == targetEntityMailBox.Port, null);
+                                                  && client.TargetPort == targetEntityMailBox.Port, null);
 
                     // if rpc's target is other gate entity
                     if (gate != null)

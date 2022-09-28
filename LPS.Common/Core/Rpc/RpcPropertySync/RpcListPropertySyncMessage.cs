@@ -11,23 +11,77 @@ namespace LPS.Common.Core.Rpc.RpcPropertySync
     {
         PropertySyncCommand ToSyncCommand();
     }
-    
-    interface IRpcListPropertySyncMessageImpl: IRpcPropertySyncMessageImpl
+
+    interface IRpcListPropertySyncMessageImpl : IRpcPropertySyncMessageImpl
     {
         bool MergeIntoSyncInfo(RpcListPropertySyncInfo rpcListPropertySyncInfo);
         bool MergeKeepOrder(RpcListPropertySyncMessage newMsg);
     }
 
+    public class RpcListPropertySetValueSyncMessageImpl : IRpcListPropertySyncMessageImpl
+    {
+        private RpcPropertyContainer? value_;
+
+        public void SetValue(RpcPropertyContainer value)
+        {
+            value_ = value;
+        }
+
+        public PropertySyncCommand ToSyncCommand()
+        {
+            var cmd = new PropertySyncCommand()
+            {
+                Operation = SyncOperation.SetValue
+            };
+
+            cmd.Args.Add(value_!.ToRpcArg());
+
+            return cmd;
+        }
+
+        public bool MergeIntoSyncInfo(RpcListPropertySyncInfo rpcDictPropertySyncInfo)
+        {
+            var lastMsg = rpcDictPropertySyncInfo.GetLastMsg();
+            if (lastMsg == null)
+            {
+                return false;
+            }
+
+            if (lastMsg.Operation == RpcPropertySyncOperation.SetValue)
+            {
+                var setValueImpl =
+                    (lastMsg as RpcListPropertySyncMessage)!.GetImpl<RpcListPropertySetValueSyncMessageImpl>();
+                setValueImpl.value_ = value_;
+                return true;
+            }
+
+            return true;
+        }
+
+        public bool MergeKeepOrder(RpcListPropertySyncMessage newMsg)
+        {
+            if (newMsg.Operation != RpcPropertySyncOperation.SetValue)
+            {
+                return false;
+            }
+
+            var setValueImpl = newMsg.GetImpl<RpcListPropertySetValueSyncMessageImpl>();
+            value_ = setValueImpl.value_;
+
+            return true;
+        }
+    }
+
     public class RpcListPropertyAddSyncMessageImpl : IRpcListPropertySyncMessageImpl
     {
-        private readonly List<RpcPropertyContainer> addInfo_ = new ();
-        public List<RpcPropertyContainer> GetAddInfo() => addInfo_; 
+        private readonly List<RpcPropertyContainer> addInfo_ = new();
+        public List<RpcPropertyContainer> GetAddInfo() => addInfo_;
 
         public void AddElem(RpcPropertyContainer elem)
         {
             addInfo_.Add(elem);
         }
-        
+
         public bool MergeIntoSyncInfo(RpcListPropertySyncInfo rpcListPropertySyncInfo)
         {
             var lastMsg = rpcListPropertySyncInfo.GetLastMsg();
@@ -40,7 +94,7 @@ namespace LPS.Common.Core.Rpc.RpcPropertySync
             {
                 return false;
             }
-            
+
             var addImpl = (lastMsg as RpcListPropertySyncMessage)!.GetImpl<RpcListPropertyAddSyncMessageImpl>();
             var newAddImpl = this;
             addImpl.addInfo_.AddRange(newAddImpl.addInfo_);
@@ -53,6 +107,7 @@ namespace LPS.Common.Core.Rpc.RpcPropertySync
             {
                 return false;
             }
+
             var newAddImpl = newMsg.GetImpl<RpcListPropertyAddSyncMessageImpl>();
             addInfo_.AddRange(newAddImpl.addInfo_);
             return true;
@@ -64,7 +119,7 @@ namespace LPS.Common.Core.Rpc.RpcPropertySync
             {
                 Operation = SyncOperation.AddListElem
             };
-            
+
             foreach (var rpcPropertyContainer in addInfo_)
             {
                 cmd.Args.Add(rpcPropertyContainer.ToRpcArg());
@@ -74,16 +129,16 @@ namespace LPS.Common.Core.Rpc.RpcPropertySync
         }
     }
 
-    public class RpcListPropertySetValueSyncMessageImpl : IRpcListPropertySyncMessageImpl
+    public class RpcListPropertyUpdatePairSyncMessageImpl : IRpcListPropertySyncMessageImpl
     {
-        private readonly Dictionary<int, RpcPropertyContainer> setValueInfo_ = new ();
+        private readonly Dictionary<int, RpcPropertyContainer> setValueInfo_ = new();
         Dictionary<int, RpcPropertyContainer> GetSetValueInfo() => setValueInfo_;
-        
+
         public void SetValue(int index, RpcPropertyContainer elem)
         {
             setValueInfo_[index] = elem;
         }
-        
+
         public bool MergeIntoSyncInfo(RpcListPropertySyncInfo rpcListPropertySyncInfo)
         {
             var lastMsg = rpcListPropertySyncInfo.GetLastMsg();
@@ -96,13 +151,15 @@ namespace LPS.Common.Core.Rpc.RpcPropertySync
             {
                 return false;
             }
-            
-            var setValueImpl = (lastMsg as RpcListPropertySyncMessage)!.GetImpl<RpcListPropertySetValueSyncMessageImpl>();
+
+            var setValueImpl = (lastMsg as RpcListPropertySyncMessage)!
+                .GetImpl<RpcListPropertyUpdatePairSyncMessageImpl>();
             var newSetValueImpl = this;
             foreach (var kv in newSetValueImpl.setValueInfo_)
             {
                 setValueImpl.setValueInfo_[kv.Key] = kv.Value;
             }
+
             return true;
         }
 
@@ -112,11 +169,13 @@ namespace LPS.Common.Core.Rpc.RpcPropertySync
             {
                 return false;
             }
-            var newSetValueImpl = newMsg.GetImpl<RpcListPropertySetValueSyncMessageImpl>();
+
+            var newSetValueImpl = newMsg.GetImpl<RpcListPropertyUpdatePairSyncMessageImpl>();
             foreach (var kv in newSetValueImpl.setValueInfo_)
             {
                 setValueInfo_[kv.Key] = kv.Value;
             }
+
             return true;
         }
 
@@ -132,7 +191,7 @@ namespace LPS.Common.Core.Rpc.RpcPropertySync
             {
                 dictWithIntKeyArg.PayLoad.Add(key, value.ToRpcArg());
             }
-            
+
             cmd.Args.Add(Any.Pack(dictWithIntKeyArg));
             return cmd;
         }
@@ -140,14 +199,14 @@ namespace LPS.Common.Core.Rpc.RpcPropertySync
 
     public class RpcListPropertyInsertSyncMessageImpl : IRpcListPropertySyncMessageImpl
     {
-        private readonly List<(int, RpcPropertyContainer)> insertInfo_ = new ();
+        private readonly List<(int, RpcPropertyContainer)> insertInfo_ = new();
         public List<(int, RpcPropertyContainer)> GetInsertInfo() => insertInfo_;
 
         public void Insert(int index, RpcPropertyContainer elem)
         {
             insertInfo_.Add((index, elem));
         }
-        
+
         public bool MergeIntoSyncInfo(RpcListPropertySyncInfo rpcListPropertySyncInfo)
         {
             var lastMsg = rpcListPropertySyncInfo.GetLastMsg();
@@ -160,7 +219,7 @@ namespace LPS.Common.Core.Rpc.RpcPropertySync
             {
                 return false;
             }
-            
+
             var insertImpl = (lastMsg as RpcListPropertySyncMessage)!.GetImpl<RpcListPropertyInsertSyncMessageImpl>();
             var newInsertImpl = this;
             insertImpl.insertInfo_.AddRange(newInsertImpl.insertInfo_);
@@ -173,6 +232,7 @@ namespace LPS.Common.Core.Rpc.RpcPropertySync
             {
                 return false;
             }
+
             var newRemoveImpl = newMsg.GetImpl<RpcListPropertyInsertSyncMessageImpl>();
             insertInfo_.AddRange(newRemoveImpl.insertInfo_);
             return true;
@@ -184,7 +244,7 @@ namespace LPS.Common.Core.Rpc.RpcPropertySync
             {
                 Operation = SyncOperation.InsertElem
             };
-            
+
             foreach (var (index, rpcPropertyContainer) in insertInfo_)
             {
                 cmd.Args.Add(Any.Pack(new PairWithIntKey
@@ -207,7 +267,7 @@ namespace LPS.Common.Core.Rpc.RpcPropertySync
         {
             removeElemInfo_.Add(index);
         }
-        
+
         public bool MergeIntoSyncInfo(RpcListPropertySyncInfo rpcListPropertySyncInfo)
         {
             var lastMsg = rpcListPropertySyncInfo.GetLastMsg();
@@ -220,7 +280,7 @@ namespace LPS.Common.Core.Rpc.RpcPropertySync
             {
                 return false;
             }
-            
+
             var removeImpl = (lastMsg as RpcListPropertySyncMessage)!.GetImpl<RpcListPropertyRemoveElemMessageImpl>();
             var newRemoveImpl = this;
             removeImpl.removeElemInfo_.AddRange(newRemoveImpl.removeElemInfo_);
@@ -233,6 +293,7 @@ namespace LPS.Common.Core.Rpc.RpcPropertySync
             {
                 return false;
             }
+
             var newRemoveImpl = newMsg.GetImpl<RpcListPropertyRemoveElemMessageImpl>();
             removeElemInfo_.AddRange(newRemoveImpl.removeElemInfo_);
             return true;
@@ -244,7 +305,7 @@ namespace LPS.Common.Core.Rpc.RpcPropertySync
             {
                 Operation = SyncOperation.RemoveElem
             };
-            
+
             foreach (var index in removeElemInfo_)
             {
                 cmd.Args.Add(Any.Pack(new IntArg
@@ -256,7 +317,7 @@ namespace LPS.Common.Core.Rpc.RpcPropertySync
             return cmd;
         }
     }
-    
+
     public class RpcListPropertySyncMessage : RpcPropertySyncMessage
     {
         private readonly IRpcListPropertySyncMessageImpl? impl_;
@@ -268,7 +329,7 @@ namespace LPS.Common.Core.Rpc.RpcPropertySync
         public RpcListPropertySyncMessage(
             MailBox mailbox,
             RpcPropertySyncOperation operation,
-            string rpcPropertyPath) 
+            string rpcPropertyPath)
             : base(mailbox, operation, rpcPropertyPath, RpcSyncPropertyType.List)
         {
             switch (operation)
@@ -282,7 +343,8 @@ namespace LPS.Common.Core.Rpc.RpcPropertySync
                         {
                             throw new Exception($"Invalid args {args}");
                         }
-                        ((RpcListPropertyAddSyncMessageImpl)impl_).AddElem(elem);
+
+                        ((RpcListPropertyAddSyncMessageImpl) impl_).AddElem(elem);
                     };
                     break;
                 case RpcPropertySyncOperation.RemoveElem:
@@ -290,7 +352,7 @@ namespace LPS.Common.Core.Rpc.RpcPropertySync
                     this.Action = args =>
                     {
                         var index = (int) args[0];
-                        ((RpcListPropertyRemoveElemMessageImpl)impl_).RemoveElem(index);
+                        ((RpcListPropertyRemoveElemMessageImpl) impl_).RemoveElem(index);
                     };
                     break;
                 case RpcPropertySyncOperation.Clear:
@@ -307,11 +369,12 @@ namespace LPS.Common.Core.Rpc.RpcPropertySync
                         {
                             throw new Exception($"Invalid args {args}");
                         }
-                        ((RpcListPropertyInsertSyncMessageImpl)impl_).Insert(index, elem);
+
+                        ((RpcListPropertyInsertSyncMessageImpl) impl_).Insert(index, elem);
                     };
                     break;
-                case RpcPropertySyncOperation.SetValue:
-                    impl_ = new RpcListPropertySetValueSyncMessageImpl();
+                case RpcPropertySyncOperation.UpdatePair:
+                    impl_ = new RpcListPropertyUpdatePairSyncMessageImpl();
                     this.Action = args =>
                     {
                         var index = (int) args[0];
@@ -320,11 +383,18 @@ namespace LPS.Common.Core.Rpc.RpcPropertySync
                         {
                             throw new Exception($"Invalid args {args}");
                         }
-                        ((RpcListPropertySetValueSyncMessageImpl)impl_).SetValue(index, elem);
+
+                        ((RpcListPropertyUpdatePairSyncMessageImpl) impl_).SetValue(index, elem);
                     };
                     break;
-                case RpcPropertySyncOperation.UpdateDict:
-                    throw new Exception($"Invalid operation type {operation} for rpc list type.");
+                case RpcPropertySyncOperation.SetValue:
+                    impl_ = new RpcListPropertySetValueSyncMessageImpl();
+                    this.Action = args =>
+                    {
+                        var val = args[0] as RpcPropertyContainer;
+                        ((RpcListPropertySetValueSyncMessageImpl) impl_!).SetValue(val!);
+                    };
+                    break;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(operation), operation, null);
             }
@@ -336,7 +406,7 @@ namespace LPS.Common.Core.Rpc.RpcPropertySync
         public override void MergeIntoSyncInfo(RpcPropertySyncInfo rpcPropertySyncInfo)
         {
             var rpcListPropertySyncInfo = (rpcPropertySyncInfo as RpcListPropertySyncInfo)!;
-            if (this.Operation == RpcPropertySyncOperation.Clear)
+            if (this.Operation == RpcPropertySyncOperation.Clear || this.Operation == RpcPropertySyncOperation.SetValue)
             {
                 rpcListPropertySyncInfo.Clear();
                 rpcListPropertySyncInfo.Enque(this);
@@ -351,7 +421,7 @@ namespace LPS.Common.Core.Rpc.RpcPropertySync
             }
         }
 
-        public T GetImpl<T>() => (T)impl_!;
+        public T GetImpl<T>() => (T) impl_!;
 
         public override PropertySyncCommand Serialize()
         {

@@ -10,7 +10,61 @@ namespace LPS.Common.Core.Rpc.RpcPropertySync
         bool MergeKeepOrder(RpcDictPropertySyncMessage newMsg);
     }
 
-    public class RpcDictPropertyUpdateSyncMessageImpl : IRpcDictPropertySyncMessageImpl
+    public class RpcDictPropertySetValueSyncMessageImpl : IRpcDictPropertySyncMessageImpl
+    {
+        private RpcPropertyContainer? value_;
+
+        public void SetValue(RpcPropertyContainer value)
+        {
+            value_ = value;
+        }
+        
+        public PropertySyncCommand ToSyncCommand()
+        {
+            var cmd = new PropertySyncCommand()
+            {
+                Operation = SyncOperation.SetValue
+            };
+            
+            cmd.Args.Add(value_!.ToRpcArg());
+
+            return cmd;
+        }
+
+        public bool MergeIntoSyncInfo(RpcDictPropertySyncInfo rpcDictPropertySyncInfo)
+        {   
+            var lastMsg = rpcDictPropertySyncInfo.GetLastMsg();
+            if (lastMsg == null)
+            {
+                return false;
+            }
+
+            if (lastMsg.Operation == RpcPropertySyncOperation.SetValue)
+            {
+                var setValueImpl =
+                    (lastMsg as RpcDictPropertySyncMessage)!.GetImpl<RpcDictPropertySetValueSyncMessageImpl>();
+                setValueImpl.value_ = value_;
+                return true;
+            }
+
+            return true;
+        }
+
+        public bool MergeKeepOrder(RpcDictPropertySyncMessage newMsg)
+        {
+            if (newMsg.Operation != RpcPropertySyncOperation.SetValue)
+            {
+                return false;
+            }
+
+            var setValueImpl = newMsg.GetImpl<RpcDictPropertySetValueSyncMessageImpl>();
+            value_ = setValueImpl.value_;
+
+            return true;
+        }
+    }
+    
+    public class RpcDictPropertyUpdatePairSyncMessageImpl : IRpcDictPropertySyncMessageImpl
     {
         private readonly Dictionary<string, RpcPropertyContainer> updateDictInfo_ = new();
         public Dictionary<string, RpcPropertyContainer> GetUpdateDictInfo() => updateDictInfo_;
@@ -28,10 +82,10 @@ namespace LPS.Common.Core.Rpc.RpcPropertySync
                 return false;
             }
 
-            if (lastMsg.Operation == RpcPropertySyncOperation.UpdateDict)
+            if (lastMsg.Operation == RpcPropertySyncOperation.UpdatePair)
             {
                 var updateImpl =
-                    (lastMsg as RpcDictPropertySyncMessage)!.GetImpl<RpcDictPropertyUpdateSyncMessageImpl>();
+                    (lastMsg as RpcDictPropertySyncMessage)!.GetImpl<RpcDictPropertyUpdatePairSyncMessageImpl>();
                 foreach (var (key, value) in updateDictInfo_)
                 {
                     updateImpl.updateDictInfo_[key] = value;
@@ -65,12 +119,12 @@ namespace LPS.Common.Core.Rpc.RpcPropertySync
 
         public bool MergeKeepOrder(RpcDictPropertySyncMessage newMsg)
         {
-            if (newMsg.Operation != RpcPropertySyncOperation.UpdateDict)
+            if (newMsg.Operation != RpcPropertySyncOperation.UpdatePair)
             {
                 return false;
             }
 
-            var dictUpdateImpl = newMsg.GetImpl<RpcDictPropertyUpdateSyncMessageImpl>();
+            var dictUpdateImpl = newMsg.GetImpl<RpcDictPropertyUpdatePairSyncMessageImpl>();
             var dictUpdateInfo = dictUpdateImpl.GetUpdateDictInfo();
             foreach (var (key, value) in dictUpdateInfo)
             {
@@ -84,7 +138,7 @@ namespace LPS.Common.Core.Rpc.RpcPropertySync
         {
             var cmd = new PropertySyncCommand()
             {
-                Operation = SyncOperation.UpdateDict
+                Operation = SyncOperation.UpdatePair
             };
 
             var dictWithStringKeyArg = new DictWithStringKeyArg();
@@ -128,10 +182,10 @@ namespace LPS.Common.Core.Rpc.RpcPropertySync
                 return true;
             }
 
-            if (lastMsg.Operation == RpcPropertySyncOperation.UpdateDict)
+            if (lastMsg.Operation == RpcPropertySyncOperation.UpdatePair)
             {
                 var updateImpl =
-                    (lastMsg as RpcDictPropertySyncMessage)!.GetImpl<RpcDictPropertyUpdateSyncMessageImpl>();
+                    (lastMsg as RpcDictPropertySyncMessage)!.GetImpl<RpcDictPropertyUpdatePairSyncMessageImpl>();
                 var updateInfo = updateImpl.GetUpdateDictInfo();
                 foreach (var key in removeDictInfo_)
                 {
@@ -204,8 +258,8 @@ namespace LPS.Common.Core.Rpc.RpcPropertySync
         {
             switch (operation)
             {
-                case RpcPropertySyncOperation.UpdateDict:
-                    impl_ = new RpcDictPropertyUpdateSyncMessageImpl();
+                case RpcPropertySyncOperation.UpdatePair:
+                    impl_ = new RpcDictPropertyUpdatePairSyncMessageImpl();
                     break;
                 case RpcPropertySyncOperation.RemoveElem:
                     impl_ = new RpcDictPropertyRemoveSyncMessageImpl();
@@ -213,6 +267,8 @@ namespace LPS.Common.Core.Rpc.RpcPropertySync
                 case RpcPropertySyncOperation.Clear:
                     break;
                 case RpcPropertySyncOperation.SetValue:
+                    impl_ = new RpcDictPropertySetValueSyncMessageImpl();
+                    break;
                 case RpcPropertySyncOperation.AddListElem:
                 case RpcPropertySyncOperation.InsertElem:
                 default:
@@ -221,7 +277,7 @@ namespace LPS.Common.Core.Rpc.RpcPropertySync
 
             this.Action = operation switch
             {
-                RpcPropertySyncOperation.UpdateDict => args =>
+                RpcPropertySyncOperation.UpdatePair => args =>
                 {
                     var key = args[0] as string;
                     var val = args[1] as RpcPropertyContainer;
@@ -231,13 +287,18 @@ namespace LPS.Common.Core.Rpc.RpcPropertySync
                         throw new Exception($"Invalid args {args}");
                     }
 
-                    ((RpcDictPropertyUpdateSyncMessageImpl) impl_!).Update(key!, val);
+                    ((RpcDictPropertyUpdatePairSyncMessageImpl) impl_!).Update(key!, val);
                 },
                 RpcPropertySyncOperation.RemoveElem => args =>
                 {
                     var key = args[0] as string;
 
                     ((RpcDictPropertyRemoveSyncMessageImpl) impl_!).Remove(key!);
+                },
+                RpcPropertySyncOperation.SetValue => args =>
+                {
+                    var val = args[0] as RpcPropertyContainer;
+                    ((RpcDictPropertySetValueSyncMessageImpl) impl_!).SetValue(val!);
                 },
                 RpcPropertySyncOperation.Clear => args => { },
                 _ => throw new Exception($"Invalid operation {operation}")
@@ -253,7 +314,7 @@ namespace LPS.Common.Core.Rpc.RpcPropertySync
 
             // if we got a clear msg,
             // then cancel all the previous modification and record the clear msg
-            if (this.Operation == RpcPropertySyncOperation.Clear)
+            if (this.Operation == RpcPropertySyncOperation.Clear || this.Operation == RpcPropertySyncOperation.SetValue)
             {
                 dictInfo.PropPath2SyncMsgQueue.Clear();
                 dictInfo.Enque(this);

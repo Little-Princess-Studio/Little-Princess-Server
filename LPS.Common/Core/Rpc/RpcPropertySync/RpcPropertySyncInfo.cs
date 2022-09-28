@@ -19,12 +19,12 @@ public abstract class RpcPropertySyncInfo
 
     protected RpcPropertySyncInfo(RpcSyncPropertyType rpcSyncPropertyType)
     {
-        RpcSyncPropertyType = rpcSyncPropertyType;
+        this.RpcSyncPropertyType = rpcSyncPropertyType;
     }
 
     public void Reset()
     {
-        PropPath2SyncMsgQueue.Clear();
+        propPath2SyncMsgQueue_.Clear();
     }
 
     public void Enque(RpcPropertySyncMessage msg)

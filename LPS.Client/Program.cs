@@ -33,6 +33,7 @@ namespace LPS.Client
             Client.Instance.RegisterMessageHandler(PackageType.ClientCreateEntity, HandleClientCreateEntity);
             Client.Instance.RegisterMessageHandler(PackageType.EntityRpc, HandleEntityRpc);
             Client.Instance.RegisterMessageHandler(PackageType.PropertyFullSync, HandlePropertyFullSync);
+            Client.Instance.RegisterMessageHandler(PackageType.PropertySyncCommandList, HandlePropertySyncCommandList);
 
             Client.Instance.Start();
 
@@ -41,6 +42,16 @@ namespace LPS.Client
 
             Client.Instance.Stop();
             Client.Instance.WaitForExit();
+        }
+
+        private static void HandlePropertySyncCommandList(object arg)
+        {
+            var (msg, _, _) = ((IMessage, Connection, uint)) arg;
+            var syncCommandList = (msg as PropertySyncCommandList)!;
+            
+            Logger.Debug($"[HandlePropertySyncCommandList] {msg}");
+
+            ClientGlobal.ShadowClientEntity.ApplySyncCommandList(syncCommandList);
         }
 
         private static void HandleEntityRpc(object arg)

@@ -65,6 +65,13 @@ namespace LPS.Client.Console
             Logger.Debug($"TestRpcPlaintPropStr: {untrusted?.TestRpcPlaintPropStr.Val}");
         }
 
+        [ConsoleCommand("send.change_prop")]
+        public static async void ChangeProp(string prop)
+        {
+            await ClientGlobal.ShadowClientEntity.Server.Call("ChangeProp", prop);
+            Logger.Debug($"Call to change prop");
+        }
+
         [ConsoleCommand("help")]
         public static void Help()
         {

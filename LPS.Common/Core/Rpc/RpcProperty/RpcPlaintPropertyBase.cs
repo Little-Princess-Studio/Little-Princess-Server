@@ -1,4 +1,5 @@
 ﻿using Google.Protobuf.WellKnownTypes;
+using LPS.Common.Core.Debug;
 using LPS.Common.Core.Rpc.RpcPropertySync;
 
 namespace LPS.Common.Core.Rpc.RpcProperty;
@@ -27,10 +28,12 @@ public abstract class RpcPlaintPropertyBase<T> : RpcProperty
             throw new Exception("Shadow property cannot be modified manually");
         }
 
-        var old = ((RpcPropertyContainer<T>) this.Value).Value;
+        // var old = ((RpcPropertyContainer<T>) this.Value).Value;
         ((RpcPropertyContainer<T>) this.Value).Value = value;
         
         var path = new List<string> {this.Name};
+        
+        Logger.Debug($"[Plaint Set] {value}");
         this.OnNotify(RpcPropertySyncOperation.SetValue, path, this.Value, RpcSyncPropertyType.PlaintAndCostume);
     }
 

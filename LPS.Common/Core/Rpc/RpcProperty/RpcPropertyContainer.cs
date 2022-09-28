@@ -152,7 +152,7 @@ namespace LPS.Common.Core.Rpc.RpcProperty
         }
     }
 
-    public abstract class RpcPropertyCostumeContainer<TSub> : RpcPropertyContainer
+    public abstract class RpcPropertyCostumeContainer<TSub> : RpcPropertyContainer, IRpcSyncableContainer
         where TSub : RpcPropertyContainer, new()
     {
         public OnSetValueCallBack<TSub>? OnSetValue { get; set; }
@@ -236,10 +236,16 @@ namespace LPS.Common.Core.Rpc.RpcProperty
             obj.Deserialize(content);
             return obj;
         }
+
+        void IRpcSyncableContainer.OnSetValue(Any[] args)
+        {
+            var value = RpcHelper.CreateRpcPropertyContainerByType(this.GetType(), args[0]);
+            this.Assign((TSub)value);
+        }
     }
 
     [RpcPropertyContainer]
-    public class RpcPropertyContainer<T> : RpcPropertyContainer
+    public class RpcPropertyContainer<T> : RpcPropertyContainer, IRpcSyncableContainer
     {
         public OnSetValueCallBack<T>? OnSetValue { get; set; }
 
@@ -292,6 +298,11 @@ namespace LPS.Common.Core.Rpc.RpcProperty
             value_ = initVal;
         }
 
+        public void Assign(RpcPropertyContainer container)
+        {
+            this.Set((container as RpcPropertyContainer<T>)!.value_, false, true);
+        }
+        
         public override void AssignInternal(RpcPropertyContainer target)
         {
             if (target == null)
@@ -355,6 +366,12 @@ namespace LPS.Common.Core.Rpc.RpcProperty
             }
 
             return container;
+        }
+
+        void IRpcSyncableContainer.OnSetValue(Any[] args)
+        {
+            var value = RpcHelper.CreateRpcPropertyContainerByType(typeof(RpcPropertyContainer<T>), args[0]);
+            this.Assign(value);
         }
     }
 }

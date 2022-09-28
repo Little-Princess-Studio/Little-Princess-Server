@@ -4,19 +4,33 @@ using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
 using LPS.Common.Core.Rpc.InnerMessages;
 using LPS.Common.Core.Rpc.RpcPropertySync;
+using Type = System.Type;
 
 namespace LPS.Common.Core.Rpc.RpcProperty
 {
+    interface IRpcSyncableList : IRpcSyncableContainer
+    {
+        void OnAddListElem(Any[] args);
+        void OnRemoveElem(Any[] args);
+        void OnClear();
+        void OnInsertElem(Any[] args);
+        void OnUpdatePair(Any[] args);
+    }
+
     [RpcPropertyContainer]
-    public class RpcList<TElem> : RpcPropertyContainer, IList<TElem>
+    public class RpcList<TElem> : RpcPropertyContainer, IList<TElem>, IRpcSyncableList
     {
         public OnSetValueCallBack<List<TElem>>? OnSetValue { get; set; }
-        public OnUpdateValueCallBack<int, TElem>? OnUpdateValue {get; set; }
+        public OnUpdateValueCallBack<int, TElem>? OnUpdatePair { get; set; }
         public OnAddListElemCallBack<TElem>? OnAddElem { get; set; }
         public OnRemoveElemCallBack<int, TElem>? OnRemoveElem { get; set; }
         public OnClearCallBack? OnClear { get; set; }
         public OnInsertItemCallBack<TElem>? OnInsertItem { get; set; }
 
+        private static readonly Type UnpackElemType_ = typeof(TElem).IsSubclassOf(typeof(RpcPropertyContainer))
+            ? typeof(TElem)
+            : typeof(RpcPropertyContainer<TElem>);
+        
         static RpcList()
         {
             RpcHelper.RegisterRpcPropertyContainer(typeof(RpcList<TElem>));
@@ -238,7 +252,8 @@ namespace LPS.Common.Core.Rpc.RpcProperty
 
             this.RawValue.Add(newContainer);
             this.Children!.Add(newContainer.Name!, newContainer);
-            this.NotifyChange(RpcPropertySyncOperation.AddListElem, newContainer.Name!, newContainer, RpcSyncPropertyType.List);
+            this.NotifyChange(RpcPropertySyncOperation.AddListElem, newContainer.Name!, newContainer,
+                RpcSyncPropertyType.List);
             this.OnAddElem?.Invoke(elem);
         }
 
@@ -252,9 +267,10 @@ namespace LPS.Common.Core.Rpc.RpcProperty
             this.RawValue.RemoveAt(index);
             this.Children!.Remove($"{index}");
             this.NotifyChange(RpcPropertySyncOperation.RemoveElem, elem.Name!, null, RpcSyncPropertyType.List);
+            // TODO: set rpc container
             this.OnRemoveElem?.Invoke(index, (TElem) elem.GetRawValue());
         }
-        
+
         public void Insert(int index, TElem elem)
         {
             AssertNotShadowPropertyChange();
@@ -265,7 +281,7 @@ namespace LPS.Common.Core.Rpc.RpcProperty
 
             this.RawValue.Insert(index, newContainer);
             this.Children!.Add(newContainer.Name!, newContainer);
-            this.NotifyChange(RpcPropertySyncOperation.InsertElem, newContainer.Name!, 
+            this.NotifyChange(RpcPropertySyncOperation.InsertElem, newContainer.Name!,
                 newContainer, RpcSyncPropertyType.List);
             this.OnInsertItem?.Invoke(index, elem);
         }
@@ -303,18 +319,18 @@ namespace LPS.Common.Core.Rpc.RpcProperty
                     container.InsertToPropTree(this, oldName, this.TopOwner);
 
                     this.rawValue_[index] = container;
-                    this.NotifyChange(RpcPropertySyncOperation.SetValue, this.RawValue[index].Name!, 
+                    this.NotifyChange(RpcPropertySyncOperation.UpdatePair, this.RawValue[index].Name!,
                         container, RpcSyncPropertyType.List);
-                    this.OnUpdateValue?.Invoke(index, (TElem)old.GetRawValue(), value);
+                    this.OnUpdatePair?.Invoke(index, (TElem) old.GetRawValue(), value);
                 }
                 else
                 {
                     var oldWithContainer = (RpcPropertyContainer<TElem>) old;
                     var oldVal = oldWithContainer.Value;
                     oldWithContainer.Set(value, false, false);
-                    this.NotifyChange(RpcPropertySyncOperation.SetValue, this.RawValue[index].Name!, 
+                    this.NotifyChange(RpcPropertySyncOperation.UpdatePair, this.RawValue[index].Name!,
                         oldWithContainer, RpcSyncPropertyType.List);
-                    this.OnUpdateValue?.Invoke(index, oldVal,value);
+                    this.OnUpdatePair?.Invoke(index, oldVal, value);
                 }
             }
         }
@@ -328,9 +344,14 @@ namespace LPS.Common.Core.Rpc.RpcProperty
                 throw new ArgumentNullException(nameof(target));
             }
 
+            if (target == this)
+            {
+                return;
+            }
+
             this.OnSetValue?.Invoke(this.ToCopy(), target.ToCopy());
             this.NotifyChange(RpcPropertySyncOperation.SetValue, this.Name!, target, RpcSyncPropertyType.List);
-            
+
             this.AssignInternal(target);
         }
 
@@ -372,7 +393,7 @@ namespace LPS.Common.Core.Rpc.RpcProperty
 
             return false;
         }
-        
+
         public IEnumerator<TElem> GetEnumerator()
         {
             return new Enumerator<TElem>(rawValue_);
@@ -405,8 +426,83 @@ namespace LPS.Common.Core.Rpc.RpcProperty
             object IEnumerator.Current => Current!;
 
             public TEnumeratorElem Current => (TEnumeratorElem) enumerator_.Current.GetRawValue();
-            
+
             public void Dispose() => enumerator_.Dispose();
+        }
+
+        void IRpcSyncableContainer.OnSetValue(Any[] args)
+        {
+            var value = args[0];
+            var realValue = RpcHelper.CreateRpcPropertyContainerByType(
+                typeof(RpcList<TElem>),
+                value) as RpcList<TElem>;
+
+            this.Assign(realValue!);
+        }
+
+        void IRpcSyncableList.OnAddListElem(Any[] args)
+        {
+            var valueType = UnpackElemType_;
+
+            foreach (var any in args)
+            {
+                var realValue = RpcHelper.CreateRpcPropertyContainerByType(valueType, any);
+                
+                // TODO: set rpc container
+                this.Add((TElem) realValue.GetRawValue());
+            }
+        }
+
+        void IRpcSyncableList.OnRemoveElem(Any[] args) => this.RemoveAt(0);
+
+        void IRpcSyncableList.OnClear() => this.Clear();
+
+        void IRpcSyncableList.OnInsertElem(Any[] args)
+        {
+            var valueType = UnpackElemType_;
+
+            foreach (var any in args)
+            {
+                if (!any.Is(PairWithIntKey.Descriptor))
+                {
+                    var pair = any.Unpack<PairWithIntKey>();
+                    var index = pair.Key;
+                    var value = RpcHelper.CreateRpcPropertyContainerByType(valueType, pair.Value);
+                    
+                    // TODO: set rpc container
+                    this.Insert(index, (TElem)value.GetRawValue());
+                }
+                else
+                {
+                    throw new Exception("Invalid list insert elem");
+                }
+            }
+        }
+
+        void IRpcSyncableList.OnUpdatePair(Any[] args)
+        {
+            var updateDict = args[0];
+
+            if (!updateDict.Is(DictWithIntKeyArg.Descriptor))
+            {
+                throw new Exception("Invalid update dict protobuf content.");
+            }
+
+            var dict = updateDict.Unpack<DictWithIntKeyArg>();
+            
+            foreach (var (key, value) in dict.PayLoad)
+            {
+                var realKey = key;
+            
+                var valueType = UnpackElemType_;
+
+                var realValue = RpcHelper.CreateRpcPropertyContainerByType(
+                    valueType,
+                    value);
+                
+                // TODO: set rpc container
+                this[realKey] = (TElem) realValue.GetRawValue();
+            }
         }
     }
 }

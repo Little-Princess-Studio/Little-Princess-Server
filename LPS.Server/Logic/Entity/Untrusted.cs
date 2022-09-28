@@ -34,6 +34,14 @@ namespace LPS.Server.Logic.Entity
         }
 
         [RpcMethod(Authority.ClientOnly)]
+        public ValueTask ChangeProp(string prop)
+        {
+            this.TestRpcPlaintPropStr.Val = prop;
+            Logger.Debug($"[ChangeProp] prop = {prop}");
+            return ValueTask.CompletedTask;
+        }
+
+        [RpcMethod(Authority.ClientOnly)]
         public ValueTask<string> Echo(string msg)
         {
             return ValueTask.FromResult("echo:" + msg);

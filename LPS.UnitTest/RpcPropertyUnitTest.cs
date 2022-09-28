@@ -243,7 +243,7 @@ public class RpcPropertyUnitTest
             Assert.Equal("111", val);
         };
         entity.TestRpcProp.Val.OnClear = () => { ++clearCnt; };
-        entity.TestRpcProp.Val.OnUpdateValue = (key, val, newVal) =>
+        entity.TestRpcProp.Val.OnUpdatePair = (key, val, newVal) =>
         {
             ++updateCnt;
             Assert.Equal(1, key);
@@ -292,7 +292,7 @@ public class RpcPropertyUnitTest
             Assert.Equal("key_1", key);
         };
 
-        entity.TestComplexRpcProp.Val.OnUpdateValue = (key, val, newVal) =>
+        entity.TestComplexRpcProp.Val.OnUpdatePair = (key, val, newVal) =>
         {
             if (key is "key_1" or "key_2")
             {

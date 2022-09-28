@@ -1141,5 +1141,34 @@ namespace LPS.Common.Core.Rpc
                     break;
             }
         }
+
+        public static TK KeyCast<TK>(string key)
+        {
+            return KeyCastSpecializeHelper.KeyCast<TK>(key);
+        }
+
+        private static class KeyCastSpecializeHelper
+        {
+            private static class Impl<T>
+            {
+                public static Func<string, T>? Func;
+            }
+            
+            static KeyCastSpecializeHelper()
+            {
+                Impl<int>.Func = Convert.ToInt32;
+                Impl<string>.Func = key => key;
+            }
+
+            // ReSharper disable once MemberHidesStaticFromOuterClass
+            public static TK KeyCast<TK>(string key)
+            {
+                if (Impl<TK>.Func == null)
+                {
+                    throw new Exception($"Invalid key type {typeof(TK)}");
+                }
+                return Impl<TK>.Func(key);
+            }
+        }
     }
 }

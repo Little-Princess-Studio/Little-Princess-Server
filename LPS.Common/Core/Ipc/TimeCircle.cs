@@ -143,7 +143,6 @@ namespace LPS.Common.Core.Ipc
 
         public void Dispatch(Action<PropertySyncCommandList> dispatch)
         {
-            Logger.Debug("Dispatch Message");
             foreach (var (entityId, entitySyncInfoDict) in idToSyncMsg_)
             {
                 Logger.Debug($"Dispatch entity id {entityId}, no ordered");
@@ -296,7 +295,7 @@ namespace LPS.Common.Core.Ipc
         {
             // move forward
             var moveStep = duration / timeInterval_;
-
+            
             for (int i = 0; i < moveStep; i++)
             {
                 var slotCircleIndex = slotIndex_ % slotsPerCircle_;
