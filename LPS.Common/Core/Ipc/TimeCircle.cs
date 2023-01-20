@@ -14,7 +14,7 @@ namespace LPS.Common.Core.Ipc
     public class TimeCircleSlot
     {
         // public const int MaxSlotMessageSize = 2048;
-        private int slotMassageCount_;
+        // private int slotMassageCount_;
 
         // entityID => { propertyPath => RpcPropertySyncMessage }
         private readonly Dictionary<string, Dictionary<string, RpcPropertySyncInfo>> idToSyncMsg_ = new();
@@ -26,7 +26,7 @@ namespace LPS.Common.Core.Ipc
         {
             idToSyncMsg_.Clear();
             idToSyncMsgWithOrder_.Clear();
-            slotMassageCount_ = 0;
+            // slotMassageCount_ = 0;
         }
 
         // private void IncreaseMessageCount() {

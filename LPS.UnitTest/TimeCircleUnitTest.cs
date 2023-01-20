@@ -175,7 +175,7 @@ public class TimeCircleUnitTest
         Assert.NotNull(msg);
 
         Assert.Equal(RpcPropertySyncOperation.AddListElem, msg.Operation);
-        var impl = msg.GetImpl<RpcListPropertyAddSyncMessageImpl>();
+        var impl = msg.GetImpl<RpcListPropertyAddElemSyncMessageImpl>();
         Assert.NotNull(impl);
         var addInfo = impl.GetAddInfo()
             .Select(container => ((RpcPropertyContainer<TElemType>) container).Value)

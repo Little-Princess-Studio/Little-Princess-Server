@@ -72,7 +72,7 @@ namespace LPS.Common.Core.Rpc.RpcPropertySync
         }
     }
 
-    public class RpcListPropertyAddSyncMessageImpl : IRpcListPropertySyncMessageImpl
+    public class RpcListPropertyAddElemSyncMessageImpl : IRpcListPropertySyncMessageImpl
     {
         private readonly List<RpcPropertyContainer> addInfo_ = new();
         public List<RpcPropertyContainer> GetAddInfo() => addInfo_;
@@ -95,7 +95,7 @@ namespace LPS.Common.Core.Rpc.RpcPropertySync
                 return false;
             }
 
-            var addImpl = (lastMsg as RpcListPropertySyncMessage)!.GetImpl<RpcListPropertyAddSyncMessageImpl>();
+            var addImpl = (lastMsg as RpcListPropertySyncMessage)!.GetImpl<RpcListPropertyAddElemSyncMessageImpl>();
             var newAddImpl = this;
             addImpl.addInfo_.AddRange(newAddImpl.addInfo_);
             return true;
@@ -108,7 +108,7 @@ namespace LPS.Common.Core.Rpc.RpcPropertySync
                 return false;
             }
 
-            var newAddImpl = newMsg.GetImpl<RpcListPropertyAddSyncMessageImpl>();
+            var newAddImpl = newMsg.GetImpl<RpcListPropertyAddElemSyncMessageImpl>();
             addInfo_.AddRange(newAddImpl.addInfo_);
             return true;
         }
@@ -335,7 +335,7 @@ namespace LPS.Common.Core.Rpc.RpcPropertySync
             switch (operation)
             {
                 case RpcPropertySyncOperation.AddListElem:
-                    impl_ = new RpcListPropertyAddSyncMessageImpl();
+                    impl_ = new RpcListPropertyAddElemSyncMessageImpl();
                     this.Action = args =>
                     {
                         var elem = args[0] as RpcPropertyContainer;
@@ -344,7 +344,7 @@ namespace LPS.Common.Core.Rpc.RpcPropertySync
                             throw new Exception($"Invalid args {args}");
                         }
 
-                        ((RpcListPropertyAddSyncMessageImpl) impl_).AddElem(elem);
+                        ((RpcListPropertyAddElemSyncMessageImpl) impl_).AddElem(elem);
                     };
                     break;
                 case RpcPropertySyncOperation.RemoveElem:

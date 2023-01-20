@@ -31,7 +31,7 @@ namespace LPS.Common.Core.Entity
                 }
             }
         }
-        
+
         public void ApplySyncCommandList(PropertySyncCommandList syncCmdList)
         {
             var path = syncCmdList.Path.Split('.');
@@ -49,22 +49,22 @@ namespace LPS.Common.Core.Entity
                 switch (op)
                 {
                     case SyncOperation.SetValue:
-                        HandleSetValue(container, syncCmdList.SyncArg);
+                        HandleSetValue(container, syncCmd.Args);
                         break;
                     case SyncOperation.UpdatePair:
-                        HandleUpdateDict(container, syncCmdList.SyncArg);
+                        HandleUpdateDict(container, syncCmd.Args);
                         break;
                     case SyncOperation.AddListElem:
-                        HandleAddListElem(container, syncCmdList.SyncArg);
+                        HandleAddListElem(container, syncCmd.Args);
                         break;
                     case SyncOperation.RemoveElem:
-                        HandleRemoveElem(container, syncCmdList.SyncArg);
+                        HandleRemoveElem(container, syncCmd.Args);
                         break;
                     case SyncOperation.Clear:
-                        HandleClear(container, syncCmdList.SyncArg);
+                        HandleClear(container);
                         break;
                     case SyncOperation.InsertElem:
-                        HandleInsertElem(container, syncCmdList.SyncArg);
+                        HandleInsertElem(container, syncCmd.Args);
                         break;
                     default:
                         throw new ArgumentOutOfRangeException();
@@ -72,34 +72,24 @@ namespace LPS.Common.Core.Entity
             }
         }
 
-        private void HandleInsertElem(RpcPropertyContainer container, RepeatedField<PropertySyncCommand> syncArg)
-        {
-        }
+        // let it throw null reference exception if failed casting.
+        private static void HandleInsertElem(RpcPropertyContainer container, RepeatedField<Any> syncArg) =>
+            (container as ISyncOpActionInsertElem)!.Apply(syncArg);
 
-        private void HandleClear(RpcPropertyContainer container, RepeatedField<PropertySyncCommand> syncArg)
-        {
-            throw new NotImplementedException();
-        }
+        private static void HandleClear(RpcPropertyContainer container) =>
+            (container as ISyncOpActionClear)!.Apply();
 
-        private void HandleRemoveElem(RpcPropertyContainer container, RepeatedField<PropertySyncCommand> syncArg)
-        {
-            throw new NotImplementedException();
-        }
+        private static void HandleRemoveElem(RpcPropertyContainer container, RepeatedField<Any> syncArg) =>
+            (container as ISyncOpActionRemoveElem)!.Apply(syncArg);
 
-        private void HandleAddListElem(RpcPropertyContainer container, RepeatedField<PropertySyncCommand> syncArg)
-        {
-            throw new NotImplementedException();
-        }
+        private static void HandleAddListElem(RpcPropertyContainer container, RepeatedField<Any> syncArg) =>
+            (container as ISyncOpActionAddElem)!.Apply(syncArg);
 
-        private void HandleUpdateDict(RpcPropertyContainer container, RepeatedField<PropertySyncCommand> syncArg)
-        {
-            throw new NotImplementedException();
-        }
+        private static void HandleUpdateDict(RpcPropertyContainer container, RepeatedField<Any> syncArg) =>
+            (container as ISyncOpActionUpdatePair)!.Apply(syncArg);
 
-        private void HandleSetValue(RpcPropertyContainer container, RepeatedField<PropertySyncCommand> syncArg)
-        {
-            throw new NotImplementedException();
-        }
+        private static void HandleSetValue(RpcPropertyContainer container, RepeatedField<Any> syncArg) =>
+            (container as ISyncOpActionSetValue)!.Apply(syncArg);
 
         private RpcPropertyContainer FindContainerByPath(string[] path)
         {

@@ -1,4 +1,5 @@
 using System.Reflection;
+using Google.Protobuf.Collections;
 using Google.Protobuf.WellKnownTypes;
 using LPS.Common.Core.Rpc.InnerMessages;
 using LPS.Common.Core.Rpc.RpcPropertySync;
@@ -152,7 +153,7 @@ namespace LPS.Common.Core.Rpc.RpcProperty
         }
     }
 
-    public abstract class RpcPropertyCostumeContainer<TSub> : RpcPropertyContainer, IRpcSyncableContainer
+    public abstract class RpcPropertyCostumeContainer<TSub> : RpcPropertyContainer, ISyncOpActionSetValue
         where TSub : RpcPropertyContainer, new()
     {
         public OnSetValueCallBack<TSub>? OnSetValue { get; set; }
@@ -237,7 +238,7 @@ namespace LPS.Common.Core.Rpc.RpcProperty
             return obj;
         }
 
-        void IRpcSyncableContainer.OnSetValue(Any[] args)
+        void ISyncOpActionSetValue.Apply(RepeatedField<Any> args)
         {
             var value = RpcHelper.CreateRpcPropertyContainerByType(this.GetType(), args[0]);
             this.Assign((TSub)value);
@@ -245,7 +246,7 @@ namespace LPS.Common.Core.Rpc.RpcProperty
     }
 
     [RpcPropertyContainer]
-    public class RpcPropertyContainer<T> : RpcPropertyContainer, IRpcSyncableContainer
+    public class RpcPropertyContainer<T> : RpcPropertyContainer, ISyncOpActionSetValue
     {
         public OnSetValueCallBack<T>? OnSetValue { get; set; }
 
@@ -368,7 +369,7 @@ namespace LPS.Common.Core.Rpc.RpcProperty
             return container;
         }
 
-        void IRpcSyncableContainer.OnSetValue(Any[] args)
+        void ISyncOpActionSetValue.Apply(RepeatedField<Any> args)
         {
             var value = RpcHelper.CreateRpcPropertyContainerByType(typeof(RpcPropertyContainer<T>), args[0]);
             this.Assign(value);

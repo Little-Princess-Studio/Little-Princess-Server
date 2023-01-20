@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Diagnostics.CodeAnalysis;
 using Google.Protobuf;
+using Google.Protobuf.Collections;
 using Google.Protobuf.WellKnownTypes;
 using LPS.Common.Core.Rpc.InnerMessages;
 using LPS.Common.Core.Rpc.RpcPropertySync;
@@ -8,17 +9,10 @@ using Type = System.Type;
 
 namespace LPS.Common.Core.Rpc.RpcProperty
 {
-    interface IRpcSyncableList : IRpcSyncableContainer
-    {
-        void OnAddListElem(Any[] args);
-        void OnRemoveElem(Any[] args);
-        void OnClear();
-        void OnInsertElem(Any[] args);
-        void OnUpdatePair(Any[] args);
-    }
-
     [RpcPropertyContainer]
-    public class RpcList<TElem> : RpcPropertyContainer, IList<TElem>, IRpcSyncableList
+    public class RpcList<TElem> : RpcPropertyContainer, IList<TElem>, ISyncOpActionSetValue,
+        ISyncOpActionAddElem, ISyncOpActionUpdatePair, ISyncOpActionInsertElem, ISyncOpActionRemoveElem,
+        ISyncOpActionClear
     {
         public OnSetValueCallBack<List<TElem>>? OnSetValue { get; set; }
         public OnUpdateValueCallBack<int, TElem>? OnUpdatePair { get; set; }
@@ -30,7 +24,7 @@ namespace LPS.Common.Core.Rpc.RpcProperty
         private static readonly Type UnpackElemType_ = typeof(TElem).IsSubclassOf(typeof(RpcPropertyContainer))
             ? typeof(TElem)
             : typeof(RpcPropertyContainer<TElem>);
-        
+
         static RpcList()
         {
             RpcHelper.RegisterRpcPropertyContainer(typeof(RpcList<TElem>));
@@ -430,7 +424,7 @@ namespace LPS.Common.Core.Rpc.RpcProperty
             public void Dispose() => enumerator_.Dispose();
         }
 
-        void IRpcSyncableContainer.OnSetValue(Any[] args)
+        void ISyncOpActionSetValue.Apply(RepeatedField<Any> args)
         {
             var value = args[0];
             var realValue = RpcHelper.CreateRpcPropertyContainerByType(
@@ -440,24 +434,24 @@ namespace LPS.Common.Core.Rpc.RpcProperty
             this.Assign(realValue!);
         }
 
-        void IRpcSyncableList.OnAddListElem(Any[] args)
+        void ISyncOpActionAddElem.Apply(RepeatedField<Any> args)
         {
             var valueType = UnpackElemType_;
 
             foreach (var any in args)
             {
                 var realValue = RpcHelper.CreateRpcPropertyContainerByType(valueType, any);
-                
+
                 // TODO: set rpc container
                 this.Add((TElem) realValue.GetRawValue());
             }
         }
 
-        void IRpcSyncableList.OnRemoveElem(Any[] args) => this.RemoveAt(0);
+        void ISyncOpActionRemoveElem.Apply(RepeatedField<Any> args) => this.RemoveAt(0);
 
-        void IRpcSyncableList.OnClear() => this.Clear();
+        void ISyncOpActionClear.Apply() => this.Clear();
 
-        void IRpcSyncableList.OnInsertElem(Any[] args)
+        void ISyncOpActionInsertElem.Apply(RepeatedField<Any> args)
         {
             var valueType = UnpackElemType_;
 
@@ -468,9 +462,9 @@ namespace LPS.Common.Core.Rpc.RpcProperty
                     var pair = any.Unpack<PairWithIntKey>();
                     var index = pair.Key;
                     var value = RpcHelper.CreateRpcPropertyContainerByType(valueType, pair.Value);
-                    
+
                     // TODO: set rpc container
-                    this.Insert(index, (TElem)value.GetRawValue());
+                    this.Insert(index, (TElem) value.GetRawValue());
                 }
                 else
                 {
@@ -479,7 +473,7 @@ namespace LPS.Common.Core.Rpc.RpcProperty
             }
         }
 
-        void IRpcSyncableList.OnUpdatePair(Any[] args)
+        void ISyncOpActionUpdatePair.Apply(RepeatedField<Any> args)
         {
             var updateDict = args[0];
 
@@ -489,17 +483,17 @@ namespace LPS.Common.Core.Rpc.RpcProperty
             }
 
             var dict = updateDict.Unpack<DictWithIntKeyArg>();
-            
+
             foreach (var (key, value) in dict.PayLoad)
             {
                 var realKey = key;
-            
+
                 var valueType = UnpackElemType_;
 
                 var realValue = RpcHelper.CreateRpcPropertyContainerByType(
                     valueType,
                     value);
-                
+
                 // TODO: set rpc container
                 this[realKey] = (TElem) realValue.GetRawValue();
             }

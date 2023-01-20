@@ -4,26 +4,16 @@
 
 using System.Collections;
 using Google.Protobuf;
+using Google.Protobuf.Collections;
 using Google.Protobuf.WellKnownTypes;
 using LPS.Common.Core.Rpc.InnerMessages;
 using LPS.Common.Core.Rpc.RpcPropertySync;
 
 namespace LPS.Common.Core.Rpc.RpcProperty
 {
-    interface IRpcSyncableContainer
-    {
-        void OnSetValue(Any[] args);
-    }
-
-    interface IRpcSyncableDictionary : IRpcSyncableContainer
-    {
-        void OnUpdatePair(Any[] args);
-        void OnRemoveElem(Any[] args);
-        void OnClear();
-    }
-
     [RpcPropertyContainer]
-    public class RpcDictionary<TK, TV> : RpcPropertyContainer, IDictionary<TK, TV>, IRpcSyncableDictionary
+    public class RpcDictionary<TK, TV> : RpcPropertyContainer, IDictionary<TK, TV>,
+        ISyncOpActionSetValue, ISyncOpActionUpdatePair, ISyncOpActionRemoveElem, ISyncOpActionClear
         where TK : notnull
     {
         private Dictionary<TK, RpcPropertyContainer> rawValue_;
@@ -36,7 +26,7 @@ namespace LPS.Common.Core.Rpc.RpcProperty
         private static readonly System.Type UnpackValueType_ = typeof(TV).IsSubclassOf(typeof(RpcPropertyContainer))
             ? typeof(TV)
             : typeof(RpcPropertyContainer<TV>);
-        
+
         public Dictionary<TK, RpcPropertyContainer> RawValue
         {
             get => rawValue_;
@@ -309,7 +299,7 @@ namespace LPS.Common.Core.Rpc.RpcProperty
             this.NotifyChange(RpcPropertySyncOperation.Clear, this.Name!, null, RpcSyncPropertyType.Dict);
             this.OnClear?.Invoke();
         }
-        
+
         public void Assign(RpcDictionary<TK, TV> target)
         {
             if (target == null)
@@ -324,7 +314,7 @@ namespace LPS.Common.Core.Rpc.RpcProperty
 
             this.OnSetValue?.Invoke(this.ToCopy(), target.ToCopy());
             this.NotifyChange(RpcPropertySyncOperation.SetValue, this.Name!, target, RpcSyncPropertyType.List);
-            
+
             this.AssignInternal(target);
         }
 
@@ -431,18 +421,18 @@ namespace LPS.Common.Core.Rpc.RpcProperty
             public void Dispose() => enumerator_.Dispose();
         }
 
-        void IRpcSyncableContainer.OnSetValue(Any[] args)
+        void ISyncOpActionSetValue.Apply(RepeatedField<Any> args)
         {
             var value = args[0];
-            
+
             var realValue = RpcHelper.CreateRpcPropertyContainerByType(
                 typeof(RpcDictionary<TK, TV>),
                 value) as RpcDictionary<TK, TV>;
-            
+
             this.Assign(realValue!);
         }
 
-        void IRpcSyncableDictionary.OnUpdatePair(Any[] args)
+        void ISyncOpActionUpdatePair.Apply(RepeatedField<Any> args)
         {
             var updateDict = args[0];
 
@@ -452,24 +442,23 @@ namespace LPS.Common.Core.Rpc.RpcProperty
             }
 
             var dict = updateDict.Unpack<DictWithStringKeyArg>();
-            
+
             foreach (var (key, value) in dict.PayLoad)
             {
                 var realKey = RpcHelper.KeyCast<TK>(key);
-            
+
                 var valueType = UnpackValueType_;
 
                 var realValue = RpcHelper.CreateRpcPropertyContainerByType(
                     valueType,
                     value);
-                
+
                 // TODO: set rpc container
                 this[realKey] = (TV) realValue.GetRawValue();
             }
         }
 
-        void IRpcSyncableDictionary.OnRemoveElem(Any[] args)
-        {
+        void ISyncOpActionRemoveElem.Apply(RepeatedField<Any> args)        {
             foreach (var any in args)
             {
                 if (!any.Is(StringArg.Descriptor))
@@ -483,6 +472,6 @@ namespace LPS.Common.Core.Rpc.RpcProperty
             }
         }
 
-        void IRpcSyncableDictionary.OnClear() => this.Clear();
+        void ISyncOpActionClear.Apply() => this.Clear();
     }
 }

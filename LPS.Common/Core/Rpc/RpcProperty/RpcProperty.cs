@@ -1,7 +1,10 @@
+using System.Reflection.Metadata;
 using Google.Protobuf;
+using Google.Protobuf.Collections;
 using Google.Protobuf.WellKnownTypes;
 using LPS.Common.Core.Debug;
 using LPS.Common.Core.Entity;
+using LPS.Common.Core.Rpc.InnerMessages;
 using LPS.Common.Core.Rpc.RpcPropertySync;
 
 /*
@@ -55,6 +58,36 @@ namespace LPS.Common.Core.Rpc.RpcProperty
     public delegate void OnClearCallBack();
 
     public delegate void OnInsertItemCallBack<in T>(int index, T newVal);
+
+    public interface ISyncOpActionSetValue
+    {
+        public void Apply(RepeatedField<Any> syncArg);
+    }
+
+    public interface ISyncOpActionUpdatePair
+    {
+        public void Apply(RepeatedField<Any> syncArg);
+    }
+
+    public interface ISyncOpActionAddElem
+    {
+        public void Apply(RepeatedField<Any> syncArg);
+    }
+
+    public interface ISyncOpActionRemoveElem
+    {
+        public void Apply(RepeatedField<Any> syncArg);
+    }
+
+    public interface ISyncOpActionClear
+    {
+        public void Apply();
+    }
+
+    public interface ISyncOpActionInsertElem
+    {
+        public void Apply(RepeatedField<Any> syncArg);
+    }
 
     [Flags]
     public enum RpcPropertySetting

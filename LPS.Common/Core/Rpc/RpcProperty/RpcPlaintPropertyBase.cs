@@ -11,8 +11,9 @@ public abstract class RpcPlaintPropertyBase<T> : RpcProperty
         RpcGenericArgTypeCheckHelper.AssertIsValidPlaintType<T>();
     }
 
-    private RpcPlaintPropertyBase() : base("", RpcPropertySetting.None, null)
+    private RpcPlaintPropertyBase() : base("", RpcPropertySetting.None, null!)
     {
+        throw new Exception("Invalid RpcPlaintProperty Construction.");
     }
 
     public RpcPlaintPropertyBase(string name, RpcPropertySetting setting, T value)
