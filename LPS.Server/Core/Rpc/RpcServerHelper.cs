@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Threading.Tasks;
 using LPS.Common.Core.Entity;
 using LPS.Common.Core.Rpc;
 using LPS.Server.Core.Entity;
@@ -12,8 +13,7 @@ namespace LPS.Server.Core.Rpc
     public static class RpcServerHelper
     {
         private static Dictionary<string, Type> EntityClassMap => RpcHelper.EntityClassMap;
-
-
+        
         public static DistributeEntity CreateEntityLocally(string entityClassName, string desc)
         {
             if (EntityClassMap.ContainsKey(entityClassName))
@@ -31,6 +31,13 @@ namespace LPS.Server.Core.Rpc
             }
 
             throw new Exception($"Invalid entity class name {entityClassName}");
+        }
+
+        public static Task<MailBox> CreateEntityAnywhere(string entityClassName, string desc)
+        {
+            // todo: require server create entity and got the mailbox
+            var server = ServerGlobal.Server;
+            return Task.FromResult(default(MailBox));
         }
 
         public static DistributeEntity BuildEntityFromSerialContent(

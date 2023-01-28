@@ -2,8 +2,6 @@ using LPS.Common.Core.Debug;
 using LPS.Common.Core.Rpc;
 using LPS.Common.Core.Rpc.InnerMessages;
 using LPS.Common.Core.Rpc.RpcProperty;
-using LPS.Server.Core.Rpc;
-using LPS.Server.Core.Rpc.InnerMessages;
 using MailBox = LPS.Common.Core.Rpc.MailBox;
 
 namespace LPS.Common.Core.Entity
@@ -28,7 +26,7 @@ namespace LPS.Common.Core.Entity
         private readonly Dictionary<uint, Action> rpcBlankDict_ = new();
         private Dictionary<string, RpcProperty>? propertyTree_ = null;
         protected Dictionary<string, RpcProperty>? PropertyTree => propertyTree_;
-
+        
         public virtual void SetPropertyTree(Dictionary<string, RpcProperty> propertyTree)
         {
             propertyTree_ = propertyTree;

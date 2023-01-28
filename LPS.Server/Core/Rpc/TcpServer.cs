@@ -78,10 +78,7 @@ namespace LPS.Server.Core.Rpc
             this.sandboxIo_.Run();
         }
 
-        public void WaitForExit()
-        {
-            this.sandboxIo_.WaitForExit();
-        }
+        public void WaitForExit() => this.sandboxIo_.WaitForExit();
 
         public void Stop()
         {
@@ -174,7 +171,7 @@ namespace LPS.Server.Core.Rpc
 
             // cancel each task end
             Logger.Info($"[SOCKET] Close {connections_.Count} connections");
-            foreach (var conn in this.connections_)
+            foreach (var conn in connections_)
             {
                 conn.Key.TokenSource.Cancel();
                 conn.Value.Wait();
@@ -193,7 +190,7 @@ namespace LPS.Server.Core.Rpc
             {
                 try
                 {
-                    this.bus_.Pump();
+                    bus_.Pump();
                 }
                 catch (Exception e)
                 {

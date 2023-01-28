@@ -25,18 +25,33 @@ namespace LPS.Server.Core.Rpc.InnerMessages {
       byte[] descriptorData = global::System.Convert.FromBase64String(
           string.Concat(
             "ChNjcmVhdGVfZW50aXR5LnByb3RvEiFMUFMuU2VydmVyLkNvcmUuUnBjLklu",
-            "bmVyTWVzc2FnZXMi2AEKDENyZWF0ZUVudGl0eRIXCg9FbnRpdHlDbGFzc05h",
-            "bWUYASABKAkSQQoKQ3JlYXRlVHlwZRgCIAEoDjItLkxQUy5TZXJ2ZXIuQ29y",
-            "ZS5ScGMuSW5uZXJNZXNzYWdlcy5DcmVhdGVUeXBlEhMKC0Rlc2NyaXB0aW9u",
-            "GAMgASgJEkEKCkVudGl0eVR5cGUYBCABKA4yLS5MUFMuU2VydmVyLkNvcmUu",
-            "UnBjLklubmVyTWVzc2FnZXMuRW50aXR5VHlwZRIUCgxDb25uZWN0aW9uSUQY",
-            "BSABKA0qMQoKQ3JlYXRlVHlwZRIJCgVMb2NhbBAAEgwKCEFueXdoZXJlEAES",
-            "CgoGTWFudWFsEAIqNAoKRW50aXR5VHlwZRIWChJTZXJ2ZXJDbGllbnRFbnRp",
-            "dHkQABIOCgpHYXRlRW50aXR5EAFiBnByb3RvMw=="));
+            "bmVyTWVzc2FnZXMaDW1haWxib3gucHJvdG8i3wEKE1JlcXVpcmVDcmVhdGVF",
+            "bnRpdHkSFwoPRW50aXR5Q2xhc3NOYW1lGAEgASgJEkEKCkNyZWF0ZVR5cGUY",
+            "AiABKA4yLS5MUFMuU2VydmVyLkNvcmUuUnBjLklubmVyTWVzc2FnZXMuQ3Jl",
+            "YXRlVHlwZRITCgtEZXNjcmlwdGlvbhgDIAEoCRJBCgpFbnRpdHlUeXBlGAQg",
+            "ASgOMi0uTFBTLlNlcnZlci5Db3JlLlJwYy5Jbm5lck1lc3NhZ2VzLkVudGl0",
+            "eVR5cGUSFAoMQ29ubmVjdGlvbklEGAUgASgNIscBChZSZXF1aXJlQ3JlYXRl",
+            "RW50aXR5UmVzEjsKB01haWxib3gYASABKAsyKi5MUFMuQ29tbW9uLkNvcmUu",
+            "UnBjLklubmVyTWVzc2FnZXMuTWFpbEJveBIUCgxDb25uZWN0aW9uSUQYAiAB",
+            "KA0SQQoKRW50aXR5VHlwZRgDIAEoDjItLkxQUy5TZXJ2ZXIuQ29yZS5ScGMu",
+            "SW5uZXJNZXNzYWdlcy5FbnRpdHlUeXBlEhcKD0VudGl0eUNsYXNzTmFtZRgE",
+            "IAEoCSJuChZDcmVhdGVEaXN0cmlidXRlRW50aXR5EhcKD0VudGl0eUNsYXNz",
+            "TmFtZRgBIAEoCRITCgtEZXNjcmlwdGlvbhgCIAEoCRIUCgxDb25uZWN0aW9u",
+            "SUQYAyABKA0SEAoIRW50aXR5SWQYBCABKAkibgoZQ3JlYXRlRGlzdHJpYnV0",
+            "ZUVudGl0eVJlcxI7CgdNYWlsYm94GAEgASgLMiouTFBTLkNvbW1vbi5Db3Jl",
+            "LlJwYy5Jbm5lck1lc3NhZ2VzLk1haWxCb3gSFAoMQ29ubmVjdGlvbklEGAIg",
+            "ASgNKjEKCkNyZWF0ZVR5cGUSCQoFTG9jYWwQABIMCghBbnl3aGVyZRABEgoK",
+            "Bk1hbnVhbBACKngKCkVudGl0eVR5cGUSFgoSU2VydmVyQ2xpZW50RW50aXR5",
+            "EAASEAoMU2VydmVyRW50aXR5EAESGwoXU2VydmVyRGVmYXVsdENlbGxFbnRp",
+            "dHkQAhIOCgpHYXRlRW50aXR5EAMSEwoPRGlzdGlidXRlRW50aXR5EARiBnBy",
+            "b3RvMw=="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
-          new pbr::FileDescriptor[] { },
+          new pbr::FileDescriptor[] { global::LPS.Common.Core.Rpc.InnerMessages.MailboxReflection.Descriptor, },
           new pbr::GeneratedClrTypeInfo(new[] {typeof(global::LPS.Server.Core.Rpc.InnerMessages.CreateType), typeof(global::LPS.Server.Core.Rpc.InnerMessages.EntityType), }, null, new pbr::GeneratedClrTypeInfo[] {
-            new pbr::GeneratedClrTypeInfo(typeof(global::LPS.Server.Core.Rpc.InnerMessages.CreateEntity), global::LPS.Server.Core.Rpc.InnerMessages.CreateEntity.Parser, new[]{ "EntityClassName", "CreateType", "Description", "EntityType", "ConnectionID" }, null, null, null, null)
+            new pbr::GeneratedClrTypeInfo(typeof(global::LPS.Server.Core.Rpc.InnerMessages.RequireCreateEntity), global::LPS.Server.Core.Rpc.InnerMessages.RequireCreateEntity.Parser, new[]{ "EntityClassName", "CreateType", "Description", "EntityType", "ConnectionID" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::LPS.Server.Core.Rpc.InnerMessages.RequireCreateEntityRes), global::LPS.Server.Core.Rpc.InnerMessages.RequireCreateEntityRes.Parser, new[]{ "Mailbox", "ConnectionID", "EntityType", "EntityClassName" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::LPS.Server.Core.Rpc.InnerMessages.CreateDistributeEntity), global::LPS.Server.Core.Rpc.InnerMessages.CreateDistributeEntity.Parser, new[]{ "EntityClassName", "Description", "ConnectionID", "EntityId" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::LPS.Server.Core.Rpc.InnerMessages.CreateDistributeEntityRes), global::LPS.Server.Core.Rpc.InnerMessages.CreateDistributeEntityRes.Parser, new[]{ "Mailbox", "ConnectionID" }, null, null, null, null)
           }));
     }
     #endregion
@@ -51,22 +66,25 @@ namespace LPS.Server.Core.Rpc.InnerMessages {
 
   public enum EntityType {
     [pbr::OriginalName("ServerClientEntity")] ServerClientEntity = 0,
-    [pbr::OriginalName("GateEntity")] GateEntity = 1,
+    [pbr::OriginalName("ServerEntity")] ServerEntity = 1,
+    [pbr::OriginalName("ServerDefaultCellEntity")] ServerDefaultCellEntity = 2,
+    [pbr::OriginalName("GateEntity")] GateEntity = 3,
+    [pbr::OriginalName("DistibuteEntity")] DistibuteEntity = 4,
   }
 
   #endregion
 
   #region Messages
-  public sealed partial class CreateEntity : pb::IMessage<CreateEntity>
+  public sealed partial class RequireCreateEntity : pb::IMessage<RequireCreateEntity>
   #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       , pb::IBufferMessage
   #endif
   {
-    private static readonly pb::MessageParser<CreateEntity> _parser = new pb::MessageParser<CreateEntity>(() => new CreateEntity());
+    private static readonly pb::MessageParser<RequireCreateEntity> _parser = new pb::MessageParser<RequireCreateEntity>(() => new RequireCreateEntity());
     private pb::UnknownFieldSet _unknownFields;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public static pb::MessageParser<CreateEntity> Parser { get { return _parser; } }
+    public static pb::MessageParser<RequireCreateEntity> Parser { get { return _parser; } }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
@@ -82,7 +100,7 @@ namespace LPS.Server.Core.Rpc.InnerMessages {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public CreateEntity() {
+    public RequireCreateEntity() {
       OnConstruction();
     }
 
@@ -90,7 +108,7 @@ namespace LPS.Server.Core.Rpc.InnerMessages {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public CreateEntity(CreateEntity other) : this() {
+    public RequireCreateEntity(RequireCreateEntity other) : this() {
       entityClassName_ = other.entityClassName_;
       createType_ = other.createType_;
       description_ = other.description_;
@@ -101,8 +119,8 @@ namespace LPS.Server.Core.Rpc.InnerMessages {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public CreateEntity Clone() {
-      return new CreateEntity(this);
+    public RequireCreateEntity Clone() {
+      return new RequireCreateEntity(this);
     }
 
     /// <summary>Field number for the "EntityClassName" field.</summary>
@@ -168,12 +186,12 @@ namespace LPS.Server.Core.Rpc.InnerMessages {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
-      return Equals(other as CreateEntity);
+      return Equals(other as RequireCreateEntity);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public bool Equals(CreateEntity other) {
+    public bool Equals(RequireCreateEntity other) {
       if (ReferenceEquals(other, null)) {
         return false;
       }
@@ -298,7 +316,7 @@ namespace LPS.Server.Core.Rpc.InnerMessages {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public void MergeFrom(CreateEntity other) {
+    public void MergeFrom(RequireCreateEntity other) {
       if (other == null) {
         return;
       }
@@ -384,6 +402,850 @@ namespace LPS.Server.Core.Rpc.InnerMessages {
             break;
           }
           case 40: {
+            ConnectionID = input.ReadUInt32();
+            break;
+          }
+        }
+      }
+    }
+    #endif
+
+  }
+
+  public sealed partial class RequireCreateEntityRes : pb::IMessage<RequireCreateEntityRes>
+  #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      , pb::IBufferMessage
+  #endif
+  {
+    private static readonly pb::MessageParser<RequireCreateEntityRes> _parser = new pb::MessageParser<RequireCreateEntityRes>(() => new RequireCreateEntityRes());
+    private pb::UnknownFieldSet _unknownFields;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static pb::MessageParser<RequireCreateEntityRes> Parser { get { return _parser; } }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static pbr::MessageDescriptor Descriptor {
+      get { return global::LPS.Server.Core.Rpc.InnerMessages.CreateEntityReflection.Descriptor.MessageTypes[1]; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    pbr::MessageDescriptor pb::IMessage.Descriptor {
+      get { return Descriptor; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public RequireCreateEntityRes() {
+      OnConstruction();
+    }
+
+    partial void OnConstruction();
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public RequireCreateEntityRes(RequireCreateEntityRes other) : this() {
+      mailbox_ = other.mailbox_ != null ? other.mailbox_.Clone() : null;
+      connectionID_ = other.connectionID_;
+      entityType_ = other.entityType_;
+      entityClassName_ = other.entityClassName_;
+      _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public RequireCreateEntityRes Clone() {
+      return new RequireCreateEntityRes(this);
+    }
+
+    /// <summary>Field number for the "Mailbox" field.</summary>
+    public const int MailboxFieldNumber = 1;
+    private global::LPS.Common.Core.Rpc.InnerMessages.MailBox mailbox_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public global::LPS.Common.Core.Rpc.InnerMessages.MailBox Mailbox {
+      get { return mailbox_; }
+      set {
+        mailbox_ = value;
+      }
+    }
+
+    /// <summary>Field number for the "ConnectionID" field.</summary>
+    public const int ConnectionIDFieldNumber = 2;
+    private uint connectionID_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public uint ConnectionID {
+      get { return connectionID_; }
+      set {
+        connectionID_ = value;
+      }
+    }
+
+    /// <summary>Field number for the "EntityType" field.</summary>
+    public const int EntityTypeFieldNumber = 3;
+    private global::LPS.Server.Core.Rpc.InnerMessages.EntityType entityType_ = global::LPS.Server.Core.Rpc.InnerMessages.EntityType.ServerClientEntity;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public global::LPS.Server.Core.Rpc.InnerMessages.EntityType EntityType {
+      get { return entityType_; }
+      set {
+        entityType_ = value;
+      }
+    }
+
+    /// <summary>Field number for the "EntityClassName" field.</summary>
+    public const int EntityClassNameFieldNumber = 4;
+    private string entityClassName_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string EntityClassName {
+      get { return entityClassName_; }
+      set {
+        entityClassName_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override bool Equals(object other) {
+      return Equals(other as RequireCreateEntityRes);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool Equals(RequireCreateEntityRes other) {
+      if (ReferenceEquals(other, null)) {
+        return false;
+      }
+      if (ReferenceEquals(other, this)) {
+        return true;
+      }
+      if (!object.Equals(Mailbox, other.Mailbox)) return false;
+      if (ConnectionID != other.ConnectionID) return false;
+      if (EntityType != other.EntityType) return false;
+      if (EntityClassName != other.EntityClassName) return false;
+      return Equals(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override int GetHashCode() {
+      int hash = 1;
+      if (mailbox_ != null) hash ^= Mailbox.GetHashCode();
+      if (ConnectionID != 0) hash ^= ConnectionID.GetHashCode();
+      if (EntityType != global::LPS.Server.Core.Rpc.InnerMessages.EntityType.ServerClientEntity) hash ^= EntityType.GetHashCode();
+      if (EntityClassName.Length != 0) hash ^= EntityClassName.GetHashCode();
+      if (_unknownFields != null) {
+        hash ^= _unknownFields.GetHashCode();
+      }
+      return hash;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override string ToString() {
+      return pb::JsonFormatter.ToDiagnosticString(this);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void WriteTo(pb::CodedOutputStream output) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      output.WriteRawMessage(this);
+    #else
+      if (mailbox_ != null) {
+        output.WriteRawTag(10);
+        output.WriteMessage(Mailbox);
+      }
+      if (ConnectionID != 0) {
+        output.WriteRawTag(16);
+        output.WriteUInt32(ConnectionID);
+      }
+      if (EntityType != global::LPS.Server.Core.Rpc.InnerMessages.EntityType.ServerClientEntity) {
+        output.WriteRawTag(24);
+        output.WriteEnum((int) EntityType);
+      }
+      if (EntityClassName.Length != 0) {
+        output.WriteRawTag(34);
+        output.WriteString(EntityClassName);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(output);
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
+      if (mailbox_ != null) {
+        output.WriteRawTag(10);
+        output.WriteMessage(Mailbox);
+      }
+      if (ConnectionID != 0) {
+        output.WriteRawTag(16);
+        output.WriteUInt32(ConnectionID);
+      }
+      if (EntityType != global::LPS.Server.Core.Rpc.InnerMessages.EntityType.ServerClientEntity) {
+        output.WriteRawTag(24);
+        output.WriteEnum((int) EntityType);
+      }
+      if (EntityClassName.Length != 0) {
+        output.WriteRawTag(34);
+        output.WriteString(EntityClassName);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(ref output);
+      }
+    }
+    #endif
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public int CalculateSize() {
+      int size = 0;
+      if (mailbox_ != null) {
+        size += 1 + pb::CodedOutputStream.ComputeMessageSize(Mailbox);
+      }
+      if (ConnectionID != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeUInt32Size(ConnectionID);
+      }
+      if (EntityType != global::LPS.Server.Core.Rpc.InnerMessages.EntityType.ServerClientEntity) {
+        size += 1 + pb::CodedOutputStream.ComputeEnumSize((int) EntityType);
+      }
+      if (EntityClassName.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(EntityClassName);
+      }
+      if (_unknownFields != null) {
+        size += _unknownFields.CalculateSize();
+      }
+      return size;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void MergeFrom(RequireCreateEntityRes other) {
+      if (other == null) {
+        return;
+      }
+      if (other.mailbox_ != null) {
+        if (mailbox_ == null) {
+          Mailbox = new global::LPS.Common.Core.Rpc.InnerMessages.MailBox();
+        }
+        Mailbox.MergeFrom(other.Mailbox);
+      }
+      if (other.ConnectionID != 0) {
+        ConnectionID = other.ConnectionID;
+      }
+      if (other.EntityType != global::LPS.Server.Core.Rpc.InnerMessages.EntityType.ServerClientEntity) {
+        EntityType = other.EntityType;
+      }
+      if (other.EntityClassName.Length != 0) {
+        EntityClassName = other.EntityClassName;
+      }
+      _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void MergeFrom(pb::CodedInputStream input) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      input.ReadRawMessage(this);
+    #else
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+        switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
+            break;
+          case 10: {
+            if (mailbox_ == null) {
+              Mailbox = new global::LPS.Common.Core.Rpc.InnerMessages.MailBox();
+            }
+            input.ReadMessage(Mailbox);
+            break;
+          }
+          case 16: {
+            ConnectionID = input.ReadUInt32();
+            break;
+          }
+          case 24: {
+            EntityType = (global::LPS.Server.Core.Rpc.InnerMessages.EntityType) input.ReadEnum();
+            break;
+          }
+          case 34: {
+            EntityClassName = input.ReadString();
+            break;
+          }
+        }
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+        switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
+            break;
+          case 10: {
+            if (mailbox_ == null) {
+              Mailbox = new global::LPS.Common.Core.Rpc.InnerMessages.MailBox();
+            }
+            input.ReadMessage(Mailbox);
+            break;
+          }
+          case 16: {
+            ConnectionID = input.ReadUInt32();
+            break;
+          }
+          case 24: {
+            EntityType = (global::LPS.Server.Core.Rpc.InnerMessages.EntityType) input.ReadEnum();
+            break;
+          }
+          case 34: {
+            EntityClassName = input.ReadString();
+            break;
+          }
+        }
+      }
+    }
+    #endif
+
+  }
+
+  public sealed partial class CreateDistributeEntity : pb::IMessage<CreateDistributeEntity>
+  #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      , pb::IBufferMessage
+  #endif
+  {
+    private static readonly pb::MessageParser<CreateDistributeEntity> _parser = new pb::MessageParser<CreateDistributeEntity>(() => new CreateDistributeEntity());
+    private pb::UnknownFieldSet _unknownFields;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static pb::MessageParser<CreateDistributeEntity> Parser { get { return _parser; } }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static pbr::MessageDescriptor Descriptor {
+      get { return global::LPS.Server.Core.Rpc.InnerMessages.CreateEntityReflection.Descriptor.MessageTypes[2]; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    pbr::MessageDescriptor pb::IMessage.Descriptor {
+      get { return Descriptor; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public CreateDistributeEntity() {
+      OnConstruction();
+    }
+
+    partial void OnConstruction();
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public CreateDistributeEntity(CreateDistributeEntity other) : this() {
+      entityClassName_ = other.entityClassName_;
+      description_ = other.description_;
+      connectionID_ = other.connectionID_;
+      entityId_ = other.entityId_;
+      _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public CreateDistributeEntity Clone() {
+      return new CreateDistributeEntity(this);
+    }
+
+    /// <summary>Field number for the "EntityClassName" field.</summary>
+    public const int EntityClassNameFieldNumber = 1;
+    private string entityClassName_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string EntityClassName {
+      get { return entityClassName_; }
+      set {
+        entityClassName_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    /// <summary>Field number for the "Description" field.</summary>
+    public const int DescriptionFieldNumber = 2;
+    private string description_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string Description {
+      get { return description_; }
+      set {
+        description_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    /// <summary>Field number for the "ConnectionID" field.</summary>
+    public const int ConnectionIDFieldNumber = 3;
+    private uint connectionID_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public uint ConnectionID {
+      get { return connectionID_; }
+      set {
+        connectionID_ = value;
+      }
+    }
+
+    /// <summary>Field number for the "EntityId" field.</summary>
+    public const int EntityIdFieldNumber = 4;
+    private string entityId_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string EntityId {
+      get { return entityId_; }
+      set {
+        entityId_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override bool Equals(object other) {
+      return Equals(other as CreateDistributeEntity);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool Equals(CreateDistributeEntity other) {
+      if (ReferenceEquals(other, null)) {
+        return false;
+      }
+      if (ReferenceEquals(other, this)) {
+        return true;
+      }
+      if (EntityClassName != other.EntityClassName) return false;
+      if (Description != other.Description) return false;
+      if (ConnectionID != other.ConnectionID) return false;
+      if (EntityId != other.EntityId) return false;
+      return Equals(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override int GetHashCode() {
+      int hash = 1;
+      if (EntityClassName.Length != 0) hash ^= EntityClassName.GetHashCode();
+      if (Description.Length != 0) hash ^= Description.GetHashCode();
+      if (ConnectionID != 0) hash ^= ConnectionID.GetHashCode();
+      if (EntityId.Length != 0) hash ^= EntityId.GetHashCode();
+      if (_unknownFields != null) {
+        hash ^= _unknownFields.GetHashCode();
+      }
+      return hash;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override string ToString() {
+      return pb::JsonFormatter.ToDiagnosticString(this);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void WriteTo(pb::CodedOutputStream output) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      output.WriteRawMessage(this);
+    #else
+      if (EntityClassName.Length != 0) {
+        output.WriteRawTag(10);
+        output.WriteString(EntityClassName);
+      }
+      if (Description.Length != 0) {
+        output.WriteRawTag(18);
+        output.WriteString(Description);
+      }
+      if (ConnectionID != 0) {
+        output.WriteRawTag(24);
+        output.WriteUInt32(ConnectionID);
+      }
+      if (EntityId.Length != 0) {
+        output.WriteRawTag(34);
+        output.WriteString(EntityId);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(output);
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
+      if (EntityClassName.Length != 0) {
+        output.WriteRawTag(10);
+        output.WriteString(EntityClassName);
+      }
+      if (Description.Length != 0) {
+        output.WriteRawTag(18);
+        output.WriteString(Description);
+      }
+      if (ConnectionID != 0) {
+        output.WriteRawTag(24);
+        output.WriteUInt32(ConnectionID);
+      }
+      if (EntityId.Length != 0) {
+        output.WriteRawTag(34);
+        output.WriteString(EntityId);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(ref output);
+      }
+    }
+    #endif
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public int CalculateSize() {
+      int size = 0;
+      if (EntityClassName.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(EntityClassName);
+      }
+      if (Description.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(Description);
+      }
+      if (ConnectionID != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeUInt32Size(ConnectionID);
+      }
+      if (EntityId.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(EntityId);
+      }
+      if (_unknownFields != null) {
+        size += _unknownFields.CalculateSize();
+      }
+      return size;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void MergeFrom(CreateDistributeEntity other) {
+      if (other == null) {
+        return;
+      }
+      if (other.EntityClassName.Length != 0) {
+        EntityClassName = other.EntityClassName;
+      }
+      if (other.Description.Length != 0) {
+        Description = other.Description;
+      }
+      if (other.ConnectionID != 0) {
+        ConnectionID = other.ConnectionID;
+      }
+      if (other.EntityId.Length != 0) {
+        EntityId = other.EntityId;
+      }
+      _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void MergeFrom(pb::CodedInputStream input) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      input.ReadRawMessage(this);
+    #else
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+        switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
+            break;
+          case 10: {
+            EntityClassName = input.ReadString();
+            break;
+          }
+          case 18: {
+            Description = input.ReadString();
+            break;
+          }
+          case 24: {
+            ConnectionID = input.ReadUInt32();
+            break;
+          }
+          case 34: {
+            EntityId = input.ReadString();
+            break;
+          }
+        }
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+        switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
+            break;
+          case 10: {
+            EntityClassName = input.ReadString();
+            break;
+          }
+          case 18: {
+            Description = input.ReadString();
+            break;
+          }
+          case 24: {
+            ConnectionID = input.ReadUInt32();
+            break;
+          }
+          case 34: {
+            EntityId = input.ReadString();
+            break;
+          }
+        }
+      }
+    }
+    #endif
+
+  }
+
+  public sealed partial class CreateDistributeEntityRes : pb::IMessage<CreateDistributeEntityRes>
+  #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      , pb::IBufferMessage
+  #endif
+  {
+    private static readonly pb::MessageParser<CreateDistributeEntityRes> _parser = new pb::MessageParser<CreateDistributeEntityRes>(() => new CreateDistributeEntityRes());
+    private pb::UnknownFieldSet _unknownFields;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static pb::MessageParser<CreateDistributeEntityRes> Parser { get { return _parser; } }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static pbr::MessageDescriptor Descriptor {
+      get { return global::LPS.Server.Core.Rpc.InnerMessages.CreateEntityReflection.Descriptor.MessageTypes[3]; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    pbr::MessageDescriptor pb::IMessage.Descriptor {
+      get { return Descriptor; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public CreateDistributeEntityRes() {
+      OnConstruction();
+    }
+
+    partial void OnConstruction();
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public CreateDistributeEntityRes(CreateDistributeEntityRes other) : this() {
+      mailbox_ = other.mailbox_ != null ? other.mailbox_.Clone() : null;
+      connectionID_ = other.connectionID_;
+      _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public CreateDistributeEntityRes Clone() {
+      return new CreateDistributeEntityRes(this);
+    }
+
+    /// <summary>Field number for the "Mailbox" field.</summary>
+    public const int MailboxFieldNumber = 1;
+    private global::LPS.Common.Core.Rpc.InnerMessages.MailBox mailbox_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public global::LPS.Common.Core.Rpc.InnerMessages.MailBox Mailbox {
+      get { return mailbox_; }
+      set {
+        mailbox_ = value;
+      }
+    }
+
+    /// <summary>Field number for the "ConnectionID" field.</summary>
+    public const int ConnectionIDFieldNumber = 2;
+    private uint connectionID_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public uint ConnectionID {
+      get { return connectionID_; }
+      set {
+        connectionID_ = value;
+      }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override bool Equals(object other) {
+      return Equals(other as CreateDistributeEntityRes);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool Equals(CreateDistributeEntityRes other) {
+      if (ReferenceEquals(other, null)) {
+        return false;
+      }
+      if (ReferenceEquals(other, this)) {
+        return true;
+      }
+      if (!object.Equals(Mailbox, other.Mailbox)) return false;
+      if (ConnectionID != other.ConnectionID) return false;
+      return Equals(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override int GetHashCode() {
+      int hash = 1;
+      if (mailbox_ != null) hash ^= Mailbox.GetHashCode();
+      if (ConnectionID != 0) hash ^= ConnectionID.GetHashCode();
+      if (_unknownFields != null) {
+        hash ^= _unknownFields.GetHashCode();
+      }
+      return hash;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override string ToString() {
+      return pb::JsonFormatter.ToDiagnosticString(this);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void WriteTo(pb::CodedOutputStream output) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      output.WriteRawMessage(this);
+    #else
+      if (mailbox_ != null) {
+        output.WriteRawTag(10);
+        output.WriteMessage(Mailbox);
+      }
+      if (ConnectionID != 0) {
+        output.WriteRawTag(16);
+        output.WriteUInt32(ConnectionID);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(output);
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
+      if (mailbox_ != null) {
+        output.WriteRawTag(10);
+        output.WriteMessage(Mailbox);
+      }
+      if (ConnectionID != 0) {
+        output.WriteRawTag(16);
+        output.WriteUInt32(ConnectionID);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(ref output);
+      }
+    }
+    #endif
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public int CalculateSize() {
+      int size = 0;
+      if (mailbox_ != null) {
+        size += 1 + pb::CodedOutputStream.ComputeMessageSize(Mailbox);
+      }
+      if (ConnectionID != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeUInt32Size(ConnectionID);
+      }
+      if (_unknownFields != null) {
+        size += _unknownFields.CalculateSize();
+      }
+      return size;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void MergeFrom(CreateDistributeEntityRes other) {
+      if (other == null) {
+        return;
+      }
+      if (other.mailbox_ != null) {
+        if (mailbox_ == null) {
+          Mailbox = new global::LPS.Common.Core.Rpc.InnerMessages.MailBox();
+        }
+        Mailbox.MergeFrom(other.Mailbox);
+      }
+      if (other.ConnectionID != 0) {
+        ConnectionID = other.ConnectionID;
+      }
+      _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void MergeFrom(pb::CodedInputStream input) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      input.ReadRawMessage(this);
+    #else
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+        switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
+            break;
+          case 10: {
+            if (mailbox_ == null) {
+              Mailbox = new global::LPS.Common.Core.Rpc.InnerMessages.MailBox();
+            }
+            input.ReadMessage(Mailbox);
+            break;
+          }
+          case 16: {
+            ConnectionID = input.ReadUInt32();
+            break;
+          }
+        }
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+        switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
+            break;
+          case 10: {
+            if (mailbox_ == null) {
+              Mailbox = new global::LPS.Common.Core.Rpc.InnerMessages.MailBox();
+            }
+            input.ReadMessage(Mailbox);
+            break;
+          }
+          case 16: {
             ConnectionID = input.ReadUInt32();
             break;
           }

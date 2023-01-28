@@ -8,10 +8,9 @@ enum ControlMessage {
 }
 
 enum RemoteType {
-    HostManager = 0;
-    DBManager = 1;
-    Server = 2;
-    Gate = 3;
+    DBManager = 0;
+    Server = 1;
+    Gate = 2;
 }
 
 message Control {

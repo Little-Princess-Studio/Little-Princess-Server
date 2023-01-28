@@ -8,6 +8,8 @@ using Google.Protobuf;
 using LPS.Common.Core.Debug;
 using LPS.Common.Core.Ipc;
 using LPS.Common.Core.Rpc;
+using LPS.Common.Core.Rpc.InnerMessages;
+using MailBox = LPS.Common.Core.Rpc.MailBox;
 
 namespace LPS.Server.Core.Rpc
 {
@@ -53,7 +55,10 @@ namespace LPS.Server.Core.Rpc
         public int TargetPort => targetPort_;
         public string TargetIp { get; set; }
 
-        public TcpClient(string targetIp, int targetPort, ConcurrentQueue<(TcpClient, IMessage, bool)> sendQueue)
+        private SandBox clientsSendQueueSandBox_;
+
+        public TcpClient(string targetIp, int targetPort, 
+            ConcurrentQueue<(TcpClient, IMessage, bool)> sendQueue)
         {
             TargetIp = targetIp_ = targetIp;
             targetPort_ = targetPort;
@@ -63,8 +68,45 @@ namespace LPS.Server.Core.Rpc
             bus_ = new Bus(msgDispatcher_);
 
             sandboxIo_ = SandBox.Create(this.IoHandler);
+            clientsSendQueueSandBox_ = SandBox.Create(this.SendQueueMessageHandler);
         }
+        
+        private void SendQueueMessageHandler()
+        {
+            while (!stopFlag_)
+            {
+                if (!sendQueue_.IsEmpty)
+                {
+                    var res = sendQueue_.TryDequeue(out var tp);
+                    if (res)
+                    {
+                        var (client, msg, reentry) = tp;
 
+                        var id = client.GenerateMsgId();
+                        // if (!reentry)
+                        // {
+                        //     tokenSequence_.Enqueue(id);
+                        // }
+
+                        var pkg = PackageHelper.FromProtoBuf(msg, id);
+
+                        try
+                        {
+                            client.Socket!.Send(pkg.ToBytes());
+                        }
+                        catch (Exception e)
+                        {
+                            // TODO: try reconnect
+                            Logger.Error(e, "Send msg failed.");
+                            this.Stop();
+                        }
+                    }
+                }
+
+                Thread.Sleep(1);
+            }
+        }
+        
         private async Task IoHandler()
         {
             try
@@ -123,14 +165,15 @@ namespace LPS.Server.Core.Rpc
             this.OnDispose?.Invoke();
         }
 
-        private async Task HandleMessage(Connection conn)
-        {
+        private async Task HandleMessage(Connection conn) =>
             await RpcHelper.HandleMessage(
                 conn,
                 () => stopFlag_,
-                (msg) => bus_.AppendMessage(msg),
+                (msg) =>
+                {
+                    bus_.AppendMessage(msg);
+                },
                 null);
-        }
 
         public uint GenerateMsgId() => idCounter_++;
 
@@ -146,11 +189,13 @@ namespace LPS.Server.Core.Rpc
             }
         }
 
-        public void Pump() => this.bus_.Pump();
+        public void Pump() => bus_.Pump();
 
         public void Run()
         {
             stopFlag_ = false;
+            clientsSendQueueSandBox_.Run();
+            Logger.Debug("tcp client run");
             this.sandboxIo_.Run();
         }
 

@@ -22,8 +22,8 @@ namespace LPS.Server.Core.Rpc
             #region Protobuf type mapping definition
 
             RegisterProtobufDef<Authentication>(PackageType.Authentication);
-            RegisterProtobufDef<CreateEntity>(PackageType.CreateEntity);
-            RegisterProtobufDef<CreateEntityRes>(PackageType.CreateEntityRes);
+            RegisterProtobufDef<RequireCreateEntity>(PackageType.RequireCreateEntity);
+            RegisterProtobufDef<RequireCreateEntityRes>(PackageType.RequireCreateEntityRes);
             RegisterProtobufDef<ExchangeMailBox>(PackageType.ExchangeMailBox);
             RegisterProtobufDef<ExchangeMailBoxRes>(PackageType.ExchangeMailBoxRes);
             RegisterProtobufDef<Control>(PackageType.Control);
@@ -34,7 +34,9 @@ namespace LPS.Server.Core.Rpc
             RegisterProtobufDef<PropertySyncCommandList>(PackageType.PropertySyncCommandList);
             RegisterProtobufDef<PropertySyncAck>(PackageType.PropertySyncAck);
             RegisterProtobufDef<PropertyFullSyncAck>(PackageType.PropertyFullSyncAck);
-
+            RegisterProtobufDef<HostCommand>(PackageType.HostCommand);
+            RegisterProtobufDef<CreateDistributeEntity>(PackageType.CreateDistributeEntity);
+            RegisterProtobufDef<CreateDistributeEntityRes>(PackageType.CreateDistributeEntityRes);
             #endregion
 
             PackageHelper.SetType2Protobuf(Type2ProBuf_);

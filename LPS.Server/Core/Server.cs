@@ -24,28 +24,35 @@ using MailBox = LPS.Common.Core.Rpc.MailBox;
  */
 namespace LPS.Server.Core
 {
-    public class Server
+    public class Server : IInstance
     {
-        public string Name { get; private set; }
-        public string Ip { get; private set; }
-        public int Port { get; private set; }
-        public int HostNum { get; private set; }
+        public readonly string Name;
+        public readonly string Ip;
+        public readonly int Port;
+        public readonly int HostNum;
+        
+        public InstanceType InstanceType => InstanceType.Server;
 
-        private readonly string hostManagerIP_;
-        private readonly int hostManagerPort_;
         private ServerEntity? entity_;
         private CellEntity? defaultCell_;
         private readonly Dictionary<string, DistributeEntity> localEntityDict_ = new();
         private readonly Dictionary<string, CellEntity> cells_ = new();
 
-        private readonly TcpServer tcpServer_;
         private Connection[] GateConnections => tcpServer_.AllConnections;
-
         private readonly CountdownEvent localEntityGeneratedEvent_;
         
         private readonly ConcurrentQueue<(bool, uint, RpcPropertySyncMessage)> timeCircleQueue_ = new();
+        // todo: use constant value to init time circle
         private readonly TimeCircle timeCircle_ = new(50, 1000);
         private readonly Random random_ = new();
+
+        private readonly TcpServer tcpServer_;
+        private readonly TcpClient clientToHostManager_;
+
+        private uint createEntityCounter_;
+
+        private CountdownEvent hostManagerConnectedEvent_;
+        private readonly SandBox clientsPumpMsgSandBox_;
 
         public Server(string name, string ip, int port, int hostnum, string hostManagerIp, int hostManagerPort)
         {
@@ -53,9 +60,7 @@ namespace LPS.Server.Core
             this.Ip = ip;
             this.Port = port;
             this.HostNum = hostnum;
-
-            localEntityGeneratedEvent_ = new(2);
-
+            
             tcpServer_ = new TcpServer(ip, port)
             {
                 OnInit = this.RegisterServerMessageHandlers,
@@ -64,51 +69,38 @@ namespace LPS.Server.Core
             };
 
             timeCircle_.Start();
-            
-            hostManagerIP_ = hostManagerIp;
-            hostManagerPort_ = hostManagerPort;
 
-            // how server entity send msg
-            DbHelper.GenerateNewGlobalId().ContinueWith(task =>
+            localEntityGeneratedEvent_ = new(2);
+            hostManagerConnectedEvent_ = new(1);
+            clientToHostManager_ = new TcpClient(hostManagerIp, hostManagerPort, new ConcurrentQueue<(TcpClient, IMessage, bool)>())
             {
-                var newId = task.Result;
-                entity_ = new ServerEntity(new MailBox(newId, ip, port, hostnum))
+                OnInit = () =>
                 {
-                    // todo: insert local rpc call operation to pump queue, instead of directly calling local entity rpc here.
-                    OnSend = entityRpc => SendEntityRpc(entity_!, entityRpc),
-                };
+                    clientToHostManager_!.RegisterMessageHandler(PackageType.RequireCreateEntityRes, this.HandleRequireCreateEntityResFromHost);
 
-                Logger.Info("server entity generated.");
-                localEntityGeneratedEvent_.Signal();
-            });
-
-            DbHelper.GenerateNewGlobalId().ContinueWith(task =>
-            {
-                var newId = task.Result;
-                defaultCell_ = new ServerDefaultCellEntity()
-                {
-                    MailBox = new MailBox(newId, ip, port, hostnum),
-                    OnSend = entityRpc => SendEntityRpc(defaultCell_!, entityRpc),
-                    EntityLeaveCallBack = entity => this.localEntityDict_.Remove(entity.MailBox.Id),
-                    EntityEnterCallBack = (entity, gateMailBox) =>
+                    clientToHostManager_!.Send(new RequireCreateEntity
                     {
-                        entity.OnSend = entityRpc => SendEntityRpc(entity!, entityRpc);
-                        if (entity is ServerClientEntity serverClientEntity)
-                        {
-                            Logger.Debug("transferred new serverClientEntity, bind new conn");
-                            var gateConn = this.GateConnections.First(conn => conn.MailBox.CompareFull(gateMailBox));
-                            serverClientEntity.BindGateConn(gateConn);
-                        }
+                        EntityType = EntityType.ServerEntity,
+                        CreateType = CreateType.Manual,
+                        EntityClassName = "",
+                        Description = "",
+                        ConnectionID = createEntityCounter_++
+                    });
 
-                        localEntityDict_.Add(entity.MailBox.Id, entity);
-                    },
-                };
-
-                Logger.Info($"default cell generated, {defaultCell_.MailBox}.");
-                // localEntityDict_.Add(newId, defaultCell_);
-                cells_.Add(newId, defaultCell_);
-                localEntityGeneratedEvent_.Signal();
-            });
+                    clientToHostManager_!.Send(new RequireCreateEntity
+                    {
+                        EntityType = EntityType.ServerDefaultCellEntity,
+                        CreateType = CreateType.Manual,
+                        EntityClassName = "",
+                        Description = "",
+                        ConnectionID = createEntityCounter_++
+                    });
+                },
+                OnDispose = () => clientToHostManager_!.UnregisterMessageHandler(PackageType.RequireCreateEntityRes, this.HandleRequireCreateEntityResFromHost),
+                OnConnected = () => hostManagerConnectedEvent_.Signal(1)
+            };
+            
+            clientsPumpMsgSandBox_ = SandBox.Create(this.PumpMessageHandler);
         }
 
         private void OnTick(uint deltaTime)
@@ -239,39 +231,148 @@ namespace LPS.Server.Core
 
         public void Stop()
         {
+            clientToHostManager_.Stop();
             tcpServer_.Stop();
         }
 
         public void Loop()
         {
-            localEntityGeneratedEvent_.Wait();
             Logger.Debug($"Start server at {this.Ip}:{this.Port}");
             tcpServer_.Run();
+            clientToHostManager_.Run();
+            clientsPumpMsgSandBox_.Run();
 
             Logger.Debug($"Start time circle pump.");
             var sendQueueSandBox = SandBox.Create(this.TimeCircleSyncMessageEnqueueHandler);
             sendQueueSandBox.Run();
 
+            hostManagerConnectedEvent_.Wait();
+            Logger.Debug("Host manager connected.");
+            
+            localEntityGeneratedEvent_.Wait();
+            Logger.Debug($"Local entity generated. {entity_!.MailBox}");
+
             // gate main thread will stuck here
+            clientToHostManager_.WaitForExit();
             tcpServer_.WaitForExit();
+            clientsPumpMsgSandBox_.WaitForExit();
         }
 
         private void RegisterServerMessageHandlers()
         {
             tcpServer_.RegisterMessageHandler(PackageType.EntityRpc, this.HandleEntityRpc);
-            tcpServer_.RegisterMessageHandler(PackageType.CreateEntity, this.HandleCreateEntity);
-            tcpServer_.RegisterMessageHandler(PackageType.ExchangeMailBox, this.HandleExchangeMailBox);
+            // tcpServer_.RegisterMessageHandler(PackageType.ExchangeMailBox, this.HandleExchangeMailBox);
             tcpServer_.RegisterMessageHandler(PackageType.RequirePropertyFullSync, this.HandleRequirePropertyFullSync);
             tcpServer_.RegisterMessageHandler(PackageType.PropertyFullSyncAck, this.HandlePropertyFullSyncAck);
+            tcpServer_.RegisterMessageHandler(PackageType.HostCommand, this.HandleHostCommand);
+            tcpServer_.RegisterMessageHandler(PackageType.CreateDistributeEntity, this.HandleCreateDistributeEntity);
         }
-
+        
         private void UnregisterServerMessageHandlers()
         {
             tcpServer_.UnregisterMessageHandler(PackageType.EntityRpc, this.HandleEntityRpc);
-            tcpServer_.UnregisterMessageHandler(PackageType.CreateEntity, this.HandleCreateEntity);
-            tcpServer_.UnregisterMessageHandler(PackageType.ExchangeMailBox, this.HandleExchangeMailBox);
+            // tcpServer_.UnregisterMessageHandler(PackageType.ExchangeMailBox, this.HandleExchangeMailBox);
             tcpServer_.UnregisterMessageHandler(PackageType.RequirePropertyFullSync, this.HandleRequirePropertyFullSync);
             tcpServer_.UnregisterMessageHandler(PackageType.PropertyFullSyncAck, this.HandlePropertyFullSyncAck);
+            tcpServer_.UnregisterMessageHandler(PackageType.HostCommand, this.HandleHostCommand);
+            tcpServer_.UnregisterMessageHandler(PackageType.CreateDistributeEntity, this.HandleCreateDistributeEntity);
+        }
+        
+        private void HandleCreateDistributeEntity(object arg)
+        {
+            var (msg, conn, id) = ((IMessage, Connection, UInt32)) arg;
+            var createDist = (msg as CreateDistributeEntity)!;
+            
+            var newId = createDist.EntityId!;
+            var entityClassName = createDist.EntityClassName!;
+            var jsonDesc = createDist.Description!;
+
+            var entityMailBox = new MailBox(newId, this.Ip, this.Port, this.HostNum);
+            
+            OnCreateEntity(conn, entityClassName, jsonDesc, entityMailBox);
+            
+            var createEntityRes = new CreateDistributeEntityRes
+            {
+                Mailbox = RpcHelper.RpcMailBoxToPbMailBox(entityMailBox),
+                ConnectionID = createDist.ConnectionID
+            };
+            
+            Logger.Debug("Create Entity Anywhere");
+            var pkg = PackageHelper.FromProtoBuf(createEntityRes, id);
+            conn.Socket.Send(pkg.ToBytes());
+        }
+        
+        private void HandleRequireCreateEntityResFromHost(object arg)
+        {
+            var (msg, conn, _) = ((IMessage, Connection, UInt32)) arg;
+            var createRes = (msg as RequireCreateEntityRes)!;
+            
+            Logger.Info($"Create Entity Res: {createRes.EntityType} {createRes.ConnectionID}");
+            
+            switch (createRes.EntityType)
+            {
+                case EntityType.ServerEntity:
+                    CreateServerEntity(createRes);
+                    break;
+                case EntityType.ServerDefaultCellEntity:
+                    CreateServerDefaultCellEntity(createRes);
+                    break;
+                case EntityType.ServerClientEntity:
+                case EntityType.GateEntity:
+                case EntityType.DistibuteEntity:
+                default:
+                    Logger.Warn($"Invalid Create Entity Res Type: {createRes.EntityType}");
+                    break;
+            }
+        }
+
+        private void CreateServerDefaultCellEntity(RequireCreateEntityRes createRes)
+        {
+            var newId = createRes.Mailbox.ID;
+            defaultCell_ = new ServerDefaultCellEntity()
+            {
+                MailBox = new MailBox(newId, this.Ip, this.Port, this.HostNum),
+                OnSend = entityRpc => SendEntityRpc(defaultCell_!, entityRpc),
+                EntityLeaveCallBack = entity => this.localEntityDict_.Remove(entity.MailBox.Id),
+                EntityEnterCallBack = (entity, gateMailBox) =>
+                {
+                    entity.OnSend = entityRpc => SendEntityRpc(entity!, entityRpc);
+                    if (entity is ServerClientEntity serverClientEntity)
+                    {
+                        Logger.Debug("transferred new serverClientEntity, bind new conn");
+                        var gateConn = this.GateConnections.First(conn => conn.MailBox.CompareFull(gateMailBox));
+                        serverClientEntity.BindGateConn(gateConn);
+                    }
+
+                    localEntityDict_.Add(entity.MailBox.Id, entity);
+                },
+            };
+
+            Logger.Info($"default cell generated, {defaultCell_.MailBox}.");
+            cells_.Add(newId, defaultCell_);
+
+            localEntityGeneratedEvent_.Signal(1);
+        }
+
+        private void CreateServerEntity(RequireCreateEntityRes createRes)
+        {
+            var serverEntityMailBox =
+                new MailBox(createRes.Mailbox.ID, this.Ip, this.Port, this.HostNum);
+            entity_ = new ServerEntity(serverEntityMailBox)
+            {
+                // todo: insert local rpc call operation to pump queue, instead of directly calling local entity rpc here.
+                OnSend = entityRpc => SendEntityRpc(entity_!, entityRpc),
+            };
+
+            Logger.Info("server entity generated.");
+            
+            localEntityGeneratedEvent_.Signal(1);
+        }
+
+        private void HandleHostCommand(object arg)
+        {
+            var (msg, conn, _) = ((IMessage, Connection, UInt32)) arg;
+            var hostCmd = (msg as HostCommand)!;
         }
 
         // how server handle entity rpc
@@ -324,97 +425,42 @@ namespace LPS.Server.Core
                 tcpServer_.Send(entityRpc, GateConnections[0]);
             }
         }
+        
+        // private void HandleExchangeMailBox(object arg)
+        // {
+        //     var (msg, conn, id) = ((IMessage, Connection, UInt32)) arg;
+        //
+        //     var gateMailBox = (msg as ExchangeMailBox)!.Mailbox;
+        //     var socket = conn.Socket;
+        //
+        //     Logger.Info(
+        //         $"exchange mailbox: {gateMailBox.ID} {gateMailBox.IP} {gateMailBox.Port} {gateMailBox.HostNum}");
+        //
+        //     conn.MailBox = RpcHelper.PbMailBoxToRpcMailBox(gateMailBox);
+        //
+        //     var res = new ExchangeMailBoxRes
+        //     {
+        //         Mailbox = RpcHelper.RpcMailBoxToPbMailBox(entity_!.MailBox),
+        //     };
+        //
+        //     var pkg = PackageHelper.FromProtoBuf(res, id);
+        //     socket.Send(pkg.ToBytes());
+        // }
 
-        private void HandleCreateEntity(object arg)
+        private void PumpMessageHandler()
         {
-            var (msg, conn, id) = ((IMessage, Connection, UInt32)) arg;
-
-            var createEntity = (msg as CreateEntity)!;
-
-            Logger.Info($"create entity: {createEntity.CreateType}, {createEntity.EntityClassName}");
-
-            // todo: move this quest to hostmanager
-            switch (createEntity.CreateType)
+            try
             {
-                case CreateType.Local:
-                    break;
-                case CreateType.Anywhere:
-                    CreateAnywhereEntity(createEntity, id, conn);
-                    break;
-                case CreateType.Manual:
-                    CreateManualEntity(createEntity, id, conn);
-                    break;
+                while (!tcpServer_.Stopped)
+                {
+                    clientToHostManager_.Pump();
+                    Thread.Sleep(1);
+                }
             }
-        }
-
-        private void CreateAnywhereEntity(CreateEntity createEntity, uint id, Connection conn)
-        {
-            DbHelper.GenerateNewGlobalId().ContinueWith(task =>
+            catch (Exception e)
             {
-                var newId = task.Result;
-
-                var entityClassName = createEntity.EntityClassName!;
-                var jsonDesc = createEntity.Description!;
-                var entityMailBox = new MailBox(newId, this.Ip, this.Port, this.HostNum);
-
-                OnCreateEntity(conn, entityClassName, jsonDesc, entityMailBox);
-
-                var createEntityRes = new CreateEntityRes
-                {
-                    Mailbox = RpcHelper.RpcMailBoxToPbMailBox(entityMailBox),
-                    EntityType = createEntity.EntityType,
-                    ConnectionID = createEntity.ConnectionID,
-                    EntityClassName = createEntity.EntityClassName
-                };
-                
-                Logger.Debug("Create Entity Anywhere");
-                var pkg = PackageHelper.FromProtoBuf(createEntityRes, id);
-                conn.Socket.Send(pkg.ToBytes());
-            });
-        }
-
-        private void CreateManualEntity(CreateEntity createEntity, uint id, Connection conn)
-        {
-            DbHelper.GenerateNewGlobalId().ContinueWith(task =>
-            {
-                var newId = task.Result;
-                var entityMailBox = new CreateEntityRes
-                {
-                    Mailbox = new LPS.Common.Core.Rpc.InnerMessages.MailBox
-                    {
-                        IP = "",
-                        Port = 0,
-                        HostNum = (uint) this.HostNum,
-                        ID = newId
-                    },
-                    EntityType = createEntity.EntityType,
-                    ConnectionID = createEntity.ConnectionID,
-                    EntityClassName = createEntity.EntityClassName
-                };
-                var pkg = PackageHelper.FromProtoBuf(entityMailBox, id);
-                conn.Socket.Send(pkg.ToBytes());
-            });
-        }
-
-        private void HandleExchangeMailBox(object arg)
-        {
-            var (msg, conn, id) = ((IMessage, Connection, UInt32)) arg;
-
-            var gateMailBox = (msg as ExchangeMailBox)!.Mailbox;
-            var socket = conn.Socket;
-
-            Logger.Info(
-                $"exchange mailbox: {gateMailBox.ID} {gateMailBox.IP} {gateMailBox.Port} {gateMailBox.HostNum}");
-
-            conn.MailBox = RpcHelper.PbMailBoxToRpcMailBox(gateMailBox);
-
-            var res = new ExchangeMailBoxRes
-            {
-                Mailbox = RpcHelper.RpcMailBoxToPbMailBox(entity_!.MailBox),
-            };
-
-            var pkg = PackageHelper.FromProtoBuf(res, id);
-            socket.Send(pkg.ToBytes());
+                Logger.Error(e, "Pump message failed.");
+            }
         }
 
         private void HandleRequirePropertyFullSync(object arg)

@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Threading.Tasks;
 using Google.Protobuf.WellKnownTypes;
 using LPS.Common.Core.Debug;
@@ -19,7 +18,7 @@ namespace LPS.Server.Core.Entity
         public CellEntity Cell { get; set; } = null!;
 
         public Action<bool, uint, RpcPropertySyncMessage>? SendSyncMessageHandler;
-
+        
         protected DistributeEntity(string desc) : this()
         {
         }
@@ -70,6 +69,84 @@ namespace LPS.Server.Core.Entity
             this.IsFrozen = false;
         }
 
+        /// <summary>
+        /// Migrate current DistributeEntity to another DistributeEntity
+        /// return ture if successfully migrate, otherwise false
+        /// Steps for migrating to another DistributeEntity:
+        /// 
+        /// 1. set origin entity status to frozen
+        /// 2. send request rpc to target DistributeEntity and wait
+        /// 3. target entity set entity status to frozen
+        /// 4. target entity rebuild self with migrateInfo (OnMigratedIn is called)
+        /// 5. destroy current origin entity
+        /// 
+        /// </summary>
+        /// <param name="targetMailBox"></param>
+        /// <param name="migrateInfo"></param>
+        public virtual async Task<bool> MigrateTo(MailBox targetMailBox, string migrateInfo)
+        {
+            if (targetMailBox.CompareFull(this.MailBox))
+            {
+                return false;
+            }
+
+            this.IsFrozen = true;
+
+            Logger.Info($"start migrate, from {this.MailBox} to {targetMailBox}");
+            
+            try
+            {
+                var res = await this.Call<bool>(targetMailBox,
+                    nameof(RequireMigrate),
+                    this.MailBox,
+                    this.GetType().Name,
+                    migrateInfo);
+
+                if (!res)
+                {
+                    this.IsFrozen = false;
+                    throw new Exception("Error when migrate distribute entity");
+                }
+                
+                // destroy self
+                this.Cell.OnEntityLeave(this);
+                this.Destroy();
+                
+                return true;
+            }
+            catch (Exception e)
+            {
+                this.IsFrozen = false;
+                Logger.Error(e, "Error when migrate distribute entity");
+                throw;
+            }
+        }
+
+        [RpcMethod(authority: Authority.ServerOnly)]
+        public Task<bool> RequireMigrate(MailBox originMailBox, string migrateInfo)
+        {
+            this.IsFrozen = true;
+            try
+            {
+                this.OnMigratedIn(originMailBox, migrateInfo);
+            }
+            catch (Exception e)
+            {
+                Logger.Error(e, "Failed to migrate in");
+                return Task.FromResult(false);
+            }
+            finally
+            {
+                this.IsFrozen = false;
+            }
+            
+            return Task.FromResult(true);
+        }
+
+        public virtual void OnMigratedIn(MailBox originMailBox, string migrateInfo)
+        {
+        }
+
         /*
          * Steps for entity transfer to other server
          *
@@ -99,7 +176,7 @@ namespace LPS.Server.Core.Entity
             try
             {
                 var (res, mailbox) = await this.Call<(bool, MailBox)>(targetCellMailBox,
-                    "RequireTransfer",
+                    nameof(CellEntity.RequireTransfer),
                     this.MailBox,
                     this.GetType().Name,
                     serialContent,
@@ -112,16 +189,17 @@ namespace LPS.Server.Core.Entity
                 }
 
                 this.Cell.OnEntityLeave(this);
+                this.Destroy();
 
                 Logger.Debug($"transfer success, new mailbox {mailbox}");
             }
             catch (Exception e)
             {
+                this.IsFrozen = false;
                 Logger.Error(e, "Error when transfer to cell");
                 throw;
             }
 
-            this.Destroy();
         }
 
         public void OnTransferred(string transferInfo)

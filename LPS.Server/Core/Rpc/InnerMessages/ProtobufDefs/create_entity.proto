@@ -1,4 +1,5 @@
 syntax = "proto3";
+import "mailbox.proto";
 package LPS.Server.Core.Rpc.InnerMessages;
 
 enum CreateType {
@@ -10,13 +11,35 @@ enum CreateType {
 enum EntityType
 {
   ServerClientEntity = 0;
-  GateEntity = 1;
+  ServerEntity = 1;
+  ServerDefaultCellEntity = 2;
+  GateEntity = 3;
+  DistibuteEntity = 4;
 }
 
-message CreateEntity {
+message RequireCreateEntity {
   string EntityClassName = 1;
   CreateType CreateType = 2;
   string Description = 3;
   EntityType EntityType = 4;
   uint32 ConnectionID = 5;
-};
+}
+
+message RequireCreateEntityRes {
+  LPS.Common.Core.Rpc.InnerMessages.MailBox Mailbox = 1;
+  uint32 ConnectionID = 2;
+  EntityType EntityType = 3;
+  string EntityClassName = 4;
+}
+
+message CreateDistributeEntity {
+  string EntityClassName = 1;
+  string Description = 2;
+  uint32 ConnectionID = 3;
+  string EntityId = 4;
+}
+
+message CreateDistributeEntityRes {
+  LPS.Common.Core.Rpc.InnerMessages.MailBox Mailbox = 1;
+  uint32 ConnectionID = 2;
+}

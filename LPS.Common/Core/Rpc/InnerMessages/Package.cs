@@ -69,9 +69,9 @@ namespace LPS.Common.Core.Rpc.InnerMessages
     public enum PackageType
     {
         Authentication = 0,
-        CreateEntityRes = 1,
+        RequireCreateEntityRes = 1,
         EntityRpc = 2,
-        CreateEntity = 3,
+        RequireCreateEntity = 3,
         ExchangeMailBox = 4,
         ExchangeMailBoxRes = 5,
         Control = 6,
@@ -81,6 +81,9 @@ namespace LPS.Common.Core.Rpc.InnerMessages
         PropertySyncCommandList = 10,
         PropertyFullSyncAck = 11,
         PropertySyncAck = 12,
+        HostCommand = 13,
+        CreateDistributeEntity = 14,
+        CreateDistributeEntityRes = 15,
     }
 
     public static class PackageHelper

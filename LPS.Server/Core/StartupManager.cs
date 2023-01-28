@@ -155,9 +155,10 @@ namespace LPS.Server.Core
             switch (type)
             {
                 case "hostmanager":
+                    StartUpHostManager(name, confFilePath);
                     break;
                 case "dbmanager":
-                    StartUpManager(name, confFilePath);
+                    StartUpDbManager(name, confFilePath);
                     break;
                 case "gate":
                     StartUpGate(name, confFilePath);
@@ -170,7 +171,28 @@ namespace LPS.Server.Core
             }
         }
 
-        private static void StartUpManager(string name, string confFilePath)
+        private static void StartUpHostManager(string name, string confFilePath)
+        {
+            RpcProtobufDefs.Initialize();
+            DbHelper.Initialize().Wait();
+
+            var json = GetJson(confFilePath);
+            
+            var hostnum = Convert.ToInt32(json["hostnum"]!.ToString());
+            var ip = json["ip"]!.ToString();
+            var port = json["port"]!.ToObject<int>();
+
+            var serverNum = json["server_num"]!.ToObject<int>();
+            var gateNum = json["gate_num"]!.ToObject<int>();
+
+            var hostManager = new HostManager(name, hostnum, ip, port, serverNum, gateNum);
+
+            ServerGlobal.Init(hostManager);
+            
+            hostManager.Loop();
+        }
+
+        private static void StartUpDbManager(string name, string confFilePath)
         {
             RpcProtobufDefs.Initialize();
             DbHelper.Initialize().Wait();
@@ -196,6 +218,9 @@ namespace LPS.Server.Core
 
             Logger.Debug($"Startup DbManager {name} at {ip}:{port}");
             var dbManager = new DbManager(ip, port, hostnum, hostManagerIp, hostManagerPort, globalCacheInfo);
+            
+            ServerGlobal.Init(dbManager);
+            
             dbManager.Loop();
         }
 
@@ -241,6 +266,9 @@ namespace LPS.Server.Core
 
             Logger.Debug($"Startup Gate {name} at {ip}:{port}");
             var gate = new Gate(name, ip, port, hostnum, hostManagerIp, hostManagerPort, servers, otherGates);
+            
+            ServerGlobal.Init(gate);
+
             gate.Loop();
         }
 
@@ -266,6 +294,8 @@ namespace LPS.Server.Core
 
             Logger.Debug($"Startup Server {name} at {ip}:{port}");
             var server = new Server(name, ip, port, hostnum, hostManagerIp, hostManagerPort);
+
+            ServerGlobal.Init(server);
 
             server.Loop();
         }
