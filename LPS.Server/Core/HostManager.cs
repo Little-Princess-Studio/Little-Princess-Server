@@ -1,6 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Google.Protobuf;
+using Google.Protobuf.Collections;
+using Google.Protobuf.WellKnownTypes;
 using LPS.Common.Core.Debug;
 using LPS.Common.Core.Rpc;
 using LPS.Common.Core.Rpc.InnerMessages;
@@ -47,7 +50,7 @@ namespace LPS.Server.Core
         State3, // stopping
         State4, // stopped
     }
-    
+
     /// <summary>
     /// HostManager will watch the status of each component in the host including:
     /// Server/Gate/DbManager
@@ -66,19 +69,18 @@ namespace LPS.Server.Core
         public readonly int Port;
         public readonly int ServerNum;
         public readonly int GateNum;
-        
-        private readonly TcpServer tcpServer_;
 
-        public Dictionary<MailBox, Connection> Gates { get; private set; }
-        public Dictionary<MailBox, Connection> Servers { get; private set; }
+        private readonly TcpServer tcpServer_;
         public List<Connection> ServersConn { get; private set; } = new List<Connection>();
+        public List<Connection> GatesConn { get; private set; } = new List<Connection>();
 
         public HostStatus Status { get; private set; } = HostStatus.None;
-        
+
         private readonly Random random_ = new();
         private uint createEntityCnt_;
 
-        private Dictionary<uint, (uint ConnId, Connection OriginConn, string EntityClassName)> createDistEntityAsyncRecord_ = new();
+        private Dictionary<uint, (uint ConnId, Connection OriginConn, string EntityClassName)>
+            createDistEntityAsyncRecord_ = new();
 
         public HostManager(string name, int hostNum, string ip, int port, int serverNum, int gateNum)
         {
@@ -88,7 +90,7 @@ namespace LPS.Server.Core
             this.Port = port;
             this.ServerNum = serverNum;
             this.GateNum = gateNum;
-            
+
             tcpServer_ = new TcpServer(ip, port)
             {
                 OnInit = this.RegisterServerMessageHandlers,
@@ -96,19 +98,21 @@ namespace LPS.Server.Core
                 ServerTickHandler = null,
             };
         }
-        
+
         private void UnregisterServerMessageHandlers()
         {
             tcpServer_.UnregisterMessageHandler(PackageType.Control, this.HandleControlCmd);
             tcpServer_.UnregisterMessageHandler(PackageType.RequireCreateEntity, this.HandleControlCmd);
-            tcpServer_.UnregisterMessageHandler(PackageType.CreateDistributeEntityRes, this.HandleCreateDistributeEntityRes);
+            tcpServer_.UnregisterMessageHandler(PackageType.CreateDistributeEntityRes,
+                this.HandleCreateDistributeEntityRes);
         }
-        
+
         private void RegisterServerMessageHandlers()
         {
             tcpServer_.RegisterMessageHandler(PackageType.Control, this.HandleControlCmd);
             tcpServer_.RegisterMessageHandler(PackageType.RequireCreateEntity, this.HandleRequireCreateEntity);
-            tcpServer_.RegisterMessageHandler(PackageType.CreateDistributeEntityRes, this.HandleCreateDistributeEntityRes);
+            tcpServer_.RegisterMessageHandler(PackageType.CreateDistributeEntityRes,
+                this.HandleCreateDistributeEntityRes);
         }
 
         private void HandleCreateDistributeEntityRes(object arg)
@@ -131,7 +135,7 @@ namespace LPS.Server.Core
                 EntityType = EntityType.DistibuteEntity,
                 EntityClassName = entityClassName,
             };
-            
+
             var pkg = PackageHelper.FromProtoBuf(requireCreateRes, id);
             conn.Socket.Send(pkg.ToBytes());
         }
@@ -146,6 +150,7 @@ namespace LPS.Server.Core
             switch (createEntity.CreateType)
             {
                 case CreateType.Local:
+                    CreateLocalEntity(createEntity, id, conn);
                     break;
                 case CreateType.Anywhere:
                     CreateAnywhereEntity(createEntity, id, conn);
@@ -155,7 +160,10 @@ namespace LPS.Server.Core
                     break;
             }
         }
-        
+
+        private void CreateLocalEntity(RequireCreateEntity createEntity, uint id, Connection conn) =>
+            CreateManualEntity(createEntity, id, conn);
+
         private void CreateManualEntity(RequireCreateEntity createEntity, uint id, Connection conn)
         {
             DbHelper.GenerateNewGlobalId().ContinueWith(task =>
@@ -178,7 +186,6 @@ namespace LPS.Server.Core
                 conn.Socket.Send(pkg.ToBytes());
             });
         }
-
 
         /// <summary>
         ///server craete eneity anywhere step:
@@ -218,24 +225,72 @@ namespace LPS.Server.Core
         {
             var (msg, conn, _) = ((IMessage, Connection, UInt32)) arg;
             var hostCmd = (msg as Control)!;
-            // var newMailBox = new MailBox(conn.)
+            switch (hostCmd.Message)
+            {
+                case ControlMessage.Ready:
+                    this.RegisterComponents(hostCmd.From, conn);
+                    break;
+                case ControlMessage.Restart:
+                    break;
+                case ControlMessage.ShutDown:
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
         }
 
-        private void OnRegisterGate(string name, MailBox mb)
+        private void RegisterComponents(RemoteType hostCmdFrom, Connection conn)
         {
-            
+            if (hostCmdFrom == RemoteType.Gate)
+            {
+                Logger.Info("gate require sync");
+                this.GatesConn.Add(conn);
+                if (GatesConn.Count == this.GateNum)
+                {
+                    // broadcast sync msg
+                    var syncCmd = new HostCommand
+                    {
+                        Type = HostCommandType.SyncGates
+                    };
+
+                    foreach (var gateConn in this.GatesConn)
+                    {
+                        syncCmd.Args.Add(Any.Pack(RpcHelper.RpcMailBoxToPbMailBox(gateConn.MailBox)));
+                    }
+                    
+                    var pkg = PackageHelper.FromProtoBuf(syncCmd, 0);
+                    foreach (var gateConn in this.GatesConn)
+                    {
+                        gateConn.Socket.Send(pkg.ToBytes());
+                    }
+                }
+            }
+            else if (hostCmdFrom == RemoteType.Server)
+            {
+                this.ServersConn.Add(conn);
+
+                if (ServersConn.Count == this.ServerNum)
+                {
+                    // broadcast sync msg
+                    var syncCmd = new HostCommand
+                    {
+                        Type = HostCommandType.SyncServers
+                    };
+
+                    foreach (var serverConn in this.ServersConn)
+                    {
+                        syncCmd.Args.Add(Any.Pack(RpcHelper.RpcMailBoxToPbMailBox(serverConn.MailBox)));
+                    }
+                    
+                    var pkg = PackageHelper.FromProtoBuf(syncCmd, 0);
+                    foreach (var serverConn in this.ServersConn)
+                    {
+                        serverConn.Socket.Send(pkg.ToBytes());
+                    }
+                }
+            }
         }
 
-        private void OnRegisterServer(string name, MailBox mb)
-        {
-            
-        }
-
-        private void OnRegisterDbManager(string name, MailBox mb)
-        {
-            
-        }
-        
         public void Loop()
         {
             Logger.Debug($"Start Host Manager at {this.Ip}:{this.Port}");

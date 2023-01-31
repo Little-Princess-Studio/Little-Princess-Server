@@ -613,6 +613,12 @@ namespace LPS.Server.Core
 
             localEntityGeneratedEvent_.Wait();
             Logger.Debug($"Gate entity created. {entity_!.MailBox}");
+
+            var registerCtl = new Control
+            {
+                
+            };
+            
             // tcpClientConnectedCountdownEvent_.Wait();
 
             // Logger.Debug("Wait for server's mailbox");

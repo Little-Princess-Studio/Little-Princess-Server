@@ -28,8 +28,9 @@ namespace LPS.Server.Core.Rpc.InnerMessages {
             "ZXJNZXNzYWdlcxoZZ29vZ2xlL3Byb3RvYnVmL2FueS5wcm90byJzCgtIb3N0",
             "Q29tbWFuZBJACgRUeXBlGAEgASgOMjIuTFBTLlNlcnZlci5Db3JlLlJwYy5J",
             "bm5lck1lc3NhZ2VzLkhvc3RDb21tYW5kVHlwZRIiCgRBcmdzGAIgAygLMhQu",
-            "Z29vZ2xlLnByb3RvYnVmLkFueSo5Cg9Ib3N0Q29tbWFuZFR5cGUSEgoOU3lu",
-            "Y0Nvbm5lY3Rpb24QABIICgRPcGVuEAESCAoEU3RvcBACYgZwcm90bzM="));
+            "Z29vZ2xlLnByb3RvYnVmLkFueSpFCg9Ib3N0Q29tbWFuZFR5cGUSDwoLU3lu",
+            "Y1NlcnZlcnMQABINCglTeW5jR2F0ZXMQARIICgRPcGVuEAISCAoEU3RvcBAD",
+            "YgZwcm90bzM="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { global::Google.Protobuf.WellKnownTypes.AnyReflection.Descriptor, },
           new pbr::GeneratedClrTypeInfo(new[] {typeof(global::LPS.Server.Core.Rpc.InnerMessages.HostCommandType), }, null, new pbr::GeneratedClrTypeInfo[] {
@@ -41,9 +42,10 @@ namespace LPS.Server.Core.Rpc.InnerMessages {
   }
   #region Enums
   public enum HostCommandType {
-    [pbr::OriginalName("SyncConnection")] SyncConnection = 0,
-    [pbr::OriginalName("Open")] Open = 1,
-    [pbr::OriginalName("Stop")] Stop = 2,
+    [pbr::OriginalName("SyncServers")] SyncServers = 0,
+    [pbr::OriginalName("SyncGates")] SyncGates = 1,
+    [pbr::OriginalName("Open")] Open = 2,
+    [pbr::OriginalName("Stop")] Stop = 3,
   }
 
   #endregion
@@ -96,7 +98,7 @@ namespace LPS.Server.Core.Rpc.InnerMessages {
 
     /// <summary>Field number for the "Type" field.</summary>
     public const int TypeFieldNumber = 1;
-    private global::LPS.Server.Core.Rpc.InnerMessages.HostCommandType type_ = global::LPS.Server.Core.Rpc.InnerMessages.HostCommandType.SyncConnection;
+    private global::LPS.Server.Core.Rpc.InnerMessages.HostCommandType type_ = global::LPS.Server.Core.Rpc.InnerMessages.HostCommandType.SyncServers;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public global::LPS.Server.Core.Rpc.InnerMessages.HostCommandType Type {
@@ -141,7 +143,7 @@ namespace LPS.Server.Core.Rpc.InnerMessages {
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override int GetHashCode() {
       int hash = 1;
-      if (Type != global::LPS.Server.Core.Rpc.InnerMessages.HostCommandType.SyncConnection) hash ^= Type.GetHashCode();
+      if (Type != global::LPS.Server.Core.Rpc.InnerMessages.HostCommandType.SyncServers) hash ^= Type.GetHashCode();
       hash ^= args_.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
@@ -161,7 +163,7 @@ namespace LPS.Server.Core.Rpc.InnerMessages {
     #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       output.WriteRawMessage(this);
     #else
-      if (Type != global::LPS.Server.Core.Rpc.InnerMessages.HostCommandType.SyncConnection) {
+      if (Type != global::LPS.Server.Core.Rpc.InnerMessages.HostCommandType.SyncServers) {
         output.WriteRawTag(8);
         output.WriteEnum((int) Type);
       }
@@ -176,7 +178,7 @@ namespace LPS.Server.Core.Rpc.InnerMessages {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
-      if (Type != global::LPS.Server.Core.Rpc.InnerMessages.HostCommandType.SyncConnection) {
+      if (Type != global::LPS.Server.Core.Rpc.InnerMessages.HostCommandType.SyncServers) {
         output.WriteRawTag(8);
         output.WriteEnum((int) Type);
       }
@@ -191,7 +193,7 @@ namespace LPS.Server.Core.Rpc.InnerMessages {
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public int CalculateSize() {
       int size = 0;
-      if (Type != global::LPS.Server.Core.Rpc.InnerMessages.HostCommandType.SyncConnection) {
+      if (Type != global::LPS.Server.Core.Rpc.InnerMessages.HostCommandType.SyncServers) {
         size += 1 + pb::CodedOutputStream.ComputeEnumSize((int) Type);
       }
       size += args_.CalculateSize(_repeated_args_codec);
@@ -207,7 +209,7 @@ namespace LPS.Server.Core.Rpc.InnerMessages {
       if (other == null) {
         return;
       }
-      if (other.Type != global::LPS.Server.Core.Rpc.InnerMessages.HostCommandType.SyncConnection) {
+      if (other.Type != global::LPS.Server.Core.Rpc.InnerMessages.HostCommandType.SyncServers) {
         Type = other.Type;
       }
       args_.Add(other.args_);

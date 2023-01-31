@@ -52,6 +52,7 @@ namespace LPS.Server.Core
         private uint createEntityCounter_;
 
         private CountdownEvent hostManagerConnectedEvent_;
+        private CountdownEvent waitForSyncEvent_;
         private readonly SandBox clientsPumpMsgSandBox_;
 
         public Server(string name, string ip, int port, int hostnum, string hostManagerIp, int hostManagerPort)
@@ -252,6 +253,14 @@ namespace LPS.Server.Core
             localEntityGeneratedEvent_.Wait();
             Logger.Debug($"Local entity generated. {entity_!.MailBox}");
 
+            // register server and wait for sync ack
+            var regCtl = new Control
+            {
+                From = RemoteType.Server,
+                Message = ControlMessage.Ready,
+            };
+            clientToHostManager_.Send(regCtl);
+            
             // gate main thread will stuck here
             clientToHostManager_.WaitForExit();
             tcpServer_.WaitForExit();

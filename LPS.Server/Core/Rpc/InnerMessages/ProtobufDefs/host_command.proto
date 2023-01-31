@@ -3,9 +3,10 @@ import "google/protobuf/any.proto";
 package LPS.Server.Core.Rpc.InnerMessages;
 
 enum HostCommandType {
-    SyncConnection = 0;
-    Open = 1;
-    Stop = 2;
+    SyncServers = 0;
+    SyncGates = 1;
+    Open = 2;
+    Stop = 3;
 }
 
 message HostCommand {
