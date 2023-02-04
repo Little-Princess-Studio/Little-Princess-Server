@@ -6,18 +6,18 @@
     "server_conf": "Config/host0/server.conf.json",
 
     "hostmanager": {
-        "ip": "0.0.0.0",
+        "ip": "127.0.0.1",
         "port": 10001    
     },
 
     "gates": {
         "gate0" : {
-            "ip": "0.0.0.0",
+            "ip": "127.0.0.1",
             "innerip": "127.0.0.1",
             "port": 11001
         },
         "gate1": {
-            "ip": "0.0.0.0",
+            "ip": "127.0.0.1",
             "innerip": "127.0.0.1",
             "port": 11011
         }

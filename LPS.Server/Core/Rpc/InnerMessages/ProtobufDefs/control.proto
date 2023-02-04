@@ -1,5 +1,6 @@
 syntax = "proto3";
 package LPS.Server.Core.Rpc.InnerMessages;
+import "google/protobuf/any.proto";
 
 enum ControlMessage {
     Ready = 0;
@@ -16,4 +17,5 @@ enum RemoteType {
 message Control {
   RemoteType From = 1;
   ControlMessage Message = 2;
+  repeated google.protobuf.Any Args = 3;
 }

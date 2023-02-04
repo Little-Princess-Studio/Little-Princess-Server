@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using Google.Protobuf;
+using Google.Protobuf.WellKnownTypes;
 using LPS.Common.Core.Debug;
 using LPS.Common.Core.Entity;
 using LPS.Common.Core.Ipc;
@@ -39,7 +40,6 @@ namespace LPS.Server.Core
         private readonly Dictionary<string, CellEntity> cells_ = new();
 
         private Connection[] GateConnections => tcpServer_.AllConnections;
-        private readonly CountdownEvent localEntityGeneratedEvent_;
         
         private readonly ConcurrentQueue<(bool, uint, RpcPropertySyncMessage)> timeCircleQueue_ = new();
         // todo: use constant value to init time circle
@@ -51,8 +51,8 @@ namespace LPS.Server.Core
 
         private uint createEntityCounter_;
 
+        private readonly CountdownEvent localEntityGeneratedEvent_;
         private CountdownEvent hostManagerConnectedEvent_;
-        private CountdownEvent waitForSyncEvent_;
         private readonly SandBox clientsPumpMsgSandBox_;
 
         public Server(string name, string ip, int port, int hostnum, string hostManagerIp, int hostManagerPort)
@@ -98,7 +98,7 @@ namespace LPS.Server.Core
                     });
                 },
                 OnDispose = () => clientToHostManager_!.UnregisterMessageHandler(PackageType.RequireCreateEntityRes, this.HandleRequireCreateEntityResFromHost),
-                OnConnected = () => hostManagerConnectedEvent_.Signal(1)
+                OnConnected = () => hostManagerConnectedEvent_.Signal()
             };
             
             clientsPumpMsgSandBox_ = SandBox.Create(this.PumpMessageHandler);
@@ -241,14 +241,15 @@ namespace LPS.Server.Core
             Logger.Debug($"Start server at {this.Ip}:{this.Port}");
             tcpServer_.Run();
             clientToHostManager_.Run();
+            hostManagerConnectedEvent_.Wait();
+
+            Logger.Debug("Host manager connected.");
+
             clientsPumpMsgSandBox_.Run();
 
             Logger.Debug($"Start time circle pump.");
             var sendQueueSandBox = SandBox.Create(this.TimeCircleSyncMessageEnqueueHandler);
             sendQueueSandBox.Run();
-
-            hostManagerConnectedEvent_.Wait();
-            Logger.Debug("Host manager connected.");
             
             localEntityGeneratedEvent_.Wait();
             Logger.Debug($"Local entity generated. {entity_!.MailBox}");
@@ -259,6 +260,7 @@ namespace LPS.Server.Core
                 From = RemoteType.Server,
                 Message = ControlMessage.Ready,
             };
+            regCtl.Args.Add(Any.Pack(RpcHelper.RpcMailBoxToPbMailBox(entity_!.MailBox)));
             clientToHostManager_.Send(regCtl);
             
             // gate main thread will stuck here
@@ -273,8 +275,9 @@ namespace LPS.Server.Core
             // tcpServer_.RegisterMessageHandler(PackageType.ExchangeMailBox, this.HandleExchangeMailBox);
             tcpServer_.RegisterMessageHandler(PackageType.RequirePropertyFullSync, this.HandleRequirePropertyFullSync);
             tcpServer_.RegisterMessageHandler(PackageType.PropertyFullSyncAck, this.HandlePropertyFullSyncAck);
-            tcpServer_.RegisterMessageHandler(PackageType.HostCommand, this.HandleHostCommand);
             tcpServer_.RegisterMessageHandler(PackageType.CreateDistributeEntity, this.HandleCreateDistributeEntity);
+            
+            clientToHostManager_.RegisterMessageHandler(PackageType.HostCommand, this.HandleHostCommand);
         }
         
         private void UnregisterServerMessageHandlers()
@@ -283,8 +286,9 @@ namespace LPS.Server.Core
             // tcpServer_.UnregisterMessageHandler(PackageType.ExchangeMailBox, this.HandleExchangeMailBox);
             tcpServer_.UnregisterMessageHandler(PackageType.RequirePropertyFullSync, this.HandleRequirePropertyFullSync);
             tcpServer_.UnregisterMessageHandler(PackageType.PropertyFullSyncAck, this.HandlePropertyFullSyncAck);
-            tcpServer_.UnregisterMessageHandler(PackageType.HostCommand, this.HandleHostCommand);
             tcpServer_.UnregisterMessageHandler(PackageType.CreateDistributeEntity, this.HandleCreateDistributeEntity);
+            
+            clientToHostManager_.UnregisterMessageHandler(PackageType.HostCommand, this.HandleHostCommand);
         }
         
         private void HandleCreateDistributeEntity(object arg)

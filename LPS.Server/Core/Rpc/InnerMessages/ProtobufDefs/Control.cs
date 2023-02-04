@@ -25,16 +25,18 @@ namespace LPS.Server.Core.Rpc.InnerMessages {
       byte[] descriptorData = global::System.Convert.FromBase64String(
           string.Concat(
             "Cg1jb250cm9sLnByb3RvEiFMUFMuU2VydmVyLkNvcmUuUnBjLklubmVyTWVz",
-            "c2FnZXMiigEKB0NvbnRyb2wSOwoERnJvbRgBIAEoDjItLkxQUy5TZXJ2ZXIu",
-            "Q29yZS5ScGMuSW5uZXJNZXNzYWdlcy5SZW1vdGVUeXBlEkIKB01lc3NhZ2UY",
-            "AiABKA4yMS5MUFMuU2VydmVyLkNvcmUuUnBjLklubmVyTWVzc2FnZXMuQ29u",
-            "dHJvbE1lc3NhZ2UqNgoOQ29udHJvbE1lc3NhZ2USCQoFUmVhZHkQABILCgdS",
-            "ZXN0YXJ0EAESDAoIU2h1dERvd24QAioxCgpSZW1vdGVUeXBlEg0KCURCTWFu",
-            "YWdlchAAEgoKBlNlcnZlchABEggKBEdhdGUQAmIGcHJvdG8z"));
+            "c2FnZXMaGWdvb2dsZS9wcm90b2J1Zi9hbnkucHJvdG8irgEKB0NvbnRyb2wS",
+            "OwoERnJvbRgBIAEoDjItLkxQUy5TZXJ2ZXIuQ29yZS5ScGMuSW5uZXJNZXNz",
+            "YWdlcy5SZW1vdGVUeXBlEkIKB01lc3NhZ2UYAiABKA4yMS5MUFMuU2VydmVy",
+            "LkNvcmUuUnBjLklubmVyTWVzc2FnZXMuQ29udHJvbE1lc3NhZ2USIgoEQXJn",
+            "cxgDIAMoCzIULmdvb2dsZS5wcm90b2J1Zi5BbnkqNgoOQ29udHJvbE1lc3Nh",
+            "Z2USCQoFUmVhZHkQABILCgdSZXN0YXJ0EAESDAoIU2h1dERvd24QAioxCgpS",
+            "ZW1vdGVUeXBlEg0KCURCTWFuYWdlchAAEgoKBlNlcnZlchABEggKBEdhdGUQ",
+            "AmIGcHJvdG8z"));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
-          new pbr::FileDescriptor[] { },
+          new pbr::FileDescriptor[] { global::Google.Protobuf.WellKnownTypes.AnyReflection.Descriptor, },
           new pbr::GeneratedClrTypeInfo(new[] {typeof(global::LPS.Server.Core.Rpc.InnerMessages.ControlMessage), typeof(global::LPS.Server.Core.Rpc.InnerMessages.RemoteType), }, null, new pbr::GeneratedClrTypeInfo[] {
-            new pbr::GeneratedClrTypeInfo(typeof(global::LPS.Server.Core.Rpc.InnerMessages.Control), global::LPS.Server.Core.Rpc.InnerMessages.Control.Parser, new[]{ "From", "Message" }, null, null, null, null)
+            new pbr::GeneratedClrTypeInfo(typeof(global::LPS.Server.Core.Rpc.InnerMessages.Control), global::LPS.Server.Core.Rpc.InnerMessages.Control.Parser, new[]{ "From", "Message", "Args" }, null, null, null, null)
           }));
     }
     #endregion
@@ -92,6 +94,7 @@ namespace LPS.Server.Core.Rpc.InnerMessages {
     public Control(Control other) : this() {
       from_ = other.from_;
       message_ = other.message_;
+      args_ = other.args_.Clone();
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -125,6 +128,17 @@ namespace LPS.Server.Core.Rpc.InnerMessages {
       }
     }
 
+    /// <summary>Field number for the "Args" field.</summary>
+    public const int ArgsFieldNumber = 3;
+    private static readonly pb::FieldCodec<global::Google.Protobuf.WellKnownTypes.Any> _repeated_args_codec
+        = pb::FieldCodec.ForMessage(26, global::Google.Protobuf.WellKnownTypes.Any.Parser);
+    private readonly pbc::RepeatedField<global::Google.Protobuf.WellKnownTypes.Any> args_ = new pbc::RepeatedField<global::Google.Protobuf.WellKnownTypes.Any>();
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public pbc::RepeatedField<global::Google.Protobuf.WellKnownTypes.Any> Args {
+      get { return args_; }
+    }
+
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
@@ -142,6 +156,7 @@ namespace LPS.Server.Core.Rpc.InnerMessages {
       }
       if (From != other.From) return false;
       if (Message != other.Message) return false;
+      if(!args_.Equals(other.args_)) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -151,6 +166,7 @@ namespace LPS.Server.Core.Rpc.InnerMessages {
       int hash = 1;
       if (From != global::LPS.Server.Core.Rpc.InnerMessages.RemoteType.Dbmanager) hash ^= From.GetHashCode();
       if (Message != global::LPS.Server.Core.Rpc.InnerMessages.ControlMessage.Ready) hash ^= Message.GetHashCode();
+      hash ^= args_.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -177,6 +193,7 @@ namespace LPS.Server.Core.Rpc.InnerMessages {
         output.WriteRawTag(16);
         output.WriteEnum((int) Message);
       }
+      args_.WriteTo(output, _repeated_args_codec);
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -195,6 +212,7 @@ namespace LPS.Server.Core.Rpc.InnerMessages {
         output.WriteRawTag(16);
         output.WriteEnum((int) Message);
       }
+      args_.WriteTo(ref output, _repeated_args_codec);
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -211,6 +229,7 @@ namespace LPS.Server.Core.Rpc.InnerMessages {
       if (Message != global::LPS.Server.Core.Rpc.InnerMessages.ControlMessage.Ready) {
         size += 1 + pb::CodedOutputStream.ComputeEnumSize((int) Message);
       }
+      size += args_.CalculateSize(_repeated_args_codec);
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
       }
@@ -229,6 +248,7 @@ namespace LPS.Server.Core.Rpc.InnerMessages {
       if (other.Message != global::LPS.Server.Core.Rpc.InnerMessages.ControlMessage.Ready) {
         Message = other.Message;
       }
+      args_.Add(other.args_);
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
 
@@ -252,6 +272,10 @@ namespace LPS.Server.Core.Rpc.InnerMessages {
             Message = (global::LPS.Server.Core.Rpc.InnerMessages.ControlMessage) input.ReadEnum();
             break;
           }
+          case 26: {
+            args_.AddEntriesFrom(input, _repeated_args_codec);
+            break;
+          }
         }
       }
     #endif
@@ -273,6 +297,10 @@ namespace LPS.Server.Core.Rpc.InnerMessages {
           }
           case 16: {
             Message = (global::LPS.Server.Core.Rpc.InnerMessages.ControlMessage) input.ReadEnum();
+            break;
+          }
+          case 26: {
+            args_.AddEntriesFrom(ref input, _repeated_args_codec);
             break;
           }
         }

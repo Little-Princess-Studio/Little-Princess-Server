@@ -11,12 +11,12 @@ namespace LPS.Server.Core.Database.GlobalCache
 
         public Task<bool> Initialize()
         {
-            string connectString = "127.0.0.1:6379,password=,defaultDatabase=0";
+            const string connectString = "52.175.74.209:6457,password=metalnuoya12,defaultDatabase=demo";
 
             Logger.Info($"Connecting to redis with {connectString}");
 
             try {
-                RedisHelper.Initialization(new CSRedisClient("127.0.0.1:6379,password=,defaultDatabase=demo"));
+                RedisHelper.Initialization(new CSRedisClient(connectString));
             }
             catch (Exception e)
             {
