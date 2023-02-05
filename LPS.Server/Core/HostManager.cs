@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
 using LPS.Common.Core.Debug;
@@ -264,22 +265,7 @@ namespace LPS.Server.Core
 
                     // send gates mailboxes
                     var pkg = PackageHelper.FromProtoBuf(syncCmd, 0);
-                    foreach (var gateConn in this.GatesConn)
-                    {
-                        gateConn.Socket.Send(pkg.ToBytes());
-                    }
-                    
-                    syncCmd = new HostCommand
-                    {
-                        Type = HostCommandType.SyncServers
-                    };
-                    // send server mailboxes
-                    foreach (var serverConn in this.ServersConn)
-                    {
-                        syncCmd.Args.Add(Any.Pack(RpcHelper.RpcMailBoxToPbMailBox(serverConn.MailBox)));
-                    }
-
-                    pkg = PackageHelper.FromProtoBuf(syncCmd, 0);
+                    // to gates
                     foreach (var gateConn in this.GatesConn)
                     {
                         gateConn.Socket.Send(pkg.ToBytes());
@@ -295,28 +281,29 @@ namespace LPS.Server.Core
                     Logger.Info("All servers registered, send sync msg");
                     
                     // broadcast sync msg
-                    // var syncCmd = new HostCommand
-                    // {
-                    //     Type = HostCommandType.SyncServers
-                    // };
-                    //
-                    // foreach (var serverConn in this.ServersConn)
-                    // {
-                    //     syncCmd.Args.Add(Any.Pack(RpcHelper.RpcMailBoxToPbMailBox(serverConn.MailBox)));
-                    // }
-                    //
-                    // var pkg = PackageHelper.FromProtoBuf(syncCmd, 0);
-                    // foreach (var serverConn in this.ServersConn)
-                    // {
-                    //     serverConn.Socket.Send(pkg.ToBytes());
-                    // }
+                    var syncCmd = new HostCommand
+                    {
+                        Type = HostCommandType.SyncServers
+                    };
+                    // send server mailboxes
+                    foreach (var serverConn in this.ServersConn)
+                    {
+                        syncCmd.Args.Add(Any.Pack(RpcHelper.RpcMailBoxToPbMailBox(serverConn.MailBox)));
+                    }
+
+                    var pkg = PackageHelper.FromProtoBuf(syncCmd, 0);
+                    // to gates
+                    foreach (var gateConn in this.GatesConn)
+                    {
+                        gateConn.Socket.Send(pkg.ToBytes());
+                    }
                 }
             }
         }
 
         public void Loop()
         {
-            Logger.Debug($"Start Host Manager at {this.Ip}:{this.Port}");
+            Logger.Info($"Start Host Manager at {this.Ip}:{this.Port}");
             tcpServer_.Run();
             tcpServer_.WaitForExit();
         }

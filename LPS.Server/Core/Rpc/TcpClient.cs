@@ -97,7 +97,7 @@ namespace LPS.Server.Core.Rpc
                         catch (Exception e)
                         {
                             // TODO: try reconnect
-                            Logger.Error(e, "Send msg failed.");
+                            Logger.Error(e, $"Send msg {msg} failed.");
                             this.Stop();
                         }
                     }

@@ -89,7 +89,8 @@ namespace LPS.Server.Core
             clientToHostManager_ = new TcpClient(hostManagerIp, hostManagerPort,
                 new ConcurrentQueue<(TcpClient, IMessage, bool)>())
             {
-                OnInit = () =>
+                OnInit = () => { },
+                OnConnected = () =>
                 {
                     var client = clientToHostManager_!;
                     client.Send(
@@ -103,8 +104,9 @@ namespace LPS.Server.Core
                         },
                         false
                     );
-                },
-                OnConnected = () => hostManagerConnectedEvent_.Signal()
+
+                    hostManagerConnectedEvent_.Signal();
+                }
             };
 
             clientsPumpMsgSandBox_ = SandBox.Create(this.PumpMessageHandler);
@@ -171,6 +173,7 @@ namespace LPS.Server.Core
         {
             // connect to each gate
             // tcp gate to other gate only send msg to other gate's server
+            Logger.Info($"Sync gates, cnt: {otherGatesMailBoxes.Length}");
             allOtherGatesConnectedEvent_ = new CountdownEvent(otherGatesMailBoxes.Length  - 1);
             tcpClientsToOtherGate_ = new Rpc.TcpClient[otherGatesMailBoxes.Length - 1];
             var idx = 0;
@@ -186,6 +189,7 @@ namespace LPS.Server.Core
                 var client = new TcpClient(otherGateInnerIp, otherGatePort, sendQueue_)
                 {
                     OnConnected = () => allOtherGatesConnectedEvent_.Signal(),
+                    MailBox = mb,
                 };
             
                 tcpClientsToOtherGate_[idx] = client;
@@ -199,6 +203,7 @@ namespace LPS.Server.Core
         {
             // connect to each server
             // tcp gate to server handlers msg from server
+            Logger.Info($"Sync servers, cnt: {serverMailBoxes.Length}");
             allServersConnectedEvent_ = new(serverMailBoxes.Length);
             tcpClientsToServer_ = new TcpClient[serverMailBoxes.Length];
             var idx = 0;
@@ -213,6 +218,7 @@ namespace LPS.Server.Core
                     OnInit = () => this.RegisterGateMessageHandlers(tmpIdx),
                     OnDispose = () => this.UnregisterGateMessageHandlers(tmpIdx),
                     OnConnected = () => allServersConnectedEvent_.Signal(),
+                    MailBox = mb,
                 };
                 tcpClientsToServer_[idx] = client;
                 ++idx;
@@ -311,10 +317,7 @@ namespace LPS.Server.Core
         private void RegisterGateMessageHandlers(int serverIdx)
         {
             var client = tcpClientsToServer_![serverIdx];
-
-            // var createMailBoxResHandler = (object arg) => this.HandleRequireCreateEntityResFromServer(client, arg);
-            // tcpClientsActions_[(serverIdx, PackageType.RequireCreateEntityRes)] = createMailBoxResHandler;
-
+            
             var entityRpcHandler = (object arg) => this.HandleEntityRpcFromServer(client, arg);
             tcpClientsActions_[(serverIdx, PackageType.EntityRpc)] = entityRpcHandler;
 
@@ -324,7 +327,6 @@ namespace LPS.Server.Core
             var propSyncCommandList = (object arg) => this.HandlePropertySyncCommandListFromServer(client, arg);
             tcpClientsActions_[(serverIdx, PackageType.PropertySyncCommandList)] = propSyncCommandList;
 
-            // client.RegisterMessageHandler(PackageType.RequireCreateEntityRes, createMailBoxResHandler);
             client.RegisterMessageHandler(PackageType.EntityRpc, entityRpcHandler);
             client.RegisterMessageHandler(PackageType.PropertyFullSync, propertyFullSync);
             client.RegisterMessageHandler(PackageType.PropertySyncCommandList, propSyncCommandList);
@@ -335,13 +337,6 @@ namespace LPS.Server.Core
         private void UnregisterGateMessageHandlers(int idx)
         {
             var client = tcpClientsToServer_![idx];
-            // client.UnregisterMessageHandler(
-            //     PackageType.RequireCreateEntityRes,
-            //     tcpClientsActions_[(idx, PackageType.RequireCreateEntityRes)]);
-
-            // client.UnregisterMessageHandler(
-            //     PackageType.ExchangeMailBoxRes,
-            //     tcpClientsActions_[(idx, PackageType.ExchangeMailBoxRes)]);
 
             client.UnregisterMessageHandler(
                 PackageType.EntityRpc,
@@ -385,6 +380,7 @@ namespace LPS.Server.Core
                     var clientToServer = FindServerOfEntity(targetMailBox);
                     if (clientToServer != null)
                     {
+                        Logger.Debug($"Rpc Call, send entityRpc ot {targetMailBox}");
                         clientToServer.Send(entityRpc);
                     }
                     else
@@ -395,37 +391,6 @@ namespace LPS.Server.Core
             };
 
             localEntityGeneratedEvent_.Signal(1);
-        }
-
-        private void HandleRequireCreateEntityResFromServer(TcpClient _, object arg)
-        {
-            var (msg, _, _) = ((IMessage, Connection, UInt32)) arg;
-            var createEntityRes = (msg as RequireCreateEntityRes)!;
-
-            Logger.Info($"create entity res {createEntityRes.EntityType}");
-
-            if (createEntityRes.EntityType == EntityType.ServerClientEntity)
-            {
-                Logger.Info("Create server client entity success.");
-                var serverClientEntity = RpcHelper.PbMailBoxToRpcMailBox(createEntityRes.Mailbox);
-                createEntityMapping_.Remove(createEntityRes.ConnectionID, out var conn);
-                if (conn != null)
-                {
-                    Logger.Info($"{serverClientEntity.Id} => {conn.MailBox}");
-                    entityIdToClientConnMapping_[serverClientEntity.Id] = (serverClientEntity, conn);
-                    var clientCreateEntity = new ClientCreateEntity
-                    {
-                        EntityClassName = createEntityRes.EntityClassName,
-                        ServerClientMailBox = createEntityRes.Mailbox
-                    };
-                    var pkg = PackageHelper.FromProtoBuf(clientCreateEntity, 0);
-                    conn.Socket.Send(pkg.ToBytes());
-                }
-                else
-                {
-                    throw new Exception("Error when creating server client entity: connection id not found.");
-                }
-            }
         }
 
         private TcpClient? FindServerOfEntity(MailBox targetMailBox)
@@ -505,9 +470,6 @@ namespace LPS.Server.Core
         private void HandleEntityRpcMessageOnGate(EntityRpc entityRpc)
         {
             var targetEntityMailBox = entityRpc.EntityMailBox!;
-
-            Logger.Debug($"rpc to {targetEntityMailBox.IP} {targetEntityMailBox.Port} {targetEntityMailBox.ID}" +
-                         $" {targetEntityMailBox.HostNum}");
 
             // if rpc's target is gate entity
             if (entity_!.MailBox.CompareFull(targetEntityMailBox))
@@ -607,7 +569,7 @@ namespace LPS.Server.Core
 
         public void Loop()
         {
-            Logger.Debug($"Start gate at {this.Ip}:{this.Port}");
+            Logger.Info($"Start gate at {this.Ip}:{this.Port}");
             tcpGateServer_.Run();
             clientToHostManager_.Run();
 
@@ -645,20 +607,17 @@ namespace LPS.Server.Core
             
             Logger.Info("Waiting completed");
 
-            
             // NOTE: if tcpClient hash successfully connected to remote, it means remote is already
             // ready to pump message. (tcpServer's OnInit is invoked before tcpServers' Listen)
-
-            // Logger.Debug("Try to call Echo method by mailbox");
-            // Array.ForEach(tcpClientsToServer_, client =>
-            // {
-            //     var serverEntityMailBox = client.MailBox!;
-            //     var res = entity_!.Call(serverEntityMailBox, "Echo", "Hello");
-            //     res.ContinueWith(t => Logger.Info($"Echo Res Callback"));
-            // });
+            Logger.Debug("Try to call Echo method by mailbox");
+            Array.ForEach(tcpClientsToServer_!, client =>
+            {
+                var serverEntityMailBox = client.MailBox!;
+                var res = entity_!.Call(serverEntityMailBox, "Echo", "Hello");
+                res.ContinueWith(t => Logger.Info($"Echo Res Callback"));
+            });
 
             // gate main thread will stuck here
-            
             Array.ForEach(tcpClientsToOtherGate_!, client => client.WaitForExit());
             Array.ForEach(tcpClientsToServer_!, client => client.WaitForExit());
             clientToHostManager_.WaitForExit();

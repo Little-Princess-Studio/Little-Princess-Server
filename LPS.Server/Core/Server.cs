@@ -75,10 +75,10 @@ namespace LPS.Server.Core
             hostManagerConnectedEvent_ = new(1);
             clientToHostManager_ = new TcpClient(hostManagerIp, hostManagerPort, new ConcurrentQueue<(TcpClient, IMessage, bool)>())
             {
-                OnInit = () =>
+                OnInit = () => clientToHostManager_!.RegisterMessageHandler(PackageType.RequireCreateEntityRes, this.HandleRequireCreateEntityResFromHost),
+                OnDispose = () => clientToHostManager_!.UnregisterMessageHandler(PackageType.RequireCreateEntityRes, this.HandleRequireCreateEntityResFromHost),
+                OnConnected = () =>
                 {
-                    clientToHostManager_!.RegisterMessageHandler(PackageType.RequireCreateEntityRes, this.HandleRequireCreateEntityResFromHost);
-
                     clientToHostManager_!.Send(new RequireCreateEntity
                     {
                         EntityType = EntityType.ServerEntity,
@@ -96,9 +96,9 @@ namespace LPS.Server.Core
                         Description = "",
                         ConnectionID = createEntityCounter_++
                     });
-                },
-                OnDispose = () => clientToHostManager_!.UnregisterMessageHandler(PackageType.RequireCreateEntityRes, this.HandleRequireCreateEntityResFromHost),
-                OnConnected = () => hostManagerConnectedEvent_.Signal()
+
+                    hostManagerConnectedEvent_.Signal();
+                }
             };
             
             clientsPumpMsgSandBox_ = SandBox.Create(this.PumpMessageHandler);
@@ -238,7 +238,7 @@ namespace LPS.Server.Core
 
         public void Loop()
         {
-            Logger.Debug($"Start server at {this.Ip}:{this.Port}");
+            Logger.Info($"Start server at {this.Ip}:{this.Port}");
             tcpServer_.Run();
             clientToHostManager_.Run();
             hostManagerConnectedEvent_.Wait();
@@ -496,7 +496,6 @@ namespace LPS.Server.Core
                         EntityId = entityId,
                         PropertyTree = content,
                     };
-                    // conn.Socket.SendAsync(fullSync.ToByteArray(), SocketFlags.None);
                     var pkg = PackageHelper.FromProtoBuf(fullSync, id);
                     conn.Socket.Send(pkg.ToBytes());
                 }));

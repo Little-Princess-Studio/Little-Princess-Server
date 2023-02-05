@@ -144,9 +144,6 @@ namespace LPS.Common.Core.Rpc
                         var pb = PackageHelper.GetProtoBufObjectByType(type, pkg);
                         var arg = (pb, conn, pkg.Header.ID);
                         var msg = new Message(type, arg);
-
-                        Logger.Info($"msg received: {pb}, type: {type}");
-
                         onGotMessage(msg);
                     }
                 }
