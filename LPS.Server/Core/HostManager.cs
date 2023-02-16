@@ -78,7 +78,7 @@ namespace LPS.Server.Core
         private readonly Random random_ = new();
         private uint createEntityCnt_;
 
-        private Dictionary<uint, (uint ConnId, Connection OriginConn, string EntityClassName)>
+        private Dictionary<uint, (uint ConnId, Connection OriginConn)>
             createDistEntityAsyncRecord_ = new();
 
         public HostManager(string name, int hostNum, string ip, int port, int serverNum, int gateNum)
@@ -119,20 +119,23 @@ namespace LPS.Server.Core
             var (msg, _, id) = ((IMessage, Connection, UInt32)) arg;
             var createRes = (msg as CreateDistributeEntityRes)!;
 
+            Logger.Debug($"HandleCreateDistributeEntityRes, {createRes.Mailbox}");
+
             if (!createDistEntityAsyncRecord_.ContainsKey(createRes.ConnectionID))
             {
                 Logger.Warn($"Key {createRes.ConnectionID} not in the record.");
                 return;
             }
 
-            var (oriConnId, conn, entityClassName) = createDistEntityAsyncRecord_[createRes.ConnectionID];
+            createDistEntityAsyncRecord_.Remove(createRes.ConnectionID, out var tp);
+            var (oriConnId, conn) = tp;
 
             var requireCreateRes = new RequireCreateEntityRes
             {
                 Mailbox = createRes.Mailbox,
                 ConnectionID = oriConnId,
-                EntityType = EntityType.DistibuteEntity,
-                EntityClassName = entityClassName,
+                EntityType = createRes.EntityType,
+                EntityClassName = createRes.EntityClassName,
             };
 
             var pkg = PackageHelper.FromProtoBuf(requireCreateRes, id);
@@ -212,11 +215,18 @@ namespace LPS.Server.Core
                     Description = createEntity.Description,
                     ConnectionID = connId,
                     EntityId = newId,
+                    EntityType = createEntity.EntityType,
                 };
+
+                if (createEntity.EntityType == EntityType.ServerClientEntity)
+                {
+                    createDist.GateId = createEntity.GateId;
+                }
+                
                 var pkg = PackageHelper.FromProtoBuf(createDist, id);
                 serverConn.Socket.Send(pkg.ToBytes());
                 // record
-                createDistEntityAsyncRecord_[connId] = (createEntity.ConnectionID, conn, createEntity.EntityClassName);
+                createDistEntityAsyncRecord_[connId] = (createEntity.ConnectionID, conn);
             });
         }
 
@@ -248,55 +258,61 @@ namespace LPS.Server.Core
             {
                 Logger.Info($"gate require sync {mailBox}");
                 this.GatesConn.Add(conn);
-                if (GatesConn.Count == this.GateNum)
-                {
-                    Logger.Info("All gates registered, send sync msg");
-
-                    // broadcast sync msg
-                    var syncCmd = new HostCommand
-                    {
-                        Type = HostCommandType.SyncGates
-                    };
-
-                    foreach (var gateConn in this.GatesConn)
-                    {
-                        syncCmd.Args.Add(Any.Pack(RpcHelper.RpcMailBoxToPbMailBox(gateConn.MailBox)));
-                    }
-
-                    // send gates mailboxes
-                    var pkg = PackageHelper.FromProtoBuf(syncCmd, 0);
-                    // to gates
-                    foreach (var gateConn in this.GatesConn)
-                    {
-                        gateConn.Socket.Send(pkg.ToBytes());
-                    }
-                }
             }
             else if (hostCmdFrom == RemoteType.Server)
             {
                 Logger.Info($"server require sync {mailBox}");
                 this.ServersConn.Add(conn);
-                if (ServersConn.Count == this.ServerNum)
-                {
-                    Logger.Info("All servers registered, send sync msg");
-                    
-                    // broadcast sync msg
-                    var syncCmd = new HostCommand
-                    {
-                        Type = HostCommandType.SyncServers
-                    };
-                    // send server mailboxes
-                    foreach (var serverConn in this.ServersConn)
-                    {
-                        syncCmd.Args.Add(Any.Pack(RpcHelper.RpcMailBoxToPbMailBox(serverConn.MailBox)));
-                    }
+            }
 
-                    var pkg = PackageHelper.FromProtoBuf(syncCmd, 0);
-                    // to gates
-                    foreach (var gateConn in this.GatesConn)
-                    {
-                        gateConn.Socket.Send(pkg.ToBytes());
-                    }
+            if (ServersConn.Count == this.ServerNum && GatesConn.Count == this.GateNum)
+            {
+                Logger.Info("All gates registered, send sync msg");
+                Logger.Info("All servers registered, send sync msg");
+
+                // send gates mailboxes
+                var syncCmd = new HostCommand
+                {
+                    Type = HostCommandType.SyncGates
+                };
+
+                foreach (var gateConn in this.GatesConn)
+                {
+                    syncCmd.Args.Add(Any.Pack(RpcHelper.RpcMailBoxToPbMailBox(gateConn.MailBox)));
+                }
+
+                var pkg = PackageHelper.FromProtoBuf(syncCmd, 0);
+                
+                // to gates
+                foreach (var gateConn in this.GatesConn)
+                {
+                    gateConn.Socket.Send(pkg.ToBytes());
+                }
+
+                // to server
+                foreach (var serverConn in this.ServersConn)
+                {
+                    serverConn.Socket.Send(pkg.ToBytes());
+                }
+
+                // -----------------------------------
+                
+                // broadcast sync msg
+                syncCmd = new HostCommand
+                {
+                    Type = HostCommandType.SyncServers
+                };
+                // send server mailboxes
+                foreach (var serverConn in this.ServersConn)
+                {
+                    syncCmd.Args.Add(Any.Pack(RpcHelper.RpcMailBoxToPbMailBox(serverConn.MailBox)));
+                }
+
+                pkg = PackageHelper.FromProtoBuf(syncCmd, 0);
+                // to gates
+                foreach (var gateConn in this.GatesConn)
+                {
+                    gateConn.Socket.Send(pkg.ToBytes());
                 }
             }
         }

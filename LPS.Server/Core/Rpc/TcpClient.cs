@@ -16,9 +16,9 @@ namespace LPS.Server.Core.Rpc
     public interface IClient
     {
         Socket? Socket { get; }
-        Action? OnInit { get; }
-        Action? OnDispose { get; }
-        Action? OnConnected { get; }
+        Action<IClient>? OnInit { get; }
+        Action<IClient>? OnDispose { get; }
+        Action<IClient>? OnConnected { get; }
         MailBox MailBox { get; }
         public int TargetPort { get; }
         string TargetIp { get; }
@@ -37,9 +37,9 @@ namespace LPS.Server.Core.Rpc
     {
 #nullable enable
         public Socket? Socket { get; private set; }
-        public Action? OnInit { get; set; }
-        public Action? OnDispose { get; init; }
-        public Action? OnConnected { get; init; }
+        public Action<IClient>? OnInit { get; set; }
+        public Action<IClient>? OnDispose { get; init; }
+        public Action<IClient>? OnConnected { get; init; }
         public MailBox MailBox { get; set; }
 #nullable disable
         private readonly SandBox sandboxIo_;
@@ -111,7 +111,7 @@ namespace LPS.Server.Core.Rpc
         {
             try
             {
-                this.OnInit?.Invoke();
+                this.OnInit?.Invoke(this);
 
                 var ipa = IPAddress.Parse(targetIp_);
                 var ipe = new IPEndPoint(ipa, targetPort_);
@@ -144,12 +144,12 @@ namespace LPS.Server.Core.Rpc
             }
             catch (Exception)
             {
-                this.OnDispose?.Invoke();
+                this.OnDispose?.Invoke(this);
                 throw;
             }
 
             Logger.Info("Connect to server succ.");
-            OnConnected?.Invoke();
+            OnConnected?.Invoke(this);
 
             var cancellationTokenSource = new CancellationTokenSource();
             var conn = Connection.Create(this.Socket, cancellationTokenSource);
@@ -162,7 +162,7 @@ namespace LPS.Server.Core.Rpc
             }
 
             cancellationTokenSource.Cancel();
-            this.OnDispose?.Invoke();
+            this.OnDispose?.Invoke(this);
         }
 
         private async Task HandleMessage(Connection conn) =>

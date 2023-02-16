@@ -22,12 +22,12 @@ namespace LPS.Common.Core.Rpc
             return $"{this.Id} {this.Ip} {this.Port} {this.HostNum}";
         }
 
-        public bool CompareOnlyID(MailBox other)
+        public readonly bool CompareOnlyID(MailBox other)
         {
             return this.Id == other.Id;
         }
 
-        public bool CompareOnlyID(InnerMessages.MailBox other)
+        public readonly bool CompareOnlyID(InnerMessages.MailBox other)
         {
             return this.Id == other.ID;
         }

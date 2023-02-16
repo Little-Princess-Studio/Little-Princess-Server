@@ -38,7 +38,7 @@ namespace LPS.Server.Core
 
         private readonly ConcurrentDictionary<(int, PackageType), Action<object>> tcpClientsActions_ = new();
 
-        private readonly ConcurrentQueue<(Rpc.TcpClient Client, IMessage Message, bool IsReentry)> sendQueue_ = new();
+        private readonly ConcurrentQueue<(TcpClient Client, IMessage Message, bool IsReentry)> sendQueue_ = new();
 
         // private readonly SandBox clientsSendQueueSandBox_;
         private readonly ConcurrentDictionary<uint, Connection> createEntityMapping_ = new();
@@ -89,8 +89,8 @@ namespace LPS.Server.Core
             clientToHostManager_ = new TcpClient(hostManagerIp, hostManagerPort,
                 new ConcurrentQueue<(TcpClient, IMessage, bool)>())
             {
-                OnInit = () => { },
-                OnConnected = () =>
+                OnInit = _ => { },
+                OnConnected = _ =>
                 {
                     var client = clientToHostManager_!;
                     client.Send(
@@ -188,7 +188,7 @@ namespace LPS.Server.Core
                 var otherGatePort = mb.Port;
                 var client = new TcpClient(otherGateInnerIp, otherGatePort, sendQueue_)
                 {
-                    OnConnected = () => allOtherGatesConnectedEvent_.Signal(),
+                    OnConnected = _ => allOtherGatesConnectedEvent_.Signal(),
                     MailBox = mb,
                 };
             
@@ -215,9 +215,21 @@ namespace LPS.Server.Core
                 Logger.Debug($"server ip: {serverIp} server port: {serverPort}");
                 var client = new TcpClient(serverIp, serverPort, sendQueue_)
                 {
-                    OnInit = () => this.RegisterGateMessageHandlers(tmpIdx),
-                    OnDispose = () => this.UnregisterGateMessageHandlers(tmpIdx),
-                    OnConnected = () => allServersConnectedEvent_.Signal(),
+                    OnInit = _ => this.RegisterGateMessageHandlers(tmpIdx),
+                    OnDispose = _ => this.UnregisterGateMessageHandlers(tmpIdx),
+                    OnConnected = self =>
+                    {
+                        var ctl = new Control()
+                        {
+                            From = RemoteType.Gate,
+                            Message = ControlMessage.Ready,
+                        };
+                        
+                        ctl.Args.Add(Any.Pack(RpcHelper.RpcMailBoxToPbMailBox(entity_!.MailBox)));
+                        self.Send(ctl, false);
+                        
+                        allServersConnectedEvent_.Signal();
+                    },
                     MailBox = mb,
                 };
                 tcpClientsToServer_[idx] = client;
@@ -259,7 +271,8 @@ namespace LPS.Server.Core
                     CreateType = CreateType.Anywhere,
                     Description = "",
                     EntityType = EntityType.ServerClientEntity,
-                    ConnectionID = connId
+                    ConnectionID = connId,
+                    GateId = entity_!.MailBox.Id
                 };
 
                 if (conn.ConnectionID != uint.MaxValue)
@@ -269,9 +282,8 @@ namespace LPS.Server.Core
 
                 conn.ConnectionID = connId;
                 createEntityMapping_[connId] = conn;
-
-                var serverClient = RandomServerClient();
-                serverClient.Send(createEntityMsg, false);
+                
+                clientToHostManager_.Send(createEntityMsg, false);
             }
             else
             {
@@ -369,28 +381,56 @@ namespace LPS.Server.Core
             var (msg, _, _) = ((IMessage, Connection, UInt32)) arg;
             var createEntityRes = (msg as RequireCreateEntityRes)!;
 
-            Logger.Info("Create gate entity success.");
-            var serverEntityMailBox =
-                new Common.Core.Rpc.MailBox(createEntityRes.Mailbox.ID, this.Ip, this.Port, this.HostNum);
-            entity_ = new(serverEntityMailBox)
+            Logger.Debug($"HandleRequireCreateEntityResFromHost {createEntityRes.Mailbox}");
+            
+            if (createEntityRes.EntityType == EntityType.GateEntity)
             {
-                OnSend = entityRpc =>
+                Logger.Info("Create gate entity success.");
+                var serverEntityMailBox =
+                    new Common.Core.Rpc.MailBox(createEntityRes.Mailbox.ID, this.Ip, this.Port, this.HostNum);
+                entity_ = new(serverEntityMailBox)
                 {
-                    var targetMailBox = entityRpc.EntityMailBox;
-                    var clientToServer = FindServerOfEntity(targetMailBox);
-                    if (clientToServer != null)
+                    OnSend = entityRpc =>
                     {
-                        Logger.Debug($"Rpc Call, send entityRpc ot {targetMailBox}");
-                        clientToServer.Send(entityRpc);
+                        var targetMailBox = entityRpc.EntityMailBox;
+                        var clientToServer = FindServerOfEntity(targetMailBox);
+                        if (clientToServer != null)
+                        {
+                            Logger.Debug($"Rpc Call, send entityRpc ot {targetMailBox}");
+                            clientToServer.Send(entityRpc);
+                        }
+                        else
+                        {
+                            throw new Exception($"gate's server client not found: {targetMailBox}");
+                        }
                     }
-                    else
-                    {
-                        throw new Exception($"gate's server client not found: {targetMailBox}");
-                    }
-                }
-            };
+                };
 
-            localEntityGeneratedEvent_.Signal(1);
+                localEntityGeneratedEvent_.Signal(1);
+            }
+            else if (createEntityRes.EntityType == EntityType.ServerClientEntity)
+            {
+                Logger.Info($"Create server client entity {createEntityRes.EntityClassName}");
+                var connId = createEntityRes.ConnectionID;
+                if (!createEntityMapping_.ContainsKey(connId))
+                {
+                    Logger.Warn($"Invalid connid: {connId}");
+                    return;
+                }
+                
+                createEntityMapping_.Remove(connId, out var connToClient);
+                var mb = RpcHelper.PbMailBoxToRpcMailBox(createEntityRes.Mailbox!);
+
+                Logger.Info($"create server client entity {mb.Id}");
+                entityIdToClientConnMapping_[mb.Id] = (mb, connToClient!);
+                var clientCreateEntity = new ClientCreateEntity
+                {
+                    EntityClassName = createEntityRes.EntityClassName,
+                    ServerClientMailBox = createEntityRes.Mailbox
+                };
+                var pkg = PackageHelper.FromProtoBuf(clientCreateEntity, 0);
+                connToClient!.Socket.Send(pkg.ToBytes());
+            }
         }
 
         private TcpClient? FindServerOfEntity(MailBox targetMailBox)
@@ -442,7 +482,7 @@ namespace LPS.Server.Core
             }
 
             var mb = entityIdToClientConnMapping_[entityId].Item1;
-            var clientToServer = FindServerOfEntity(mb);
+            var clientToServer = this.FindServerOfEntity(mb);
 
             if (clientToServer != null)
             {
@@ -472,7 +512,7 @@ namespace LPS.Server.Core
             var targetEntityMailBox = entityRpc.EntityMailBox!;
 
             // if rpc's target is gate entity
-            if (entity_!.MailBox.CompareFull(targetEntityMailBox))
+            if (entity_!.MailBox.CompareOnlyID(targetEntityMailBox))
             {
                 Logger.Debug("send to gate itself");
                 Logger.Debug($"Call gate entity: {entityRpc.MethodName}");
@@ -556,6 +596,7 @@ namespace LPS.Server.Core
 
         private TcpClient RandomServerClient()
         {
+            Logger.Debug($"client cnt: {tcpClientsToServer_!.Length}");
             return tcpClientsToServer_![random_.Next(tcpClientsToServer_.Length)];
         }
 
@@ -604,7 +645,6 @@ namespace LPS.Server.Core
             Logger.Info("All other gates connected.");
 
             readyToPumpClients_ = true;
-            
             Logger.Info("Waiting completed");
 
             // NOTE: if tcpClient hash successfully connected to remote, it means remote is already

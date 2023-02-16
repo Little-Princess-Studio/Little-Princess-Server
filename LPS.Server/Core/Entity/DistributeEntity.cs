@@ -85,7 +85,7 @@ namespace LPS.Server.Core.Entity
         /// <param name="migrateInfo"></param>
         public virtual async Task<bool> MigrateTo(MailBox targetMailBox, string migrateInfo)
         {
-            if (targetMailBox.CompareFull(this.MailBox))
+            if (targetMailBox.CompareOnlyID(this.MailBox))
             {
                 return false;
             }
@@ -162,7 +162,7 @@ namespace LPS.Server.Core.Entity
          */
         public virtual async Task TransferIntoCell(MailBox targetCellMailBox, string transferInfo)
         {
-            if (targetCellMailBox.CompareFull(this.Cell.MailBox))
+            if (targetCellMailBox.CompareOnlyID(this.Cell.MailBox))
             {
                 return;
             }

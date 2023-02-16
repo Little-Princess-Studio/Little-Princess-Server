@@ -34,7 +34,7 @@ namespace LPS.Common.Core.Rpc.RpcPropertySync
         public bool CanMerge(in RpcPropertySyncMessage otherMsg)
         {
             return this.Operation == otherMsg.Operation 
-                && MailBox.CompareFull(otherMsg.MailBox);
+                && MailBox.CompareOnlyID(otherMsg.MailBox);
         }
 
         public abstract PropertySyncCommand Serialize();
