@@ -1,3 +1,11 @@
+// -----------------------------------------------------------------------
+// <copyright file="RpcPropertyUnitTest.cs" company="Little Princess Studio">
+// Copyright (c) Little Princess Studio. All rights reserved.
+// </copyright>
+// -----------------------------------------------------------------------
+
+namespace LPS.UnitTest;
+
 using System.Collections.Generic;
 using Google.Protobuf.WellKnownTypes;
 using LPS.Client;
@@ -10,19 +18,21 @@ using LPS.Server.Core.Rpc;
 using LPS.Server.Core.Rpc.RpcProperty;
 using Xunit;
 
-namespace LPS.UnitTest;
-
+/// <summary>
+/// Unit test class for RpcProperty.
+/// </summary>
 public class RpcPropertyUnitTest
 {
     [RpcPropertyContainer]
     private class CostumeRpcContainerProperty2 : RpcPropertyCostumeContainer<CostumeRpcContainerProperty2>
     {
-        [RpcProperty] private readonly RpcPropertyContainer<float> subFloatProperty_ = 0.0f;
+        [RpcProperty]
+        private readonly RpcPropertyContainer<float> subFloatProperty = 0.0f;
 
         public float SubFloatProperty
         {
-            get => subFloatProperty_.Value;
-            set => subFloatProperty_.Value = value;
+            get => this.subFloatProperty.Value;
+            set => this.subFloatProperty.Value = value;
         }
 
         [RpcPropertyContainerDeserializeEntry]
@@ -33,8 +43,11 @@ public class RpcPropertyUnitTest
     [RpcPropertyContainer]
     private class CostumeRpcContainerProperty1 : RpcPropertyCostumeContainer<CostumeRpcContainerProperty1>
     {
-        [RpcProperty] public readonly RpcList<string> SubListProperty = new();
-        [RpcProperty] public readonly CostumeRpcContainerProperty2 SubCostumerContainerRpcContainerProperty = new();
+        [RpcProperty]
+        public readonly RpcList<string> SubListProperty = new();
+
+        [RpcProperty]
+        public readonly CostumeRpcContainerProperty2 SubCostumerContainerRpcContainerProperty = new();
 
         [RpcPropertyContainerDeserializeEntry]
         public static RpcPropertyContainer DeserializeStatic(Any content) =>
@@ -43,50 +56,64 @@ public class RpcPropertyUnitTest
 
     private class TestEntity : DistributeEntity
     {
-        public readonly RpcComplexProperty<RpcList<string>> TestRpcProp =
-            new(nameof(TestEntity.TestRpcProp), RpcPropertySetting.Permanent | RpcPropertySetting.ServerToShadow,
-                new RpcList<string>());
+        public readonly RpcComplexProperty<RpcList<string>> TestRpcProp = new(
+            nameof(TestEntity.TestRpcProp),
+            RpcPropertySetting.Permanent | RpcPropertySetting.ServerToShadow,
+            new RpcList<string>());
 
-        public readonly RpcPlaintProperty<string> TestRpcPlaintPropStr =
-            new(nameof(TestEntity.TestRpcPlaintPropStr),
-                RpcPropertySetting.Permanent | RpcPropertySetting.ServerToShadow, "");
+        public readonly RpcPlaintProperty<string> TestRpcPlaintPropStr = new(
+            nameof(TestEntity.TestRpcPlaintPropStr),
+            RpcPropertySetting.Permanent | RpcPropertySetting.ServerToShadow,
+            string.Empty);
 
-        public readonly RpcComplexProperty<CostumeRpcContainerProperty1> TestCostumeRpcContainerProperty1
-            = new(nameof(TestCostumeRpcContainerProperty1),
-                RpcPropertySetting.Permanent | RpcPropertySetting.ServerToShadow, new());
+        public readonly RpcComplexProperty<CostumeRpcContainerProperty1> TestCostumeRpcContainerProperty1 = new(
+            nameof(TestCostumeRpcContainerProperty1),
+            RpcPropertySetting.Permanent | RpcPropertySetting.ServerToShadow,
+            new());
 
-        public readonly RpcComplexProperty<CostumeRpcContainerProperty2> TestCostumeRpcContainerProperty2
-            = new(nameof(TestCostumeRpcContainerProperty2),
-                RpcPropertySetting.Permanent | RpcPropertySetting.ServerToShadow, new());
+        public readonly RpcComplexProperty<CostumeRpcContainerProperty2> TestCostumeRpcContainerProperty2 = new(
+            nameof(TestCostumeRpcContainerProperty2),
+            RpcPropertySetting.Permanent | RpcPropertySetting.ServerToShadow,
+            new());
 
-        public readonly RpcComplexProperty<RpcDictionary<string, RpcList<int>>> TestComplexRpcProp =
-            new(nameof(TestComplexRpcProp), RpcPropertySetting.Permanent | RpcPropertySetting.ServerToShadow, new());
+        public readonly RpcComplexProperty<RpcDictionary<string, RpcList<int>>> TestComplexRpcProp = new(
+            nameof(TestComplexRpcProp),
+            RpcPropertySetting.Permanent | RpcPropertySetting.ServerToShadow,
+            new());
     }
 
     private class TestShadowEntity : ShadowEntity
     {
         public readonly RpcShadowComplexProperty<RpcList<string>> TestRpcProp =
-            new((string) nameof(TestRpcProp));
+            new((string)nameof(TestRpcProp));
 
         public readonly RpcShadowPlaintProperty<string> TestRpcPlaintPropStr =
-            new((string) nameof(TestRpcPlaintPropStr));
+            new((string)nameof(TestRpcPlaintPropStr));
 
         public readonly RpcShadowComplexProperty<CostumeRpcContainerProperty1> TestCostumeRpcContainerProperty1 =
-            new((string) nameof(TestCostumeRpcContainerProperty1));
+            new((string)nameof(TestCostumeRpcContainerProperty1));
 
         public readonly RpcShadowComplexProperty<CostumeRpcContainerProperty2> TestCostumeRpcContainerProperty2 =
-            new((string) nameof(TestCostumeRpcContainerProperty2));
+            new((string)nameof(TestCostumeRpcContainerProperty2));
     }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="RpcPropertyUnitTest"/> class.
+    /// </summary>
     public RpcPropertyUnitTest()
     {
         RpcHelper.ScanRpcPropertyContainer("LPS.UnitTest");
     }
 
+    /// <summary>
+    /// Unit test for RpcList.
+    /// </summary>
     [Fact]
     public void TestRpcList()
     {
-        RpcComplexProperty<RpcList<string>> rpcProp = new("test_list_prop", RpcPropertySetting.Permanent,
+        RpcComplexProperty<RpcList<string>> rpcProp = new(
+            "test_list_prop",
+            RpcPropertySetting.Permanent,
             new RpcList<string>());
         rpcProp.Val.Add("123");
 
@@ -97,18 +124,26 @@ public class RpcPropertyUnitTest
         Assert.True(rpcProp.Val[1] == "456");
     }
 
+    /// <summary>
+    /// Unit test for RpcString.
+    /// </summary>
     [Fact]
     public void TestRpcString()
     {
-        RpcPlaintProperty<string> rpcPlaintStrProp = new("test_str_prop", RpcPropertySetting.Permanent, "");
+        RpcPlaintProperty<string> rpcPlaintStrProp = new("test_str_prop", RpcPropertySetting.Permanent, string.Empty);
         rpcPlaintStrProp.Val = "321";
         Assert.True(rpcPlaintStrProp.Val == "321");
     }
 
+    /// <summary>
+    /// Unit test for RpcDict.
+    /// </summary>
     [Fact]
     public void TestRpcDict()
     {
-        RpcComplexProperty<RpcDictionary<string, int>> rpcProp = new("test_dict_prop", RpcPropertySetting.ServerOnly,
+        RpcComplexProperty<RpcDictionary<string, int>> rpcProp = new(
+            "test_dict_prop",
+            RpcPropertySetting.ServerOnly,
             new RpcDictionary<string, int>());
         rpcProp.Val["test_key_1"] = 123;
 
@@ -119,6 +154,9 @@ public class RpcPropertyUnitTest
         Assert.True(rpcDict["test_key_2"] == 321);
     }
 
+    /// <summary>
+    /// Unit test for Rpc complex dict.
+    /// </summary>
     [Fact]
     public void TestRpcComplexDict()
     {
@@ -133,8 +171,8 @@ public class RpcPropertyUnitTest
                     ["n1"] = new RpcDictionary<int, RpcList<int>>
                     {
                         [123] = rpcList,
-                    }
-                }
+                    },
+                },
             };
 
         rpcProp.Val["n1"][123] = rpcList2;
@@ -145,6 +183,9 @@ public class RpcPropertyUnitTest
         Assert.Equal(333, rpcProp.Val["n1"][123][0]);
     }
 
+    /// <summary>
+    /// Unit test for costume Rpc properties.
+    /// </summary>
     [Fact]
     public void TestCostumeRpcProp()
     {
@@ -163,24 +204,9 @@ public class RpcPropertyUnitTest
         Assert.Equal(1.0f, rpcProp.Val.SubCostumerContainerRpcContainerProperty.SubFloatProperty);
     }
 
-    private bool CheckReferred(RpcPropertyContainer? container)
-    {
-        if (container == null)
-        {
-            return false;
-        }
-
-        foreach (var (_, value) in container.Children!)
-        {
-            if (!value.IsReferred)
-            {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
+    /// <summary>
+    /// Unit test for property serialization.
+    /// </summary>
     [Fact]
     public void TestPropertySerialization()
     {
@@ -203,7 +229,7 @@ public class RpcPropertyUnitTest
 
         entity.TestCostumeRpcContainerProperty2.Val.SubFloatProperty = 200.0f;
 
-        entity.FullSync((id, content) => { shadowEntity.FromSyncContent(content); });
+        entity.FullSync((_, content) => { shadowEntity.FromSyncContent(content); });
 
         Assert.Equal("1", shadowEntity.TestRpcProp.Val[0]);
         Assert.Equal("2", shadowEntity.TestRpcProp.Val[1]);
@@ -215,18 +241,24 @@ public class RpcPropertyUnitTest
         Assert.Equal("b", shadowEntity.TestCostumeRpcContainerProperty1.Val.SubListProperty[1]);
         Assert.Equal("c", shadowEntity.TestCostumeRpcContainerProperty1.Val.SubListProperty[2]);
 
-        Assert.Equal(100.0f,
-            shadowEntity.TestCostumeRpcContainerProperty1.Val.SubCostumerContainerRpcContainerProperty
-                .SubFloatProperty);
+        var propValue = shadowEntity
+            .TestCostumeRpcContainerProperty1
+            .Val.SubCostumerContainerRpcContainerProperty
+            .SubFloatProperty;
+        Assert.Equal(100.0f, propValue);
 
-        Assert.Equal(200.0f,
+        Assert.Equal(
+            200.0f,
             shadowEntity.TestCostumeRpcContainerProperty2.Val.SubFloatProperty);
 
-        Assert.True(this.CheckReferred(shadowEntity.TestRpcProp.Val));
-        Assert.True(this.CheckReferred(shadowEntity.TestCostumeRpcContainerProperty1.Val));
-        Assert.True(this.CheckReferred(shadowEntity.TestCostumeRpcContainerProperty2.Val));
+        Assert.True(CheckReferred(shadowEntity.TestRpcProp.Val));
+        Assert.True(CheckReferred(shadowEntity.TestCostumeRpcContainerProperty1.Val));
+        Assert.True(CheckReferred(shadowEntity.TestCostumeRpcContainerProperty2.Val));
     }
 
+    /// <summary>
+    /// Unit test for property change notification.
+    /// </summary>
     [Fact]
     public void TestListPropertyChangeNotification()
     {
@@ -259,8 +291,8 @@ public class RpcPropertyUnitTest
         entity.TestRpcProp.Val.OnSetValue = (val, newVal) =>
         {
             ++setCnt;
-            Assert.Equal(new List<string> {"111", "222"}, val);
-            Assert.Equal(new List<string> {"333", "333", "333"}, newVal);
+            Assert.Equal(new List<string> { "111", "222" }, val);
+            Assert.Equal(new List<string> { "333", "333", "333" }, newVal);
         };
 
         entity.TestRpcProp.Val.Add("111");
@@ -278,6 +310,9 @@ public class RpcPropertyUnitTest
         Assert.Equal(1, clearCnt);
     }
 
+    /// <summary>
+    /// Unittest for dict property change notification.
+    /// </summary>
     [Fact]
     public void TestDictPropertyChangeNotification()
     {
@@ -285,19 +320,20 @@ public class RpcPropertyUnitTest
         var removeCnt = 0;
         var updateCnt = 0;
         var clearCnt = 0;
-        
-        entity.TestComplexRpcProp.Val.OnRemoveElem = (key, val) =>
+
+        entity.TestComplexRpcProp.Val.OnRemoveElem = (key, _) =>
         {
             ++removeCnt;
             Assert.Equal("key_1", key);
         };
 
-        entity.TestComplexRpcProp.Val.OnUpdatePair = (key, val, newVal) =>
+        entity.TestComplexRpcProp.Val.OnUpdatePair = (key, val, _) =>
         {
             if (key is "key_1" or "key_2")
             {
                 ++updateCnt;
             }
+
             Assert.Null(val);
         };
 
@@ -312,5 +348,23 @@ public class RpcPropertyUnitTest
         Assert.Equal(1, removeCnt);
         Assert.Equal(2, updateCnt);
         Assert.Equal(1, clearCnt);
+    }
+
+    private static bool CheckReferred(RpcPropertyContainer? container)
+    {
+        if (container == null)
+        {
+            return false;
+        }
+
+        foreach (var (_, value) in container.Children!)
+        {
+            if (!value.IsReferred)
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 }
