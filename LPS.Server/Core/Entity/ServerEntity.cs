@@ -1,29 +1,50 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using LPS.Common.Core.Debug;
-using LPS.Common.Core.Rpc;
-using LPS.Server.Core.Rpc;
-using LPS.Server.Core.Database;
-using MailBox = LPS.Common.Core.Rpc.MailBox;
+// -----------------------------------------------------------------------
+// <copyright file="ServerEntity.cs" company="Little Princess Studio">
+// Copyright (c) Little Princess Studio. All rights reserved.
+// </copyright>
+// -----------------------------------------------------------------------
 
 namespace LPS.Server.Core.Entity
 {
+    using System.Collections.Generic;
+    using System.Linq;
+    using System.Threading.Tasks;
+    using LPS.Common.Core.Debug;
+    using LPS.Common.Core.Rpc;
+    using MailBox = LPS.Common.Core.Rpc.MailBox;
+
+    /// <summary>
+    /// Server entity indicates entity only exists on server.
+    /// </summary>
     [EntityClass]
     public class ServerEntity : UniqueEntity
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ServerEntity"/> class.
+        /// </summary>
+        /// <param name="mailbox">Mailbox of the server entity.</param>
         public ServerEntity(MailBox mailbox)
         {
             this.MailBox = mailbox;
         }
 
+        /// <summary>
+        /// Rpc method for Echo test.
+        /// </summary>
+        /// <param name="msg">Echo message.</param>
         [RpcMethod(Authority.All)]
         public void Echo(string msg)
         {
             Logger.Info($"Echo Echo Echo {msg}");
         }
 
+        /// <summary>
+        /// Rpc method for Echo test.
+        /// </summary>
+        /// <param name="testMap">Dict rpc arg.</param>
+        /// <param name="testInt">Int rpc arg.</param>
+        /// <param name="testFloat">Float rpc arg.</param>
+        /// <param name="testList">List rpc arg.</param>
         [RpcMethod(Authority.ServerOnly)]
         public void Echo2(Dictionary<string, string> testMap, int testInt, float testFloat, List<string> testList)
         {
@@ -34,12 +55,18 @@ namespace LPS.Server.Core.Entity
             Logger.Info($"{string.Join(',', testList)}");
         }
 
+        /// <summary>
+        /// Rpc method for Echo test.
+        /// </summary>
+        /// <param name="mb">Mailbox of other entity.</param>
+        /// <returns>ValueTask.</returns>
         [RpcMethod(Authority.ServerOnly)]
         public ValueTask Echo3(MailBox mb)
         {
             Logger.Info($"Got mailbox {mb}");
+
             // await this.Call(mb, "Hello, LPS");
-            return new ValueTask();
+            return default(ValueTask);
         }
     }
 }

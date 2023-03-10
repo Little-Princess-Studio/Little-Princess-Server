@@ -1,15 +1,8 @@
-using System;
-using System.Collections.Generic;
-using System.Threading;
-using Google.Protobuf;
-using Google.Protobuf.WellKnownTypes;
-using LPS.Common.Core.Debug;
-using LPS.Common.Core.Rpc;
-using LPS.Common.Core.Rpc.InnerMessages;
-using LPS.Server.Core.Database;
-using LPS.Server.Core.Rpc;
-using LPS.Server.Core.Rpc.InnerMessages;
-using MailBox = LPS.Common.Core.Rpc.MailBox;
+// -----------------------------------------------------------------------
+// <copyright file="HostManager.cs" company="Little Princess Studio">
+// Copyright (c) Little Princess Studio. All rights reserved.
+// </copyright>
+// -----------------------------------------------------------------------
 
 /*
  *         HostMgr
@@ -38,8 +31,26 @@ using MailBox = LPS.Common.Core.Rpc.MailBox;
  * 8. HostManager will broadcast Open message to all the gate instances to let them allow connections
  *    from clients.
  */
+
 namespace LPS.Server.Core
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Threading;
+    using Google.Protobuf;
+    using Google.Protobuf.WellKnownTypes;
+    using LPS.Common.Core.Debug;
+    using LPS.Common.Core.Rpc;
+    using LPS.Common.Core.Rpc.InnerMessages;
+    using LPS.Server.Core.Database;
+    using LPS.Server.Core.Rpc;
+    using LPS.Server.Core.Rpc.InnerMessages;
+    using MailBox = LPS.Common.Core.Rpc.MailBox;
+
+    /// <summary>
+    /// Status of the hostmanager.
+    /// </summary>
+#pragma warning disable SA1602
     public enum HostStatus
     {
         None, // init
@@ -49,6 +60,7 @@ namespace LPS.Server.Core
         State3, // stopping
         State4, // stopped
     }
+#pragma warning restore SA1602
 
     /// <summary>
     /// HostManager will watch the status of each component in the host including:
@@ -56,31 +68,61 @@ namespace LPS.Server.Core
     /// HostManager use ping/pong strategy to check the status of the components
     /// if HostManager find any component looks like dead, it will
     /// kick this component off from the host, try to create a new component
-    /// while writing alert log. 
+    /// while writing alert log.
     /// </summary>
     public class HostManager : IInstance
     {
+        /// <inheritdoc/>
         public InstanceType InstanceType => InstanceType.HostManager;
 
+        /// <summary>
+        /// Name of the hostmanager.
+        /// </summary>
         public readonly string Name;
-        public readonly int HostNum;
-        public readonly string Ip;
-        public readonly int Port;
+
+        /// <inheritdoc/>
+        public int HostNum { get; }
+
+        /// <inheritdoc/>
+        public string Ip { get; }
+
+        /// <inheritdoc/>
+        public int Port { get; }
+
+        /// <summary>
+        /// Server num of the host.
+        /// </summary>
         public readonly int ServerNum;
+
+        /// <summary>
+        /// Gate num of the host.
+        /// </summary>
         public readonly int GateNum;
 
-        private readonly TcpServer tcpServer_;
-        public List<Connection> ServersConn { get; private set; } = new List<Connection>();
-        public List<Connection> GatesConn { get; private set; } = new List<Connection>();
+        /// <summary>
+        /// Gets status of the hostmanager.
+        /// </summary>
+        public HostStatus Status { get; } = HostStatus.None;
 
-        public HostStatus Status { get; private set; } = HostStatus.None;
+        private readonly List<Connection> serversConn = new List<Connection>();
+        private readonly List<Connection> gatesConn = new List<Connection>();
+        private readonly TcpServer tcpServer;
+        private readonly Random random = new();
 
-        private readonly Random random_ = new();
-        private uint createEntityCnt_;
+        private readonly Dictionary<uint, (uint ConnId, Connection OriginConn)>
+            createDistEntityAsyncRecord = new();
 
-        private Dictionary<uint, (uint ConnId, Connection OriginConn)>
-            createDistEntityAsyncRecord_ = new();
+        private uint createEntityCnt;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="HostManager"/> class.
+        /// </summary>
+        /// <param name="name">Name of the hostmanager.</param>
+        /// <param name="hostNum">Host num of the hostmanager.</param>
+        /// <param name="ip">Ip of the hostmanager.</param>
+        /// <param name="port">Port of the hostmanager.</param>
+        /// <param name="serverNum">Server number of hostmanager.</param>
+        /// <param name="gateNum">Gate number of the hostmanager.</param>
         public HostManager(string name, int hostNum, string ip, int port, int serverNum, int gateNum)
         {
             this.Name = name;
@@ -90,7 +132,7 @@ namespace LPS.Server.Core
             this.ServerNum = serverNum;
             this.GateNum = gateNum;
 
-            tcpServer_ = new TcpServer(ip, port)
+            this.tcpServer = new TcpServer(ip, port)
             {
                 OnInit = this.RegisterServerMessageHandlers,
                 OnDispose = this.UnregisterServerMessageHandlers,
@@ -98,36 +140,52 @@ namespace LPS.Server.Core
             };
         }
 
+        /// <inheritdoc/>
+        public void Loop()
+        {
+            Logger.Info($"Start Host Manager at {this.Ip}:{this.Port}");
+            this.tcpServer.Run();
+            this.tcpServer.WaitForExit();
+        }
+
+        /// <inheritdoc/>
+        public void Stop()
+        {
+            this.tcpServer.Stop();
+        }
+
         private void UnregisterServerMessageHandlers()
         {
-            tcpServer_.UnregisterMessageHandler(PackageType.Control, this.HandleControlCmd);
-            tcpServer_.UnregisterMessageHandler(PackageType.RequireCreateEntity, this.HandleControlCmd);
-            tcpServer_.UnregisterMessageHandler(PackageType.CreateDistributeEntityRes,
+            this.tcpServer.UnregisterMessageHandler(PackageType.Control, this.HandleControlCmd);
+            this.tcpServer.UnregisterMessageHandler(PackageType.RequireCreateEntity, this.HandleControlCmd);
+            this.tcpServer.UnregisterMessageHandler(
+                PackageType.CreateDistributeEntityRes,
                 this.HandleCreateDistributeEntityRes);
         }
 
         private void RegisterServerMessageHandlers()
         {
-            tcpServer_.RegisterMessageHandler(PackageType.Control, this.HandleControlCmd);
-            tcpServer_.RegisterMessageHandler(PackageType.RequireCreateEntity, this.HandleRequireCreateEntity);
-            tcpServer_.RegisterMessageHandler(PackageType.CreateDistributeEntityRes,
+            this.tcpServer.RegisterMessageHandler(PackageType.Control, this.HandleControlCmd);
+            this.tcpServer.RegisterMessageHandler(PackageType.RequireCreateEntity, this.HandleRequireCreateEntity);
+            this.tcpServer.RegisterMessageHandler(
+                PackageType.CreateDistributeEntityRes,
                 this.HandleCreateDistributeEntityRes);
         }
 
         private void HandleCreateDistributeEntityRes(object arg)
         {
-            var (msg, _, id) = ((IMessage, Connection, UInt32)) arg;
+            var (msg, _, id) = ((IMessage, Connection, uint))arg;
             var createRes = (msg as CreateDistributeEntityRes)!;
 
             Logger.Debug($"HandleCreateDistributeEntityRes, {createRes.Mailbox}");
 
-            if (!createDistEntityAsyncRecord_.ContainsKey(createRes.ConnectionID))
+            if (!this.createDistEntityAsyncRecord.ContainsKey(createRes.ConnectionID))
             {
                 Logger.Warn($"Key {createRes.ConnectionID} not in the record.");
                 return;
             }
 
-            createDistEntityAsyncRecord_.Remove(createRes.ConnectionID, out var tp);
+            this.createDistEntityAsyncRecord.Remove(createRes.ConnectionID, out var tp);
             var (oriConnId, conn) = tp;
 
             var requireCreateRes = new RequireCreateEntityRes
@@ -144,7 +202,7 @@ namespace LPS.Server.Core
 
         private void HandleRequireCreateEntity(object arg)
         {
-            var (msg, conn, id) = ((IMessage, Connection, UInt32)) arg;
+            var (msg, conn, id) = ((IMessage, Connection, uint))arg;
             var createEntity = (msg as RequireCreateEntity)!;
 
             Logger.Info($"create entity: {createEntity.CreateType}, {createEntity.EntityClassName}");
@@ -152,19 +210,19 @@ namespace LPS.Server.Core
             switch (createEntity.CreateType)
             {
                 case CreateType.Local:
-                    CreateLocalEntity(createEntity, id, conn);
+                    this.CreateLocalEntity(createEntity, id, conn);
                     break;
                 case CreateType.Anywhere:
-                    CreateAnywhereEntity(createEntity, id, conn);
+                    this.CreateAnywhereEntity(createEntity, id, conn);
                     break;
                 case CreateType.Manual:
-                    CreateManualEntity(createEntity, id, conn);
+                    this.CreateManualEntity(createEntity, id, conn);
                     break;
             }
         }
 
         private void CreateLocalEntity(RequireCreateEntity createEntity, uint id, Connection conn) =>
-            CreateManualEntity(createEntity, id, conn);
+            this.CreateManualEntity(createEntity, id, conn);
 
         private void CreateManualEntity(RequireCreateEntity createEntity, uint id, Connection conn)
         {
@@ -175,10 +233,10 @@ namespace LPS.Server.Core
                 {
                     Mailbox = new LPS.Common.Core.Rpc.InnerMessages.MailBox
                     {
-                        IP = "",
+                        IP = string.Empty,
                         Port = 0,
-                        HostNum = (uint) this.HostNum,
-                        ID = newId
+                        HostNum = (uint)this.HostNum,
+                        ID = newId,
                     },
                     EntityType = createEntity.EntityType,
                     ConnectionID = createEntity.ConnectionID,
@@ -190,25 +248,25 @@ namespace LPS.Server.Core
         }
 
         /// <summary>
-        ///server craete eneity anywhere step:
+        /// server craete eneity anywhere step:
         /// 1. Server (origin server) sends RequireCreateEntity msg to host manager
         /// 2. HostManager randomly selects a server and send CreateEntity msg
         /// 3. Selected server creates entity and sends CreateEntityRes to host manager
-        /// 4. Host manager sends CreateEntityRes to origin server
+        /// 4. Host manager sends CreateEntityRes to origin server.
         /// </summary>
-        /// <param name="createEntity"></param>
-        /// <param name="id"></param>
-        /// <param name="conn"></param>
+        /// <param name="createEntity">CreateEntity object.</param>
+        /// <param name="id">Message id.</param>
+        /// <param name="conn">Connection require to create entity.</param>
         private void CreateAnywhereEntity(RequireCreateEntity createEntity, uint id, Connection conn)
         {
             DbHelper.GenerateNewGlobalId().ContinueWith(task =>
             {
                 var newId = task.Result;
                 Logger.Debug("Randomly select a server");
-                var serverConn = ServersConn[random_.Next(0, ServersConn.Count)];
+                var serverConn = this.serversConn[this.random.Next(0, this.serversConn.Count)];
 
                 Logger.Debug("Create Entity Anywhere");
-                var connId = createEntityCnt_++;
+                var connId = this.createEntityCnt++;
                 var createDist = new CreateDistributeEntity
                 {
                     EntityClassName = createEntity.EntityClassName,
@@ -222,24 +280,27 @@ namespace LPS.Server.Core
                 {
                     createDist.GateId = createEntity.GateId;
                 }
-                
+
                 var pkg = PackageHelper.FromProtoBuf(createDist, id);
                 serverConn.Socket.Send(pkg.ToBytes());
+
                 // record
-                createDistEntityAsyncRecord_[connId] = (createEntity.ConnectionID, conn);
+                this.createDistEntityAsyncRecord[connId] = (createEntity.ConnectionID, conn);
             });
         }
 
         private void HandleControlCmd(object arg)
         {
-            var (msg, conn, _) = ((IMessage, Connection, UInt32)) arg;
+            var (msg, conn, _) = ((IMessage, Connection, uint))arg;
             var hostCmd = (msg as Control)!;
             switch (hostCmd.Message)
             {
                 case ControlMessage.Ready:
-                    this.RegisterComponents(hostCmd.From,
+                    this.RegisterComponents(
+                        hostCmd.From,
                         RpcHelper.PbMailBoxToRpcMailBox(hostCmd.Args[0]
-                            .Unpack<LPS.Common.Core.Rpc.InnerMessages.MailBox>()), conn);
+                            .Unpack<LPS.Common.Core.Rpc.InnerMessages.MailBox>()),
+                        conn);
                     break;
                 case ControlMessage.Restart:
                     break;
@@ -253,19 +314,19 @@ namespace LPS.Server.Core
         private void RegisterComponents(RemoteType hostCmdFrom, MailBox mailBox, Connection conn)
         {
             conn.MailBox = mailBox;
-            
+
             if (hostCmdFrom == RemoteType.Gate)
             {
                 Logger.Info($"gate require sync {mailBox}");
-                this.GatesConn.Add(conn);
+                this.gatesConn.Add(conn);
             }
             else if (hostCmdFrom == RemoteType.Server)
             {
                 Logger.Info($"server require sync {mailBox}");
-                this.ServersConn.Add(conn);
+                this.serversConn.Add(conn);
             }
 
-            if (ServersConn.Count == this.ServerNum && GatesConn.Count == this.GateNum)
+            if (this.serversConn.Count == this.ServerNum && this.gatesConn.Count == this.GateNum)
             {
                 Logger.Info("All gates registered, send sync msg");
                 Logger.Info("All servers registered, send sync msg");
@@ -273,60 +334,50 @@ namespace LPS.Server.Core
                 // send gates mailboxes
                 var syncCmd = new HostCommand
                 {
-                    Type = HostCommandType.SyncGates
+                    Type = HostCommandType.SyncGates,
                 };
 
-                foreach (var gateConn in this.GatesConn)
+                foreach (var gateConn in this.gatesConn)
                 {
                     syncCmd.Args.Add(Any.Pack(RpcHelper.RpcMailBoxToPbMailBox(gateConn.MailBox)));
                 }
 
                 var pkg = PackageHelper.FromProtoBuf(syncCmd, 0);
-                
+
                 // to gates
-                foreach (var gateConn in this.GatesConn)
+                foreach (var gateConn in this.gatesConn)
                 {
                     gateConn.Socket.Send(pkg.ToBytes());
                 }
 
                 // to server
-                foreach (var serverConn in this.ServersConn)
+                foreach (var serverConn in this.serversConn)
                 {
                     serverConn.Socket.Send(pkg.ToBytes());
                 }
 
                 // -----------------------------------
-                
+
                 // broadcast sync msg
                 syncCmd = new HostCommand
                 {
-                    Type = HostCommandType.SyncServers
+                    Type = HostCommandType.SyncServers,
                 };
+
                 // send server mailboxes
-                foreach (var serverConn in this.ServersConn)
+                foreach (var serverConn in this.serversConn)
                 {
                     syncCmd.Args.Add(Any.Pack(RpcHelper.RpcMailBoxToPbMailBox(serverConn.MailBox)));
                 }
 
                 pkg = PackageHelper.FromProtoBuf(syncCmd, 0);
+
                 // to gates
-                foreach (var gateConn in this.GatesConn)
+                foreach (var gateConn in this.gatesConn)
                 {
                     gateConn.Socket.Send(pkg.ToBytes());
                 }
             }
-        }
-
-        public void Loop()
-        {
-            Logger.Info($"Start Host Manager at {this.Ip}:{this.Port}");
-            tcpServer_.Run();
-            tcpServer_.WaitForExit();
-        }
-
-        public void Stop()
-        {
-            tcpServer_.Stop();
         }
     }
 }

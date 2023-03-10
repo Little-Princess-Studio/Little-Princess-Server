@@ -1,89 +1,116 @@
-using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net;
-using System.Net.Sockets;
-using System.Threading;
-using System.Threading.Tasks;
-using Google.Protobuf;
-using LPS.Common.Core.Debug;
-using LPS.Common.Core.Ipc;
-using LPS.Common.Core.Rpc;
-using LPS.Common.Core.Rpc.InnerMessages;
-using LPS.Common.Core.Rpc.RpcPropertySync;
-using MailBox = LPS.Common.Core.Rpc.MailBox;
+// -----------------------------------------------------------------------
+// <copyright file="TcpServer.cs" company="Little Princess Studio">
+// Copyright (c) Little Princess Studio. All rights reserved.
+// </copyright>
+// -----------------------------------------------------------------------
 
 namespace LPS.Server.Core.Rpc
 {
-    public interface IServer
-    {
-        string Ip { get; }
-        int Port { get; }
-        Socket? Socket { get; }
-        Action? OnInit { get;  }
-        Action? OnDispose { get; }
-        Connection[] AllConnections { get; }
-        Action<uint>? ServerTickHandler { get; }
-        bool Stopped { get; }
+    using System;
+    using System.Collections.Concurrent;
+    using System.Collections.Generic;
+    using System.Linq;
+    using System.Net;
+    using System.Net.Sockets;
+    using System.Threading;
+    using System.Threading.Tasks;
+    using Google.Protobuf;
+    using LPS.Common.Core.Debug;
+    using LPS.Common.Core.Ipc;
+    using LPS.Common.Core.Rpc;
+    using LPS.Common.Core.Rpc.InnerMessages;
 
-        void Run();
-        void Stop();
-        void WaitForExit();
-        void Send(IMessage msg, Connection conn);
-        void RegisterMessageHandler(IComparable key, Action<object> callback);
-        void UnregisterMessageHandler(IComparable key, Action<object> callback);
-    }
-    
-    /*
-    TcpServer is common server for LPS inner usage.
-    */
-    internal class TcpServer : IServer
+    /// <summary>
+    /// TcpServer is common server for inner usage.
+    /// </summary>
+    internal class TcpServer
     {
-        public string Ip { get; private set; }
-        public int Port { get; private set; }
+        /// <summary>
+        /// Gets the Ip of the server.
+        /// </summary>
+        public string Ip { get; }
 
-        private bool stopFlag_;
-        private readonly Dictionary<Connection, Task> connections_ = new();
-        private readonly SandBox sandboxIo_;
-        private readonly Bus bus_;
-        private readonly Dispatcher msgDispatcher_;
+        /// <summary>
+        /// Gets the port of the server.
+        /// </summary>
+        public int Port { get; }
+
+        /// <summary>
+        /// Gets the socket.
+        /// </summary>
         public Socket? Socket { get; private set; }
-        public Action? OnInit { get; init; }
-        public Action? OnDispose { get; init; }
-        private readonly Dictionary<Socket, Connection> socketToConn_ = new();
 
-        public Connection[] AllConnections => socketToConn_.Values.ToArray();
-        private readonly ConcurrentQueue<(Connection, IMessage)> sendQueue_ = new();
-        private uint serverEntityPackageId_;
-        
-        public Action<uint>? ServerTickHandler { get; init; }
-        
-        public bool Stopped => stopFlag_;
+        /// <summary>
+        /// Gets the callback when init server.
+        /// </summary>
+        public Action? OnInit { private get; init; }
 
+        /// <summary>
+        /// Gets the callback when dispose the server.
+        /// </summary>
+        public Action? OnDispose { private get; init; }
+
+        /// <summary>
+        /// Gets all the connections on this server.
+        /// </summary>
+        public Connection[] AllConnections => this.socketToConn.Values.ToArray();
+
+        /// <summary>
+        /// Gets the handler invoked every tick of the server.
+        /// </summary>
+        public Action<uint>? ServerTickHandler { private get; init; }
+
+        /// <summary>
+        /// Gets a value indicating whether this server is stopped.
+        /// </summary>
+        public bool Stopped => this.stopFlag;
+
+        private readonly Dictionary<Connection, Task> connections = new();
+        private readonly SandBox sandboxIo;
+        private readonly Bus bus;
+        private readonly Dispatcher msgDispatcher;
+        private readonly Dictionary<Socket, Connection> socketToConn = new();
+        private readonly ConcurrentQueue<(Connection, IMessage)> sendQueue = new();
+        private bool stopFlag;
+        private uint serverEntityPackageId;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="TcpServer"/> class.
+        /// </summary>
+        /// <param name="ip">Ip of the server.</param>
+        /// <param name="port">Port of the server.</param>
         public TcpServer(string ip, int port)
         {
             this.Ip = ip;
             this.Port = port;
 
-            msgDispatcher_ = new Dispatcher();
-            bus_ = new Bus(msgDispatcher_);
+            this.msgDispatcher = new Dispatcher();
+            this.bus = new Bus(this.msgDispatcher);
 
-            sandboxIo_ = SandBox.Create(this.IoHandler);
+            this.sandboxIo = SandBox.Create(this.IoHandler);
         }
 
+        /// <summary>
+        /// Start server.
+        /// </summary>
         public void Run()
         {
-            stopFlag_ = false;
-            this.sandboxIo_.Run();
+            this.stopFlag = false;
+            this.sandboxIo.Run();
         }
 
-        public void WaitForExit() => this.sandboxIo_.WaitForExit();
+        /// <summary>
+        /// Wait until this server exits.
+        /// </summary>
+        public void WaitForExit() => this.sandboxIo.WaitForExit();
 
+        /// <summary>
+        /// Stop the server.
+        /// </summary>
         public void Stop()
         {
             Logger.Debug("stopped");
-            this.stopFlag_ = true;
+            this.stopFlag = true;
             try
             {
                 this.Socket?.Shutdown(SocketShutdown.Both);
@@ -92,6 +119,43 @@ namespace LPS.Server.Core.Rpc
             {
                 this.Socket?.Close();
             }
+        }
+
+        /// <summary>
+        /// Send message to a client.
+        /// </summary>
+        /// <param name="msg">Message send to client.</param>
+        /// <param name="conn">Connection to a client.</param>
+        public void Send(IMessage msg, Connection conn)
+        {
+            try
+            {
+                this.sendQueue.Enqueue((conn, msg));
+            }
+            catch (Exception e)
+            {
+                Logger.Error(e, "Send Error.");
+            }
+        }
+
+        /// <summary>
+        /// Observe a message and register the handler of the message.
+        /// </summary>
+        /// <param name="key">Message token.</param>
+        /// <param name="callback">Callback to handle the message.</param>
+        public void RegisterMessageHandler(IComparable key, Action<object> callback)
+        {
+            this.msgDispatcher.Register(key, callback);
+        }
+
+        /// <summary>
+        /// Cancel the observing for a message.
+        /// </summary>
+        /// <param name="key">Message token.</param>
+        /// <param name="callback">Callback to handle the message.</param>
+        public void UnregisterMessageHandler(IComparable key, Action<object> callback)
+        {
+            this.msgDispatcher.Unregister(key, callback);
         }
 
         private void IoHandler()
@@ -126,7 +190,7 @@ namespace LPS.Server.Core.Rpc
             sendQueueSandBox.Run();
 
             #endregion
-            
+
             #region init timecircle task
 
             var timeCircleSandBox = SandBox.Create(this.TimeCircleHandler);
@@ -136,7 +200,7 @@ namespace LPS.Server.Core.Rpc
 
             #region message loop
 
-            while (!stopFlag_)
+            while (!this.stopFlag)
             {
                 Socket clientSocket;
                 try
@@ -149,29 +213,31 @@ namespace LPS.Server.Core.Rpc
                     break;
                 }
 
+#pragma warning disable SA1305
                 var ipEndPoint = (clientSocket.RemoteEndPoint as IPEndPoint)!;
+#pragma warning restore SA1305
                 Logger.Debug($"New socket got {ipEndPoint.Address}:{ipEndPoint.Port}");
 
                 var cancelTokenSource = new CancellationTokenSource();
                 var conn = Connection.Create(clientSocket, cancelTokenSource);
 
-                socketToConn_[clientSocket] = conn;
+                this.socketToConn[clientSocket] = conn;
 
                 conn.Connect();
 
                 var task = this.HandleMessage(conn);
-                connections_[conn] = task;
+                this.connections[conn] = task;
 
                 task.ContinueWith(
-                    _ => { Logger.Debug("Client Io Handler Exist"); }, 
+                    _ => { Logger.Debug("Client Io Handler Exist"); },
                     cancelTokenSource.Token);
             }
 
             #endregion
 
             // cancel each task end
-            Logger.Info($"[SOCKET] Close {connections_.Count} connections");
-            foreach (var conn in connections_)
+            Logger.Info($"[SOCKET] Close {this.connections.Count} connections");
+            foreach (var conn in this.connections)
             {
                 conn.Key.TokenSource.Cancel();
                 conn.Value.Wait();
@@ -179,18 +245,18 @@ namespace LPS.Server.Core.Rpc
 
             // wait pum task to exit
             Logger.Info("[EXIT] Close pump task");
-            // busPumpTask.Wait();
 
+            // busPumpTask.Wait();
             this.OnDispose?.Invoke();
         }
-        
+
         private void PumpMessageHandler()
         {
-            while (!stopFlag_)
+            while (!this.stopFlag)
             {
                 try
                 {
-                    bus_.Pump();
+                    this.bus.Pump();
                 }
                 catch (Exception e)
                 {
@@ -206,15 +272,15 @@ namespace LPS.Server.Core.Rpc
         private void TimeCircleHandler()
         {
             var lastTimeCircleTickTimestamp = DateTime.UtcNow;
-            
-            while (!stopFlag_)
+
+            while (!this.stopFlag)
             {
                 var currentTimeCircleTickTimestamp = DateTime.UtcNow;
                 var deltaTime = (currentTimeCircleTickTimestamp - lastTimeCircleTickTimestamp).Milliseconds;
                 if (deltaTime > 50)
                 {
                     lastTimeCircleTickTimestamp = currentTimeCircleTickTimestamp;
-                    this.ServerTickHandler?.Invoke((uint) deltaTime);
+                    this.ServerTickHandler?.Invoke((uint)deltaTime);
                 }
 
                 Thread.Sleep(25);
@@ -223,15 +289,15 @@ namespace LPS.Server.Core.Rpc
 
         private void SendQueueMessageHandler()
         {
-            while (!stopFlag_)
+            while (!this.stopFlag)
             {
-                if (!sendQueue_.IsEmpty)
+                if (!this.sendQueue.IsEmpty)
                 {
-                    var res = sendQueue_.TryDequeue(out var tp);
+                    var res = this.sendQueue.TryDequeue(out var tp);
                     if (res)
                     {
                         var (conn, msg) = tp;
-                        var id = serverEntityPackageId_++;
+                        var id = this.serverEntityPackageId++;
                         var pkg = PackageHelper.FromProtoBuf(msg, id);
                         var socket = conn.Socket;
                         try
@@ -250,35 +316,13 @@ namespace LPS.Server.Core.Rpc
             }
         }
 
-        public void Send(IMessage msg, Connection conn)
-        {
-            try
-            {
-                sendQueue_.Enqueue((conn, msg));
-            }
-            catch (Exception e)
-            {
-                Logger.Error(e, "Send Error.");
-            }
-        }
-        
         private async Task HandleMessage(Connection conn)
         {
             await RpcHelper.HandleMessage(
                 conn,
-                () => stopFlag_,
-                (msg) => bus_.AppendMessage(msg),
-                () => connections_.Remove(conn));
-        }
-
-        public void RegisterMessageHandler(IComparable key, Action<object> callback)
-        {
-            this.msgDispatcher_.Register(key, callback);
-        }
-
-        public void UnregisterMessageHandler(IComparable key, Action<object> callback)
-        {
-            this.msgDispatcher_.Unregister(key, callback);
+                () => this.stopFlag,
+                (msg) => this.bus.AppendMessage(msg),
+                () => this.connections.Remove(conn));
         }
     }
 }

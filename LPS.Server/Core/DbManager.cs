@@ -1,22 +1,51 @@
-using System.Collections.Concurrent;
-using Google.Protobuf;
-using LPS.Common.Core.Debug;
-using LPS.Server.Core.Rpc;
+// -----------------------------------------------------------------------
+// <copyright file="DbManager.cs" company="Little Princess Studio">
+// Copyright (c) Little Princess Studio. All rights reserved.
+// </copyright>
+// -----------------------------------------------------------------------
 
 namespace LPS.Server.Core
 {
+    using System.Collections.Concurrent;
+    using Google.Protobuf;
+    using LPS.Common.Core.Debug;
+    using LPS.Server.Core.Rpc;
+
+    /// <summary>
+    /// Database Manager.
+    /// </summary>
     public class DbManager : IInstance
     {
-        public string Ip { get; private set; }
-        public int Port { get; private set; }
-        public int HostNum { get; private set; }
+        /// <inheritdoc/>
+        public string Ip { get; }
 
+        /// <inheritdoc/>
+        public int Port { get; }
+
+        /// <inheritdoc/>
+        public int HostNum { get; }
+
+        /// <inheritdoc/>
         public InstanceType InstanceType => InstanceType.DbManager;
-        
-        private readonly TcpServer tcpDbManagerServer_;
-        private readonly TcpClient clientToHostManager_;
 
-        public DbManager(string ip, int port, int hostNum, string hostManagerIp, int hostManagerPort,
+        private readonly TcpServer tcpDbManagerServer;
+        private readonly TcpClient clientToHostManager;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="DbManager"/> class.
+        /// </summary>
+        /// <param name="ip">Ip.</param>
+        /// <param name="port">Port.</param>
+        /// <param name="hostNum">Hostnum.</param>
+        /// <param name="hostManagerIp">Ip of the host manager.</param>
+        /// <param name="hostManagerPort">Port of the host manager.</param>
+        /// <param name="cacheInfo">Global cache info.</param>
+        public DbManager(
+            string ip,
+            int port,
+            int hostNum,
+            string hostManagerIp,
+            int hostManagerPort,
             (string IP, int Port, string DefaultDb) cacheInfo)
         {
             this.Ip = ip;
@@ -24,42 +53,44 @@ namespace LPS.Server.Core
             this.HostNum = hostNum;
 
             // tcp gate server handles msg from server/other gates
-            tcpDbManagerServer_ = new(ip, port)
+            this.tcpDbManagerServer = new(ip, port)
             {
                 OnInit = this.RegisterMessageFromServerHandlers,
-                OnDispose = this.UnregisterMessageFromServerHandlers
+                OnDispose = this.UnregisterMessageFromServerHandlers,
             };
-            
-            clientToHostManager_ = new TcpClient(hostManagerIp, hostManagerPort, new ConcurrentQueue<(TcpClient, IMessage, bool)>());
+
+            this.clientToHostManager = new TcpClient(
+                hostManagerIp,
+                hostManagerPort,
+                new ConcurrentQueue<(TcpClient, IMessage, bool)>());
+        }
+
+        /// <inheritdoc/>
+        public void Stop()
+        {
+            this.clientToHostManager.Stop();
+            this.tcpDbManagerServer.Stop();
+        }
+
+        /// <inheritdoc/>
+        public void Loop()
+        {
+            Logger.Debug($"Start dbmanager at {this.Ip}:{this.Port}");
+
+            this.tcpDbManagerServer.Run();
+            this.clientToHostManager.Run();
+
+            this.clientToHostManager.WaitForExit();
+            this.tcpDbManagerServer.WaitForExit();
+            Logger.Debug("DbManager Exit.");
         }
 
         private void RegisterMessageFromServerHandlers()
         {
-
         }
 
         private void UnregisterMessageFromServerHandlers()
         {
-
         }
-
-        public void Stop()
-        {
-            clientToHostManager_.Stop();
-            tcpDbManagerServer_.Stop();
-        }
-
-        public void Loop()
-        {
-            Logger.Debug($"Start dbmanager at {this.Ip}:{this.Port}");
-            
-            tcpDbManagerServer_.Run();
-            clientToHostManager_.Run();
-            
-            clientToHostManager_.WaitForExit();
-            tcpDbManagerServer_.WaitForExit();
-            Logger.Debug("DbManager Exit.");
-        }
-
     }
 }

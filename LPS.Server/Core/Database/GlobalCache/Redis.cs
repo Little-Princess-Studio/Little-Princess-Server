@@ -1,21 +1,35 @@
-using System;
-using System.Threading.Tasks;
-using CSRedis;
-using LPS.Common.Core.Debug;
+// -----------------------------------------------------------------------
+// <copyright file="Redis.cs" company="Little Princess Studio">
+// Copyright (c) Little Princess Studio. All rights reserved.
+// </copyright>
+// -----------------------------------------------------------------------
 
 namespace LPS.Server.Core.Database.GlobalCache
 {
+    using System;
+    using System.Threading.Tasks;
+    using CSRedis;
+    using LPS.Common.Core.Debug;
+
+    /// <summary>
+    /// Redis implementation for global cache.
+    /// </summary>
     public class Redis : IGlobalCache
     {
-        public static readonly Redis Instance = new ();
+        /// <summary>
+        /// Gets the instance of the redis client.
+        /// </summary>
+        public static readonly Redis Instance = new();
 
+        /// <inheritdoc/>
         public Task<bool> Initialize()
         {
             const string connectString = "52.175.74.209:6457,password=metalnuoya12,defaultDatabase=demo";
 
             Logger.Info($"Connecting to redis with {connectString}");
 
-            try {
+            try
+            {
                 RedisHelper.Initialization(new CSRedisClient(connectString));
             }
             catch (Exception e)
@@ -27,15 +41,25 @@ namespace LPS.Server.Core.Database.GlobalCache
             return Task.FromResult(true);
         }
 
+        /// <inheritdoc/>
         public Task Clear() => RedisHelper.ScriptFlushAsync();
 
-        // GetNativeClient is a dangerous method which return the native db client object to user
-        // user should clearly know what the db client is and do costume operation on it.
+        /// <inheritdoc/>
         public object GetNativeClient() => RedisHelper.Instance;
+
+        /// <inheritdoc/>
         public Task<long> Incr(string key) => RedisHelper.IncrByAsync(key);
-        public Task<bool> Set(string key, long val)  => RedisHelper.SetAsync(key, val);
+
+        /// <inheritdoc/>
+        public Task<bool> Set(string key, long val) => RedisHelper.SetAsync(key, val);
+
+        /// <inheritdoc/>
         public Task<long> Get(string key) => RedisHelper.GetAsync<long>(key);
+
+        /// <inheritdoc/>
         public Task<bool> Set(string key, string val) => RedisHelper.SetAsync(key, val);
+
+        /// <inheritdoc/>
         Task<string> IGlobalCache<string>.Get(string key) => RedisHelper.GetAsync<string>(key);
     }
 }

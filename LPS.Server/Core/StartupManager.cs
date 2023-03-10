@@ -1,31 +1,32 @@
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Diagnostics.Metrics;
-using System.IO;
-using System.Linq;
-using LPS.Common.Core.Debug;
-using LPS.Common.Core.Rpc;
-using LPS.Server.Core.Database;
-using LPS.Server.Core.Rpc;
-using Newtonsoft.Json.Linq;
+// -----------------------------------------------------------------------
+// <copyright file="StartupManager.cs" company="Little Princess Studio">
+// Copyright (c) Little Princess Studio. All rights reserved.
+// </copyright>
+// -----------------------------------------------------------------------
 
 namespace LPS.Server.Core
 {
-    public static class StartupManager
+    using System;
+    using System.Collections.Generic;
+    using System.Diagnostics;
+    using System.IO;
+    using System.Linq;
+    using LPS.Common.Core.Debug;
+    using LPS.Common.Core.Rpc;
+    using LPS.Server.Core.Database;
+    using LPS.Server.Core.Rpc;
+    using Newtonsoft.Json.Linq;
+
+    /// <summary>
+    /// Class to control the startup of all the processes of the host.
+    /// </summary>
+    internal static class StartupManager
     {
-        private static JObject GetJson(string path)
-        {
-            var content = File.ReadAllText(path);
-
-            var json = JObject.Parse(content, new JsonLoadSettings
-            {
-                CommentHandling = CommentHandling.Ignore
-            });
-
-            return json;
-        }
-
+        /// <summary>
+        /// Startup a process via config file.
+        /// </summary>
+        /// <param name="path">Config file path.</param>
+        /// <exception cref="Exception">Throw exception if failed to startup a process.</exception>
         public static void FromConfig(string path)
         {
             var json = GetJson(path);
@@ -39,7 +40,7 @@ namespace LPS.Server.Core
                         HandleHostManagerConf(type, path, json);
                         break;
                     case "dbmanager":
-                        HandleDBManagerConf(type, path, json);
+                        HandleDbManagerConf(type, path, json);
                         break;
                     case "gate":
                         HandleGateConf(type, path, json);
@@ -57,7 +58,47 @@ namespace LPS.Server.Core
             }
         }
 
-        private static void HandleDBManagerConf(string type, string confFilePath, JObject json)
+        /// <summary>
+        /// Startup a process.
+        /// </summary>
+        /// <param name="type">Process type, one of hostmanager/dbmanager/gate/server.</param>
+        /// <param name="name">Name of the process.</param>
+        /// <param name="confFilePath">Config file path.</param>
+        /// <exception cref="Exception">Throw exception if failed to startup the process.</exception>
+        public static void StartUp(string type, string name, string confFilePath)
+        {
+            switch (type)
+            {
+                case "hostmanager":
+                    StartUpHostManager(name, confFilePath);
+                    break;
+                case "dbmanager":
+                    StartUpDbManager(name, confFilePath);
+                    break;
+                case "gate":
+                    StartUpGate(name, confFilePath);
+                    break;
+                case "server":
+                    StartUpServer(name, confFilePath);
+                    break;
+                default:
+                    throw new Exception($"Wrong Config File {type} {name} {confFilePath}.");
+            }
+        }
+
+        private static JObject GetJson(string path)
+        {
+            var content = File.ReadAllText(path);
+
+            var json = JObject.Parse(content, new JsonLoadSettings
+            {
+                CommentHandling = CommentHandling.Ignore,
+            });
+
+            return json;
+        }
+
+        private static void HandleDbManagerConf(string type, string confFilePath, JObject json)
         {
             Logger.Info("startup dbmanager");
 
@@ -136,39 +177,20 @@ namespace LPS.Server.Core
             // Linux need to remove .dll suffix to start process
             if (Environment.OSVersion.Platform == PlatformID.Unix)
             {
-                var dirName = Path.GetDirectoryName(Path.GetRelativePath(Directory.GetCurrentDirectory(),
+                var dirName = Path.GetDirectoryName(Path.GetRelativePath(
+                    Directory.GetCurrentDirectory(),
                     System.Reflection.Assembly.GetExecutingAssembly().Location));
                 var exeName = System.Reflection.Assembly.GetExecutingAssembly().GetName().Name;
                 relativePath = Path.Join(dirName, exeName);
             }
             else
             {
-                relativePath = Path.GetRelativePath(Directory.GetCurrentDirectory(),
+                relativePath = Path.GetRelativePath(
+                    Directory.GetCurrentDirectory(),
                     System.Reflection.Assembly.GetExecutingAssembly().Location);
             }
 
             return relativePath;
-        }
-
-        public static void StartUp(string type, string name, string confFilePath)
-        {
-            switch (type)
-            {
-                case "hostmanager":
-                    StartUpHostManager(name, confFilePath);
-                    break;
-                case "dbmanager":
-                    StartUpDbManager(name, confFilePath);
-                    break;
-                case "gate":
-                    StartUpGate(name, confFilePath);
-                    break;
-                case "server":
-                    StartUpServer(name, confFilePath);
-                    break;
-                default:
-                    throw new Exception($"Wrong Config File {type} {name} {confFilePath}.");
-            }
         }
 
         private static void StartUpHostManager(string name, string confFilePath)
@@ -177,7 +199,7 @@ namespace LPS.Server.Core
             DbHelper.Initialize().Wait();
 
             var json = GetJson(confFilePath);
-            
+
             var hostnum = Convert.ToInt32(json["hostnum"]!.ToString());
             var ip = json["ip"]!.ToString();
             var port = json["port"]!.ToObject<int>();
@@ -188,7 +210,7 @@ namespace LPS.Server.Core
             var hostManager = new HostManager(name, hostnum, ip, port, serverNum, gateNum);
 
             ServerGlobal.Init(hostManager);
-            
+
             hostManager.Loop();
         }
 
@@ -217,11 +239,11 @@ namespace LPS.Server.Core
             var globalCacheInfo = (globalcacheIp, globalcachePort, globalcacheDefaultDb);
 
             Logger.Debug($"Startup DbManager {name} at {ip}:{port}");
-            var dbManager = new DbManager(ip, port, hostnum, hostManagerIp, hostManagerPort, globalCacheInfo);
-            
-            ServerGlobal.Init(dbManager);
-            
-            dbManager.Loop();
+            var databaseManager = new DbManager(ip, port, hostnum, hostManagerIp, hostManagerPort, globalCacheInfo);
+
+            ServerGlobal.Init(databaseManager);
+
+            databaseManager.Loop();
         }
 
         private static void StartUpGate(string name, string confFilePath)
@@ -266,7 +288,7 @@ namespace LPS.Server.Core
 
             Logger.Debug($"Startup Gate {name} at {ip}:{port}");
             var gate = new Gate(name, ip, port, hostnum, hostManagerIp, hostManagerPort, servers, otherGates);
-            
+
             ServerGlobal.Init(gate);
 
             gate.Loop();

@@ -1,22 +1,28 @@
-using System;
-using System.Collections.Generic;
-using Google.Protobuf;
-using LPS.Common.Core.Rpc.InnerMessages;
-using LPS.Server.Core.Rpc.InnerMessages;
+// -----------------------------------------------------------------------
+// <copyright file="RpcProtobufDefs.cs" company="Little Princess Studio">
+// Copyright (c) Little Princess Studio. All rights reserved.
+// </copyright>
+// -----------------------------------------------------------------------
 
 namespace LPS.Server.Core.Rpc
 {
+    using System;
+    using System.Collections.Generic;
+    using Google.Protobuf;
+    using LPS.Common.Core.Rpc.InnerMessages;
+    using LPS.Server.Core.Rpc.InnerMessages;
+
+    /// <summary>
+    /// Rpc protobuf related definitions, used to initialize the Rpc type registration.
+    /// </summary>
     public static class RpcProtobufDefs
     {
-        private static readonly Dictionary<PackageType, PackageHelper.CreateIMessage> Type2ProBuf_ = new();
-        private static readonly Dictionary<Type, PackageType> Type2Enum_ = new();
+        private static readonly Dictionary<PackageType, PackageHelper.CreateIMessage> Type2ProBuf = new();
+        private static readonly Dictionary<Type, PackageType> Type2Enum = new();
 
-        private static void RegisterProtobufDef<TP>(PackageType type) where TP : IMessage<TP>, new()
-        {
-            Type2ProBuf_[type] = (in Package pkg) => PackageHelper.GetProtoBufObject<TP>(pkg);
-            Type2Enum_[typeof(TP)] = type;
-        }
-        
+        /// <summary>
+        /// Initialize the protobuf related type registration.
+        /// </summary>
         public static void Initialize()
         {
             #region Protobuf type mapping definition
@@ -37,10 +43,18 @@ namespace LPS.Server.Core.Rpc
             RegisterProtobufDef<HostCommand>(PackageType.HostCommand);
             RegisterProtobufDef<CreateDistributeEntity>(PackageType.CreateDistributeEntity);
             RegisterProtobufDef<CreateDistributeEntityRes>(PackageType.CreateDistributeEntityRes);
+
             #endregion
 
-            PackageHelper.SetType2Protobuf(Type2ProBuf_);
-            PackageHelper.SetType2Enum(Type2Enum_);
+            PackageHelper.SetType2Protobuf(Type2ProBuf);
+            PackageHelper.SetType2Enum(Type2Enum);
+        }
+
+        private static void RegisterProtobufDef<TP>(PackageType type)
+            where TP : IMessage<TP>, new()
+        {
+            Type2ProBuf[type] = (in Package pkg) => PackageHelper.GetProtoBufObject<TP>(pkg);
+            Type2Enum[typeof(TP)] = type;
         }
     }
 }
