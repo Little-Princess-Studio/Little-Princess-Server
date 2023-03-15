@@ -13,6 +13,7 @@ using System.Reflection;
 using LPS.Common.Core.Ipc;
 using LPS.Common.Core.Rpc;
 using LPS.Common.Core.Rpc.RpcProperty;
+using LPS.Common.Core.Rpc.RpcProperty.RpcContainer;
 using LPS.Common.Core.Rpc.RpcPropertySync;
 using Xunit;
 
@@ -182,16 +183,16 @@ public class TimeCircleUnitTest
             var arr = queue!.ToArray();
             Assert.Equal(10, arr.Length);
 
-            CheckAddListMsg(arr[0], new int[] { 0 });
-            CheckRemoveListMsg(arr[1], new int[] { 0, 1, 2, 3, 4 });
-            CheckAddListMsg(arr[2], new int[] { 1 });
-            CheckRemoveListMsg(arr[3], new int[] { 1, 2, 3, 4, 5 });
-            CheckAddListMsg(arr[4], new int[] { 2 });
-            CheckRemoveListMsg(arr[5], new int[] { 2, 3, 4, 5, 6 });
-            CheckAddListMsg(arr[6], new int[] { 3 });
-            CheckRemoveListMsg(arr[7], new int[] { 3, 4, 5, 6, 7 });
-            CheckAddListMsg(arr[8], new int[] { 4 });
-            CheckRemoveListMsg(arr[9], new int[] { 4, 5, 6, 7, 8 });
+            CheckAddListMsg(arr[0], new[] { 0 });
+            CheckRemoveListMsg(arr[1], new[] { 0, 1, 2, 3, 4 });
+            CheckAddListMsg(arr[2], new[] { 1 });
+            CheckRemoveListMsg(arr[3], new[] { 1, 2, 3, 4, 5 });
+            CheckAddListMsg(arr[4], new[] { 2 });
+            CheckRemoveListMsg(arr[5], new[] { 2, 3, 4, 5, 6 });
+            CheckAddListMsg(arr[6], new[] { 3 });
+            CheckRemoveListMsg(arr[7], new[] { 3, 4, 5, 6, 7 });
+            CheckAddListMsg(arr[8], new[] { 4 });
+            CheckRemoveListMsg(arr[9], new[] { 4, 5, 6, 7, 8 });
         }
         else
         {
@@ -201,16 +202,16 @@ public class TimeCircleUnitTest
             var arr = syncInfo.PropPath2SyncMsgQueue.ToArray();
             Assert.Equal(10, arr.Length);
 
-            CheckAddListMsg(arr[0], new int[] { 0 });
-            CheckRemoveListMsg(arr[1], new int[] { 0, 1, 2, 3, 4 });
-            CheckAddListMsg(arr[2], new int[] { 1 });
-            CheckRemoveListMsg(arr[3], new int[] { 1, 2, 3, 4, 5 });
-            CheckAddListMsg(arr[4], new int[] { 2 });
-            CheckRemoveListMsg(arr[5], new int[] { 2, 3, 4, 5, 6 });
-            CheckAddListMsg(arr[6], new int[] { 3 });
-            CheckRemoveListMsg(arr[7], new int[] { 3, 4, 5, 6, 7 });
-            CheckAddListMsg(arr[8], new int[] { 4 });
-            CheckRemoveListMsg(arr[9], new int[] { 4, 5, 6, 7, 8 });
+            CheckAddListMsg(arr[0], new[] { 0 });
+            CheckRemoveListMsg(arr[1], new[] { 0, 1, 2, 3, 4 });
+            CheckAddListMsg(arr[2], new[] { 1 });
+            CheckRemoveListMsg(arr[3], new[] { 1, 2, 3, 4, 5 });
+            CheckAddListMsg(arr[4], new[] { 2 });
+            CheckRemoveListMsg(arr[5], new[] { 2, 3, 4, 5, 6 });
+            CheckAddListMsg(arr[6], new[] { 3 });
+            CheckRemoveListMsg(arr[7], new[] { 3, 4, 5, 6, 7 });
+            CheckAddListMsg(arr[8], new[] { 4 });
+            CheckRemoveListMsg(arr[9], new[] { 4, 5, 6, 7, 8 });
         }
     }
 

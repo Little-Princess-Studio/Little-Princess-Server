@@ -1,4 +1,5 @@
 ﻿using LPS.Common.Core.Rpc.RpcProperty;
+using LPS.Common.Core.Rpc.RpcProperty.RpcContainer;
 
 namespace LPS.Client.Core.Rpc.RpcProperty;
 

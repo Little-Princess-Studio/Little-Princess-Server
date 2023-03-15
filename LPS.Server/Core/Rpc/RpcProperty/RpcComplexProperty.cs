@@ -7,6 +7,7 @@
 namespace LPS.Server.Core.Rpc.RpcProperty;
 
 using LPS.Common.Core.Rpc.RpcProperty;
+using LPS.Common.Core.Rpc.RpcProperty.RpcContainer;
 
 /// <summary>
 /// Rpc complex property.

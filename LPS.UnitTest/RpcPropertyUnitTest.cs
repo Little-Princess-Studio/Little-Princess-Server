@@ -13,6 +13,7 @@ using LPS.Client.Core.Rpc.RpcProperty;
 using LPS.Common.Core.Entity;
 using LPS.Common.Core.Rpc;
 using LPS.Common.Core.Rpc.RpcProperty;
+using LPS.Common.Core.Rpc.RpcProperty.RpcContainer;
 using LPS.Server.Core.Entity;
 using LPS.Server.Core.Rpc;
 using LPS.Server.Core.Rpc.RpcProperty;
@@ -163,7 +164,7 @@ public class RpcPropertyUnitTest
         var rpcList = new RpcList<int>();
         var rpcList2 = new RpcList<int>();
 
-        RpcComplexPropertyBase<RpcDictionary<string, RpcDictionary<int, RpcList<int>>>> rpcProp =
+        RpcComplexProperty<RpcDictionary<string, RpcDictionary<int, RpcList<int>>>> rpcProp =
             new("test_dict_prop", RpcPropertySetting.ServerOnly, new())
             {
                 Val =
@@ -190,7 +191,7 @@ public class RpcPropertyUnitTest
     public void TestCostumeRpcProp()
     {
         var costumeRpcContainerProp = new CostumeRpcContainerProperty1();
-        RpcComplexPropertyBase<CostumeRpcContainerProperty1> rpcProp =
+        RpcComplexProperty<CostumeRpcContainerProperty1> rpcProp =
             new("test_costume_rpc_prop", RpcPropertySetting.FastSync, costumeRpcContainerProp);
 
         rpcProp.Val.SubListProperty.Add("111");

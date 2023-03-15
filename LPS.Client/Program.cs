@@ -5,7 +5,6 @@ using LPS.Common.Core.Debug;
 using LPS.Common.Core.Rpc;
 using LPS.Common.Core.Rpc.InnerMessages;
 using LPS.Server.Core.Rpc;
-using LPS.Server.Core.Rpc.InnerMessages;
 
 namespace LPS.Client
 {

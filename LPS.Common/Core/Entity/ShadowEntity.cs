@@ -1,16 +1,29 @@
-using Google.Protobuf.Collections;
-using Google.Protobuf.WellKnownTypes;
-using LPS.Common.Core.Rpc;
-using LPS.Common.Core.Rpc.InnerMessages;
-using LPS.Common.Core.Rpc.RpcProperty;
-using LPS.Server.Core.Rpc;
-using LPS.Server.Core.Rpc.InnerMessages;
+// -----------------------------------------------------------------------
+// <copyright file="ShadowEntity.cs" company="Little Princess Studio">
+// Copyright (c) Little Princess Studio. All rights reserved.
+// </copyright>
+// -----------------------------------------------------------------------
+
+using LPS.Common.Core.Rpc.RpcProperty.RpcContainer;
 
 namespace LPS.Common.Core.Entity
 {
+    using Google.Protobuf.Collections;
+    using Google.Protobuf.WellKnownTypes;
+    using LPS.Common.Core.Rpc;
+    using LPS.Common.Core.Rpc.InnerMessages;
+    using LPS.Common.Core.Rpc.RpcProperty;
+
+    /// <summary>
+    /// Shadow entity is the readonly entity related to another entity, and automatically do properties sync with that entity.
+    /// </summary>
     [EntityClass]
     public class ShadowEntity : BaseEntity
     {
+        /// <summary>
+        /// Build shadow entity from protobuf.
+        /// </summary>
+        /// <param name="syncBody">Protobuf data.</param>
         public void FromSyncContent(Any syncBody)
         {
             if (syncBody.Is(DictWithStringKeyArg.Descriptor))
@@ -32,6 +45,12 @@ namespace LPS.Common.Core.Entity
             }
         }
 
+        /// <summary>
+        /// Apply sync command list to this entity.
+        /// </summary>
+        /// <param name="syncCmdList">Sync command list.</param>
+        /// <exception cref="Exception">Throw exception if failed to apply.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">ArgumentOutOfRangeException.</exception>
         public void ApplySyncCommandList(PropertySyncCommandList syncCmdList)
         {
             var path = syncCmdList.Path.Split('.');

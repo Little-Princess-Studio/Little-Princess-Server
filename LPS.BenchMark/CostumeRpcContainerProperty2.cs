@@ -4,6 +4,8 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
+using LPS.Common.Core.Rpc.RpcProperty.RpcContainer;
+
 namespace LPS.BenchMark;
 
 using Google.Protobuf.WellKnownTypes;

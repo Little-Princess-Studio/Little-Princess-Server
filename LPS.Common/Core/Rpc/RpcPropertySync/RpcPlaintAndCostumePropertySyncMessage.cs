@@ -1,5 +1,6 @@
 using LPS.Common.Core.Rpc.InnerMessages;
 using LPS.Common.Core.Rpc.RpcProperty;
+using LPS.Common.Core.Rpc.RpcProperty.RpcContainer;
 
 namespace LPS.Common.Core.Rpc.RpcPropertySync
 {

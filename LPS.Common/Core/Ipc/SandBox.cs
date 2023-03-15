@@ -1,59 +1,86 @@
-using LPS.Common.Core.Debug;
+// -----------------------------------------------------------------------
+// <copyright file="SandBox.cs" company="Little Princess Studio">
+// Copyright (c) Little Princess Studio. All rights reserved.
+// </copyright>
+// -----------------------------------------------------------------------
 
 namespace LPS.Common.Core.Ipc
 {
-    // Every thread work int a isolate sandbox
+    using LPS.Common.Core.Debug;
+
+    /// <summary>
+    /// Every thread works in a isolate sandbox.
+    /// </summary>
     public class SandBox
     {
-        private Thread? thread_;
+        private Thread? thread;
 
-        public int ThreadId => thread_?.ManagedThreadId ?? throw new Exception("SandBox is empty.");
+        /// <summary>
+        /// Gets the thread id of the sandbox.
+        /// </summary>
+        /// <exception cref="Exception">Throw exception if sandbox is empty.</exception>
+        public int ThreadId => this.thread?.ManagedThreadId ?? throw new Exception("SandBox is empty.");
 
-        private object? action_;
+        private object? action;
 
-        private bool isAsyncAction_;
+        private bool isAsyncAction;
 
-        private SandBox() { }
+        private SandBox()
+        {
+        }
 
+        /// <summary>
+        /// Create a sandbox.
+        /// </summary>
+        /// <param name="action">Content.</param>
+        /// <returns>Sandbox object.</returns>
         public static SandBox Create(Action action)
         {
             var sandbox = new SandBox
             {
-                action_ = action,
-                isAsyncAction_ = false,
+                action = action,
+                isAsyncAction = false,
             };
 
             return sandbox;
         }
 
+        /// <summary>
+        /// Create a sandbox with async handler.
+        /// </summary>
+        /// <param name="action">Async handler.</param>
+        /// <returns>Sandbox object.</returns>
         public static SandBox Create(Func<Task> action)
         {
             var sandbox = new SandBox
             {
-                action_ = action,
-                isAsyncAction_ = true,
+                action = action,
+                isAsyncAction = true,
             };
 
             return sandbox;
         }
 
+        /// <summary>
+        /// Run the sandbox.
+        /// </summary>
         public void Run()
         {
-            thread_ = new Thread(() =>
+            this.thread = new Thread(() =>
             {
                 try
                 {
-                    if (isAsyncAction_)
+                    if (this.isAsyncAction)
                     {
-                        var promise = (action_ as Func<Task>)!();
+                        var promise = (this.action as Func<Task>)!();
                         promise.Wait();
                     }
                     else
                     {
-                        (action_ as Action)!();
+                        (this.action as Action)!();
                     }
                 }
-                catch (ThreadInterruptedException ex) 
+                catch (ThreadInterruptedException ex)
                 {
                     Logger.Error(ex, "Sandbox thread interupted.");
                 }
@@ -62,17 +89,23 @@ namespace LPS.Common.Core.Ipc
                     Logger.Error(ex, $"Exception happend in SandBox");
                 }
             });
-            thread_.Start();
+            this.thread.Start();
         }
 
+        /// <summary>
+        /// Wait until the sandbox exits.
+        /// </summary>
         public void WaitForExit()
         {
-            thread_!.Join();
+            this.thread!.Join();
         }
 
+        /// <summary>
+        /// Force to interrupt the thread.
+        /// </summary>
         public void Interrupt()
         {
-            thread_!.Interrupt();
+            this.thread!.Interrupt();
         }
     }
 }

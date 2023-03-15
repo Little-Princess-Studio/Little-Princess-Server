@@ -1,6 +1,5 @@
 ﻿using Google.Protobuf;
 using LPS.Common.Core.Rpc.InnerMessages;
-using LPS.Server.Core.Rpc.InnerMessages;
 
 namespace LPS.Client
 {

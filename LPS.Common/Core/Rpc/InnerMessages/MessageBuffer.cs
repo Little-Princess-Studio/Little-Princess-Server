@@ -1,81 +1,91 @@
-using LPS.Common.Core.Debug;
-using LPS.Common.Core.Rpc.InnerMessages;
+// -----------------------------------------------------------------------
+// <copyright file="MessageBuffer.cs" company="Little Princess Studio">
+// Copyright (c) Little Princess Studio. All rights reserved.
+// </copyright>
+// -----------------------------------------------------------------------
 
-namespace LPS.Server.Core.Rpc.InnerMessages
+namespace LPS.Common.Core.Rpc.InnerMessages
 {
+    using LPS.Common.Core.Debug;
+
+    /// <summary>
+    /// Message buffer for cache the binary message received,
+    /// and used for message dispatcher to parse the protobuf message.
+    /// Message buffer will automatically double its size if current capacity is not enough to hold new message.
+    /// </summary>
     public class MessageBuffer
     {
         // initial 4k buffer to recv network messages
-        const int InitBufLength = 2048;
-        private static readonly int HeaderLen_ = PackageHeader.Size;
+        private const int InitBufLength = 2048;
+        private static readonly int HeaderLen = PackageHeader.Size;
 
-        private int head_;
-        private int tail_;
+        private int head;
+        private int tail;
 
-        private int BodyLen=> tail_ - head_;
+        private int BodyLen => this.tail - this.head;
 
-        private int curBufLen_ = InitBufLength;
+        private int curBufLen = InitBufLength;
 
-        private byte[] buffer_ = new byte[InitBufLength];
+        private byte[] buffer = new byte[InitBufLength];
 
+        /// <summary>
+        /// How to handle TCP stream raw data to Package:
+        /// 1. if tail_+len-1 >= current len
+        /// if bodylen + len >= current len
+        /// double current buf, copy buf[head..tail] to new[0..bodylen], buf = new, tail_ = tail_ - head_, head_ = 0
+        /// else
+        /// copy buf[head_..tail_] to buf[0..bodylen], head_ = 0, tail_ = bodylen
+        /// 2. copy incomeBuffer[0..len] to buf[tail_..tail+len]
+        /// 3. if bodylen less than header, do nothing, wait next data
+        /// else
+        /// header = pick_header_from_raw_data(buf[head..tail])
+        /// if bodylen == header.package_len then get package from buf[head..tail], reset head = tail = 0
+        /// if bodylen less than header.package_len then wait next data
+        /// if bodylen larger than header.package_len then get package from buf[head..head+header.package_len], set head = head + header.package_len.
+        /// </summary>
+        /// <param name="incomeBuffer">New package array.</param>
+        /// <param name="len">Length of the new package array.</param>
+        /// <param name="pkg">Parsed package.</param>
+        /// <returns>If succeed to receive a package from buffer, return true otherwise false.</returns>
         public bool TryReceiveFromRaw(byte[] incomeBuffer, int len, out Package pkg)
         {
-            /*
-            How to handle TCP stream raw data to Package:
-
-            1. if tail_+len-1 >= current len
-                if bodylen + len >= current len
-                    double current buf, copy buf[head..tail] to new[0..bodylen], buf = new, tail_ = tail_ - head_, head_ = 0
-                else
-                    copy buf[head_..tail_] to buf[0..bodylen], head_ = 0, tail_ = bodylen
-
-            2. copy incomeBuffer[0..len] to buf[tail_..tail+len]
-
-            3. if bodylen < header, do nothing, wait next data
-                else
-                    header = pick_header_from_raw_data(buf[head..tail])
-                    if bodylen == header.package_len then get package from buf[head..tail], reset head = tail = 0
-                    if bodylen < header.package_len then wait next data
-                    if bodylen > header.package_len then get package from buf[head..head+header.package_len], set head = head + header.package_len
-            */
-
-            if (tail_+len > curBufLen_)
+            if (this.tail + len > this.curBufLen)
             {
-                if (BodyLen + len > curBufLen_)
+                if (this.BodyLen + len > this.curBufLen)
                 {
-                    while (tail_+len-1>= curBufLen_)
+                    while (this.tail + len - 1 >= this.curBufLen)
                     {
-                        Logger.Debug($"{tail_} + {len} - 1 = {tail_ + len - 1} >= {curBufLen_}, double the buf");
+                        Logger.Debug(
+                            $"{this.tail} + {len} - 1 = {this.tail + len - 1} >= {this.curBufLen}, double the buf");
+
                         // repeat double size
-                        curBufLen_ <<= 1;
+                        this.curBufLen <<= 1;
                     }
 
-                    byte[] newBuffer = new byte[curBufLen_];
+                    byte[] newBuffer = new byte[this.curBufLen];
 
                     // copy current data buf[head...tail] -> new[0...tail-head]
-                    Buffer.BlockCopy(buffer_, head_, newBuffer, 0, BodyLen);
-                    buffer_ = newBuffer;
+                    Buffer.BlockCopy(this.buffer, this.head, newBuffer, 0, this.BodyLen);
+                    this.buffer = newBuffer;
 
-                    tail_ = BodyLen;
-                    head_ = 0;
+                    this.tail = this.BodyLen;
+                    this.head = 0;
                 }
                 else
                 {
-                    Buffer.BlockCopy(buffer_, head_, buffer_, 0, BodyLen);
+                    Buffer.BlockCopy(this.buffer, this.head, this.buffer, 0, this.BodyLen);
 
                     // Logger.Debug($"move to head {head_} {BodyLen}");
-
-                    tail_ = BodyLen;
-                    head_ = 0;
+                    this.tail = this.BodyLen;
+                    this.head = 0;
                 }
-
             }
 
             // copy incomeBuffer to buf [tail_..tail_+len]
-            Buffer.BlockCopy(incomeBuffer, 0, buffer_, tail_, len);
-            tail_ += len;
+            Buffer.BlockCopy(incomeBuffer, 0, this.buffer, this.tail, len);
+            this.tail += len;
 
-            if (BodyLen < HeaderLen_)
+            if (this.BodyLen < HeaderLen)
             {
                 // Logger.Debug("bodylen < header len");
                 pkg = default;
@@ -83,28 +93,27 @@ namespace LPS.Server.Core.Rpc.InnerMessages
             }
             else
             {
-                var pkgLen = BitConverter.ToUInt16(buffer_, head_);
+                var pkgLen = BitConverter.ToUInt16(this.buffer, this.head);
 
-                // Logger.Debug($"bodylen={BodyLen}, pkglen={pkgLen}"); 
-
-                if (BodyLen == pkgLen)
-                {                   
+                // Logger.Debug($"bodylen={BodyLen}, pkglen={pkgLen}");
+                if (this.BodyLen == pkgLen)
+                {
                     // Logger.Debug("bodylen == pkgLen");
-                    pkg = GetPackage();
-                    head_ = tail_ = 0;
+                    pkg = this.GetPackage();
+                    this.head = this.tail = 0;
                     return true;
                 }
-                else if (BodyLen < pkgLen)
+                else if (this.BodyLen < pkgLen)
                 {
                     // Logger.Debug("bodylen < pkgLen");
                     pkg = default;
                     return false;
                 }
-                else if (BodyLen > pkgLen)
+                else if (this.BodyLen > pkgLen)
                 {
                     // Logger.Debug("bodylen > pkgLen");
-                    pkg = GetPackage();
-                    head_ += pkgLen;
+                    pkg = this.GetPackage();
+                    this.head += pkgLen;
                     return true;
                 }
             }
@@ -115,32 +124,29 @@ namespace LPS.Server.Core.Rpc.InnerMessages
 
         private Package GetPackage()
         {
-            int pos = head_;
-            var pkgLen = BitConverter.ToUInt16(buffer_, pos);
+            int pos = this.head;
+            var pkgLen = BitConverter.ToUInt16(this.buffer, pos);
             pos += 2;
-            var pkgId = BitConverter.ToUInt32(buffer_, pos);
+            var pkgId = BitConverter.ToUInt32(this.buffer, pos);
             pos += 4;
-            var pkgVersion = BitConverter.ToUInt16(buffer_, pos);
+            var pkgVersion = BitConverter.ToUInt16(this.buffer, pos);
             pos += 2;
-            var pkgType = BitConverter.ToUInt16(buffer_, pos);
+            var pkgType = BitConverter.ToUInt16(this.buffer, pos);
 
-            var pkg = new Package();
+            var pkg = default(Package);
 
             // Logger.Debug($"get pkg len: {pkgLen}, id: {pkgID}, version: {pkgVersion}, type: {pkgType}");
-
             pkg.Header.Length = pkgLen;
             pkg.Header.ID = pkgId;
             pkg.Header.Version = pkgVersion;
             pkg.Header.Type = pkgType;
 
-            pkg.Body = new byte[pkgLen - HeaderLen_];
+            pkg.Body = new byte[pkgLen - HeaderLen];
 
             // Logger.Debug($"buffer_ size: {buffer_.Length}, {head_ + HeaderLen}, {pkgLen - HeaderLen}");
-
-            Buffer.BlockCopy(buffer_, head_ + HeaderLen_, pkg.Body, 0, pkgLen - HeaderLen_);
+            Buffer.BlockCopy(this.buffer, this.head + HeaderLen, pkg.Body, 0, pkgLen - HeaderLen);
 
             return pkg;
         }
-
     }
 }

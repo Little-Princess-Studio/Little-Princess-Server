@@ -1,6 +1,7 @@
 using Google.Protobuf.WellKnownTypes;
 using LPS.Common.Core.Rpc.InnerMessages;
 using LPS.Common.Core.Rpc.RpcProperty;
+using LPS.Common.Core.Rpc.RpcProperty.RpcContainer;
 
 // operation on List is very complex, so RpcListPropertySyncInfo
 // will only merge same operation for a continuous operation sequence

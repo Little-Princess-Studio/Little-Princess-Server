@@ -8,7 +8,7 @@ using LPS.Common.Core.Entity;
 using LPS.Common.Core.Ipc;
 using LPS.Common.Core.Rpc.InnerMessages;
 using LPS.Common.Core.Rpc.RpcProperty;
-using LPS.Server.Core.Rpc.InnerMessages;
+using LPS.Common.Core.Rpc.RpcProperty.RpcContainer;
 using Newtonsoft.Json;
 
 namespace LPS.Common.Core.Rpc

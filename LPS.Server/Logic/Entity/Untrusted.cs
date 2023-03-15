@@ -10,6 +10,7 @@ namespace LPS.Server.Logic.Entity
     using LPS.Common.Core.Debug;
     using LPS.Common.Core.Rpc;
     using LPS.Common.Core.Rpc.RpcProperty;
+    using LPS.Common.Core.Rpc.RpcProperty.RpcContainer;
     using LPS.Server.Core.Entity;
     using LPS.Server.Core.Rpc;
     using LPS.Server.Core.Rpc.RpcProperty;

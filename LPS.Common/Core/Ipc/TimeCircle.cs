@@ -1,207 +1,34 @@
-using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using LPS.Common.Core.Debug;
-using LPS.Common.Core.Rpc.InnerMessages;
-using LPS.Common.Core.Rpc.RpcPropertySync;
-using LPS.Server.Core.Rpc;
-using MailBox = LPS.Common.Core.Rpc.MailBox;
+// -----------------------------------------------------------------------
+// <copyright file="TimeCircle.cs" company="Little Princess Studio">
+// Copyright (c) Little Princess Studio. All rights reserved.
+// </copyright>
+// -----------------------------------------------------------------------
 
 namespace LPS.Common.Core.Ipc
 {
-    public class TimeCircleSlot
-    {
-        // public const int MaxSlotMessageSize = 2048;
-        // private int slotMassageCount_;
+    using System.Collections.Concurrent;
+    using LPS.Common.Core.Rpc.InnerMessages;
+    using LPS.Common.Core.Rpc.RpcPropertySync;
 
-        // entityID => { propertyPath => RpcPropertySyncMessage }
-        private readonly Dictionary<string, Dictionary<string, RpcPropertySyncInfo>> idToSyncMsg_ = new();
-        private readonly Dictionary<string, Queue<RpcPropertySyncMessage>> idToSyncMsgWithOrder_ = new();
-
-        // public bool Full() => slotMassageCount_ >= MaxSlotMessageSize;
-
-        public void Clear()
-        {
-            idToSyncMsg_.Clear();
-            idToSyncMsgWithOrder_.Clear();
-            // slotMassageCount_ = 0;
-        }
-
-        // private void IncreaseMessageCount() {
-        //     lock(this)
-        //     {
-        //         ++slotMassageCount_;
-        //     }
-        // }
-
-        public Queue<RpcPropertySyncMessage>? FindOrderedSyncQueue(MailBox mb) =>
-            idToSyncMsgWithOrder_.ContainsKey(mb.Id) ? idToSyncMsgWithOrder_[mb.Id] : null;
-
-        public int GetSyncQueueLength(MailBox mb) =>
-            idToSyncMsgWithOrder_.ContainsKey(mb.Id) ? idToSyncMsgWithOrder_[mb.Id].Count : 0;
-
-        public RpcPropertySyncInfo? FindRpcPropertySyncInfo(MailBox mb, string path)
-        {
-            var id = mb.Id;
-            if (!idToSyncMsg_.ContainsKey(id))
-            {
-                return null;
-            }
-
-            var info = idToSyncMsg_[id];
-
-            if (!info.ContainsKey(path))
-            {
-                return null;
-            }
-
-            return info[path];
-        }
-
-        public RpcPropertySyncInfo GetRpcPropertySyncInfo(
-            MailBox mb, string path, Func<RpcPropertySyncInfo> getSyncInfoFunc)
-        {
-            var id = mb.Id;
-            if (idToSyncMsg_.ContainsKey(id))
-            {
-                var entitySyncInfoDict = idToSyncMsg_[id];
-                if (entitySyncInfoDict.ContainsKey(path))
-                {
-                    var syncInfo = entitySyncInfoDict[path];
-                    return syncInfo;
-                }
-
-                var newSyncInfo = getSyncInfoFunc();
-                entitySyncInfoDict[path] = newSyncInfo;
-                return newSyncInfo;
-            }
-            else
-            {
-                var newEntitySyncInfoDict = new Dictionary<string, RpcPropertySyncInfo>();
-                var newSyncInfo = getSyncInfoFunc();
-                idToSyncMsg_[id] = newEntitySyncInfoDict;
-                newEntitySyncInfoDict[path] = newSyncInfo;
-                return newSyncInfo;
-            }
-        }
-
-        public void AddSyncMessageKeepOrder(RpcPropertySyncMessage incomeMsg)
-        {
-            var id = incomeMsg.MailBox.Id;
-            
-            lock (this)
-            {
-                Queue<RpcPropertySyncMessage> queue;
-
-                if (idToSyncMsgWithOrder_.ContainsKey(id))
-                {
-                    queue = idToSyncMsgWithOrder_[id];
-                }
-                else
-                {
-                    queue = new Queue<RpcPropertySyncMessage>();
-                    idToSyncMsgWithOrder_[id] = queue;
-                }
-
-                if (queue.Count > 0)
-                {
-                    var lastMsg = queue.Last();
-                    var res = lastMsg.MergeKeepOrder(incomeMsg);
-                    if (res)
-                    {
-                        return;
-                    }
-                }
-
-                queue.Enqueue(incomeMsg);   
-            }
-        }
-
-        public void AddSyncMessageNoKeepOrder(RpcPropertySyncMessage incomeMsg)
-        {
-            lock (this)
-            {
-                Func<RpcPropertySyncInfo> getSyncInfoFunc = incomeMsg.RpcSyncPropertyType switch
-                {
-                    RpcSyncPropertyType.PlaintAndCostume => () => new RpcPlaintAndCostumePropertySyncInfo(),
-                    RpcSyncPropertyType.List => () => new RpcListPropertySyncInfo(),
-                    RpcSyncPropertyType.Dict => () => new RpcDictPropertySyncInfo(),
-                    _ => throw new ArgumentOutOfRangeException()
-                };
-
-                var syncInfo = this.GetRpcPropertySyncInfo(
-                    incomeMsg.MailBox,
-                    incomeMsg.RpcPropertyPath,
-                    getSyncInfoFunc
-                );
-
-                syncInfo.AddNewSyncMessage(incomeMsg);
-            }
-        }
-
-        public void Dispatch(Action<PropertySyncCommandList> dispatch)
-        {
-            foreach (var (entityId, entitySyncInfoDict) in idToSyncMsg_)
-            {
-                Logger.Debug($"Dispatch entity id {entityId}, no ordered");
-                foreach (var (propPath, syncInfo) in entitySyncInfoDict)
-                {
-                    PropertySyncCommandList cmdList = new()
-                    {
-                        Path = propPath,
-                        EntityId = entityId,
-                        PropType = (SyncPropType) syncInfo.RpcSyncPropertyType
-                    };
-                    
-                    foreach (var msg in syncInfo.PropPath2SyncMsgQueue)
-                    {
-                        Logger.Debug($"{propPath} -> {msg}");
-                        var syncMsg = msg.Serialize();
-                        cmdList.SyncArg.Add(syncMsg);
-                    }
-                    
-                    dispatch.Invoke(cmdList);
-                }
-            }
-
-            foreach (var (entityId, msgQueue) in idToSyncMsgWithOrder_)
-            {
-                Logger.Debug($"Dispatch entity id {entityId}, ordered");
-                foreach (var (propPath, syncQueue) in idToSyncMsgWithOrder_)
-                {
-                    while (syncQueue.Count > 0)
-                    {
-                        var msg = syncQueue.Dequeue();
-                        Logger.Debug($"{propPath} -> {msg}");
-                        var syncMsg = msg.Serialize();
-                        
-                        PropertySyncCommandList cmdList = new()
-                        {
-                            Path = propPath,
-                            EntityId = entityId,
-                            PropType = (SyncPropType) msg.RpcSyncPropertyType,
-                        };
-
-                        dispatch.Invoke(cmdList);
-                    }
-                }
-            }
-        }
-    }
-
+    /// <summary>
+    /// Time circle for property sync.
+    /// </summary>
     public class TimeCircle
     {
-        private readonly int timeInterval_;
+        private readonly int timeInterval;
+
         // private readonly int totalMillisecondsPerCircle_;
+        private readonly ConcurrentQueue<(bool, uint, RpcPropertySyncMessage)> waitingMessageQueue;
+        private readonly TimeCircleSlot[] slots;
+        private readonly int slotsPerCircle;
 
-        private readonly ConcurrentQueue<(bool, uint, RpcPropertySyncMessage)> waitingMessageQueue_;
-        private readonly TimeCircleSlot[] slots_;
+        private int slotIndex;
 
-        private int slotIndex_;
-        private readonly int slotsPerCircle_;
-
+        /// <summary>
+        /// Initializes a new instance of the <see cref="TimeCircle"/> class.
+        /// </summary>
+        /// <param name="timeIntervalByMillisecond">Time circle tick time interval.</param>
+        /// <param name="totalMillisecondsPerCircle">Total time per time circle.</param>
         public TimeCircle(int timeIntervalByMillisecond, int totalMillisecondsPerCircle)
         {
             if (1000 % timeIntervalByMillisecond != 0)
@@ -209,59 +36,75 @@ namespace LPS.Common.Core.Ipc
                 throw new Exception("Error time interval for time circle.");
             }
 
-            timeInterval_ = timeIntervalByMillisecond;
+            this.timeInterval = timeIntervalByMillisecond;
+
             // totalMillisecondsPerCircle_ = totalMillisecondsPerCircle;
-            waitingMessageQueue_ = new ConcurrentQueue<(bool, uint, RpcPropertySyncMessage)>();
-            slotsPerCircle_ = totalMillisecondsPerCircle / timeInterval_;
-            slots_ = new TimeCircleSlot[slotsPerCircle_];
-            for (int i = 0; i < slotsPerCircle_; ++i)
+            this.waitingMessageQueue = new ConcurrentQueue<(bool, uint, RpcPropertySyncMessage)>();
+            this.slotsPerCircle = totalMillisecondsPerCircle / this.timeInterval;
+            this.slots = new TimeCircleSlot[this.slotsPerCircle];
+            for (int i = 0; i < this.slotsPerCircle; ++i)
             {
-                slots_[i] = new TimeCircleSlot();
+                this.slots[i] = new TimeCircleSlot();
             }
         }
 
+        /// <summary>
+        /// Start the time circle.
+        /// </summary>
         public void Start()
         {
-            slotIndex_ = 0;
+            this.slotIndex = 0;
         }
 
+        /// <summary>
+        /// Add property sync message to time circle.
+        /// </summary>
+        /// <param name="msg">Sync message.</param>
+        /// <param name="delayTimeByMillisecond">Delay dispatch time.</param>
+        /// <param name="keepOrder">If the message should keep order.</param>
         public void AddPropertySyncMessage(RpcPropertySyncMessage msg, uint delayTimeByMillisecond, bool keepOrder)
         {
             // can arrange directly
-            if (delayTimeByMillisecond <= slotsPerCircle_ * timeInterval_)
+            if (delayTimeByMillisecond <= this.slotsPerCircle * this.timeInterval)
             {
-                var arrangeSlot = (slotIndex_ +
-                                   (uint) Math.Floor(delayTimeByMillisecond / (decimal) timeInterval_))
-                                  % slotsPerCircle_;
+                var arrangeSlot = (this.slotIndex +
+                                   (uint)Math.Floor(delayTimeByMillisecond / (decimal)this.timeInterval))
+                                  % this.slotsPerCircle;
                 if (keepOrder)
                 {
-                    slots_[arrangeSlot].AddSyncMessageKeepOrder(msg);
+                    this.slots[arrangeSlot].AddSyncMessageKeepOrder(msg);
                 }
                 else
                 {
-                    slots_[arrangeSlot].AddSyncMessageNoKeepOrder(msg);
+                    this.slots[arrangeSlot].AddSyncMessageNoKeepOrder(msg);
                 }
             }
+
             // arrange to waiting queue
             else
             {
-                var arrangeTime = (uint) slotIndex_ * (uint) timeInterval_ + delayTimeByMillisecond;
-                waitingMessageQueue_.Enqueue((keepOrder, arrangeTime, msg));
+                var arrangeTime = ((uint)this.slotIndex * (uint)this.timeInterval) + delayTimeByMillisecond;
+                this.waitingMessageQueue.Enqueue((keepOrder, arrangeTime, msg));
             }
         }
 
+        /// <summary>
+        /// Fill a slot.
+        /// </summary>
+        /// <param name="slot">Slot.</param>
+        /// <param name="slotIndex">Slot index.</param>
         public void FillSlot(TimeCircleSlot slot, int slotIndex)
         {
             slot.Clear();
-            var targetEndTime = (uint) (slotIndex + 1) * timeInterval_;
+            var targetEndTime = (uint)(slotIndex + 1) * this.timeInterval;
             do
             {
-                if (waitingMessageQueue_.Count == 0)
+                if (this.waitingMessageQueue.Count == 0)
                 {
                     break;
                 }
 
-                var res = waitingMessageQueue_.TryPeek(out var candidate);
+                var res = this.waitingMessageQueue.TryPeek(out var candidate);
                 if (!res)
                 {
                     break;
@@ -270,7 +113,7 @@ namespace LPS.Common.Core.Ipc
                 var (_, msgDispatchTime, _) = candidate;
                 if (msgDispatchTime <= targetEndTime)
                 {
-                    waitingMessageQueue_.TryDequeue(out candidate);
+                    this.waitingMessageQueue.TryDequeue(out candidate);
                     var (keepOrder, _, msg) = candidate;
                     if (keepOrder)
                     {
@@ -285,25 +128,31 @@ namespace LPS.Common.Core.Ipc
                 {
                     break;
                 }
-            } while (true);
+            }
+            while (true);
         }
 
-        // dispatch 0 [0...50] -> fill 60 to 0
-        // dispatch 1 [51...100] -> fill 61 to 1
-        // dispatch n [101 ... 150] -> fill n + 60 to n
+        /// <summary>
+        /// Example:
+        /// dispatch 0 [0...50] -> fill 60 to 0
+        /// dispatch 1 [51...100] -> fill 61 to 1
+        /// dispatch n [101 ... 150] -> fill n + 60 to n.
+        /// </summary>
+        /// <param name="duration">Time delta since last tick.</param>
+        /// <param name="dispatch">Property sync dispatch handler.</param>
         public void Tick(uint duration, Action<PropertySyncCommandList> dispatch)
         {
             // move forward
-            var moveStep = duration / timeInterval_;
-            
+            var moveStep = duration / this.timeInterval;
+
             for (int i = 0; i < moveStep; i++)
             {
-                var slotCircleIndex = slotIndex_ % slotsPerCircle_;
-                var slot = slots_[slotCircleIndex];
+                var slotCircleIndex = this.slotIndex % this.slotsPerCircle;
+                var slot = this.slots[slotCircleIndex];
 
                 slot.Dispatch(dispatch);
-                this.FillSlot(slot, slotIndex_ + slotsPerCircle_);
-                ++slotIndex_;
+                this.FillSlot(slot, this.slotIndex + this.slotsPerCircle);
+                ++this.slotIndex;
             }
         }
     }

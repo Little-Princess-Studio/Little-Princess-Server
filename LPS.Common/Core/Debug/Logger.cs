@@ -1,11 +1,24 @@
-using NLog;
+// -----------------------------------------------------------------------
+// <copyright file="Logger.cs" company="Little Princess Studio">
+// Copyright (c) Little Princess Studio. All rights reserved.
+// </copyright>
+// -----------------------------------------------------------------------
 
 namespace LPS.Common.Core.Debug
 {
+    using NLog;
+
+    /// <summary>
+    /// LPS Logger class.
+    /// </summary>
     public static class Logger
     {
-        private static readonly NLog.Logger Default_ = LogManager.GetLogger("Default");
+        private static readonly NLog.Logger Default = LogManager.GetLogger("Default");
 
+        /// <summary>
+        /// Init logger.
+        /// </summary>
+        /// <param name="logFileName">File name of the logger.</param>
         public static void Init(string logFileName)
         {
             try
@@ -24,29 +37,51 @@ namespace LPS.Common.Core.Debug
             }
         }
 
+        /// <summary>
+        /// Write info log.
+        /// </summary>
+        /// <param name="msg">Log message.</param>
         public static void Info(params object[] msg)
         {
-            Default_.Info(String.Join("", msg));
+            Default.Info(string.Join(string.Empty, msg));
         }
 
+        /// <summary>
+        /// Write debug log.
+        /// </summary>
+        /// <param name="msg">Log message.</param>
         public static void Debug(params object[] msg)
         {
-            Default_.Debug(String.Join("", msg));
+            Default.Debug(string.Join(string.Empty, msg));
         }
 
+        /// <summary>
+        /// Write warn log.
+        /// </summary>
+        /// <param name="msg">Log message.</param>
         public static void Warn(params object[] msg)
         {
-            Default_.Warn(String.Join("", msg));
+            Default.Warn(string.Join(string.Empty, msg));
         }
 
+        /// <summary>
+        /// Write error log.
+        /// </summary>
+        /// <param name="e">Exception object.</param>
+        /// <param name="msg">Log message.</param>
         public static void Error(Exception e, params object[] msg)
         {
-            Default_.Error(e, String.Join("", msg));
+            Default.Error(e, string.Join(string.Empty, msg));
         }
 
+        /// <summary>
+        /// Write fatal log.
+        /// </summary>
+        /// <param name="e">Exception object.</param>
+        /// <param name="msg">Log message.</param>
         public static void Fatal(Exception e, params object[] msg)
         {
-            Default_.Fatal(e, String.Join("", msg));
+            Default.Fatal(e, string.Join(string.Empty, msg));
         }
     }
 }
