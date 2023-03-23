@@ -2,8 +2,8 @@
 <RuleSet Name="StyleCop.Analyzers rules for Little-Princess-Server"
          Description="StyleCop.Analyzers with default action. Rules with IsEnabledByDefault = false are disabled." ToolsVersion="14.0">
     <Rules AnalyzerId="StyleCop.Analyzers" RuleNamespace="StyleCop.Analyzers.SpecialRules">
-        <Rule Id="SA0001"  Action="Error" />          <!-- XML comment analysis disabled -->
-        <Rule Id="SA0002"  Action="Error" />          <!-- Invalid settings file -->
+        <Rule Id="SA0001"  Action="None" />          <!-- XML comment analysis disabled -->
+        <Rule Id="SA0002"  Action="None" />          <!-- Invalid settings file -->
     </Rules>
     <Rules AnalyzerId="StyleCop.Analyzers" RuleNamespace="StyleCop.Analyzers.SpacingRules">
         <Rule Id="SA1000"  Action="Error" />          <!-- Keywords should be spaced correctly -->

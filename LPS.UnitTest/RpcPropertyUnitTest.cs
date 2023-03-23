@@ -9,14 +9,14 @@ namespace LPS.UnitTest;
 using System.Collections.Generic;
 using Google.Protobuf.WellKnownTypes;
 using LPS.Client;
-using LPS.Client.Core.Rpc.RpcProperty;
-using LPS.Common.Core.Entity;
-using LPS.Common.Core.Rpc;
-using LPS.Common.Core.Rpc.RpcProperty;
-using LPS.Common.Core.Rpc.RpcProperty.RpcContainer;
-using LPS.Server.Core.Entity;
-using LPS.Server.Core.Rpc;
-using LPS.Server.Core.Rpc.RpcProperty;
+using LPS.Client.Rpc.RpcProperty;
+using LPS.Common.Entity;
+using LPS.Common.Rpc;
+using LPS.Common.Rpc.RpcProperty;
+using LPS.Common.Rpc.RpcProperty.RpcContainer;
+using LPS.Server.Entity;
+using LPS.Server.Rpc;
+using LPS.Server.Rpc.RpcProperty;
 using Xunit;
 
 /// <summary>

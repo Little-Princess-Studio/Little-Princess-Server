@@ -10,11 +10,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using LPS.Common.Core.Ipc;
-using LPS.Common.Core.Rpc;
-using LPS.Common.Core.Rpc.RpcProperty;
-using LPS.Common.Core.Rpc.RpcProperty.RpcContainer;
-using LPS.Common.Core.Rpc.RpcPropertySync;
+using LPS.Common.Ipc;
+using LPS.Common.Rpc;
+using LPS.Common.Rpc.RpcProperty.RpcContainer;
+using LPS.Common.Rpc.RpcPropertySync.RpcPropertySyncMessage;
 using Xunit;
 
 /// <summary>
@@ -222,7 +221,7 @@ public class TimeCircleUnitTest
         Assert.NotNull(msg);
 
         Assert.Equal(RpcPropertySyncOperation.AddListElem, msg.Operation);
-        var impl = msg.GetImpl<RpcListPropertyAddElemSyncMessageImpl>();
+        var impl = msg.GetImpl<RpcListPropertySyncMessage.RpcListPropertyAddElemSyncMessageImpl>();
         Assert.NotNull(impl);
         var addInfo = impl.GetAddInfo()
             .Select(container => ((RpcPropertyContainer<TElemType>)container).Value)
@@ -236,7 +235,7 @@ public class TimeCircleUnitTest
         Assert.NotNull(msg);
 
         Assert.Equal(RpcPropertySyncOperation.RemoveElem, msg.Operation);
-        var impl = msg.GetImpl<RpcListPropertyRemoveElemMessageImpl>();
+        var impl = msg.GetImpl<RpcListPropertySyncMessage.RpcListPropertyRemoveElemMessageImpl>();
         Assert.NotNull(impl);
         var addInfo = impl.GetRemoveElemInfo()
             .ToArray();
@@ -318,7 +317,7 @@ public class TimeCircleUnitTest
         Assert.NotNull(msg);
 
         Assert.Equal(RpcPropertySyncOperation.UpdatePair, msg.Operation);
-        var updateDictImpl = msg.GetImpl<RpcDictPropertyUpdatePairSyncMessageImpl>();
+        var updateDictImpl = msg.GetImpl<RpcDictPropertySyncMessage.RpcDictPropertyUpdatePairSyncMessageImpl>();
         Assert.NotNull(updateDictImpl);
         var updateDictInfo = updateDictImpl.GetUpdateDictInfo();
         Assert.NotNull(updateDictInfo);
@@ -339,7 +338,7 @@ public class TimeCircleUnitTest
         Assert.NotNull(msg);
 
         Assert.Equal(RpcPropertySyncOperation.RemoveElem, msg.Operation);
-        var removeDictImpl = msg.GetImpl<RpcDictPropertyRemoveSyncMessageImpl>();
+        var removeDictImpl = msg.GetImpl<RpcDictPropertySyncMessage.RpcDictPropertyRemoveSyncMessageImpl>();
         Assert.NotNull(removeDictImpl);
         var removeDictInfo = removeDictImpl.GetRemoveDictInfo();
         Assert.NotNull(removeDictInfo);

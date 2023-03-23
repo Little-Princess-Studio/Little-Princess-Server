@@ -4,12 +4,11 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
-using LPS.Common.Core.Rpc.RpcProperty.RpcContainer;
-
 namespace LPS.BenchMark;
 
 using Google.Protobuf.WellKnownTypes;
-using LPS.Common.Core.Rpc.RpcProperty;
+using LPS.Common.Rpc.RpcProperty;
+using LPS.Common.Rpc.RpcProperty.RpcContainer;
 
 /// <summary>
 /// Costume rpc container property for benchmark.

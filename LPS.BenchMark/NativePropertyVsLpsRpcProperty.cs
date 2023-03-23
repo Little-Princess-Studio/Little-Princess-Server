@@ -7,7 +7,7 @@
 namespace LPS.BenchMark;
 
 using BenchmarkDotNet.Attributes;
-using LPS.Common.Core.Rpc.RpcProperty;
+using LPS.Common.Rpc.RpcProperty;
 
 /// <summary>
 /// Benchmark class.
@@ -28,11 +28,10 @@ public class NativePropertyVsLpsRpcProperty
     public NativePropertyVsLpsRpcProperty()
     {
         var costumeRpcContainerProp = new CostumeRpcContainerProperty1();
-        this.rpcProp =
-            new(
-                "test_costume_rpc_prop",
-                RpcPropertySetting.FastSync,
-                costumeRpcContainerProp);
+        this.rpcProp = new(
+            "test_costume_rpc_prop",
+            RpcPropertySetting.FastSync,
+            costumeRpcContainerProp);
 
         this.rpcNativeProp = new();
     }

@@ -13,6 +13,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LPS.UnitTest", "LPS.UnitTes
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LPS.BenchMark", "LPS.BenchMark\LPS.BenchMark.csproj", "{91A98EFB-E77F-49D5-BDA9-5457D7C23755}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LPS.Client.Demo", "LPS.Client.Demo\LPS.Client.Demo.csproj", "{4BECB9DB-1E2B-4FE1-99B5-E968E403A077}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LPS.Server.Demo", "LPS.Server.Demo\LPS.Server.Demo.csproj", "{8DB5EB5C-B14A-4CE2-8BE5-6BB0AAFE5A2B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -42,5 +46,13 @@ Global
 		{91A98EFB-E77F-49D5-BDA9-5457D7C23755}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{91A98EFB-E77F-49D5-BDA9-5457D7C23755}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{91A98EFB-E77F-49D5-BDA9-5457D7C23755}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4BECB9DB-1E2B-4FE1-99B5-E968E403A077}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4BECB9DB-1E2B-4FE1-99B5-E968E403A077}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4BECB9DB-1E2B-4FE1-99B5-E968E403A077}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4BECB9DB-1E2B-4FE1-99B5-E968E403A077}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8DB5EB5C-B14A-4CE2-8BE5-6BB0AAFE5A2B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8DB5EB5C-B14A-4CE2-8BE5-6BB0AAFE5A2B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8DB5EB5C-B14A-4CE2-8BE5-6BB0AAFE5A2B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8DB5EB5C-B14A-4CE2-8BE5-6BB0AAFE5A2B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
