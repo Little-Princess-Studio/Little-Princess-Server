@@ -1,13 +1,16 @@
-using Google.Protobuf.WellKnownTypes;
-using LPS.Common.Core.Rpc.InnerMessages;
-using LPS.Common.Core.Rpc.RpcProperty;
-using LPS.Common.Core.Rpc.RpcProperty.RpcContainer;
+// -----------------------------------------------------------------------
+// <copyright file="RpcListPropertySyncMessage.cs" company="Little Princess Studio">
+// Copyright (c) Little Princess Studio. All rights reserved.
+// </copyright>
+// -----------------------------------------------------------------------
 
-// operation on List is very complex, so RpcListPropertySyncInfo
-// will only merge same operation for a continuous operation sequence
-
-namespace LPS.Common.Core.Rpc.RpcPropertySync
+namespace LPS.Common.Core.Rpc.RpcPropertySync.RpcPropertySyncMessage
 {
+    using Google.Protobuf.WellKnownTypes;
+    using InnerMessages;
+    using RpcProperty.RpcContainer;
+    using RpcPropertySyncInfo;
+
     interface IRpcPropertySyncMessageImpl
     {
         PropertySyncCommand ToSyncCommand();
@@ -319,6 +322,10 @@ namespace LPS.Common.Core.Rpc.RpcPropertySync
         }
     }
 
+    /// <summary>
+    /// operation on List is very complex, so RpcListPropertySyncInfo
+    /// will only merge same operation for a continuous operation sequence.
+    /// </summary>
     public class RpcListPropertySyncMessage : RpcPropertySyncMessage
     {
         private readonly IRpcListPropertySyncMessageImpl? impl_;
@@ -328,7 +335,7 @@ namespace LPS.Common.Core.Rpc.RpcPropertySync
         public ListOperation? Action { get; }
 
         public RpcListPropertySyncMessage(
-            MailBox mailbox,
+            Rpc.MailBox mailbox,
             RpcPropertySyncOperation operation,
             string rpcPropertyPath)
             : base(mailbox, operation, rpcPropertyPath, RpcSyncPropertyType.List)
@@ -404,7 +411,7 @@ namespace LPS.Common.Core.Rpc.RpcPropertySync
         public override bool MergeKeepOrder(RpcPropertySyncMessage otherMsg)
             => impl_!.MergeKeepOrder((otherMsg as RpcListPropertySyncMessage)!);
 
-        public override void MergeIntoSyncInfo(RpcPropertySyncInfo rpcPropertySyncInfo)
+        public override void MergeIntoSyncInfo(RpcPropertySync.RpcPropertySyncInfo.RpcPropertySyncInfo rpcPropertySyncInfo)
         {
             var rpcListPropertySyncInfo = (rpcPropertySyncInfo as RpcListPropertySyncInfo)!;
             if (this.Operation == RpcPropertySyncOperation.Clear || this.Operation == RpcPropertySyncOperation.SetValue)

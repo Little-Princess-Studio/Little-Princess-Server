@@ -1,10 +1,11 @@
-using Google.Protobuf.WellKnownTypes;
-using LPS.Common.Core.Rpc.InnerMessages;
-using LPS.Common.Core.Rpc.RpcProperty;
-using LPS.Common.Core.Rpc.RpcProperty.RpcContainer;
-
-namespace LPS.Common.Core.Rpc.RpcPropertySync
+namespace LPS.Common.Core.Rpc.RpcPropertySync.RpcPropertySyncMessage
 {
+    using Google.Protobuf.WellKnownTypes;
+    using InnerMessages;
+    using RpcProperty.RpcContainer;
+    using RpcPropertySyncInfo;
+    using MailBox = Rpc.MailBox;
+
     interface IRpcDictPropertySyncMessageImpl : IRpcPropertySyncMessageImpl
     {
         bool MergeIntoSyncInfo(RpcDictPropertySyncInfo rpcDictPropertySyncInfo);
@@ -309,7 +310,7 @@ namespace LPS.Common.Core.Rpc.RpcPropertySync
         public override bool MergeKeepOrder(RpcPropertySyncMessage otherMsg) =>
             impl_!.MergeKeepOrder((otherMsg as RpcDictPropertySyncMessage)!);
 
-        public override void MergeIntoSyncInfo(RpcPropertySyncInfo rpcPropertySyncInfo)
+        public override void MergeIntoSyncInfo(RpcPropertySync.RpcPropertySyncInfo.RpcPropertySyncInfo rpcPropertySyncInfo)
         {
             var dictInfo = (rpcPropertySyncInfo as RpcDictPropertySyncInfo)!;
 
