@@ -55,11 +55,20 @@ public static class RpcServerHelper
     /// <param name="entityClassName">Entity class name.</param>
     /// <param name="desc">Description string to construct the entity.</param>
     /// <returns>Async task whose value is the mailbox of the created entity.</returns>
-    public static Task<MailBox> CreateEntityAnywhere(string entityClassName, string desc)
+    public static async Task<MailBox> CreateDistributeEntityAnywhere(string entityClassName, string desc)
     {
-        // todo: require server create entity and got the mailbox
         var server = ServerGlobal.Server;
-        return Task.FromResult(default(MailBox));
+        return await server.CreateEntityAnywhere(entityClassName, desc, string.Empty);
+    }
+
+    public static async Task<MailBox> CreateServerClientEntityAnywhere(
+        string entityClassName,
+        string desc,
+        ServerClientEntity entity)
+    {
+        var server = ServerGlobal.Server;
+        var gateId = entity.Client.GateConn.MailBox.Id;
+        return await server.CreateEntityAnywhere(entityClassName, desc, gateId);
     }
 
     /// <summary>

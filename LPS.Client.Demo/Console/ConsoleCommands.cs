@@ -122,7 +122,7 @@ public static class ConsoleCommands
     /// <param name="port">Entity mailbox port.</param>
     /// <param name="hostNum">Entity mailbox hostnum.</param>
     [ConsoleCommand("send.transfer")]
-    public static async void Transfer(string id, string ip, int port, int hostNum)
+    public static void Transfer(string id, string ip, int port, int hostNum)
     {
         var cellMailBox = new MailBox(id, ip, port, hostNum);
 
@@ -130,5 +130,15 @@ public static class ConsoleCommands
             "TransferIntoCell",
             cellMailBox,
             string.Empty);
+    }
+
+    /// <summary>
+    /// Try to login.
+    /// </summary>
+    [ConsoleCommand("send.login")]
+    public static async void LogIn()
+    {
+        var result = await (ClientGlobal.ShadowClientEntity as Untrusted) !.Login();
+        Logger.Debug($"Login result {result}");
     }
 }

@@ -28,4 +28,13 @@ public class Untrusted : ShadowClientEntity
     /// </summary>
     public readonly RpcShadowPlaintProperty<string> TestRpcPlaintPropStr =
         new (nameof(Untrusted.TestRpcPlaintPropStr));
+
+    /// <summary>
+    /// Try to login.
+    /// </summary>
+    /// <returns>If succeed to login.</returns>
+    public async Task<bool> Login()
+    {
+        return await this.Server.Call<bool>("LogIn", "username", "password");
+    }
 }

@@ -92,15 +92,21 @@ public class Untrusted : ServerClientEntity
     [RpcMethod(Authority.ClientOnly)]
     public async Task<bool> LogIn(string name, string password)
     {
+        Logger.Debug($"[LogIn] {name} {password}");
         if (!(await this.CheckPassword(name, password)))
         {
             Logger.Warn("Failed to login");
             return false;
         }
 
-        var mailbox = await RpcServerHelper.CreateEntityAnywhere(nameof(Player), string.Empty);
-        var res = await this.MigrateTo(mailbox, string.Empty);
-        return res;
+        Logger.Debug("[LogIn] Wait for creating entity anywhere.");
+        var mailbox =
+            await RpcServerHelper.CreateServerClientEntityAnywhere(nameof(Player), string.Empty, this);
+
+        Logger.Debug($"[LogIn] entity created, mailbox {mailbox}.");
+
+        // var res = await this.MigrateTo(mailbox, string.Empty);
+        return true;
     }
 
     /// <summary>

@@ -11,6 +11,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
 using LPS.Common.Debug;
@@ -74,6 +75,8 @@ public class Server : IInstance
 
     private uint createEntityCounter;
     private CountdownEvent? gatesMailBoxesRegisteredEvent;
+
+    private Dictionary<uint, TaskCompletionSource<MailBox>> entityCreationTasks = new();
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Server"/> class.
@@ -200,6 +203,33 @@ public class Server : IInstance
         this.clientToHostManager.WaitForExit();
         this.tcpServer.WaitForExit();
         this.clientsPumpMsgSandBox.WaitForExit();
+    }
+
+    /// <summary>
+    /// Require hostmanager to create entity anywhere.
+    /// </summary>
+    /// <param name="entityClassName">Entity class name.</param>
+    /// <param name="description">Entity class description.</param>
+    /// <param name="gateId">GateId of ServerClientEntity.</param>
+    /// <returns>MailBox of created entity.</returns>
+    public Task<MailBox> CreateEntityAnywhere(string entityClassName, string description, string gateId)
+    {
+        var connectionId = this.createEntityCounter++;
+        this.clientToHostManager.Send(new RequireCreateEntity
+        {
+            EntityType = gateId != string.Empty ? EntityType.ServerClientEntity : EntityType.DistibuteEntity,
+            CreateType = CreateType.Anywhere,
+            EntityClassName = entityClassName,
+            Description = description,
+            ConnectionID = connectionId,
+            GateId = gateId,
+        });
+
+        var taskCompletionSource = new TaskCompletionSource<MailBox>();
+
+        // record
+        this.entityCreationTasks[connectionId] = taskCompletionSource;
+        return taskCompletionSource.Task;
     }
 
     private void OnTick(uint deltaTime)
@@ -377,7 +407,7 @@ public class Server : IInstance
                 this.GateConnections.FirstOrDefault(conn => conn!.MailBox.Id == createDist.GateId, null);
             if (connToGate != null)
             {
-                Logger.Debug("Bind gate conn to new entity");
+                Logger.Debug("[HandleCreateDistributeEntity] Bind gate conn to new entity");
                 this.OnCreateEntity(connToGate, entityClassName, jsonDesc, entityMailBox);
             }
             else
@@ -421,12 +451,28 @@ public class Server : IInstance
             case EntityType.ServerDefaultCellEntity:
                 this.CreateServerDefaultCellEntity(createRes);
                 break;
-            case EntityType.ServerClientEntity:
-            case EntityType.GateEntity:
             case EntityType.DistibuteEntity:
+            case EntityType.ServerClientEntity:
+                this.CreateDistributeEntity(createRes);
+                break;
+            case EntityType.GateEntity:
             default:
                 Logger.Warn($"Invalid Create Entity Res Type: {createRes.EntityType}");
                 break;
+        }
+    }
+
+    private void CreateDistributeEntity(RequireCreateEntityRes requireCreateEntityRes)
+    {
+        var connId = requireCreateEntityRes.ConnectionID;
+        if (this.entityCreationTasks.ContainsKey(connId))
+        {
+            var taskCompleteSource = this.entityCreationTasks[connId];
+            taskCompleteSource.TrySetResult(RpcHelper.PbMailBoxToRpcMailBox(requireCreateEntityRes.Mailbox));
+        }
+        else
+        {
+            Logger.Warn($"Invalid CreateDistributeEntity, connId {connId}");
         }
     }
 

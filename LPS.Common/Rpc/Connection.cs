@@ -60,7 +60,7 @@ public class Connection
     public MailBox MailBox { get; set; }
 
     /// <summary>
-    /// Gets or sets the connection id of this connection.
+    /// Gets or sets the connection id of this connection, internal usage.
     /// </summary>
     public uint ConnectionId { get; set; } = uint.MaxValue;
 
