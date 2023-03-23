@@ -76,7 +76,7 @@ public class TimeCircleUnitTest
     private static TimeCircleSlot[] GetSlot(TimeCircle timeCircle)
     {
         return (TimeCircleSlot[])typeof(TimeCircle)
-            .GetField("slots_", BindingFlags.NonPublic | BindingFlags.Instance)!
+            .GetField("slots", BindingFlags.NonPublic | BindingFlags.Instance)!
             .GetValue(timeCircle)!;
     }
 
