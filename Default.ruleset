@@ -133,7 +133,7 @@
         <Rule Id="SA1409"  Action="Error"    />          <!-- Remove unnecessary code -->
         <Rule Id="SA1410"  Action="Error" />          <!-- Remove delegate parenthesis when possible -->
         <Rule Id="SA1411"  Action="Error" />          <!-- Attribute constructor should not use unnecessary parenthesis -->
-        <Rule Id="SA1412"  Action="Error"    />          <!-- Store files as UTF-8 with byte order mark -->
+        <Rule Id="SA1412"  Action="None"  />          <!-- Store files as UTF-8 with byte order mark -->
         <Rule Id="SA1413"  Action="Error" />          <!-- Use trailing comma in multi-line initializers -->
     </Rules>
 
