@@ -58,7 +58,7 @@ public class Gate : IInstance
 
     // private readonly SandBox clientsSendQueueSandBox_;
     private readonly ConcurrentDictionary<uint, Connection> createEntityMapping = new();
-    private readonly Dictionary<string, (Common.Rpc.MailBox, Connection)> entityIdToClientConnMapping = new();
+    private readonly Dictionary<string, (Common.Rpc.MailBox MailBox, Connection Connection)> entityIdToClientConnMapping = new();
     private readonly Random random = new();
 
     private readonly CountdownEvent serversMailBoxesReadyEvent = new CountdownEvent(1);
@@ -72,7 +72,7 @@ public class Gate : IInstance
     private readonly TcpServer tcpGateServer;
     private readonly TcpClient clientToHostManager;
 
-    private ServerEntity? entity;
+    private GateEntity? entity;
 
     // if all the tcpclients have connected to server/other gate, countdownEvent_ will down to 0
     private CountdownEvent? allServersConnectedEvent;
@@ -125,7 +125,13 @@ public class Gate : IInstance
             hostManagerPort,
             new ConcurrentQueue<(TcpClient, IMessage, bool)>())
         {
-            OnInit = _ => { },
+            OnInit = _ =>
+            {
+                this.clientToHostManager!.RegisterMessageHandler(
+                    PackageType.RequireCreateEntityRes,
+                    this.HandleRequireCreateEntityResFromHost);
+                this.clientToHostManager.RegisterMessageHandler(PackageType.HostCommand, this.HandleHostCommandFromHost);
+            },
             OnConnected = _ =>
             {
                 var client = this.clientToHostManager!;
@@ -141,6 +147,13 @@ public class Gate : IInstance
                     false);
 
                 this.hostManagerConnectedEvent.Signal();
+            },
+            OnDispose = _ =>
+            {
+                this.clientToHostManager!.UnregisterMessageHandler(
+                    PackageType.RequireCreateEntityRes,
+                    this.HandleRequireCreateEntityResFromHost);
+                this.clientToHostManager.UnregisterMessageHandler(PackageType.HostCommand, this.HandleHostCommandFromHost);
             },
         };
 
@@ -216,6 +229,26 @@ public class Gate : IInstance
         Logger.Debug("Gate Exit.");
     }
 
+    /// <summary>
+    /// Update ServerClientEntity related registration in Gate process.
+    /// </summary>
+    /// <param name="oldMailBox">Old mailbox.</param>
+    /// <param name="newMailBox">New mailbox.</param>
+    public void UpdateServerClientEntityRegistration(LPS.Common.Rpc.MailBox oldMailBox, LPS.Common.Rpc.MailBox newMailBox)
+    {
+        var oldId = oldMailBox.Id;
+        var newId = newMailBox.Id;
+        if (!this.entityIdToClientConnMapping.ContainsKey(oldId))
+        {
+            Logger.Warn("[Gate] Failed to update ServerClientEntity registration.");
+            return;
+        }
+
+        Logger.Info($"[Gate] Update registration from {oldMailBox} to {newMailBox}");
+        this.entityIdToClientConnMapping.Remove(oldId, out var oldInfo);
+        this.entityIdToClientConnMapping[newId] = (newMailBox, oldInfo.Connection);
+    }
+
     private static string DecryptedCiphertext(Authentication auth)
     {
         var rsa = RSA.Create();
@@ -241,11 +274,6 @@ public class Gate : IInstance
         this.tcpGateServer.RegisterMessageHandler(
             PackageType.PropertyFullSyncAck,
             this.HandlePropertyFullSyncAckFromClient);
-
-        this.clientToHostManager.RegisterMessageHandler(
-            PackageType.RequireCreateEntityRes,
-            this.HandleRequireCreateEntityResFromHost);
-        this.clientToHostManager.RegisterMessageHandler(PackageType.HostCommand, this.HandleHostCommandFromHost);
     }
 
     private void UnregisterMessageFromServerAndOtherGateHandlers()
@@ -262,11 +290,6 @@ public class Gate : IInstance
         this.tcpGateServer.UnregisterMessageHandler(
             PackageType.PropertyFullSyncAck,
             this.HandlePropertyFullSyncAckFromClient);
-
-        this.clientToHostManager.UnregisterMessageHandler(
-            PackageType.RequireCreateEntityRes,
-            this.HandleRequireCreateEntityResFromHost);
-        this.clientToHostManager.UnregisterMessageHandler(PackageType.HostCommand, this.HandleHostCommandFromHost);
     }
 
     private void HandleHostCommandFromHost(object arg)
@@ -504,7 +527,7 @@ public class Gate : IInstance
             Logger.Info("Create gate entity success.");
             var serverEntityMailBox =
                 new Common.Rpc.MailBox(createEntityRes.Mailbox.ID, this.Ip, this.Port, this.HostNum);
-            this.entity = new(serverEntityMailBox)
+            this.entity = new(serverEntityMailBox, this)
             {
                 OnSend = entityRpc =>
                 {

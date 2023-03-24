@@ -48,6 +48,19 @@ public class ShadowClientEntity : ShadowEntity
     }
 
     /// <summary>
+    /// Callback when migrated to another entity.
+    /// </summary>
+    /// <param name="targetMailBox">Target entity mailbox.</param>
+    /// <param name="migrateInfo">Migrate info.</param>
+    /// <param name="targetEntityClassName">Target entity class name.</param>
+    /// <returns>ValueTask.</returns>
+    [RpcMethod(Authority.ClientStub)]
+    public virtual ValueTask OnMigrated(MailBox targetMailBox, string migrateInfo, string targetEntityClassName)
+    {
+        return ValueTask.CompletedTask;
+    }
+
+    /// <summary>
     /// Server proxy of the entity, which indicates the related server-side object.
     /// </summary>
     public class ServerProxy

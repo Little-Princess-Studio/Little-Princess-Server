@@ -141,4 +141,14 @@ public static class ConsoleCommands
         var result = await (ClientGlobal.ShadowClientEntity as Untrusted) !.Login();
         Logger.Debug($"Login result {result}");
     }
+
+    /// <summary>
+    /// Ping.
+    /// </summary>
+    /// <param name="content">Ping content.</param>
+    [ConsoleCommand("send.player_ping")]
+    public static async void Ping(string content)
+    {
+        await (ClientGlobal.ShadowClientEntity as Player) !.Ping(content);
+    }
 }

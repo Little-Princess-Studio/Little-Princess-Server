@@ -7,6 +7,7 @@
 namespace LPS.Server.Entity;
 
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using LPS.Common.Debug;
 using LPS.Common.Rpc;
@@ -46,7 +47,7 @@ public class ServerClientEntity : DistributeEntity
     /// <param name="transferInfo">Transfer info.</param>
     /// <returns>Task.</returns>
     [RpcMethod(Authority.All)]
-    public override async Task TransferIntoCell(MailBox targetCellMailBox, string transferInfo)
+    public override Task TransferIntoCell(MailBox targetCellMailBox, string transferInfo)
     {
         // todo: serialContent is the serialized rpc property tree of entity
         Logger.Debug($"start transfer to {targetCellMailBox}");
@@ -56,21 +57,6 @@ public class ServerClientEntity : DistributeEntity
         {
             var gateMailBox = this.Client.GateConn.MailBox;
 
-            // var (res, mailbox) = await this.Call<(bool, MailBox)>(targetCellMailBox,
-            //     "RequireTransfer",
-            //     this.MailBox,
-            //     this.GetType().Name,
-            //     serialContent,
-            //     transferInfo,
-            //     gateMailBox);
-
-            // this.IsFrozen = true;
-
-            // if (!res)
-            // {
-            //     this.IsFrozen = false;
-            //     throw new Exception("Error when transfer to cell");
-            // }
             this.Notify(
                 targetCellMailBox,
                 "RequireTransfer",
@@ -94,6 +80,8 @@ public class ServerClientEntity : DistributeEntity
         }
 
         this.IsDestroyed = true;
+
+        return Task.CompletedTask;
     }
 
     /// <summary>
@@ -103,6 +91,52 @@ public class ServerClientEntity : DistributeEntity
     public void BindGateConn(Connection gateConnection)
     {
         this.Client = new ClientProxy(gateConnection, this);
+    }
+
+    /// <inheritdoc/>
+    public override Task<bool> MigrateTo(
+        MailBox targetMailBox,
+        string migrateInfo,
+        Dictionary<string, string>? extraInfo)
+    {
+        if (extraInfo == null || !extraInfo.ContainsKey("targetEntityClassName"))
+        {
+            throw new Exception("Invalid migrate info.");
+        }
+
+        return base.MigrateTo(targetMailBox, migrateInfo, extraInfo);
+    }
+
+    /// <summary>
+    /// Migrate to another ServerClientEntity.
+    /// </summary>
+    /// <param name="targetMailBox">Target entity migrate to.</param>
+    /// <param name="migrateInfo">Info of the migration.</param>
+    /// <param name="targetEntityClassName">Target entity class name.</param>
+    /// <returns>If the migration success.</returns>
+    public async Task<bool> MigrateTo(MailBox targetMailBox, string migrateInfo, string targetEntityClassName)
+    {
+        var res1 = await this.MigrateTo(targetMailBox, migrateInfo, new Dictionary<string, string>
+        {
+            { "targetEntityClassName", targetEntityClassName },
+        });
+
+        var server = ServerGlobal.Server;
+        var res2 = await server.NotifyGateUpdateServerClientEntityRegistration(
+            this,
+            this.MailBox,
+            targetMailBox);
+
+        return res1 && res2;
+    }
+
+    /// <inheritdoc/>
+    protected override void OnMigratedOut(
+        MailBox targetMailBox,
+        string migrateInfo,
+        Dictionary<string, string>? extraInfo)
+    {
+        this.Client.Notify("OnMigrated", targetMailBox, string.Empty, extraInfo!["targetEntityClassName"]);
     }
 
     /// <summary>

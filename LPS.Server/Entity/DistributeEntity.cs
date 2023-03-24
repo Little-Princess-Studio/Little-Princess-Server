@@ -116,16 +116,16 @@ public abstract class DistributeEntity : BaseEntity, ISendPropertySyncMessage
     /// </summary>
     /// <param name="targetMailBox">Target entity migrate to.</param>
     /// <param name="migrateInfo">Info of the migration.</param>
+    /// <param name="extraInfo">Extra migrate info.</param>
     /// <returns>If the migration success.</returns>
-    public virtual async Task<bool> MigrateTo(MailBox targetMailBox, string migrateInfo)
+    public virtual async Task<bool> MigrateTo(MailBox targetMailBox, string migrateInfo, Dictionary<string, string>? extraInfo)
     {
         if (targetMailBox.CompareOnlyID(this.MailBox))
         {
             return false;
         }
 
-        this.IsFrozen = true;
-
+        Logger.Info("[Migrate] step 1.");
         Logger.Info($"start migrate, from {this.MailBox} to {targetMailBox}");
 
         try
@@ -134,14 +134,20 @@ public abstract class DistributeEntity : BaseEntity, ISendPropertySyncMessage
                 targetMailBox,
                 nameof(this.RequireMigrate),
                 this.MailBox,
-                this.GetType().Name,
-                migrateInfo);
+                migrateInfo,
+                extraInfo);
+
+            this.IsFrozen = true;
 
             if (!res)
             {
                 this.IsFrozen = false;
                 throw new Exception("Error when migrate distribute entity");
             }
+
+            Logger.Info("[Migrate] step 3.");
+
+            this.OnMigratedOut(targetMailBox, migrateInfo, extraInfo);
 
             // destroy self
             this.Cell.OnEntityLeave(this);
@@ -162,14 +168,16 @@ public abstract class DistributeEntity : BaseEntity, ISendPropertySyncMessage
     /// </summary>
     /// <param name="originMailBox">Original entity who wants to migrate into this entity.</param>
     /// <param name="migrateInfo">Migrate info.</param>
+    /// <param name="extraInfo">Extra migrate info.</param>
     /// <returns>If the migration success.</returns>
     [RpcMethod(authority: Authority.ServerOnly)]
-    public Task<bool> RequireMigrate(MailBox originMailBox, string migrateInfo)
+    public Task<bool> RequireMigrate(MailBox originMailBox, string migrateInfo, Dictionary<string, string>? extraInfo)
     {
+        Logger.Info("[Migrate] step 2.");
         this.IsFrozen = true;
         try
         {
-            this.OnMigratedIn(originMailBox, migrateInfo);
+            this.OnMigratedIn(originMailBox, migrateInfo, extraInfo);
         }
         catch (Exception e)
         {
@@ -182,15 +190,6 @@ public abstract class DistributeEntity : BaseEntity, ISendPropertySyncMessage
         }
 
         return Task.FromResult(true);
-    }
-
-    /// <summary>
-    /// Callback when migrated in.
-    /// </summary>
-    /// <param name="originMailBox">Original entity who wants to migrate into this entity.</param>
-    /// <param name="migrateInfo">Migrate info.</param>
-    public virtual void OnMigratedIn(MailBox originMailBox, string migrateInfo)
-    {
     }
 
     /// <summary>
@@ -258,6 +257,26 @@ public abstract class DistributeEntity : BaseEntity, ISendPropertySyncMessage
     /// </summary>
     /// <param name="transferInfo">Transfer info.</param>
     public virtual void OnTransferred(string transferInfo)
+    {
+    }
+
+    /// <summary>
+    /// Callback when migrated in.
+    /// </summary>
+    /// <param name="originMailBox">Original entity who wants to migrate into this entity.</param>
+    /// <param name="migrateInfo">Migrate info.</param>
+    /// <param name="extraInfo">Extra migrate info.</param>
+    protected virtual void OnMigratedIn(MailBox originMailBox, string migrateInfo, Dictionary<string, string>? extraInfo)
+    {
+    }
+
+    /// <summary>
+    /// Callback when this entity migrate out.
+    /// </summary>
+    /// <param name="targetMailBox">Mailbox of target entity to migrate in.</param>
+    /// <param name="migrateInfo">Migrate info.</param>
+    /// <param name="extraInfo">Extra migrate info.</param>
+    protected virtual void OnMigratedOut(MailBox targetMailBox, string migrateInfo, Dictionary<string, string>? extraInfo)
     {
     }
 }

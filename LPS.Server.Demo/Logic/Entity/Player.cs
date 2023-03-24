@@ -6,6 +6,7 @@
 
 namespace LPS.Server.Demo.Logic.Entity;
 
+using Common.Debug;
 using Common.Rpc.Attribute;
 using LPS.Server.Entity;
 
@@ -22,5 +23,17 @@ public class Player : ServerClientEntity
     public Player(string desc)
         : base(desc)
     {
+    }
+
+    /// <summary>
+    /// Remote ping.
+    /// </summary>
+    /// <param name="content">Ping content.</param>
+    /// <returns>Ping result.</returns>
+    [RpcMethod(Authority.ClientOnly)]
+    public Task<string> Ping(string content)
+    {
+        Logger.Info($"[Player] Ping: {content}");
+        return Task.FromResult("Res: " + content);
     }
 }

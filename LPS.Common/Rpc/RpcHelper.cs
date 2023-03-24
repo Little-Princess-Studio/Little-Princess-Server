@@ -1308,7 +1308,7 @@ public static class RpcHelper
 
     private static object?[] ProtobufArgsToRpcArgList(EntityRpc entityRpc, MethodInfo methodInfo)
     {
-        var argTypes = methodInfo.GetParameters().Select(info => info.GetType()).ToArray();
+        var argTypes = methodInfo.GetParameters().Select(info => info.ParameterType).ToArray();
         return entityRpc.Args
             .Select((elem, index) => ProtoBufAnyToRpcArg(elem, argTypes[index]))
             .ToArray();

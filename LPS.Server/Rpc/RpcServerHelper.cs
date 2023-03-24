@@ -61,6 +61,15 @@ public static class RpcServerHelper
         return await server.CreateEntityAnywhere(entityClassName, desc, string.Empty);
     }
 
+    /// <summary>
+    /// Create a new ServerClientEntity in any Server process and get the mailbox of the entity.
+    /// This method will require to create a new ServerClientEntity with the same gate connection
+    /// as the original ServerClientEntity.
+    /// </summary>
+    /// <param name="entityClassName">Entity class name.</param>
+    /// <param name="desc">Entity description.</param>
+    /// <param name="entity">ServerClientEntity used to create new ServerClientEntity.</param>
+    /// <returns>Async task whose value is the mailbox of the created entity.</returns>
     public static async Task<MailBox> CreateServerClientEntityAnywhere(
         string entityClassName,
         string desc,

@@ -99,14 +99,13 @@ public class Untrusted : ServerClientEntity
             return false;
         }
 
-        Logger.Debug("[LogIn] Wait for creating entity anywhere.");
+        Logger.Debug("[LogIn] Wait for creating Player entity anywhere.");
         var mailbox =
             await RpcServerHelper.CreateServerClientEntityAnywhere(nameof(Player), string.Empty, this);
 
-        Logger.Debug($"[LogIn] entity created, mailbox {mailbox}.");
-
-        // var res = await this.MigrateTo(mailbox, string.Empty);
-        return true;
+        Logger.Debug($"[LogIn] Player entity created, mailbox {mailbox}.");
+        var res = await this.MigrateTo(mailbox, string.Empty, nameof(Player));
+        return res;
     }
 
     /// <summary>

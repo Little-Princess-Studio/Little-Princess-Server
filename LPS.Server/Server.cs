@@ -206,6 +206,24 @@ public class Server : IInstance
     }
 
     /// <summary>
+    /// Notify gate update ServerClientEntity registration.
+    /// </summary>
+    /// <param name="entity">ServerClientEntity.</param>
+    /// <param name="oldMb">Old MailBox.</param>
+    /// <param name="newMb">NewMailBox.</param>
+    /// <returns>Result.</returns>
+    public async Task<bool> NotifyGateUpdateServerClientEntityRegistration(
+        ServerClientEntity entity,
+        MailBox oldMb,
+        MailBox newMb)
+    {
+        Logger.Debug("Notify gate update registration.");
+        var gateMailBox = entity.Client.GateConn.MailBox;
+        await this.entity!.Call(gateMailBox, nameof(Gate.UpdateServerClientEntityRegistration), oldMb, newMb);
+        return true;
+    }
+
+    /// <summary>
     /// Require hostmanager to create entity anywhere.
     /// </summary>
     /// <param name="entityClassName">Entity class name.</param>
@@ -350,6 +368,11 @@ public class Server : IInstance
         {
             // bind gate conn to client entity
             serverClientEntity.BindGateConn(gateConn!);
+        }
+        else if (gateConn != null)
+        {
+            Logger.Warn(
+                $"[OnCreateEntity] Non-ServerClientEntity of {entityClassName} was created with gate connection!");
         }
 
         entity.OnSend = entityRpc => this.SendEntityRpc(entity, entityRpc);
