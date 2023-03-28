@@ -57,6 +57,7 @@ public class ShadowClientEntity : ShadowEntity
     [RpcMethod(Authority.ClientStub)]
     public virtual ValueTask OnMigrated(MailBox targetMailBox, string migrateInfo, string targetEntityClassName)
     {
+        RpcClientHelper.RequirePropertyFullSync(targetMailBox.Id);
         return ValueTask.CompletedTask;
     }
 

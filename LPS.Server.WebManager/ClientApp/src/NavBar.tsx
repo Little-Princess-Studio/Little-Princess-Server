@@ -12,9 +12,11 @@ const MainMenuButton = styled(DefaultButton)`
     background-color: ${theme.palette.themePrimary};
     border: none;
     border-radius: 0;
+    color: white;
 
     :hover {
         background-color: ${theme.palette.blueMid};
+        color: white;
     }
 `;
 

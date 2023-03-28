@@ -50,7 +50,6 @@ public class StartUpManager
 
         Client.Instance.Init(ip, port);
 
-        // Client.Instance.Init("52.175.74.209", 11001);
         Client.Instance.RegisterMessageHandler(PackageType.ClientCreateEntity, HandleClientCreateEntity);
         Client.Instance.RegisterMessageHandler(PackageType.EntityRpc, HandleEntityRpc);
         Client.Instance.RegisterMessageHandler(PackageType.PropertyFullSync, HandlePropertyFullSync);
@@ -108,13 +107,7 @@ public class StartUpManager
 
         Logger.Info($"{shadowEntity} created success.");
 
-        var requireFullSync = new RequirePropertyFullSync()
-        {
-            EntityId = shadowEntity.MailBox.Id,
-        };
-
-        Client.Instance.Send(requireFullSync);
-        Logger.Info($"require full property sync");
+        RpcClientHelper.RequirePropertyFullSync(shadowEntity.MailBox.Id);
     }
 
     private static void HandlePropertyFullSync(object arg)

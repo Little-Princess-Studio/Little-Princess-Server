@@ -9,8 +9,10 @@ namespace LPS.Client;
 using System.Reflection;
 using LPS.Client.Entity;
 using LPS.Client.Rpc.RpcProperty;
+using LPS.Common.Debug;
 using LPS.Common.Entity;
 using LPS.Common.Rpc;
+using LPS.Common.Rpc.InnerMessages.ProtobufDefs;
 using LPS.Common.Rpc.RpcProperty;
 
 /// <summary>
@@ -80,5 +82,20 @@ public static class RpcClientHelper
         }
 
         entity.SetPropertyTree(tree);
+    }
+
+    /// <summary>
+    /// Require property full sync to this client's shadow entity.
+    /// </summary>
+    /// <param name="entityId">shadow entity ID.</param>
+    public static void RequirePropertyFullSync(string entityId)
+    {
+        var requireFullSync = new RequirePropertyFullSync()
+        {
+            EntityId = entityId,
+        };
+
+        Client.Instance.Send(requireFullSync);
+        Logger.Info($"require full property sync");
     }
 }

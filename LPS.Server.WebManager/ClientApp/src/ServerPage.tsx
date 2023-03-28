@@ -1,4 +1,4 @@
-import { Stack, DetailsList, IColumn, SelectionMode, DetailsListLayoutMode, CommandBar, ICommandBarItemProps } from "@fluentui/react";
+import { Stack, DetailsList, IColumn, SelectionMode, DetailsListLayoutMode, CommandBar, ICommandBarItemProps, SearchBox, Dropdown, IDropdownOption, Separator, IconButton } from "@fluentui/react";
 import { css } from "styled-components";
 import { header } from "./CommonCss";
 import NavBar from "./NavBar";
@@ -12,6 +12,38 @@ interface IServerInfo {
     entityCount: number;
     alive: boolean;
 }
+
+interface IEntityInfo {
+    key: string;
+    id: string;
+    mailbox: string;
+    entityClassName: string;
+    cellEntityId: string;
+}
+
+const mockEntities: IEntityInfo[] = [
+    {
+        key: '1',
+        id: '1',
+        mailbox: '1;127.0.0.1;27001;10010',
+        entityClassName: 'CellEntity',
+        cellEntityId: '',
+    },
+    {
+        key: '2',
+        id: '2',
+        mailbox: '2;127.0.0.127001;10010',
+        entityClassName: 'ServerEntity',
+        cellEntityId: '1',
+    },
+    {
+        key: '3',
+        id: '3',
+        mailbox: '3;127.0.0.1;27001;10010',
+        entityClassName: 'ServerEntity',
+        cellEntityId: '1',
+    },
+];
 
 const mockServerItems: IServerInfo[] = [
     {
@@ -30,9 +62,17 @@ const mockServerItems: IServerInfo[] = [
     }
 ];
 
+const commandBarItems: ICommandBarItemProps[] = [
+    {
+        key: 'refresh',
+        text: 'Refresh',
+        iconProps: { iconName: 'refresh' }
+    },
+];
+
 const ServerPage: React.FunctionComponent = () => {
     const onColumnClick = (ev: React.MouseEvent<HTMLElement>, column: IColumn): void => {
-        const { columns, items } = state;
+        const { columns, items } = serverlistState;
         const newColumns: IColumn[] = columns.slice();
         const currColumn: IColumn = newColumns.filter(currCol => column.key === currCol.key)[0];
         newColumns.forEach((newCol: IColumn) => {
@@ -46,17 +86,18 @@ const ServerPage: React.FunctionComponent = () => {
         });
         const newItems = copyAndSort(items, currColumn.key, currColumn.isSortedDescending);
         console.log(newItems);
-        setState({
+        setServerListState({
+            ...serverlistState,
             columns: newColumns,
             items: newItems,
         });
     };
 
-    const listColumnDefine: IColumn[] = [
+    const serverListColumnDefine: IColumn[] = [
         {
             key: "serverName",
             name: "Server Name",
-            isSorted: true,
+            isSorted: false,
             isSortedDescending: false,
             isRowHeader: true,
             minWidth: 40,
@@ -100,18 +141,104 @@ const ServerPage: React.FunctionComponent = () => {
         }
     ];
 
-    const [state, setState] = useState({
-        items: mockServerItems,
-        columns: listColumnDefine,
+    const serverOptions: IDropdownOption[] = mockServerItems.map((value, index, _) => {
+        return { key: value.serverName, text: value.serverName };
     });
+
+    const searchEntity = () => {
+        setSearchResultState({
+            ...searchResultState,
+            searchResult: mockEntities,
+        });
+    }
+
+    const farItems = [
+        {
+            key: 'search',
+            onRender: () => <SearchBox placeholder="Search entity by id" className="searchBox" />
+        },
+        {
+            key: 'serverNameSelection',
+            onRender: () => <Dropdown
+                options={serverOptions}
+                css={css`width: 100px; margin-left: 4px; margin-right: 4px`}
+                dropdownWidth={100}
+                defaultSelectedKey={serverOptions[0].key} />
+        },
+        {
+            key: 'searchBtn',
+            onRender: () => <IconButton iconProps={{ iconName: 'search' }} onClick={_ => searchEntity()}></IconButton>
+        }
+    ];
+
+    const searchResultListColumnDefine: IColumn[] = [
+        {
+            key: "id",
+            name: "id",
+            isSorted: false,
+            isSortedDescending: false,
+            isRowHeader: true,
+            minWidth: 40,
+            maxWidth: 100,
+            isPadded: true,
+            sortAscendingAriaLabel: 'Sorted A to Z',
+            sortDescendingAriaLabel: 'Sorted Z to A',
+            data: 'string',
+            onRender: (item: IEntityInfo) => {
+                return <div>{item.id}</div>
+            },
+        },
+        {
+            key: "mailbox",
+            name: "MailBox",
+            minWidth: 40,
+            maxWidth: 250,
+            onRender: (item: IEntityInfo) => {
+                return <div>{item.mailbox}</div>
+            }
+        },
+        {
+            key: "entityClassName",
+            name: "Entity Class Name",
+            minWidth: 40,
+            maxWidth: 250,
+            onRender: (item: IEntityInfo) => {
+                return <div>{item.entityClassName}</div>
+            }
+        },
+        {
+            key: "cellEntityId",
+            name: "Cell Entity Id",
+            minWidth: 40,
+            maxWidth: 250,
+            onRender: (item: IEntityInfo) => {
+                return <div>{item.cellEntityId}</div>
+            }
+        }
+    ];
+
+    const [serverlistState, setServerListState] = useState({
+        items: mockServerItems,
+        columns: serverListColumnDefine,
+    });
+
+    const [searchResultState, setSearchResultState] = useState({
+        searchResultColumns: searchResultListColumnDefine,
+        searchResult: [] as IEntityInfo[],
+    })
 
     return <Stack horizontal={false} css={css`margin-top: 50px`}>
         <NavBar index={1} />
         <h2 css={header}>Server List</h2>
-        <div css={css`margin: 0 20px 0 20px`}>
+
+        <div>
+            <CommandBar items={commandBarItems} farItems={farItems} ></CommandBar>
+        </div>
+
+        <div css={ListMargin}>
             <DetailsList
-                columns={state.columns}
-                items={state.items}
+                columns={serverlistState.columns}
+                items={serverlistState.items}
                 selectionMode={SelectionMode.none}
                 getKey={(item: IServerInfo) => item.key}
                 setKey={"none"}
@@ -119,7 +246,31 @@ const ServerPage: React.FunctionComponent = () => {
                 layoutMode={DetailsListLayoutMode.justified}
             />
         </div>
+
+        {searchResultState.searchResult.length > 0 ?
+            <div>
+                <div css={css`margin: 20px 0 0 20px`}>
+                    <Separator alignContent="start"><div css={css`font-size: 20px;`}>Search Result</div></Separator>
+                </div>
+                <div css={ListMargin}>
+                    <DetailsList
+                        columns={searchResultState.searchResultColumns}
+                        items={searchResultState.searchResult}
+                        selectionMode={SelectionMode.none}
+                        getKey={(item: IEntityInfo) => item.key}
+                        setKey={"none"}
+                        isHeaderVisible={true}
+                        layoutMode={DetailsListLayoutMode.justified}
+                    />
+                </div>
+            </div>
+            : null
+        }
     </Stack>;
 }
+
+const ListMargin = css`
+    margin: 0 20px 0 20px
+`
 
 export default ServerPage;

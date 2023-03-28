@@ -55,6 +55,6 @@ public class Untrusted : ShadowClientEntity
         // give up Untrusted to Player.
         ClientGlobal.ShadowClientEntity = shadowEntity;
 
-        return ValueTask.CompletedTask;
+        return base.OnMigrated(targetMailBox, migrateInfo, targetEntityClassName);
     }
 }
