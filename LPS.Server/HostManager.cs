@@ -36,14 +36,17 @@ namespace LPS.Server;
 
 using System;
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
 using LPS.Common.Debug;
 using LPS.Common.Rpc;
 using LPS.Common.Rpc.InnerMessages;
 using LPS.Server.Database;
+using LPS.Server.MessageQueue;
 using LPS.Server.Rpc;
 using LPS.Server.Rpc.InnerMessages.ProtobufDefs;
+using Newtonsoft.Json;
 using MailBox = LPS.Common.Rpc.MailBox;
 
 /// <summary>
@@ -106,11 +109,12 @@ public class HostManager : IInstance
     private readonly List<Connection> serversConn = new List<Connection>();
     private readonly List<Connection> gatesConn = new List<Connection>();
     private readonly TcpServer tcpServer;
-    private readonly Random random = new();
+    private readonly Random random = new Random();
 
     private readonly Dictionary<uint, (uint ConnId, Connection OriginConn)>
-        createDistEntityAsyncRecord = new();
+        createDistEntityAsyncRecord = new Dictionary<uint, (uint ConnId, Connection OriginConn)>();
 
+    private MessageQueueClient? messageQueueClientToWebMgr;
     private uint createEntityCnt;
 
     /// <summary>
@@ -144,6 +148,9 @@ public class HostManager : IInstance
     {
         Logger.Info($"Start Host Manager at {this.Ip}:{this.Port}");
         this.tcpServer.Run();
+
+        this.InitMessageQueueClient();
+
         this.tcpServer.WaitForExit();
     }
 
@@ -151,6 +158,42 @@ public class HostManager : IInstance
     public void Stop()
     {
         this.tcpServer.Stop();
+    }
+
+    private void InitMessageQueueClient()
+    {
+        Logger.Debug("Start mq client.");
+        this.messageQueueClientToWebMgr = new MessageQueueClient();
+        this.messageQueueClientToWebMgr.Init();
+        this.messageQueueClientToWebMgr.AsProducer();
+        this.messageQueueClientToWebMgr.AsConsumer();
+
+        this.messageQueueClientToWebMgr.DeclareExchange(Consts.WebMgrExchangeName);
+        this.messageQueueClientToWebMgr.DeclareExchange(Consts.ServerExchangeName);
+        this.messageQueueClientToWebMgr.BindQueueAndExchange(
+            Consts.GenerateWebManagerQueueName(this.Name),
+            Consts.WebMgrExchangeName,
+            Consts.RoutingKeyToHostManager);
+
+        this.messageQueueClientToWebMgr.Observe(
+            Consts.GenerateWebManagerQueueName(this.Name),
+            (msg, routingKey) =>
+            {
+                if (routingKey == Consts.GetServerCntRoutingKey)
+                {
+                    var (msgId, _) = MessageQueueJsonBody.From(msg);
+                    var res = MessageQueueJsonBody.Create(
+                        msgId,
+                        new
+                        {
+                            cnt = this.ServerNum,
+                        });
+                    this.messageQueueClientToWebMgr.Publish(
+                        res.ToJson(),
+                        Consts.ServerExchangeName,
+                        Consts.ServerCntResRoutingKey);
+                }
+            });
     }
 
     private void UnregisterServerMessageHandlers()

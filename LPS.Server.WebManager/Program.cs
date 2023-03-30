@@ -1,8 +1,17 @@
+using LPS.Server.WebManager.Services;
+using LPS.Common.Debug;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
 builder.Services.AddControllersWithViews();
+
+Logger.Init("web_manager");
+
+var serverService = new ServerService();
+serverService.Init();
+builder.Services.AddSingleton(serverService);
 
 var app = builder.Build();
 

@@ -624,7 +624,7 @@ public class Gate : IInstance
             return;
         }
 
-        var mb = this.entityIdToClientConnMapping[entityId].Item1;
+        var mb = this.entityIdToClientConnMapping[entityId].MailBox;
         var clientToServer = this.FindServerOfEntity(mb);
 
         if (clientToServer != null)
@@ -645,7 +645,7 @@ public class Gate : IInstance
             return;
         }
 
-        var conn = this.entityIdToClientConnMapping[entityId].Item2;
+        var conn = this.entityIdToClientConnMapping[entityId].Connection;
         var pkg = PackageHelper.FromProtoBuf(msg, 0);
         conn.Socket.Send(pkg.ToBytes());
     }

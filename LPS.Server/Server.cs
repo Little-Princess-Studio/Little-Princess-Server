@@ -22,6 +22,7 @@ using LPS.Common.Rpc.InnerMessages;
 using LPS.Common.Rpc.InnerMessages.ProtobufDefs;
 using LPS.Common.Rpc.RpcPropertySync.RpcPropertySyncMessage;
 using LPS.Server.Entity;
+using LPS.Server.MessageQueue;
 using LPS.Server.Rpc;
 using LPS.Server.Rpc.InnerMessages.ProtobufDefs;
 using MailBox = LPS.Common.Rpc.MailBox;
@@ -67,6 +68,7 @@ public class Server : IInstance
     private readonly CountdownEvent hostManagerConnectedEvent;
 
     private readonly SandBox clientsPumpMsgSandBox;
+    private MessageQueueClient? messageQueueClientToWebMgr;
 
     private ServerEntity? entity;
     private CellEntity? defaultCell;
@@ -199,10 +201,26 @@ public class Server : IInstance
         Logger.Debug("wait for gate mailbox registered");
         this.gatesMailBoxesRegisteredEvent!.Wait();
 
+        Logger.Debug("Start mq client.");
+        this.messageQueueClientToWebMgr = new MessageQueueClient();
+        this.messageQueueClientToWebMgr.Init();
+        this.messageQueueClientToWebMgr.AsProducer();
+        this.messageQueueClientToWebMgr.AsConsumer();
+
+        this.messageQueueClientToWebMgr.DeclareExchange("webmgr.exchange");
+        this.messageQueueClientToWebMgr.DeclareExchange("server.exchange");
+        this.messageQueueClientToWebMgr.BindQueueAndExchange($"webmgr_que_{this.Name}", "webmgr.exchange", "#.toServer");
+        this.messageQueueClientToWebMgr.Observe($"webmgr_que_{this.Name}", (msg, routingKey) =>
+        {
+            Logger.Debug($"Msg received from web mgr: {msg}, routingKey: {routingKey}");
+        });
+
         // gate main thread will stuck here
         this.clientToHostManager.WaitForExit();
         this.tcpServer.WaitForExit();
         this.clientsPumpMsgSandBox.WaitForExit();
+
+        this.messageQueueClientToWebMgr.ShutDown();
     }
 
     /// <summary>
