@@ -2,8 +2,9 @@ import { Stack, DetailsList, IColumn, SelectionMode, DetailsListLayoutMode, Comm
 import { css } from "styled-components";
 import { header } from "./CommonCss";
 import NavBar from "./NavBar";
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { copyAndSort } from './Utils';
+import { queryServerInfo } from "./Network";
 
 interface IServerInfo {
     key: string;
@@ -87,7 +88,6 @@ const ServerPage: React.FunctionComponent = () => {
         const newItems = copyAndSort(items, currColumn.key, currColumn.isSortedDescending);
         console.log(newItems);
         setServerListState({
-            ...serverlistState,
             columns: newColumns,
             items: newItems,
         });
@@ -218,7 +218,7 @@ const ServerPage: React.FunctionComponent = () => {
     ];
 
     const [serverlistState, setServerListState] = useState({
-        items: mockServerItems,
+        items: [] as IServerInfo[],
         columns: serverListColumnDefine,
     });
 
@@ -226,6 +226,31 @@ const ServerPage: React.FunctionComponent = () => {
         searchResultColumns: searchResultListColumnDefine,
         searchResult: [] as IEntityInfo[],
     })
+
+    useEffect(() => {
+        let isSubscribed = true;
+        console.log("start fetch server info");
+        const fetchData = async () => {
+            const resp = await queryServerInfo();
+            const serverInfo = resp.serverMailBoxes.map((item, idx, _): IServerInfo => {
+                return {
+                    key: `${idx}`,
+                    serverName: "unknown",
+                    mailbox: `${item.id};${item.ip};${item.port};${item.hostnum}`,
+                    entityCount: -1,
+                    alive: false,
+                }
+            });
+            if (isSubscribed) {
+                setServerListState(pre => {
+                    return { ...pre, items: [...serverInfo], }
+                })
+            }
+        }
+        fetchData().catch(console.error);
+
+        return () => { isSubscribed = false };
+    }, []);
 
     return <Stack horizontal={false} css={css`margin-top: 50px`}>
         <NavBar index={1} />

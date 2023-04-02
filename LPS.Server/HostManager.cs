@@ -36,6 +36,7 @@ namespace LPS.Server;
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json.Serialization;
 using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
@@ -179,19 +180,26 @@ public class HostManager : IInstance
             Consts.GenerateWebManagerQueueName(this.Name),
             (msg, routingKey) =>
             {
-                if (routingKey == Consts.GetServerCntRoutingKey)
+                if (routingKey == Consts.GetServerBasicInfoRoutingKey)
                 {
                     var (msgId, _) = MessageQueueJsonBody.From(msg);
                     var res = MessageQueueJsonBody.Create(
                         msgId,
                         new
                         {
-                            cnt = this.ServerNum,
+                            serverCnt = this.ServerNum,
+                            serverMailBoxes = this.serversConn.Select(conn => new
+                            {
+                                id = conn.MailBox.Id,
+                                ip = conn.MailBox.Ip,
+                                port = conn.MailBox.Port,
+                                hostNum = conn.MailBox.HostNum,
+                            }).ToList(),
                         });
                     this.messageQueueClientToWebMgr.Publish(
                         res.ToJson(),
                         Consts.ServerExchangeName,
-                        Consts.ServerCntResRoutingKey);
+                        Consts.ServerBasicInfoResRoutingKey);
                 }
             });
     }

@@ -24,18 +24,16 @@ public class Untrusted : ServerClientEntity
     /// <summary>
     /// TestRpcProp.
     /// </summary>
-    public readonly RpcComplexProperty<RpcList<string>> TestRpcProp = new (
-        nameof(Untrusted.TestRpcProp),
-        RpcPropertySetting.Permanent | RpcPropertySetting.ServerToShadow,
-        new RpcList<string>(3, "111"));
+    [RpcProperty(nameof(Untrusted.TestRpcProp), RpcPropertySetting.Permanent | RpcPropertySetting.ServerToShadow)]
+    public readonly RpcComplexProperty<RpcList<string>> TestRpcProp = new (new RpcList<string>(3, "111"));
 
     /// <summary>
     /// TestRpcPlaintPropStr.
     /// </summary>
-    public readonly RpcPlaintProperty<string> TestRpcPlaintPropStr = new (
+    [RpcProperty(
         nameof(Untrusted.TestRpcPlaintPropStr),
-        RpcPropertySetting.Permanent | RpcPropertySetting.ServerToShadow,
-        "Hello, LPS");
+        RpcPropertySetting.Permanent | RpcPropertySetting.ServerToShadow)]
+    public readonly RpcPlaintProperty<string> TestRpcPlaintPropStr = new ("Hello, LPS");
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Untrusted"/> class.

@@ -25,33 +25,7 @@ function App() {
   return (
     <div css={appContainer}>
       <RouterProvider router={router}/>
-      
-      {/*  <SubItem>*/}
-      {/*    <h2 css={appSubHeader}>*/}
-      {/*      Server List*/}
-      {/*    </h2>*/}
-      {/*    <StyledTable>*/}
-      {/*      <tr>*/}
-      {/*        <StyledTh>Server Name</StyledTh>*/}
-      {/*        <StyledTh>Server MailBox</StyledTh>*/}
-      {/*        <StyledTh>Entity Count</StyledTh>*/}
-      {/*        <StyledTh>Server Status</StyledTh>*/}
-      {/*        <StyledTh>Operation</StyledTh>*/}
-      {/*      </tr>*/}
-      {/*      <tr>*/}
-      {/*        <StyledTd>server0</StyledTd>*/}
-      {/*        <StyledTd>Xb3vkdh5JN;192.168.0.1;10011;10001</StyledTd>*/}
-      {/*        <StyledTd>2000</StyledTd>*/}
-      {/*        <StyledTd>Alive</StyledTd>*/}
-      {/*        <StyledTd>Refresh</StyledTd>*/}
-      {/*      </tr>*/}
-      {/*    </StyledTable>*/}
-      {/*  </SubItem>*/}
-      
-      {/*  <SubItem>*/}
-      {/*    <h2 css={appSubHeader}>Gate List</h2>*/}
-      {/*  </SubItem>*/}
-      </div>
+    </div>
   );
 }
 

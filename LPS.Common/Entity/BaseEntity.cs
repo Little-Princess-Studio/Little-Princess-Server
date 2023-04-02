@@ -7,6 +7,7 @@
 namespace LPS.Common.Entity;
 
 using LPS.Common.Debug;
+using LPS.Common.Ipc;
 using LPS.Common.Rpc;
 using LPS.Common.Rpc.Attribute;
 using LPS.Common.Rpc.InnerMessages.ProtobufDefs;
@@ -28,8 +29,8 @@ public abstract class BaseEntity
     /// </summary>
     protected Dictionary<string, RpcProperty>? PropertyTree => this.propertyTree;
 
-    private readonly Dictionary<uint, (Action<object>, Type)> rpcDict = new();
-    private readonly Dictionary<uint, Action> rpcBlankDict = new();
+    private readonly AsyncTaskGenerator<object> rpcBlankAsyncTaskGenerator;
+    private readonly AsyncTaskGenerator<object, Type> rpcAsyncTaskGenerator;
     private Dictionary<string, RpcProperty>? propertyTree;
 
     /// <summary>
@@ -58,6 +59,21 @@ public abstract class BaseEntity
     public Action<EntityRpc> OnSend { private get; set; } = null!;
 
     private uint rpcIdCnt;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="BaseEntity"/> class.
+    /// </summary>
+    protected BaseEntity()
+    {
+        this.rpcBlankAsyncTaskGenerator = new AsyncTaskGenerator<object>
+        {
+            OnGenerateAsyncId = () => this.IncreaseRpcIdCnt(),
+        };
+        this.rpcAsyncTaskGenerator = new AsyncTaskGenerator<object, Type>
+        {
+            OnGenerateAsyncId = () => this.IncreaseRpcIdCnt(),
+        };
+    }
 
     /// <summary>
     /// Serialize the entity.
@@ -110,7 +126,7 @@ public abstract class BaseEntity
             throw new Exception("Entity is frozen.");
         }
 
-        var id = this.rpcIdCnt++;
+        var id = this.IncreaseRpcIdCnt();
         var rpcMsg = RpcHelper.BuildRpcMessage(
             id,
             rpcMethodName,
@@ -123,7 +139,7 @@ public abstract class BaseEntity
     }
 
     /// <summary>
-    /// Send RPC call given a RPC id..
+    /// Send RPC call given a RPC id.
     /// </summary>
     /// <param name="rpcId">Rpc Id.</param>
     /// <param name="targetMailBox">Target entity's mailbox.</param>
@@ -172,7 +188,7 @@ public abstract class BaseEntity
     /// <param name="args">Arg list.</param>
     /// <returns>Task.</returns>
     /// <exception cref="Exception">Throw exception if failed to call.</exception>
-    public Task Call(MailBox targetMailBox, string rpcMethodName, RpcType rpcType, params object?[] args)
+    public async Task Call(MailBox targetMailBox, string rpcMethodName, RpcType rpcType, params object?[] args)
     {
         if (this.IsDestroyed)
         {
@@ -184,25 +200,16 @@ public abstract class BaseEntity
             throw new Exception("Entity is frozen.");
         }
 
-        var id = this.rpcIdCnt++;
+        var (task, id) =
+            this.rpcBlankAsyncTaskGenerator.GenerateAsyncTask(
+                5000,
+                (rpcId) => new RpcTimeOutException(this, rpcId));
+
         var rpcMsg = RpcHelper.BuildRpcMessage(
             id, rpcMethodName, this.MailBox, targetMailBox, false, rpcType, args);
 
-        var cancellationTokenSource = new CancellationTokenSource(5000);
-        var source = new TaskCompletionSource();
-
-        cancellationTokenSource.Token.Register(
-            () =>
-            {
-                this.RemoveRpcRecord(id);
-                source.TrySetException(new RpcTimeOutException(this, id));
-            },
-            false);
-
-        this.rpcBlankDict[id] = () => source.TrySetResult();
         this.OnSend.Invoke(rpcMsg);
-
-        return source.Task;
+        await task;
     }
 
     /// <summary>
@@ -212,8 +219,8 @@ public abstract class BaseEntity
     /// <param name="rpcMethodName">Rpc Name.</param>
     /// <param name="args">Arg list.</param>
     /// <returns>Task.</returns>
-    public Task Call(MailBox targetMailBox, string rpcMethodName, params object?[] args) =>
-        this.Call(targetMailBox, rpcMethodName, RpcType.ServerInside, args);
+    public async Task Call(MailBox targetMailBox, string rpcMethodName, params object?[] args) =>
+        await this.Call(targetMailBox, rpcMethodName, RpcType.ServerInside, args);
 
     /// <summary>
     /// Call RPC method.
@@ -225,7 +232,7 @@ public abstract class BaseEntity
     /// <typeparam name="T">Result type.</typeparam>
     /// <returns>Task with result.</returns>
     /// <exception cref="Exception">Throw exception if failed to call.</exception>
-    public Task<T> Call<T>(MailBox targetMailBox, string rpcMethodName, RpcType rpcType, params object?[] args)
+    public async Task<T> Call<T>(MailBox targetMailBox, string rpcMethodName, RpcType rpcType, params object?[] args)
     {
         if (this.IsDestroyed)
         {
@@ -237,25 +244,18 @@ public abstract class BaseEntity
             throw new Exception("Entity is frozen.");
         }
 
-        var id = this.rpcIdCnt++;
+        var (task, id) =
+            this.rpcAsyncTaskGenerator.GenerateAsyncTask(
+                typeof(T),
+                5000,
+                (rpcId) => new RpcTimeOutException(this, rpcId));
+
         var rpcMsg = RpcHelper.BuildRpcMessage(
             id, rpcMethodName, this.MailBox, targetMailBox, false, rpcType, args);
-
-        var cancellationTokenSource = new CancellationTokenSource(5000);
-        var source = new TaskCompletionSource<T>();
-
-        cancellationTokenSource.Token.Register(
-            () =>
-            {
-                this.RemoveRpcRecord(id);
-                source.TrySetException(new RpcTimeOutException(this, id));
-            },
-            false);
-
-        this.rpcDict[id] = (res => source.TrySetResult((T)res), typeof(T));
         this.OnSend.Invoke(rpcMsg);
 
-        return source.Task;
+        var res = await task;
+        return (T)res;
     }
 
     /// <summary>
@@ -266,8 +266,8 @@ public abstract class BaseEntity
     /// <param name="args">Arg list.</param>
     /// <typeparam name="T">Type of result.</typeparam>
     /// <returns>Task.</returns>
-    public Task<T> Call<T>(MailBox targetMailBox, string rpcMethodName, params object?[] args) =>
-        this.Call<T>(targetMailBox, rpcMethodName, RpcType.ServerInside, args);
+    public async Task<T> Call<T>(MailBox targetMailBox, string rpcMethodName, params object?[] args) =>
+        await this.Call<T>(targetMailBox, rpcMethodName, RpcType.ServerInside, args);
 
     /// <summary>
     /// Send a notify RPC to the entity.
@@ -290,7 +290,7 @@ public abstract class BaseEntity
             throw new Exception("Entity is frozen.");
         }
 
-        var id = this.rpcIdCnt++;
+        var id = this.IncreaseRpcIdCnt();
         var rpcMsg = RpcHelper.BuildRpcMessage(
             id, rpcMethodName, this.MailBox, targetMailBox, true, rpcType, args);
         this.OnSend.Invoke(rpcMsg);
@@ -324,33 +324,19 @@ public abstract class BaseEntity
 
     private void RpcAsyncCallBack(uint rpcId, EntityRpc entityRpc)
     {
-        // Logger.Debug($"[RpcAsyncCallBack] {entityRpc}");
-        if (this.rpcDict.ContainsKey(rpcId))
+        if (this.rpcAsyncTaskGenerator.ContainsAsyncId(rpcId))
         {
-            var (callback, returnType) = this.rpcDict[rpcId];
+            var returnType = this.rpcAsyncTaskGenerator.GetDataByAsyncTaskId(rpcId);
             var rpcArg = RpcHelper.ProtoBufAnyToRpcArg(entityRpc.Args[0], returnType);
-            callback.Invoke(rpcArg!);
-            this.rpcDict.Remove(rpcId);
+            this.rpcAsyncTaskGenerator.ResolveAsyncTask(rpcId, rpcArg!);
         }
         else
         {
-            var callback = this.rpcBlankDict[rpcId];
-            callback.Invoke();
-            this.rpcBlankDict.Remove(rpcId);
+            this.rpcBlankAsyncTaskGenerator.ResolveAsyncTask(rpcId, null!);
         }
     }
 
-    private void RemoveRpcRecord(uint rpcId)
-    {
-        if (this.rpcDict.ContainsKey(rpcId))
-        {
-            this.rpcDict.Remove(rpcId);
-        }
-        else
-        {
-            this.rpcBlankDict.Remove(rpcId);
-        }
-    }
+    private uint IncreaseRpcIdCnt() => this.rpcIdCnt++;
 
     /// <summary>
     /// Finalizes an instance of the <see cref="BaseEntity"/> class.

@@ -50,14 +50,15 @@ public class Server : IInstance
     /// <inheritdoc/>
     public InstanceType InstanceType => InstanceType.Server;
 
-    private readonly Dictionary<string, DistributeEntity> localEntityDict = new();
-    private readonly Dictionary<string, CellEntity> cells = new();
+    private readonly Dictionary<string, DistributeEntity> localEntityDict = new Dictionary<string, DistributeEntity>();
+    private readonly Dictionary<string, CellEntity> cells = new Dictionary<string, CellEntity>();
 
-    private readonly ConcurrentQueue<(bool, uint, RpcPropertySyncMessage)> timeCircleQueue = new();
+    private readonly ConcurrentQueue<(bool, uint, RpcPropertySyncMessage)> timeCircleQueue =
+        new ConcurrentQueue<(bool, uint, RpcPropertySyncMessage)>();
 
     // todo: use constant value to init time circle
-    private readonly TimeCircle timeCircle = new(50, 1000);
-    private readonly Random random = new();
+    private readonly TimeCircle timeCircle = new TimeCircle(50, 1000);
+    private readonly Random random = new Random();
 
     private readonly TcpServer tcpServer;
     private readonly TcpClient clientToHostManager;
@@ -78,7 +79,8 @@ public class Server : IInstance
     private uint createEntityCounter;
     private CountdownEvent? gatesMailBoxesRegisteredEvent;
 
-    private Dictionary<uint, TaskCompletionSource<MailBox>> entityCreationTasks = new();
+    private Dictionary<uint, TaskCompletionSource<MailBox>> entityCreationTasks =
+        new Dictionary<uint, TaskCompletionSource<MailBox>>();
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Server"/> class.
@@ -105,8 +107,8 @@ public class Server : IInstance
 
         this.timeCircle.Start();
 
-        this.localEntityGeneratedEvent = new(2);
-        this.hostManagerConnectedEvent = new(1);
+        this.localEntityGeneratedEvent = new CountdownEvent(2);
+        this.hostManagerConnectedEvent = new CountdownEvent(1);
         this.waitForSyncGatesEvent = new CountdownEvent(1);
         this.clientToHostManager = new TcpClient(
             hostManagerIp,
@@ -201,26 +203,14 @@ public class Server : IInstance
         Logger.Debug("wait for gate mailbox registered");
         this.gatesMailBoxesRegisteredEvent!.Wait();
 
-        Logger.Debug("Start mq client.");
-        this.messageQueueClientToWebMgr = new MessageQueueClient();
-        this.messageQueueClientToWebMgr.Init();
-        this.messageQueueClientToWebMgr.AsProducer();
-        this.messageQueueClientToWebMgr.AsConsumer();
-
-        this.messageQueueClientToWebMgr.DeclareExchange("webmgr.exchange");
-        this.messageQueueClientToWebMgr.DeclareExchange("server.exchange");
-        this.messageQueueClientToWebMgr.BindQueueAndExchange($"webmgr_que_{this.Name}", "webmgr.exchange", "#.toServer");
-        this.messageQueueClientToWebMgr.Observe($"webmgr_que_{this.Name}", (msg, routingKey) =>
-        {
-            Logger.Debug($"Msg received from web mgr: {msg}, routingKey: {routingKey}");
-        });
+        this.InitMessageQueueClient();
 
         // gate main thread will stuck here
         this.clientToHostManager.WaitForExit();
         this.tcpServer.WaitForExit();
         this.clientsPumpMsgSandBox.WaitForExit();
 
-        this.messageQueueClientToWebMgr.ShutDown();
+        this.messageQueueClientToWebMgr!.ShutDown();
     }
 
     /// <summary>
@@ -684,6 +674,50 @@ public class Server : IInstance
         else
         {
             throw new Exception($"Entity not exist: {entityId}");
+        }
+    }
+
+    private void InitMessageQueueClient()
+    {
+        Logger.Debug("Start mq client.");
+        this.messageQueueClientToWebMgr = new MessageQueueClient();
+        this.messageQueueClientToWebMgr.Init();
+        this.messageQueueClientToWebMgr.AsProducer();
+        this.messageQueueClientToWebMgr.AsConsumer();
+
+        this.messageQueueClientToWebMgr.DeclareExchange(Consts.WebMgrExchangeName);
+        this.messageQueueClientToWebMgr.DeclareExchange(Consts.ServerExchangeName);
+        this.messageQueueClientToWebMgr.BindQueueAndExchange(
+            Consts.GenerateWebManagerQueueName(this.Name),
+            Consts.WebMgrExchangeName,
+            Consts.RoutingKeyToServer);
+        this.messageQueueClientToWebMgr.Observe(
+            Consts.GenerateWebManagerQueueName(this.Name),
+            this.HandleMqMessage);
+    }
+
+    private void HandleMqMessage(string msg, string routingKey)
+    {
+        Logger.Debug($"Msg received from web mgr: {msg}, routingKey: {routingKey} 123456");
+        if (routingKey == Consts.CollectServerInfo)
+        {
+            var (msgId, _) = MessageQueueJsonBody.From(msg);
+            var res = MessageQueueJsonBody.Create(
+                msgId,
+                new
+                {
+                    name = this.Name,
+                    id = this.entity !.MailBox.Id,
+                    ip = this.Ip,
+                    port = this.Port,
+                    hostnum = this.HostNum,
+                    entitiesCnt = this.localEntityDict.Count,
+                    cellCnt = this.cells.Count,
+                });
+            this.messageQueueClientToWebMgr !.Publish(
+                res.ToJson(),
+                Consts.ServerExchangeName,
+                Consts.ServerInfo);
         }
     }
 }

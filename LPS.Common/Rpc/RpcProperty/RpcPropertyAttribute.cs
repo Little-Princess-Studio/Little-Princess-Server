@@ -12,4 +12,31 @@ namespace LPS.Common.Rpc.RpcProperty;
 [AttributeUsage(AttributeTargets.Field)]
 public class RpcPropertyAttribute : System.Attribute
 {
+    /// <summary>
+    /// Name of the property in the property tree.
+    /// </summary>
+    public readonly string? Name;
+
+    /// <summary>
+    /// Property settings.
+    /// </summary>
+    public readonly RpcPropertySetting Setting;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="RpcPropertyAttribute"/> class.
+    /// </summary>
+    /// <param name="name">Name of the property in the property tree.</param>
+    /// <param name="setting">Property setting.</param>
+    public RpcPropertyAttribute(string name, RpcPropertySetting setting = RpcPropertySetting.None)
+    {
+        this.Name = name;
+        this.Setting = setting;
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="RpcPropertyAttribute"/> class.
+    /// </summary>
+    public RpcPropertyAttribute()
+    {
+    }
 }

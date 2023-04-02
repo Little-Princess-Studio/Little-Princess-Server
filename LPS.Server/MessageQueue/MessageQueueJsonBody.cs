@@ -19,7 +19,7 @@ public class MessageQueueJsonBody
     /// Gets or sets rpc id of json.
     /// </summary>
     [JsonProperty("rpcId")]
-    public int RpcId { get; set; }
+    public uint RpcId { get; set; }
 
     /// <summary>
     /// Gets or sets or the body content of json.
@@ -32,7 +32,7 @@ public class MessageQueueJsonBody
     /// </summary>
     /// <param name="body">Body json string.</param>
     /// <returns>(Rpc id, JToken body) pair.</returns>
-    public static (int RpcId, JObject Body) From(string body)
+    public static (uint RpcId, JObject Body) From(string body)
     {
         var rawBody = JsonConvert.DeserializeObject<MessageQueueJsonBody>(body);
         var rpcId = rawBody !.RpcId;
@@ -46,7 +46,7 @@ public class MessageQueueJsonBody
     /// <param name="rpcId">Rpc id.</param>
     /// <param name="obj">Obj to convert to string body content.</param>
     /// <returns>Instance of MessageQueueJsonBody.</returns>
-    public static MessageQueueJsonBody Create(int rpcId, object obj)
+    public static MessageQueueJsonBody Create(uint rpcId, object obj)
     {
         var body = JObject.FromObject(obj);
         return new MessageQueueJsonBody(rpcId, body);
@@ -62,7 +62,7 @@ public class MessageQueueJsonBody
     }
 
     [JsonConstructor]
-    private MessageQueueJsonBody(int rpcId, JObject body)
+    private MessageQueueJsonBody(uint rpcId, JObject body)
     {
         this.RpcId = rpcId;
         this.Body = body;

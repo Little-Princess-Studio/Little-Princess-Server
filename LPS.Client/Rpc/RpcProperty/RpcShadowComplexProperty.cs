@@ -19,9 +19,23 @@ public class RpcShadowComplexProperty<T> : RpcComplexPropertyBase<T>
     /// <summary>
     /// Initializes a new instance of the <see cref="RpcShadowComplexProperty{T}"/> class.
     /// </summary>
-    /// <param name="name">Name of the property.</param>
-    public RpcShadowComplexProperty(string name)
-        : base(name, RpcPropertySetting.Shadow, null!)
+    public RpcShadowComplexProperty()
+        : base(null!)
     {
+    }
+
+    /// <summary>
+    /// Init shadow property name.
+    /// </summary>
+    /// <param name="name">Name of the shadow property.</param>
+    public void Init(string name)
+    {
+        base.Init(name, RpcPropertySetting.Shadow);
+    }
+
+    /// <inheritdoc/>
+    public override void Init(string name, RpcPropertySetting setting)
+    {
+        base.Init(name, RpcPropertySetting.Shadow);
     }
 }

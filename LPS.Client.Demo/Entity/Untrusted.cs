@@ -8,6 +8,7 @@ namespace LPS.Client.Demo.Entity;
 
 using Common.Debug;
 using Common.Rpc;
+using Common.Rpc.RpcProperty;
 using LPS.Client.Entity;
 using LPS.Client.Rpc.RpcProperty;
 using LPS.Common.Rpc.Attribute;
@@ -22,14 +23,14 @@ public class Untrusted : ShadowClientEntity
     /// <summary>
     /// Test property.
     /// </summary>
-    public readonly RpcShadowComplexProperty<RpcList<string>> TestRpcProp =
-        new (nameof(Untrusted.TestRpcProp));
+    [RpcProperty(nameof(TestRpcProp))]
+    public readonly RpcShadowComplexProperty<RpcList<string>> TestRpcProp = new ();
 
     /// <summary>
     /// Test property.
     /// </summary>
-    public readonly RpcShadowPlaintProperty<string> TestRpcPlaintPropStr =
-        new (nameof(Untrusted.TestRpcPlaintPropStr));
+    [RpcProperty(nameof(TestRpcPlaintPropStr))]
+    public readonly RpcShadowPlaintProperty<string> TestRpcPlaintPropStr = new ();
 
     /// <summary>
     /// Try to login.

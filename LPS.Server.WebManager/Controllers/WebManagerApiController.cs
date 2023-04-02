@@ -1,6 +1,7 @@
 ﻿namespace LPS.Server.WebManager.Controllers;
 
 using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json.Linq;
 using Services;
 
 [ApiController]
@@ -14,14 +15,17 @@ public class WebManagerApiController : Controller
         this.serverService = serverService;
     }
 
-    [HttpGet("server-info")]
-    public async Task<IActionResult> ServerInfo()
+    [HttpGet("server-basic-info")]
+    public async Task<IActionResult> ServerBasicInfo()
     {
-        var cnt = await this.serverService.GetServerCnt();
-        return this.Ok(new
+        var basicInfo = await this.serverService.GetServerBasicInfo();
+
+        var jObjectRes = new JObject
         {
-            res = "Ok",
-            serverCnt = cnt,
-        });
+            ["res"] = "Ok",
+            ["serverInfo"] = basicInfo,
+        };
+
+        return this.Content(jObjectRes.ToString());
     }
 }

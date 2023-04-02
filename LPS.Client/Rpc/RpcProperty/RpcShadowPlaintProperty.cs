@@ -17,9 +17,23 @@ public class RpcShadowPlaintProperty<T> : RpcPlaintPropertyBase<T>
     /// <summary>
     /// Initializes a new instance of the <see cref="RpcShadowPlaintProperty{T}"/> class.
     /// </summary>
-    /// <param name="name">Name of the property.</param>
-    public RpcShadowPlaintProperty(string name)
-        : base(name, RpcPropertySetting.Shadow, default(T)!)
+    public RpcShadowPlaintProperty()
+        : base(default(T)!)
     {
+    }
+
+    /// <summary>
+    /// Init shadow property name.
+    /// </summary>
+    /// <param name="name">Name of the shadow property.</param>
+    public void Init(string name)
+    {
+        base.Init(name, RpcPropertySetting.Shadow);
+    }
+
+    /// <inheritdoc/>
+    public override void Init(string name, RpcPropertySetting setting)
+    {
+        base.Init(name, RpcPropertySetting.Shadow);
     }
 }

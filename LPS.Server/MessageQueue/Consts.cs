@@ -24,17 +24,32 @@ public static class Consts
     /// <summary>
     /// Routing key from web manager.
     /// </summary>
-    public const string GetServerCntRoutingKey = "getServerCnt.toHostMgr";
+    public const string GetServerBasicInfoRoutingKey = "getServerBasicInfo.toHostMgr";
+
+    /// <summary>
+    /// Request to collection server info.
+    /// </summary>
+    public const string CollectServerInfo = "collectionServerInfo.toSrv";
+
+    /// <summary>
+    /// Server info res.
+    /// </summary>
+    public const string ServerInfo = "serverInfo.toWebMgr";
 
     /// <summary>
     /// Server count result routing key to web manager.
     /// </summary>
-    public const string ServerCntResRoutingKey = "serverCnt.toWebMgr";
+    public const string ServerBasicInfoResRoutingKey = "serverBasicInfoRes.toWebMgr";
 
     /// <summary>
     /// Routing keys to host manager.
     /// </summary>
     public const string RoutingKeyToHostManager = "#.toHostMgr";
+
+    /// <summary>
+    /// Routing keys to server.
+    /// </summary>
+    public const string RoutingKeyToServer = "#.toSrv";
 
     /// <summary>
     /// Routing keys to web manager.

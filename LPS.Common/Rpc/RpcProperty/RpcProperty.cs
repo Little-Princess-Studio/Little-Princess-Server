@@ -38,7 +38,6 @@ namespace LPS.Common.Rpc.RpcProperty;
  *
  * LPS selected the third way to implement the property system.
  */
-
 using Google.Protobuf.Collections;
 using Google.Protobuf.WellKnownTypes;
 using LPS.Common.Debug;
@@ -142,14 +141,14 @@ public enum RpcPropertySetting
 public abstract class RpcProperty
 {
     /// <summary>
-    /// Property name.
+    /// Gets the property name.
     /// </summary>
-    public readonly string Name;
+    public string Name { get; private set; }
 
     /// <summary>
-    /// Property settings.
+    /// Gets the property settings.
     /// </summary>
-    public readonly RpcPropertySetting Setting;
+    public RpcPropertySetting Setting { get; private set; }
 
     /// <summary>
     /// Gets or sets the owner of the property.
@@ -185,13 +184,9 @@ public abstract class RpcProperty
     /// <summary>
     /// Initializes a new instance of the <see cref="RpcProperty"/> class.
     /// </summary>
-    /// <param name="name">Name of the property.</param>
-    /// <param name="setting">Sync settings of the property.</param>
     /// <param name="value">Initial value of the property.</param>
-    protected RpcProperty(string name, RpcPropertySetting setting, RpcPropertyContainer value)
+    protected RpcProperty(RpcPropertyContainer value)
     {
-        this.Name = name;
-        this.Setting = setting;
         this.Value = value;
     }
 
@@ -208,6 +203,17 @@ public abstract class RpcProperty
     public abstract void FromProtobuf(Any content);
 
     /// <summary>
+    /// Init this RpcProperty.
+    /// </summary>
+    /// <param name="name">Name of the rpc property in property tree.</param>
+    /// <param name="setting">Setting of the rpc property.</param>
+    public virtual void Init(string name, RpcPropertySetting setting)
+    {
+        this.Name = name;
+        this.Setting = setting;
+    }
+
+    /// <summary>
     /// Callback when need be notifed property modification.
     /// </summary>
     /// <param name="operation">Modification operation.</param>
@@ -215,7 +221,7 @@ public abstract class RpcProperty
     /// <param name="new">New value.</param>
     /// <param name="propertyType">Type of the property.</param>
     /// <exception cref="ArgumentOutOfRangeException">ArgumentOutOfRangeException.</exception>
-    public void OnNotify(
+    internal void OnNotify(
         RpcPropertySyncOperation operation,
         List<string> path,
         RpcPropertyContainer? @new,

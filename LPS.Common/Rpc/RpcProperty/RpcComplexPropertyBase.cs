@@ -31,19 +31,10 @@ public class RpcComplexPropertyBase<T> : RpcProperty
     /// <summary>
     /// Initializes a new instance of the <see cref="RpcComplexPropertyBase{T}"/> class.
     /// </summary>
-    /// <param name="name">Name of the property.</param>
-    /// <param name="setting">Setting of the property.</param>
     /// <param name="value">Raw value of the property.</param>
-    public RpcComplexPropertyBase(string name, RpcPropertySetting setting, T value)
-        : base(name, setting, value)
+    public RpcComplexPropertyBase(T value)
+        : base(value)
     {
-        if (!this.IsShadowProperty)
-        {
-            this.Value.Name = name;
-            this.Value.IsReferred = true;
-
-            this.Value.UpdateTopOwner(this);
-        }
     }
 
     public static implicit operator T(RpcComplexPropertyBase<T> complex) => complex.Val;
@@ -72,6 +63,19 @@ public class RpcComplexPropertyBase<T> : RpcProperty
 
         this.Value = (T)RpcHelper.CreateRpcPropertyContainerByType(typeof(T), content);
         this.Val.InsertToPropTree(null, this.Name, this);
+    }
+
+    /// <inheritdoc/>
+    public override void Init(string name, RpcPropertySetting setting)
+    {
+        base.Init(name, setting);
+        if (!this.IsShadowProperty)
+        {
+            this.Value.Name = name;
+            this.Value.IsReferred = true;
+
+            this.Value.UpdateTopOwner(this);
+        }
     }
 
     private void Set(T value)

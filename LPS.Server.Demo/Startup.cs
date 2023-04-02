@@ -24,6 +24,9 @@ public class Startup
     {
         [Option('p', "paths", Required = true, HelpText = "Set startup config pathes.")]
         public List<string> Pathes { get; set; }
+
+        [Option('h', "hotreload", Required = true, HelpText = "Set if hot reload enabled.")]
+        public bool HotReload { get; set; }
     }
 
     /// <summary>
@@ -32,6 +35,8 @@ public class Startup
     [Verb("bydefault", HelpText = "Startup by default")]
     private class ByDefaultOptions
     {
+        [Option('h', "hotreload", Required = false, HelpText = "Set if hot reload enabled.")]
+        public bool HotReload { get; set; }
     }
 
     /// <summary>
@@ -65,7 +70,7 @@ public class Startup
                     foreach (var path in opts.Pathes)
                     {
                         Logger.Info($"Parsing Config {path}");
-                        StartupManager.FromConfig(path);
+                        StartupManager.FromConfig(path, opts.HotReload);
                     }
 
                     Logger.Info("Start up succ");
@@ -75,7 +80,7 @@ public class Startup
                 {
                     Logger.Init("startup");
                     Logger.Info("Start up by default");
-                    StartupByDefault();
+                    StartupByDefault(opts.HotReload);
                     Logger.Info("Start up succ");
                     return true;
                 },
@@ -103,11 +108,11 @@ public class Startup
         Thread.Sleep(10000);
     }
 
-    private static void StartupByDefault()
+    private static void StartupByDefault(bool hotreload)
     {
-        StartupManager.FromConfig("Config/host0/hostmanager.conf.json");
-        StartupManager.FromConfig("Config/host0/gate.conf.json");
-        StartupManager.FromConfig("Config/host0/server.conf.json");
-        StartupManager.FromConfig("Config/host0/dbmanager.conf.json");
+        StartupManager.FromConfig("Config/host0/hostmanager.conf.json", hotreload);
+        StartupManager.FromConfig("Config/host0/gate.conf.json", hotreload);
+        StartupManager.FromConfig("Config/host0/server.conf.json", hotreload);
+        StartupManager.FromConfig("Config/host0/dbmanager.conf.json", hotreload);
     }
 }

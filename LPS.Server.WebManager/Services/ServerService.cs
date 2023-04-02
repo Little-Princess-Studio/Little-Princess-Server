@@ -3,11 +3,16 @@
 using Common.Debug;
 using LPS.Common.Ipc;
 using LPS.Server.MessageQueue;
+using Newtonsoft.Json.Linq;
+using ServerInfoData = ValueTuple<int, List<Newtonsoft.Json.Linq.JObject>>;
 
 public class ServerService
 {
     private readonly MessageQueueClient client = new MessageQueueClient();
-    private readonly AsyncTaskGenerator<int> asyncTaskGeneratorForServerCnt = new AsyncTaskGenerator<int>();
+    private readonly AsyncTaskGenerator<JObject> asyncTaskGeneratorForServerCnt = new AsyncTaskGenerator<JObject>();
+
+    private readonly AsyncTaskGenerator<List<JObject>, ServerInfoData>
+        asyncTaskGenerateForGetServerInfo = new AsyncTaskGenerator<List<JObject>, ServerInfoData>();
 
     public void Init()
     {
@@ -20,26 +25,58 @@ public class ServerService
             Consts.WebManagerQueueName,
             Consts.ServerExchangeName,
             Consts.RoutingKeyToWebManager);
-        this.client.Observe(Consts.WebManagerQueueName, this.HandleMessage);
+        this.client.Observe(Consts.WebManagerQueueName, this.HandleMqMessage);
     }
 
     /// <summary>
     /// Get server cnt from server host manager.
     /// </summary>
     /// <returns>Server cnt.</returns>
-    public Task<int> GetServerCnt()
+    public Task<JObject> GetServerBasicInfo()
     {
-        return this.SendMessage(new { }, Consts.GetServerCntRoutingKey, this.asyncTaskGeneratorForServerCnt);
+        return this.SendMessage(new { }, Consts.GetServerBasicInfoRoutingKey, this.asyncTaskGeneratorForServerCnt);
     }
 
-    private void HandleMessage(string msg, string routingKey)
+    /// <summary>
+    /// Get server info.
+    /// </summary>
+    /// <param name="targetServerCnt">Cnt of the server info.</param>
+    /// <returns></returns>
+    public Task<List<JObject>> GetServerInfo(int targetServerCnt)
+    {
+        return this.SendMessage(
+            new { },
+            Consts.CollectServerInfo,
+            this.asyncTaskGenerateForGetServerInfo,
+            (targetServerCnt, new List<JObject>()));
+    }
+
+    private void HandleMqMessage(string msg, string routingKey)
     {
         Logger.Debug($"message received, {msg}, {routingKey}");
-        if (routingKey == Consts.ServerCntResRoutingKey)
+        if (routingKey == Consts.ServerBasicInfoResRoutingKey)
         {
             var (rpcId, json) = MessageQueueJsonBody.From(msg);
-            var cnt = json["cnt"] !.ToObject<int>();
-            this.asyncTaskGeneratorForServerCnt.ResolveAsyncTask(rpcId, cnt);
+            this.asyncTaskGeneratorForServerCnt.ResolveAsyncTask(rpcId, json);
+        }
+        else if (routingKey == Consts.ServerInfo)
+        {
+            var (rpcId, json) = MessageQueueJsonBody.From(msg);
+            var (totalCnt, svrInfoList) = this.asyncTaskGenerateForGetServerInfo.GetDataByAsyncTaskId(rpcId);
+
+            svrInfoList.Add(json);
+
+            --totalCnt;
+            if (totalCnt == 0)
+            {
+                this.asyncTaskGenerateForGetServerInfo.ResolveAsyncTask(
+                    rpcId, 
+                    svrInfoList);
+            }
+            else
+            {
+                this.asyncTaskGenerateForGetServerInfo.UpdateDataByAsyncTaskId(rpcId, (totalCnt, svrInfoList));
+            }
         }
     }
 
@@ -47,6 +84,18 @@ public class ServerService
         AsyncTaskGenerator<TResult> asyncTaskGenerator)
     {
         var (task, id) = asyncTaskGenerator.GenerateAsyncTask();
+        var msg = MessageQueueJsonBody.Create(id, body).ToJson();
+        this.client.Publish(msg, Consts.WebMgrExchangeName, routingKey);
+        return task;
+    }
+
+    private Task<TResult> SendMessage<TResult, TData>(
+        object body,
+        string routingKey,
+        AsyncTaskGenerator<TResult, TData> asyncTaskGenerator,
+        TData data)
+    {
+        var (task, id) = asyncTaskGenerator.GenerateAsyncTask(data);
         var msg = MessageQueueJsonBody.Create(id, body).ToJson();
         this.client.Publish(msg, Consts.WebMgrExchangeName, routingKey);
         return task;

@@ -13,6 +13,7 @@ using System.Reflection;
 using System.Threading.Tasks;
 using LPS.Common.Entity;
 using LPS.Common.Rpc;
+using LPS.Common.Rpc.RpcProperty;
 using LPS.Server.Entity;
 using LPS.Server.Rpc.RpcProperty;
 
@@ -123,6 +124,12 @@ public static class RpcServerHelper
             {
                 var fieldType = field.FieldType;
 
+                var attr = field.GetCustomAttribute<RpcPropertyAttribute>();
+                if (attr == null)
+                {
+                    return false;
+                }
+
                 if (!fieldType.IsGenericType)
                 {
                     return false;
@@ -137,6 +144,10 @@ public static class RpcServerHelper
                 {
                     return false;
                 }
+
+                var rpcProperty = field.GetValue(entity) as Common.Rpc.RpcProperty.RpcProperty;
+
+                rpcProperty!.Init(attr.Name ?? fieldType.Name, attr.Setting);
 
                 return true;
             }).ToDictionary(

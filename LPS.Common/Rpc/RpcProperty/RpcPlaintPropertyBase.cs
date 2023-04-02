@@ -32,17 +32,21 @@ public abstract class RpcPlaintPropertyBase<T> : RpcProperty
     /// <summary>
     /// Initializes a new instance of the <see cref="RpcPlaintPropertyBase{T}"/> class.
     /// </summary>
-    /// <param name="name">Nmae of the property.</param>
-    /// <param name="setting">Setting of the property.</param>
     /// <param name="value">Value of the property.</param>
-    protected RpcPlaintPropertyBase(string name, RpcPropertySetting setting, T value)
-        : base(name, setting, new RpcPropertyContainer<T>(value))
+    protected RpcPlaintPropertyBase(T value)
+        : base(new RpcPropertyContainer<T>(value))
     {
+    }
+
+    /// <inheritdoc/>
+    public override void Init(string name, RpcPropertySetting setting)
+    {
+        base.Init(name, setting);
         this.Value.Name = name;
     }
 
     private RpcPlaintPropertyBase()
-        : base(string.Empty, RpcPropertySetting.None, null!)
+        : base(null!)
     {
         throw new Exception("Invalid RpcPlaintProperty Construction.");
     }

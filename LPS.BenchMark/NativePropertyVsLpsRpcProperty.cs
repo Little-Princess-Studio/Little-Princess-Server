@@ -8,6 +8,7 @@ namespace LPS.BenchMark;
 
 using BenchmarkDotNet.Attributes;
 using LPS.Common.Rpc.RpcProperty;
+using LPS.Server.Rpc.RpcProperty;
 
 /// <summary>
 /// Benchmark class.
@@ -16,7 +17,7 @@ using LPS.Common.Rpc.RpcProperty;
 [ThreadingDiagnoser]
 public class NativePropertyVsLpsRpcProperty
 {
-    private readonly RpcComplexPropertyBase<CostumeRpcContainerProperty1> rpcProp;
+    private readonly RpcComplexProperty<CostumeRpcContainerProperty1> rpcProp;
     private readonly NativeProperty1 rpcNativeProp;
 
     [Params(1, 10, 100, 1000, 10000)]
@@ -28,12 +29,10 @@ public class NativePropertyVsLpsRpcProperty
     public NativePropertyVsLpsRpcProperty()
     {
         var costumeRpcContainerProp = new CostumeRpcContainerProperty1();
-        this.rpcProp = new(
-            "test_costume_rpc_prop",
-            RpcPropertySetting.FastSync,
-            costumeRpcContainerProp);
+        this.rpcProp = new RpcComplexProperty<CostumeRpcContainerProperty1>(costumeRpcContainerProp);
+        this.rpcProp.Init("test_costume_rpc_prop", RpcPropertySetting.FastSync);
 
-        this.rpcNativeProp = new();
+        this.rpcNativeProp = new NativeProperty1();
     }
 
     /// <summary>

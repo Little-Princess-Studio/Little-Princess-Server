@@ -26,8 +26,9 @@ public static class StartupManager
     /// Startup a process via config file.
     /// </summary>
     /// <param name="path">Config file path.</param>
+    /// <param name="hotreaload">If enable hotreload for process.</param>
     /// <exception cref="Exception">Throw exception if failed to startup a process.</exception>
-    public static void FromConfig(string path)
+    public static void FromConfig(string path, bool hotreaload)
     {
         var json = GetJson(path);
         var type = json["type"]?.ToString();
@@ -37,16 +38,16 @@ public static class StartupManager
             switch (type)
             {
                 case "hostmanager":
-                    HandleHostManagerConf(type, path, json);
+                    HandleHostManagerConf(type, path, json, hotreaload);
                     break;
                 case "dbmanager":
-                    HandleDbManagerConf(type, path, json);
+                    HandleDbManagerConf(type, path, json, hotreaload);
                     break;
                 case "gate":
-                    HandleGateConf(type, path, json);
+                    HandleGateConf(type, path, json, hotreaload);
                     break;
                 case "server":
-                    HandleServerConf(type, path, json);
+                    HandleServerConf(type, path, json, hotreaload);
                     break;
                 default:
                     throw new Exception($"Wrong Config File {path}.");
@@ -98,16 +99,16 @@ public static class StartupManager
         return json;
     }
 
-    private static void HandleDbManagerConf(string type, string confFilePath, JObject json)
+    private static void HandleDbManagerConf(string type, string confFilePath, JObject json, bool hotreload)
     {
         Logger.Info("startup dbmanager");
 
         var name = "dbmanager";
         var relativePath = GetBinPath();
-        StartSubProcess(type, name, confFilePath, relativePath);
+        StartSubProcess(type, name, confFilePath, relativePath, hotreload);
     }
 
-    private static void HandleGateConf(string type, string confFilePath, JObject json)
+    private static void HandleGateConf(string type, string confFilePath, JObject json, bool hotreload)
     {
         Logger.Info("startup gates");
 
@@ -116,20 +117,20 @@ public static class StartupManager
         var relativePath = GetBinPath();
         foreach (var name in dict!.Keys)
         {
-            StartSubProcess(type, name, confFilePath, relativePath);
+            StartSubProcess(type, name, confFilePath, relativePath, hotreload);
         }
     }
 
-    private static void HandleHostManagerConf(string type, string confFilePath, JObject json)
+    private static void HandleHostManagerConf(string type, string confFilePath, JObject json, bool hotreload)
     {
         Logger.Info("startup hostmanager");
 
         var name = "hostmanager";
         var relativePath = GetBinPath();
-        StartSubProcess(type, name, confFilePath, relativePath);
+        StartSubProcess(type, name, confFilePath, relativePath, hotreload);
     }
 
-    private static void HandleServerConf(string type, string confFilePath, JObject json)
+    private static void HandleServerConf(string type, string confFilePath, JObject json, bool hotreload)
     {
         Logger.Info("startup servers");
 
@@ -138,33 +139,59 @@ public static class StartupManager
         var relativePath = GetBinPath();
         foreach (var name in dict!.Keys)
         {
-            StartSubProcess(type, name, confFilePath, relativePath);
+            StartSubProcess(type, name, confFilePath, relativePath, hotreload);
         }
     }
 
-    private static void StartSubProcess(string type, string name, string confFilePath, string binaryPath)
+    private static void StartSubProcess(
+        string type, string name, string confFilePath, string binaryPath, bool hotreload)
     {
         Logger.Info($"startup {name}");
 
         ProcessStartInfo procStartInfo;
         if (Environment.OSVersion.Platform == PlatformID.Unix)
         {
-            procStartInfo = new ProcessStartInfo()
+            if (!hotreload)
             {
-                FileName = binaryPath,
-                Arguments = $"subproc --type {type} --confpath {confFilePath} --childname {name}",
-                UseShellExecute = true,
-            };
+                procStartInfo = new ProcessStartInfo()
+                {
+                    FileName = binaryPath,
+                    Arguments = $"subproc --type {type} --confpath {confFilePath} --childname {name}",
+                    UseShellExecute = true,
+                };
+            }
+            else
+            {
+                procStartInfo = new ProcessStartInfo()
+                {
+                    FileName = "dotnet",
+                    Arguments = $"watch run subproc --type {type} --confpath {confFilePath} --childname {name}",
+                    UseShellExecute = true,
+                };
+            }
         }
         else
         {
-            procStartInfo = new ProcessStartInfo()
+            if (!hotreload)
             {
-                FileName = "dotnet",
-                Arguments = $"{binaryPath} subproc --type {type} --confpath {confFilePath} --childname {name}",
-                UseShellExecute = true,
-                CreateNoWindow = false,
-            };
+                procStartInfo = new ProcessStartInfo()
+                {
+                    FileName = "dotnet",
+                    Arguments = $"{binaryPath} subproc --type {type} --confpath {confFilePath} --childname {name}",
+                    UseShellExecute = true,
+                    CreateNoWindow = false,
+                };
+            }
+            else
+            {
+                procStartInfo = new ProcessStartInfo()
+                {
+                    FileName = "dotnet",
+                    Arguments = $"watch run subproc --type {type} --confpath {confFilePath} --childname {name}",
+                    UseShellExecute = true,
+                    CreateNoWindow = false,
+                };
+            }
         }
 
         Process.Start(procStartInfo);

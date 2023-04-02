@@ -57,45 +57,44 @@ public class RpcPropertyUnitTest
 
     private class TestEntity : DistributeEntity
     {
-        public readonly RpcComplexProperty<RpcList<string>> TestRpcProp = new(
-            nameof(TestEntity.TestRpcProp),
-            RpcPropertySetting.Permanent | RpcPropertySetting.ServerToShadow,
-            new RpcList<string>());
+        [RpcProperty(nameof(TestEntity.TestRpcProp), RpcPropertySetting.Permanent | RpcPropertySetting.ServerToShadow)]
+        public readonly RpcComplexProperty<RpcList<string>> TestRpcProp = new(new RpcList<string>());
 
-        public readonly RpcPlaintProperty<string> TestRpcPlaintPropStr = new(
+        [RpcProperty(
             nameof(TestEntity.TestRpcPlaintPropStr),
-            RpcPropertySetting.Permanent | RpcPropertySetting.ServerToShadow,
-            string.Empty);
+            RpcPropertySetting.Permanent | RpcPropertySetting.ServerToShadow)]
+        public readonly RpcPlaintProperty<string> TestRpcPlaintPropStr = new(string.Empty);
 
-        public readonly RpcComplexProperty<CostumeRpcContainerProperty1> TestCostumeRpcContainerProperty1 = new(
+        [RpcProperty(
             nameof(TestCostumeRpcContainerProperty1),
-            RpcPropertySetting.Permanent | RpcPropertySetting.ServerToShadow,
-            new());
+            RpcPropertySetting.Permanent | RpcPropertySetting.ServerToShadow)]
+        public readonly RpcComplexProperty<CostumeRpcContainerProperty1>
+            TestCostumeRpcContainerProperty1 = new(new());
 
-        public readonly RpcComplexProperty<CostumeRpcContainerProperty2> TestCostumeRpcContainerProperty2 = new(
+        [RpcProperty(
             nameof(TestCostumeRpcContainerProperty2),
-            RpcPropertySetting.Permanent | RpcPropertySetting.ServerToShadow,
-            new());
+            RpcPropertySetting.Permanent | RpcPropertySetting.ServerToShadow)]
+        public readonly RpcComplexProperty<CostumeRpcContainerProperty2> TestCostumeRpcContainerProperty2 = new(new());
 
-        public readonly RpcComplexProperty<RpcDictionary<string, RpcList<int>>> TestComplexRpcProp = new(
+        [RpcProperty(
             nameof(TestComplexRpcProp),
-            RpcPropertySetting.Permanent | RpcPropertySetting.ServerToShadow,
-            new());
+            RpcPropertySetting.Permanent | RpcPropertySetting.ServerToShadow)]
+        public readonly RpcComplexProperty<RpcDictionary<string, RpcList<int>>> TestComplexRpcProp = new(new());
     }
 
     private class TestShadowEntity : ShadowEntity
     {
-        public readonly RpcShadowComplexProperty<RpcList<string>> TestRpcProp =
-            new((string)nameof(TestRpcProp));
+        [RpcProperty(nameof(TestRpcProp))]
+        public readonly RpcShadowComplexProperty<RpcList<string>> TestRpcProp = new();
 
-        public readonly RpcShadowPlaintProperty<string> TestRpcPlaintPropStr =
-            new((string)nameof(TestRpcPlaintPropStr));
+        [RpcProperty(nameof(TestRpcPlaintPropStr))]
+        public readonly RpcShadowPlaintProperty<string> TestRpcPlaintPropStr = new();
 
-        public readonly RpcShadowComplexProperty<CostumeRpcContainerProperty1> TestCostumeRpcContainerProperty1 =
-            new((string)nameof(TestCostumeRpcContainerProperty1));
+        [RpcProperty(nameof(TestCostumeRpcContainerProperty1))]
+        public readonly RpcShadowComplexProperty<CostumeRpcContainerProperty1> TestCostumeRpcContainerProperty1 = new();
 
-        public readonly RpcShadowComplexProperty<CostumeRpcContainerProperty2> TestCostumeRpcContainerProperty2 =
-            new((string)nameof(TestCostumeRpcContainerProperty2));
+        [RpcProperty(nameof(TestCostumeRpcContainerProperty2))]
+        public readonly RpcShadowComplexProperty<CostumeRpcContainerProperty2> TestCostumeRpcContainerProperty2 = new();
     }
 
     /// <summary>
@@ -112,10 +111,8 @@ public class RpcPropertyUnitTest
     [Fact]
     public void TestRpcList()
     {
-        RpcComplexProperty<RpcList<string>> rpcProp = new(
-            "test_list_prop",
-            RpcPropertySetting.Permanent,
-            new RpcList<string>());
+        RpcComplexProperty<RpcList<string>> rpcProp = new(new RpcList<string>());
+        rpcProp.Init("test_list_prop", RpcPropertySetting.Permanent);
         rpcProp.Val.Add("123");
 
         RpcList<string> rpcList = rpcProp;
@@ -131,7 +128,8 @@ public class RpcPropertyUnitTest
     [Fact]
     public void TestRpcString()
     {
-        RpcPlaintProperty<string> rpcPlaintStrProp = new("test_str_prop", RpcPropertySetting.Permanent, string.Empty);
+        RpcPlaintProperty<string> rpcPlaintStrProp = new(string.Empty);
+        rpcPlaintStrProp.Init("test_str_prop", RpcPropertySetting.Permanent);
         rpcPlaintStrProp.Val = "321";
         Assert.True(rpcPlaintStrProp.Val == "321");
     }
@@ -142,10 +140,8 @@ public class RpcPropertyUnitTest
     [Fact]
     public void TestRpcDict()
     {
-        RpcComplexProperty<RpcDictionary<string, int>> rpcProp = new(
-            "test_dict_prop",
-            RpcPropertySetting.ServerOnly,
-            new RpcDictionary<string, int>());
+        RpcComplexProperty<RpcDictionary<string, int>> rpcProp = new(new RpcDictionary<string, int>());
+        rpcProp.Init("test_dict_prop", RpcPropertySetting.ServerOnly);
         rpcProp.Val["test_key_1"] = 123;
 
         RpcDictionary<string, int> rpcDict = rpcProp;
@@ -165,7 +161,7 @@ public class RpcPropertyUnitTest
         var rpcList2 = new RpcList<int>();
 
         RpcComplexProperty<RpcDictionary<string, RpcDictionary<int, RpcList<int>>>> rpcProp =
-            new("test_dict_prop", RpcPropertySetting.ServerOnly, new())
+            new(new())
             {
                 Val =
                 {
@@ -175,6 +171,8 @@ public class RpcPropertyUnitTest
                     },
                 },
             };
+
+        rpcProp.Init("test_dict_prop", RpcPropertySetting.ServerOnly);
 
         rpcProp.Val["n1"][123] = rpcList2;
         rpcProp.Val["n1"][123].Add(333);
@@ -191,8 +189,8 @@ public class RpcPropertyUnitTest
     public void TestCostumeRpcProp()
     {
         var costumeRpcContainerProp = new CostumeRpcContainerProperty1();
-        RpcComplexProperty<CostumeRpcContainerProperty1> rpcProp =
-            new("test_costume_rpc_prop", RpcPropertySetting.FastSync, costumeRpcContainerProp);
+        RpcComplexProperty<CostumeRpcContainerProperty1> rpcProp = new(costumeRpcContainerProp);
+        rpcProp.Init("test_costume_rpc_prop", RpcPropertySetting.FastSync);
 
         rpcProp.Val.SubListProperty.Add("111");
 

@@ -64,12 +64,22 @@ public static class RpcClientHelper
                     return false;
                 }
 
+                var attr = field.GetCustomAttribute<RpcPropertyAttribute>();
+                if (attr == null)
+                {
+                    return false;
+                }
+
                 var genType = fieldType.GetGenericTypeDefinition();
                 if (genType != typeof(RpcShadowComplexProperty<>)
                     && genType != typeof(RpcShadowPlaintProperty<>))
                 {
                     return false;
                 }
+
+                var rpcProperty = field.GetValue(entity) as Common.Rpc.RpcProperty.RpcProperty;
+
+                rpcProperty!.Init(attr.Name ?? fieldType.Name, attr.Setting);
 
                 return true;
             }).ToDictionary(
