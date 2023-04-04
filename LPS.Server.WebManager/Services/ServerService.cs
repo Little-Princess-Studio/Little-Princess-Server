@@ -4,15 +4,12 @@ using Common.Debug;
 using LPS.Common.Ipc;
 using LPS.Server.MessageQueue;
 using Newtonsoft.Json.Linq;
-using ServerInfoData = ValueTuple<int, List<Newtonsoft.Json.Linq.JObject>>;
+using ServerInfoData = ValueTuple<int, List<Newtonsoft.Json.Linq.JToken>>;
 
 public class ServerService
 {
     private readonly MessageQueueClient client = new MessageQueueClient();
-    private readonly AsyncTaskGenerator<JObject> asyncTaskGeneratorForServerCnt = new AsyncTaskGenerator<JObject>();
-
-    private readonly AsyncTaskGenerator<List<JObject>, ServerInfoData>
-        asyncTaskGenerateForGetServerInfo = new AsyncTaskGenerator<List<JObject>, ServerInfoData>();
+    private readonly AsyncTaskGenerator<JToken> asyncTaskGeneratorForJObjectRes = new AsyncTaskGenerator<JToken>();
 
     public void Init()
     {
@@ -32,55 +29,54 @@ public class ServerService
     /// Get server cnt from server host manager.
     /// </summary>
     /// <returns>Server cnt.</returns>
-    public Task<JObject> GetServerBasicInfo()
+    public Task<JToken> GetServerBasicInfo()
     {
-        return this.SendMessage(new { }, Consts.GetServerBasicInfoRoutingKey, this.asyncTaskGeneratorForServerCnt);
+        return this.SendMessageWithReplay(new { }, Consts.GetServerBasicInfo, this.asyncTaskGeneratorForJObjectRes);
     }
+
 
     /// <summary>
-    /// Get server info.
+    /// Get detailed info of a server.
     /// </summary>
-    /// <param name="targetServerCnt">Cnt of the server info.</param>
+    /// <param name="serverId">Id of the server.</param>
+    /// <param name="hostNum">Hostnum of the server</param>
     /// <returns></returns>
-    public Task<List<JObject>> GetServerInfo(int targetServerCnt)
+    public Task<JToken> GetServerDetailedInfo(string serverId, int hostNum)
     {
-        return this.SendMessage(
-            new { },
-            Consts.CollectServerInfo,
-            this.asyncTaskGenerateForGetServerInfo,
-            (targetServerCnt, new List<JObject>()));
+        return this.SendMessageWithReplay(
+            new
+            {
+                serverId = serverId,
+                hostNum = hostNum,
+            },
+            Consts.GetServerDetailedInfo,
+            this.asyncTaskGeneratorForJObjectRes);
     }
 
+    public Task<JToken> GetAllEntitiesOfServer(string serverId, int hostNum)
+    {
+        return this.SendMessageWithReplay(
+            new
+            {
+                serverId = serverId,
+                hostNum = hostNum,
+            },
+            Consts.GetAllEntitiesOfServer,
+            this.asyncTaskGeneratorForJObjectRes);
+    }
+    
     private void HandleMqMessage(string msg, string routingKey)
     {
         Logger.Debug($"message received, {msg}, {routingKey}");
-        if (routingKey == Consts.ServerBasicInfoResRoutingKey)
-        {
-            var (rpcId, json) = MessageQueueJsonBody.From(msg);
-            this.asyncTaskGeneratorForServerCnt.ResolveAsyncTask(rpcId, json);
-        }
-        else if (routingKey == Consts.ServerInfo)
-        {
-            var (rpcId, json) = MessageQueueJsonBody.From(msg);
-            var (totalCnt, svrInfoList) = this.asyncTaskGenerateForGetServerInfo.GetDataByAsyncTaskId(rpcId);
+        var (rpcId, json) = MessageQueueJsonBody.From(msg);
 
-            svrInfoList.Add(json);
-
-            --totalCnt;
-            if (totalCnt == 0)
-            {
-                this.asyncTaskGenerateForGetServerInfo.ResolveAsyncTask(
-                    rpcId, 
-                    svrInfoList);
-            }
-            else
-            {
-                this.asyncTaskGenerateForGetServerInfo.UpdateDataByAsyncTaskId(rpcId, (totalCnt, svrInfoList));
-            }
+        if (routingKey is Consts.ServerBasicInfoRes or Consts.ServerDetailedInfo or Consts.AllEntitiesRes)
+        {
+            this.asyncTaskGeneratorForJObjectRes.ResolveAsyncTask(rpcId, json);
         }
     }
 
-    private Task<TResult> SendMessage<TResult>(object body, string routingKey,
+    private Task<TResult> SendMessageWithReplay<TResult>(object body, string routingKey,
         AsyncTaskGenerator<TResult> asyncTaskGenerator)
     {
         var (task, id) = asyncTaskGenerator.GenerateAsyncTask();
@@ -89,7 +85,7 @@ public class ServerService
         return task;
     }
 
-    private Task<TResult> SendMessage<TResult, TData>(
+    private Task<TResult> SendMessageWithReplay<TResult, TData>(
         object body,
         string routingKey,
         AsyncTaskGenerator<TResult, TData> asyncTaskGenerator,

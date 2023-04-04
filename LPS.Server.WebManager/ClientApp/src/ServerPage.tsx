@@ -1,15 +1,15 @@
-import { Stack, DetailsList, IColumn, SelectionMode, DetailsListLayoutMode, CommandBar, ICommandBarItemProps, SearchBox, Dropdown, IDropdownOption, Separator, IconButton } from "@fluentui/react";
+import { Stack, DetailsList, IColumn, SelectionMode, DetailsListLayoutMode, CommandBar, ICommandBarItemProps, SearchBox, Dropdown, IDropdownOption, Separator, IconButton, Toggle } from "@fluentui/react";
 import { css } from "styled-components";
 import { header } from "./CommonCss";
 import NavBar from "./NavBar";
 import { useEffect, useState } from 'react';
 import { copyAndSort } from './Utils';
-import { queryServerInfo } from "./Network";
+import { mailBoxToString, queryEntities, queryServerBasicInfo, querySingleServerInfo, ServerInfo, ServerMailBox } from "./Network";
 
 interface IServerInfo {
     key: string;
     serverName: string;
-    mailbox: string;
+    mailbox: ServerMailBox;
     entityCount: number;
     alive: boolean;
 }
@@ -22,47 +22,6 @@ interface IEntityInfo {
     cellEntityId: string;
 }
 
-const mockEntities: IEntityInfo[] = [
-    {
-        key: '1',
-        id: '1',
-        mailbox: '1;127.0.0.1;27001;10010',
-        entityClassName: 'CellEntity',
-        cellEntityId: '',
-    },
-    {
-        key: '2',
-        id: '2',
-        mailbox: '2;127.0.0.127001;10010',
-        entityClassName: 'ServerEntity',
-        cellEntityId: '1',
-    },
-    {
-        key: '3',
-        id: '3',
-        mailbox: '3;127.0.0.1;27001;10010',
-        entityClassName: 'ServerEntity',
-        cellEntityId: '1',
-    },
-];
-
-const mockServerItems: IServerInfo[] = [
-    {
-        key: "server0",
-        serverName: "server0",
-        mailbox: "127.0.0.1;4901;X209kw5LVJ9jlkj94;12001",
-        entityCount: 129,
-        alive: true,
-    },
-    {
-        key: "server1",
-        serverName: "server1",
-        mailbox: "127.0.0.1;4901;X209kw5LVJ9jl23JK;12001",
-        entityCount: 14,
-        alive: false,
-    }
-];
-
 const commandBarItems: ICommandBarItemProps[] = [
     {
         key: 'refresh',
@@ -72,7 +31,7 @@ const commandBarItems: ICommandBarItemProps[] = [
 ];
 
 const ServerPage: React.FunctionComponent = () => {
-    const onColumnClick = (ev: React.MouseEvent<HTMLElement>, column: IColumn): void => {
+    const onColumnClick = (_ev: React.MouseEvent<HTMLElement>, column: IColumn): void => {
         const { columns, items } = serverlistState;
         const newColumns: IColumn[] = columns.slice();
         const currColumn: IColumn = newColumns.filter(currCol => column.key === currCol.key)[0];
@@ -86,7 +45,6 @@ const ServerPage: React.FunctionComponent = () => {
             }
         });
         const newItems = copyAndSort(items, currColumn.key, currColumn.isSortedDescending);
-        console.log(newItems);
         setServerListState({
             columns: newColumns,
             items: newItems,
@@ -107,7 +65,7 @@ const ServerPage: React.FunctionComponent = () => {
             sortDescendingAriaLabel: 'Sorted Z to A',
             data: 'string',
             onRender: (item: IServerInfo) => {
-                return <div>{item.serverName}</div>
+                return <span css={css`margin-left: 10px;`}>{item.serverName}</span>
             },
             onColumnClick: onColumnClick
         },
@@ -115,9 +73,9 @@ const ServerPage: React.FunctionComponent = () => {
             key: "mailbox",
             name: "MailBox",
             minWidth: 40,
-            maxWidth: 250,
+            maxWidth: 400,
             onRender: (item: IServerInfo) => {
-                return <div>{item.mailbox}</div>
+                return <span>{mailBoxToString(item.mailbox)}</span>
             }
         },
         {
@@ -126,7 +84,7 @@ const ServerPage: React.FunctionComponent = () => {
             minWidth: 40,
             maxWidth: 100,
             onRender: (item: IServerInfo) => {
-                return <div>{item.entityCount}</div>
+                return <span css={css`margin-left: 10px`}>{item.entityCount}</span>
             },
             onColumnClick: onColumnClick
         },
@@ -136,40 +94,69 @@ const ServerPage: React.FunctionComponent = () => {
             minWidth: 40,
             maxWidth: 100,
             onRender: (item: IServerInfo) => {
-                return <div><b>{item.alive ? "Alive" : "Dead"}</b></div>
+                return <span css={css`margin-left: 10px`}><b>{item.alive ? "Alive" : "Dead"}</b></span>
             }
         }
     ];
 
-    const serverOptions: IDropdownOption[] = mockServerItems.map((value, index, _) => {
+    const generateServerOptions = (): IDropdownOption[] => serverlistState.items.map((value, _) => {
         return { key: value.serverName, text: value.serverName };
     });
 
     const searchEntity = () => {
-        setSearchResultState({
-            ...searchResultState,
-            searchResult: mockEntities,
-        });
+        const mb = serverlistState.items[searchSelection].mailbox;
+        const serverId = mb.id;
+        const serverHostNum = mb.hostNum;
+
+        queryEntities(serverId, serverHostNum).then((entities) => {
+            const searchResult = entities.map((value, index): IEntityInfo => {
+                return {
+                    key: value.id,
+                    id: value.id,
+                    mailbox: mailBoxToString(value.mailbox),
+                    entityClassName: value.entityClassName,
+                    cellEntityId: value.cellEntityId,
+                }
+            });
+            setSearchResultState({
+                ...searchResultState,
+                searchResult: searchResult,
+            });
+        }).catch(console.error);
     }
 
-    const farItems = [
-        {
-            key: 'search',
-            onRender: () => <SearchBox placeholder="Search entity by id" className="searchBox" />
-        },
-        {
-            key: 'serverNameSelection',
-            onRender: () => <Dropdown
-                options={serverOptions}
-                css={css`width: 100px; margin-left: 4px; margin-right: 4px`}
-                dropdownWidth={100}
-                defaultSelectedKey={serverOptions[0].key} />
-        },
-        {
-            key: 'searchBtn',
-            onRender: () => <IconButton iconProps={{ iconName: 'search' }} onClick={_ => searchEntity()}></IconButton>
-        }
-    ];
+    const generateFarItems = () => {
+        const options = generateServerOptions();
+        return [
+            {
+                key: 'search',
+                onRender: () => !searchEntityMode ? null : <SearchBox css={css`margin-left: 4px`} placeholder="Search entity by id" className="searchBox" />
+            },
+            {
+                key: 'serverNameSelection',
+                onRender: () => <Dropdown
+                    options={options}
+                    css={css`width: 100px; margin-left: 4px; margin-right: 4px`}
+                    dropdownWidth={100}
+                    defaultSelectedKey={options.length > 0 ? options[0].key : undefined}
+                    onChange={(_event, _option, index) => { setSearchSelection(index!); }}
+                />
+            },
+            {
+                key: 'searchBtn',
+                onRender: () => <IconButton iconProps={{ iconName: 'search' }} onClick={_ => searchEntity()}></IconButton>
+            },
+            {
+                key: 'toggleMode',
+                onRender: () => <Toggle
+                    css={css`display: flex; align-items: center`}
+                    label="" onText="Show All Entities"
+                    offText="Search entity"
+                    defaultChecked={!searchEntityMode}
+                    onChange={(_, checked) => { setSearchEntityMode(!checked!); }} />
+            },
+        ];
+    };
 
     const searchResultListColumnDefine: IColumn[] = [
         {
@@ -179,7 +166,7 @@ const ServerPage: React.FunctionComponent = () => {
             isSortedDescending: false,
             isRowHeader: true,
             minWidth: 40,
-            maxWidth: 100,
+            maxWidth: 250,
             isPadded: true,
             sortAscendingAriaLabel: 'Sorted A to Z',
             sortDescendingAriaLabel: 'Sorted Z to A',
@@ -192,7 +179,7 @@ const ServerPage: React.FunctionComponent = () => {
             key: "mailbox",
             name: "MailBox",
             minWidth: 40,
-            maxWidth: 250,
+            maxWidth: 400,
             onRender: (item: IEntityInfo) => {
                 return <div>{item.mailbox}</div>
             }
@@ -227,16 +214,20 @@ const ServerPage: React.FunctionComponent = () => {
         searchResult: [] as IEntityInfo[],
     })
 
+    const [searchEntityMode, setSearchEntityMode] = useState(false);
+
+    const [searchSelection, setSearchSelection] = useState(0);
+
     useEffect(() => {
         let isSubscribed = true;
         console.log("start fetch server info");
         const fetchData = async () => {
-            const resp = await queryServerInfo();
-            const serverInfo = resp.serverMailBoxes.map((item, idx, _): IServerInfo => {
+            const resp = await queryServerBasicInfo();
+            const serverInfo = resp.serverMailBoxes.map((item, _idx, _): IServerInfo => {
                 return {
-                    key: `${idx}`,
+                    key: `${item.id}`,
                     serverName: "unknown",
-                    mailbox: `${item.id};${item.ip};${item.port};${item.hostnum}`,
+                    mailbox: item,
                     entityCount: -1,
                     alive: false,
                 }
@@ -245,6 +236,40 @@ const ServerPage: React.FunctionComponent = () => {
                 setServerListState(pre => {
                     return { ...pre, items: [...serverInfo], }
                 })
+
+                // replace detailed server info to temp server info.
+                const serverDetailedInfoMap: Map<string, ServerInfo> = new Map();
+                for (let i = 0; i < resp.serverMailBoxes.length; ++i) {
+                    const server = resp.serverMailBoxes[i];
+                    const serverId = server.id;
+                    const hostNum = server.hostNum;
+                    const detailedServerInfo = await querySingleServerInfo(serverId, hostNum);
+                    serverDetailedInfoMap.set(serverId, detailedServerInfo);
+                }
+
+                const serverDetailedInfo = serverInfo.map((item, _idx, _): IServerInfo => {
+                    if (serverDetailedInfoMap.has(item.key)) {
+                        const detailedServerInfo = serverDetailedInfoMap.get(item.key)!;
+                        return {
+                            key: detailedServerInfo.mailbox.id,
+                            serverName: detailedServerInfo.name,
+                            mailbox: detailedServerInfo.mailbox,
+                            entityCount: detailedServerInfo.cellCnt + detailedServerInfo.entitiesCnt,
+                            alive: true,
+                        }
+                    }
+                    else {
+                        return {
+                            ...item,
+                        }
+                    }
+                });
+                setServerListState(pre => {
+                    return {
+                        ...pre,
+                        items: serverDetailedInfo,
+                    }
+                });
             }
         }
         fetchData().catch(console.error);
@@ -257,7 +282,7 @@ const ServerPage: React.FunctionComponent = () => {
         <h2 css={header}>Server List</h2>
 
         <div>
-            <CommandBar items={commandBarItems} farItems={farItems} ></CommandBar>
+            <CommandBar items={commandBarItems} farItems={generateFarItems()} ></CommandBar>
         </div>
 
         <div css={ListMargin}>

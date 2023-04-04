@@ -180,7 +180,7 @@ public class HostManager : IInstance
             Consts.GenerateWebManagerQueueName(this.Name),
             (msg, routingKey) =>
             {
-                if (routingKey == Consts.GetServerBasicInfoRoutingKey)
+                if (routingKey == Consts.GetServerBasicInfo)
                 {
                     var (msgId, _) = MessageQueueJsonBody.From(msg);
                     var res = MessageQueueJsonBody.Create(
@@ -199,7 +199,7 @@ public class HostManager : IInstance
                     this.messageQueueClientToWebMgr.Publish(
                         res.ToJson(),
                         Consts.ServerExchangeName,
-                        Consts.ServerBasicInfoResRoutingKey);
+                        Consts.ServerBasicInfoRes);
                 }
             });
     }

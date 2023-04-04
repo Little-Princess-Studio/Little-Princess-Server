@@ -25,14 +25,14 @@ public class MessageQueueJsonBody
     /// Gets or sets or the body content of json.
     /// </summary>
     [JsonProperty("body")]
-    public JObject Body { get; set; }
+    public JToken Body { get; set; }
 
     /// <summary>
     /// Get info from body string.
     /// </summary>
     /// <param name="body">Body json string.</param>
     /// <returns>(Rpc id, JToken body) pair.</returns>
-    public static (uint RpcId, JObject Body) From(string body)
+    public static (uint RpcId, JToken Body) From(string body)
     {
         var rawBody = JsonConvert.DeserializeObject<MessageQueueJsonBody>(body);
         var rpcId = rawBody !.RpcId;
@@ -49,6 +49,28 @@ public class MessageQueueJsonBody
     public static MessageQueueJsonBody Create(uint rpcId, object obj)
     {
         var body = JObject.FromObject(obj);
+        return Create(rpcId, body);
+    }
+
+    /// <summary>
+    /// Create a body.
+    /// </summary>
+    /// <param name="rpcId">Rpc id.</param>
+    /// <param name="obj">JObject of the body.</param>
+    /// <returns>Instance of MessageQueueJsonBody.</returns>
+    public static MessageQueueJsonBody Create(uint rpcId, JObject obj)
+    {
+        return new MessageQueueJsonBody(rpcId, obj);
+    }
+
+    /// <summary>
+    /// Crea a body.
+    /// </summary>
+    /// <param name="rpcId">Rpc id.</param>
+    /// <param name="body">JObject of the body.</param>
+    /// <returns>Instance of MessageQueueJsonBody.</returns>
+    public static MessageQueueJsonBody Create(uint rpcId, JToken body)
+    {
         return new MessageQueueJsonBody(rpcId, body);
     }
 
@@ -62,7 +84,7 @@ public class MessageQueueJsonBody
     }
 
     [JsonConstructor]
-    private MessageQueueJsonBody(uint rpcId, JObject body)
+    private MessageQueueJsonBody(uint rpcId, JToken body)
     {
         this.RpcId = rpcId;
         this.Body = body;
