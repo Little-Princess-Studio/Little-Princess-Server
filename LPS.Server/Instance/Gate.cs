@@ -4,7 +4,7 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
-namespace LPS.Server;
+namespace LPS.Server.Instance;
 
 using System;
 using System.Collections.Concurrent;
@@ -22,6 +22,7 @@ using LPS.Common.Rpc;
 using LPS.Common.Rpc.InnerMessages;
 using LPS.Common.Rpc.InnerMessages.ProtobufDefs;
 using LPS.Server.Entity;
+using LPS.Server.Instance.HostConnection;
 using LPS.Server.Rpc;
 using LPS.Server.Rpc.InnerMessages.ProtobufDefs;
 using MailBox = LPS.Common.Rpc.InnerMessages.ProtobufDefs.MailBox;
@@ -53,7 +54,7 @@ public class Gate : IInstance
     /// <inheritdoc/>
     public InstanceType InstanceType => InstanceType.Gate;
 
-    private readonly ConcurrentDictionary<(int, PackageType), Action<object>> tcpClientsActions = new();
+    private readonly ConcurrentDictionary<(int, PackageType), Action<(IMessage Message, Connection Connection, uint RpcId)>> tcpClientsActions = new();
     private readonly ConcurrentQueue<(TcpClient Client, IMessage Message, bool IsReentry)> sendQueue = new();
 
     // private readonly SandBox clientsSendQueueSandBox_;
@@ -64,17 +65,16 @@ public class Gate : IInstance
     private readonly CountdownEvent serversMailBoxesReadyEvent = new CountdownEvent(1);
     private readonly CountdownEvent otherGatesMailBoxesReadyEvent = new CountdownEvent(1);
 
-    private readonly CountdownEvent hostManagerConnectedEvent;
     private readonly CountdownEvent localEntityGeneratedEvent;
 
     private readonly SandBox clientsPumpMsgSandBox;
 
     private readonly TcpServer tcpGateServer;
-    private readonly TcpClient clientToHostManager;
+    private readonly IHostConnection hostConnection;
 
     private GateEntity? entity;
 
-    // if all the tcpclients have connected to server/other gate, countdownEvent_ will down to 0
+    // if all the tcp clients have connected to server/other gate, countdownEvent_ will down to 0
     private CountdownEvent? allServersConnectedEvent;
     private CountdownEvent? allOtherGatesConnectedEvent;
 
@@ -118,44 +118,16 @@ public class Gate : IInstance
             OnDispose = this.UnregisterMessageFromServerAndOtherGateHandlers,
         };
 
-        this.hostManagerConnectedEvent = new CountdownEvent(1);
         this.localEntityGeneratedEvent = new CountdownEvent(1);
-        this.clientToHostManager = new TcpClient(
+
+        this.hostConnection = new ImmediateHostConnectionOfGate(
             hostManagerIp,
             hostManagerPort,
-            new ConcurrentQueue<(TcpClient, IMessage, bool)>())
-        {
-            OnInit = _ =>
-            {
-                this.clientToHostManager!.RegisterMessageHandler(
-                    PackageType.RequireCreateEntityRes,
-                    this.HandleRequireCreateEntityResFromHost);
-                this.clientToHostManager.RegisterMessageHandler(PackageType.HostCommand, this.HandleHostCommandFromHost);
-            },
-            OnConnected = _ =>
-            {
-                var client = this.clientToHostManager!;
-                client.Send(
-                    new RequireCreateEntity
-                    {
-                        EntityType = EntityType.GateEntity,
-                        CreateType = CreateType.Manual,
-                        EntityClassName = string.Empty,
-                        Description = string.Empty,
-                        ConnectionID = this.createEntityCounter++,
-                    },
-                    false);
+            this.GenerateRpcId,
+            () => this.tcpGateServer.Stopped);
 
-                this.hostManagerConnectedEvent.Signal();
-            },
-            OnDispose = _ =>
-            {
-                this.clientToHostManager!.UnregisterMessageHandler(
-                    PackageType.RequireCreateEntityRes,
-                    this.HandleRequireCreateEntityResFromHost);
-                this.clientToHostManager.UnregisterMessageHandler(PackageType.HostCommand, this.HandleHostCommandFromHost);
-            },
-        };
+        this.hostConnection.RegisterMessageHandler(PackageType.RequireCreateEntityRes, this.HandleRequireCreateEntityResFromHost);
+        this.hostConnection.RegisterMessageHandler(PackageType.HostCommand, this.HandleHostCommandFromHost);
 
         this.clientsPumpMsgSandBox = SandBox.Create(this.PumpMessageHandler);
     }
@@ -165,7 +137,7 @@ public class Gate : IInstance
     {
         Array.ForEach(this.tcpClientsToServer!, client => client.Stop());
         Array.ForEach(this.tcpClientsToOtherGate!, client => client.Stop());
-        this.clientToHostManager.Stop();
+        this.hostConnection.ShutDown();
         this.tcpGateServer.Stop();
     }
 
@@ -174,9 +146,8 @@ public class Gate : IInstance
     {
         Logger.Info($"Start gate at {this.Ip}:{this.Port}");
         this.tcpGateServer.Run();
-        this.clientToHostManager.Run();
+        this.hostConnection.Run();
 
-        this.hostManagerConnectedEvent.Wait();
         Logger.Debug("Host manager connected.");
 
         this.clientsPumpMsgSandBox.Run();
@@ -190,7 +161,7 @@ public class Gate : IInstance
         };
 
         registerCtl.Args.Add(Any.Pack(RpcHelper.RpcMailBoxToPbMailBox(this.entity!.MailBox)));
-        this.clientToHostManager.Send(registerCtl);
+        this.hostConnection.Send(registerCtl);
 
         this.serversMailBoxesReadyEvent.Wait();
         Logger.Info("Servers mailboxes ready.");
@@ -222,7 +193,7 @@ public class Gate : IInstance
         // gate main thread will stuck here
         Array.ForEach(this.tcpClientsToOtherGate!, client => client.WaitForExit());
         Array.ForEach(this.tcpClientsToServer!, client => client.WaitForExit());
-        this.clientToHostManager.WaitForExit();
+        this.hostConnection.WaitForExit();
         this.tcpGateServer.WaitForExit();
         this.clientsPumpMsgSandBox.WaitForExit();
 
@@ -292,9 +263,8 @@ public class Gate : IInstance
             this.HandlePropertyFullSyncAckFromClient);
     }
 
-    private void HandleHostCommandFromHost(object arg)
+    private void HandleHostCommandFromHost(IMessage msg)
     {
-        var (msg, _, _) = ((IMessage, Connection, uint))arg;
         var hostCmd = (msg as HostCommand)!;
 
         Logger.Info($"Handle host command, cmd type: {hostCmd.Type}");
@@ -389,19 +359,24 @@ public class Gate : IInstance
         this.serversMailBoxesReadyEvent.Signal();
     }
 
-    private void HandleEntityRpcFromClient(object arg)
+    private void HandleEntityRpcFromClient((IMessage Message, Connection Connection, uint RpcId) arg)
     {
         // if gate's server have recieved the EntityRpc msg, it must be redirect from other gates
         Logger.Info("Handle EntityRpc From Other Gates.");
 
-        var (msg, _, _) = ((IMessage, Connection, uint))arg;
+        var (msg, _, _) = arg;
         var entityRpc = (msg as EntityRpc)!;
         this.HandleEntityRpcMessageOnGate(entityRpc);
     }
 
-    private void HandleAuthenticationFromClient(object arg)
+    private uint GenerateRpcId()
     {
-        var (msg, conn, _) = ((IMessage, Connection, uint))arg;
+        return this.createEntityCounter++;
+    }
+
+    private void HandleAuthenticationFromClient((IMessage Message, Connection Connection, uint RpcId) arg)
+    {
+        var (msg, conn, _) = arg;
         var auth = (msg as Authentication)!;
 
         // TODO: Cache the rsa object
@@ -413,7 +388,7 @@ public class Gate : IInstance
         {
             Logger.Info("Auth success");
 
-            var connId = this.createEntityCounter++;
+            var connId = this.GenerateRpcId();
 
             var createEntityMsg = new RequireCreateEntity
             {
@@ -433,7 +408,7 @@ public class Gate : IInstance
             conn.ConnectionId = connId;
             this.createEntityMapping[connId] = conn;
 
-            this.clientToHostManager.Send(createEntityMsg, false);
+            this.hostConnection.Send(createEntityMsg);
         }
         else
         {
@@ -443,19 +418,19 @@ public class Gate : IInstance
         }
     }
 
-    private void HandleRequireFullSyncFromClient(object? arg)
+    private void HandleRequireFullSyncFromClient((IMessage Message, Connection Connection, uint RpcId) arg)
     {
         Logger.Info("HandleRequireFullSyncFromClient");
-        var (msg, conn, _) = ((IMessage, Connection, uint))arg!;
+        var (msg, conn, _) = arg;
         var requirePropertyFullSyncMsg = (msg as RequirePropertyFullSync)!;
 
         this.RedirectMsgToEntityOnServer(requirePropertyFullSyncMsg.EntityId, msg);
     }
 
-    private void HandlePropertyFullSyncAckFromClient(object? arg)
+    private void HandlePropertyFullSyncAckFromClient((IMessage Message, Connection Connection, uint RpcId) arg)
     {
         Logger.Info("HandlePropertyFullSyncAck");
-        var (msg, conn, _) = ((IMessage, Connection, uint))arg!;
+        var (msg, conn, _) = arg;
         var propertyFullSyncAck = (msg as PropertyFullSyncAck)!;
 
         this.RedirectMsgToEntityOnServer(propertyFullSyncAck.EntityId, msg);
@@ -469,13 +444,13 @@ public class Gate : IInstance
     {
         var client = this.tcpClientsToServer![serverIdx];
 
-        var entityRpcHandler = (object arg) => this.HandleEntityRpcFromServer(client, arg);
+        var entityRpcHandler = ((IMessage Message, Connection Connection, uint RpcId) arg) => this.HandleEntityRpcFromServer(client, arg);
         this.tcpClientsActions[(serverIdx, PackageType.EntityRpc)] = entityRpcHandler;
 
-        var propertyFullSync = (object arg) => this.HandlePropertyFullSyncFromServer(client, arg);
+        var propertyFullSync = ((IMessage Message, Connection Connection, uint RpcId) arg) => this.HandlePropertyFullSyncFromServer(client, arg);
         this.tcpClientsActions[(serverIdx, PackageType.PropertyFullSync)] = propertyFullSync;
 
-        var propSyncCommandList = (object arg) => this.HandlePropertySyncCommandListFromServer(client, arg);
+        var propSyncCommandList = ((IMessage Message, Connection Connection, uint RpcId) arg) => this.HandlePropertySyncCommandListFromServer(client, arg);
         this.tcpClientsActions[(serverIdx, PackageType.PropertySyncCommandList)] = propSyncCommandList;
 
         client.RegisterMessageHandler(PackageType.EntityRpc, entityRpcHandler);
@@ -502,9 +477,9 @@ public class Gate : IInstance
             this.tcpClientsActions[(idx, PackageType.PropertySyncCommandList)]);
     }
 
-    private void HandlePropertySyncCommandListFromServer(TcpClient client, object arg)
+    private void HandlePropertySyncCommandListFromServer(TcpClient client, (IMessage Message, Connection Connection, uint RpcId) arg)
     {
-        var (msg, _, _) = ((IMessage, Connection, uint))arg;
+        var (msg, _, _) = arg;
         var propertySyncCommandList = (msg as PropertySyncCommandList)!;
 
         Logger.Info($"property sync: {propertySyncCommandList.Path}" +
@@ -515,9 +490,8 @@ public class Gate : IInstance
         this.RedirectMsgToEntityOnClient(propertySyncCommandList.EntityId, propertySyncCommandList);
     }
 
-    private void HandleRequireCreateEntityResFromHost(object arg)
+    private void HandleRequireCreateEntityResFromHost(IMessage msg)
     {
-        var (msg, _, _) = ((IMessage, Connection, uint))arg;
         var createEntityRes = (msg as RequireCreateEntityRes)!;
 
         Logger.Debug($"HandleRequireCreateEntityResFromHost {createEntityRes.Mailbox}");
@@ -726,8 +700,6 @@ public class Gate : IInstance
                         client.Pump();
                     }
                 }
-
-                this.clientToHostManager.Pump();
 
                 Thread.Sleep(1);
             }

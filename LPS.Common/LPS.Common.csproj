@@ -18,15 +18,4 @@
     <AdditionalFiles Include="../stylecop.json" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Core\Debug" />
-    <Folder Include="Core\Entity" />
-    <Folder Include="Core\Ipc" />
-    <Folder Include="Core\Rpc\Attribute" />
-    <Folder Include="Core\Rpc\InnerMessages\ProtobufDefs" />
-    <Folder Include="Core\Rpc\RpcPropertySync\RpcPropertySyncInfo" />
-    <Folder Include="Core\Rpc\RpcPropertySync\RpcPropertySyncMessage" />
-    <Folder Include="Core\Rpc\RpcProperty\RpcContainer" />
-  </ItemGroup>
-
 </Project>

@@ -9,6 +9,7 @@ namespace LPS.Server.Entity;
 using System.Threading.Tasks;
 using LPS.Common.Rpc;
 using LPS.Common.Rpc.Attribute;
+using LPS.Server.Instance;
 
 /// <summary>
 /// Gate entity.

@@ -32,12 +32,11 @@
  *    from clients.
  */
 
-namespace LPS.Server;
+namespace LPS.Server.Instance;
 
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.Json.Serialization;
 using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
 using LPS.Common.Debug;
@@ -47,8 +46,7 @@ using LPS.Server.Database;
 using LPS.Server.MessageQueue;
 using LPS.Server.Rpc;
 using LPS.Server.Rpc.InnerMessages.ProtobufDefs;
-using Newtonsoft.Json;
-using MailBox = LPS.Common.Rpc.MailBox;
+using Newtonsoft.Json.Linq;
 
 /// <summary>
 /// Status of the hostmanager.
@@ -185,16 +183,16 @@ public class HostManager : IInstance
                     var (msgId, _) = MessageQueueJsonBody.From(msg);
                     var res = MessageQueueJsonBody.Create(
                         msgId,
-                        new
+                        new JObject
                         {
-                            serverCnt = this.ServerNum,
-                            serverMailBoxes = this.serversConn.Select(conn => new
+                            ["serverCnt"] = this.ServerNum,
+                            ["serverMailBoxes"] = new JArray(this.serversConn.Select(conn => new JObject
                             {
-                                id = conn.MailBox.Id,
-                                ip = conn.MailBox.Ip,
-                                port = conn.MailBox.Port,
-                                hostNum = conn.MailBox.HostNum,
-                            }).ToList(),
+                                ["id"] = conn.MailBox.Id,
+                                ["ip"] = conn.MailBox.Ip,
+                                ["port"] = conn.MailBox.Port,
+                                ["hostNum"] = conn.MailBox.HostNum,
+                            })),
                         });
                     this.messageQueueClientToWebMgr.Publish(
                         res.ToJson(),
@@ -222,9 +220,9 @@ public class HostManager : IInstance
             this.HandleCreateDistributeEntityRes);
     }
 
-    private void HandleCreateDistributeEntityRes(object arg)
+    private void HandleCreateDistributeEntityRes((IMessage Message, Connection Connection, uint RpcId) arg)
     {
-        var (msg, _, id) = ((IMessage, Connection, uint))arg;
+        var (msg, _, id) = arg;
         var createRes = (msg as CreateDistributeEntityRes)!;
 
         Logger.Debug($"HandleCreateDistributeEntityRes, {createRes.Mailbox}");
@@ -250,9 +248,9 @@ public class HostManager : IInstance
         conn.Socket.Send(pkg.ToBytes());
     }
 
-    private void HandleRequireCreateEntity(object arg)
+    private void HandleRequireCreateEntity((IMessage Message, Connection Connection, uint RpcId) arg)
     {
-        var (msg, conn, id) = ((IMessage, Connection, uint))arg;
+        var (msg, conn, id) = arg;
         var createEntity = (msg as RequireCreateEntity)!;
 
         Logger.Info($"create entity: {createEntity.CreateType}, {createEntity.EntityClassName}");
@@ -339,9 +337,9 @@ public class HostManager : IInstance
         });
     }
 
-    private void HandleControlCmd(object arg)
+    private void HandleControlCmd((IMessage Message, Connection Connection, uint RpcId) arg)
     {
-        var (msg, conn, _) = ((IMessage, Connection, uint))arg;
+        var (msg, conn, _) = arg;
         var hostCmd = (msg as Control)!;
         switch (hostCmd.Message)
         {

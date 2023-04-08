@@ -68,7 +68,7 @@ internal class TcpServer
     private readonly Dictionary<Connection, Task> connections = new();
     private readonly SandBox sandboxIo;
     private readonly Bus bus;
-    private readonly Dispatcher msgDispatcher;
+    private readonly Dispatcher<(IMessage, Connection, uint)> msgDispatcher;
     private readonly Dictionary<Socket, Connection> socketToConn = new();
     private readonly ConcurrentQueue<(Connection, IMessage)> sendQueue = new();
     private bool stopFlag;
@@ -84,7 +84,7 @@ internal class TcpServer
         this.Ip = ip;
         this.Port = port;
 
-        this.msgDispatcher = new Dispatcher();
+        this.msgDispatcher = new Dispatcher<(IMessage, Connection, uint)>();
         this.bus = new Bus(this.msgDispatcher);
 
         this.sandboxIo = SandBox.Create(this.IoHandler);
@@ -143,7 +143,7 @@ internal class TcpServer
     /// </summary>
     /// <param name="key">Message token.</param>
     /// <param name="callback">Callback to handle the message.</param>
-    public void RegisterMessageHandler(IComparable key, Action<object> callback)
+    public void RegisterMessageHandler(IComparable key, Action<(IMessage Message, Connection Connection, uint RpcId)> callback)
     {
         this.msgDispatcher.Register(key, callback);
     }
@@ -153,7 +153,7 @@ internal class TcpServer
     /// </summary>
     /// <param name="key">Message token.</param>
     /// <param name="callback">Callback to handle the message.</param>
-    public void UnregisterMessageHandler(IComparable key, Action<object> callback)
+    public void UnregisterMessageHandler(IComparable key, Action<(IMessage Message, Connection Connection, uint RpcId)> callback)
     {
         this.msgDispatcher.Unregister(key, callback);
     }

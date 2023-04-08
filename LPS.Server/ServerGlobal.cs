@@ -7,6 +7,7 @@
 namespace LPS.Server;
 
 using System;
+using LPS.Server.Instance;
 
 /// <summary>
 /// ServerGlobal variable.

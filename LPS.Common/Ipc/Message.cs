@@ -6,6 +6,8 @@
 
 namespace LPS.Common.Ipc;
 
+using MessageType = System.ValueTuple<Google.Protobuf.IMessage, LPS.Common.Rpc.Connection, uint>;
+
 /// <summary>
 /// Message.
 /// </summary>
@@ -19,14 +21,14 @@ public struct Message
     /// <summary>
     /// Argument of the message.
     /// </summary>
-    public readonly object Arg;
+    public readonly MessageType Arg;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Message"/> struct.
     /// </summary>
     /// <param name="key">Key of the message.</param>
     /// <param name="arg">Argument of the message.</param>
-    public Message(IComparable key, object arg)
+    public Message(IComparable key, MessageType arg)
     {
         this.Key = key;
         this.Arg = arg;

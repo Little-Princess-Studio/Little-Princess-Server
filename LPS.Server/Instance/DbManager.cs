@@ -4,7 +4,7 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
-namespace LPS.Server;
+namespace LPS.Server.Instance;
 
 using System.Collections.Concurrent;
 using Google.Protobuf;

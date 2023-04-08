@@ -31,7 +31,7 @@ public class Client
     private readonly SandBox sendSandBox;
     private readonly SandBox pumpSandBox;
     private readonly Bus bus;
-    private readonly Dispatcher msgDispatcher;
+    private readonly Dispatcher<(IMessage, Connection, uint)> msgDispatcher;
     private readonly ConcurrentQueue<IMessage> sendQueue = new();
 
     private string? ip;
@@ -42,7 +42,7 @@ public class Client
 
     private Client()
     {
-        this.msgDispatcher = new Dispatcher();
+        this.msgDispatcher = new Dispatcher<(IMessage, Connection, uint)>();
         this.bus = new Bus(this.msgDispatcher);
 
         this.ioSandBox = SandBox.Create(this.IoHandler);
@@ -55,7 +55,9 @@ public class Client
     /// </summary>
     /// <param name="key">Message token.</param>
     /// <param name="callback">Handler of the message.</param>
-    public void RegisterMessageHandler(IComparable key, Action<object> callback)
+    public void RegisterMessageHandler(
+        IComparable key,
+        Action<(IMessage Message, Connection Connection, uint RpcId)> callback)
     {
         this.msgDispatcher.Register(key, callback);
     }
@@ -65,7 +67,9 @@ public class Client
     /// </summary>
     /// <param name="key">Message token.</param>
     /// <param name="callback">Handler of the message.</param>
-    public void UnregisterMessageHandler(IComparable key, Action<object> callback)
+    public void UnregisterMessageHandler(
+        IComparable key,
+        Action<(IMessage Message, Connection Connection, uint RpcId)> callback)
     {
         this.msgDispatcher.Unregister(key, callback);
     }

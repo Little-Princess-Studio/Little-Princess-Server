@@ -103,6 +103,22 @@ public class MessageQueueClient : IDisposable
     }
 
     /// <summary>
+    /// Observe a message queue.
+    /// </summary>
+    /// <param name="queueName">Name of the message queue.</param>
+    /// <param name="callback">Callback when getting message.</param>
+    public void Observe(string queueName, Action<ReadOnlyMemory<byte>, string> callback)
+    {
+        var consumer = new EventingBasicConsumer(this.consumerChannel);
+        consumer.Received += (_, eventArgs) =>
+        {
+            var body = eventArgs.Body;
+            callback.Invoke(body, eventArgs.RoutingKey);
+        };
+        this.consumerChannel.BasicConsume(queueName, autoAck: true, consumer);
+    }
+
+    /// <summary>
     /// Close the client.
     /// </summary>
     public void ShutDown()

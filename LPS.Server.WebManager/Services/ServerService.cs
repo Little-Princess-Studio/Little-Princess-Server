@@ -31,7 +31,7 @@ public class ServerService
     /// <returns>Server cnt.</returns>
     public Task<JToken> GetServerBasicInfo()
     {
-        return this.SendMessageWithReplay(new { }, Consts.GetServerBasicInfo, this.asyncTaskGeneratorForJObjectRes);
+        return this.SendMessageWithReplay(new JObject(), Consts.GetServerBasicInfo, this.asyncTaskGeneratorForJObjectRes);
     }
 
 
@@ -44,10 +44,10 @@ public class ServerService
     public Task<JToken> GetServerDetailedInfo(string serverId, int hostNum)
     {
         return this.SendMessageWithReplay(
-            new
+            new JObject
             {
-                serverId = serverId,
-                hostNum = hostNum,
+                ["serverId"] = serverId,
+                ["hostNum"] = hostNum,
             },
             Consts.GetServerDetailedInfo,
             this.asyncTaskGeneratorForJObjectRes);
@@ -56,10 +56,10 @@ public class ServerService
     public Task<JToken> GetAllEntitiesOfServer(string serverId, int hostNum)
     {
         return this.SendMessageWithReplay(
-            new
+            new JObject
             {
-                serverId = serverId,
-                hostNum = hostNum,
+                ["serverId"] = serverId,
+                ["hostNum"] = hostNum,
             },
             Consts.GetAllEntitiesOfServer,
             this.asyncTaskGeneratorForJObjectRes);
@@ -76,7 +76,7 @@ public class ServerService
         }
     }
 
-    private Task<TResult> SendMessageWithReplay<TResult>(object body, string routingKey,
+    private Task<TResult> SendMessageWithReplay<TResult>(JToken body, string routingKey,
         AsyncTaskGenerator<TResult> asyncTaskGenerator)
     {
         var (task, id) = asyncTaskGenerator.GenerateAsyncTask();
@@ -86,7 +86,7 @@ public class ServerService
     }
 
     private Task<TResult> SendMessageWithReplay<TResult, TData>(
-        object body,
+        JObject body,
         string routingKey,
         AsyncTaskGenerator<TResult, TData> asyncTaskGenerator,
         TData data)

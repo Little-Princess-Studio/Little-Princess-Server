@@ -22,6 +22,21 @@ public static class Consts
     public const string ServerExchangeName = "server.exchange";
 
     /// <summary>
+    /// Exchange name of host manager to server/gate.
+    /// </summary>
+    public const string HostMgrToServerExchangeName = "hostmgrToSrv.exchange";
+
+    /// <summary>
+    /// Exchange name of server to host manager.
+    /// </summary>
+    public const string ServerToHostExchangeName = "srvToHostMgr.exchange";
+
+    /// <summary>
+    /// Host message package routing key to server.
+    /// </summary>
+    public const string HostMessagePackage = "hostMessagePackage.toSrv";
+
+    /// <summary>
     /// Routing key from web manager.
     /// </summary>
     public const string GetServerBasicInfo = "getServerBasicInfo.toHostMgr";
@@ -77,4 +92,11 @@ public static class Consts
     /// <param name="id">Unique id for the message queue.</param>
     /// <returns>Name.</returns>
     public static string GenerateWebManagerQueueName(string id) => $"webmgr_que_{id}";
+
+    /// <summary>
+    /// Generate the queue name observed by server process.
+    /// </summary>
+    /// <param name="id">Unique id for the message queue.</param>
+    /// <returns>Name.</returns>
+    public static string GenerateHostManagerQueueName(string id) => $"hostmgr_que_{id}";
 }

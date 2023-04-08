@@ -7,6 +7,8 @@
 namespace LPS.Common.Ipc;
 
 using System.Collections.Concurrent;
+using Google.Protobuf;
+using LPS.Common.Rpc;
 
 /// <summary>
 /// Universal thread-safe message bus for handler the message queue.
@@ -14,13 +16,13 @@ using System.Collections.Concurrent;
 public class Bus
 {
     private readonly ConcurrentQueue<Message> msgQueue = new();
-    private readonly Dispatcher dispatcher;
+    private readonly Dispatcher<(IMessage, Connection, uint)> dispatcher;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Bus"/> class.
     /// </summary>
     /// <param name="dispatcher">Message dispatcher of the message queue.</param>
-    public Bus(Dispatcher dispatcher)
+    public Bus(Dispatcher<(IMessage Message, Connection Connection, uint RpcId)> dispatcher)
     {
         this.dispatcher = dispatcher;
     }
