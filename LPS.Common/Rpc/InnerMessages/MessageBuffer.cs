@@ -29,6 +29,34 @@ public class MessageBuffer
     private byte[] buffer = new byte[InitBufLength];
 
     /// <summary>
+    /// Get package from bytes.
+    /// </summary>
+    /// <param name="bytes">bytes array.</param>
+    /// <returns>Package obj.</returns>
+    public static Package GetPackageFromBytes(ReadOnlyMemory<byte> bytes)
+    {
+        var pkg = default(Package);
+
+        var pos = 0;
+        var pkgLen = BitConverter.ToUInt16(bytes.Span);
+        pos += 2;
+        var pkgId = BitConverter.ToUInt32(bytes.Span.Slice(pos));
+        pos += 4;
+        var pkgVersion = BitConverter.ToUInt16(bytes.Span.Slice(pos));
+        pos += 2;
+        var pkgType = BitConverter.ToUInt16(bytes.Span.Slice(pos));
+
+        pkg.Header.Length = pkgLen;
+        pkg.Header.ID = pkgId;
+        pkg.Header.Version = pkgVersion;
+        pkg.Header.Type = pkgType;
+
+        pkg.Body = bytes.Slice(HeaderLen).ToArray();
+
+        return pkg;
+    }
+
+    /// <summary>
     /// How to handle TCP stream raw data to Package:
     /// 1. if tail_+len-1 >= current len
     /// if bodylen + len >= current len

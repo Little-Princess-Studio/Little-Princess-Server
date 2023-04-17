@@ -14,6 +14,7 @@ using System.Linq;
 using LPS.Common.Debug;
 using LPS.Common.Rpc;
 using LPS.Server.Database;
+using LPS.Server.Instance;
 using LPS.Server.Rpc;
 using Newtonsoft.Json.Linq;
 
@@ -286,6 +287,7 @@ public static class StartupManager
         var gateInfo = json["gates"]![name]!;
         var ip = gateInfo["ip"]!.ToString();
         var port = Convert.ToInt32(gateInfo["port"]!.ToString());
+        var useMqToHost = Convert.ToBoolean(gateInfo["use_mq_to_host"]!.ToString());
 
         var hostManagerInfo = json["hostmanager"]!;
         var hostManagerIp = hostManagerInfo["ip"]!.ToString();
@@ -313,8 +315,8 @@ public static class StartupManager
 
         #endregion
 
-        Logger.Debug($"Startup Gate {name} at {ip}:{port}");
-        var gate = new Gate(name, ip, port, hostnum, hostManagerIp, hostManagerPort, servers, otherGates);
+        Logger.Debug($"Startup Gate {name} at {ip}:{port}, use mq: {useMqToHost}");
+        var gate = new Gate(name, ip, port, hostnum, hostManagerIp, hostManagerPort, servers, otherGates, useMqToHost);
 
         ServerGlobal.Init(gate);
 
@@ -339,13 +341,14 @@ public static class StartupManager
         var serverInfo = json["servers"]![name]!;
         var ip = serverInfo["ip"]!.ToString();
         var port = Convert.ToInt32(serverInfo["port"]!.ToString());
+        var useMqToHost = Convert.ToBoolean(serverInfo["use_mq_to_host"]!.ToString());
 
         var hostManagerInfo = json["hostmanager"]!;
         var hostManagerIp = hostManagerInfo["ip"]!.ToString();
         var hostManagerPort = Convert.ToInt32(hostManagerInfo["port"]!.ToString());
 
-        Logger.Debug($"Startup Server {name} at {ip}:{port}");
-        var server = new Server(name, ip, port, hostnum, hostManagerIp, hostManagerPort);
+        Logger.Debug($"Startup Server {name} at {ip}:{port}, use mq: {useMqToHost}");
+        var server = new Server(name, ip, port, hostnum, hostManagerIp, hostManagerPort, useMqToHost);
 
         ServerGlobal.Init(server);
 

@@ -118,4 +118,15 @@ public struct MailBox
     {
         return this.Ip == other.Ip && this.Port == other.Port;
     }
+
+    /// <inheritdoc/>
+    public override bool Equals(object? obj)
+    {
+        if (obj is MailBox other)
+        {
+            return this.CompareFull(other);
+        }
+
+        return false;
+    }
 }

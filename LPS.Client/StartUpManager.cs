@@ -70,9 +70,9 @@ public class StartUpManager
         Client.Instance.WaitForExit();
     }
 
-    private static void HandlePropertySyncCommandList(object arg)
+    private static void HandlePropertySyncCommandList((IMessage Message, Connection Connection, uint RpcId) arg)
     {
-        var (msg, _, _) = ((IMessage, Connection, uint))arg;
+        var (msg, _, _) = arg;
         var syncCommandList = (msg as PropertySyncCommandList)!;
 
         Logger.Debug($"[HandlePropertySyncCommandList] {msg}");
@@ -80,18 +80,18 @@ public class StartUpManager
         getShadowEntityCallBack().ApplySyncCommandList(syncCommandList);
     }
 
-    private static void HandleEntityRpc(object arg)
+    private static void HandleEntityRpc((IMessage Message, Connection Connection, uint RpcId) arg)
     {
-        var (msg, _, _) = ((IMessage, Connection, uint))arg;
+        var (msg, _, _) = arg;
         var entityRpc = (EntityRpc)msg;
 
         // Logger.Info($"rpc msg from server {entityRpc}");
         RpcHelper.CallLocalEntity(getShadowEntityCallBack(), entityRpc);
     }
 
-    private static void HandleClientCreateEntity(object arg)
+    private static void HandleClientCreateEntity((IMessage Message, Connection Connection, uint RpcId) arg)
     {
-        var (msg, _, _) = ((IMessage, Connection, uint))arg;
+        var (msg, _, _) = arg;
         var clientCreateEntity = (ClientCreateEntity)msg;
 
         Logger.Info(
@@ -110,9 +110,9 @@ public class StartUpManager
         RpcClientHelper.RequirePropertyFullSync(shadowEntity.MailBox.Id);
     }
 
-    private static void HandlePropertyFullSync(object arg)
+    private static void HandlePropertyFullSync((IMessage Message, Connection Connection, uint RpcId) arg)
     {
-        var (msg, _, _) = ((IMessage, Connection, uint))arg;
+        var (msg, _, _) = arg;
         var propertyFullSyncMsg = (PropertyFullSync)msg;
 
         var shadowEntity = getShadowEntityCallBack();

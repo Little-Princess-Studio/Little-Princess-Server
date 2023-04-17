@@ -7,6 +7,7 @@
 namespace LPS.Server;
 
 using System;
+using LPS.Server.Instance;
 
 /// <summary>
 /// ServerGlobal variable.
@@ -14,6 +15,11 @@ using System;
 public static class ServerGlobal
 {
     private static IInstance instance = null!;
+
+    /// <summary>
+    /// Gets instance type.
+    /// </summary>
+    public static InstanceType InstanceType => instance.InstanceType;
 
     /// <summary>
     /// Gets the instance as Server.

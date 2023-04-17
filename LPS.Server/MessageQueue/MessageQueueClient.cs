@@ -7,7 +7,9 @@
 namespace LPS.Server.MessageQueue;
 
 using System;
+using System.Collections.Generic;
 using System.Text;
+using LPS.Common.Debug;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 
@@ -50,6 +52,12 @@ public class MessageQueueClient : IDisposable
     public void AsProducer()
     {
         this.producerChannel = this.connection !.CreateModel();
+        this.producerChannel.BasicReturn += (sender, args) =>
+        {
+            Logger.Info($"Message publish failed ({args.Exchange}, {args.RoutingKey}), retry...");
+            var body = args.Body;
+            this.Publish(body, args.Exchange, args.RoutingKey, true);
+        };
     }
 
     /// <summary>
@@ -71,6 +79,32 @@ public class MessageQueueClient : IDisposable
     {
         var body = Encoding.UTF8.GetBytes(message);
         this.producerChannel!.BasicPublish(exchange, routingKey, null, body);
+    }
+
+    /// <summary>
+    /// Publish a message via message queue.
+    /// </summary>
+    /// <param name="message">Message.</param>
+    /// <param name="exchange">Name of the exchange.</param>
+    /// <param name="routingKey">Routing key.</param>
+    /// <param name="mandatory"><see cref="IModel"/>.</param>
+    /// <param name="expireTime">Message expire time.</param>
+    public void Publish(
+        ReadOnlyMemory<byte> message, string exchange, string routingKey, bool mandatory = false, int expireTime = -1)
+    {
+        IBasicProperties properties = null;
+        if (expireTime > 0)
+        {
+            properties = this.producerChannel!.CreateBasicProperties();
+            properties.Expiration = expireTime.ToString();
+        }
+
+        this.producerChannel!.BasicPublish(
+            exchange: exchange,
+            routingKey: routingKey,
+            mandatory: mandatory,
+            basicProperties: properties,
+            body: message);
     }
 
     /// <summary>
@@ -98,6 +132,22 @@ public class MessageQueueClient : IDisposable
             var body = eventArgs.Body;
             var message = Encoding.UTF8.GetString(body.ToArray());
             callback.Invoke(message, eventArgs.RoutingKey);
+        };
+        this.consumerChannel.BasicConsume(queueName, autoAck: true, consumer);
+    }
+
+    /// <summary>
+    /// Observe a message queue.
+    /// </summary>
+    /// <param name="queueName">Name of the message queue.</param>
+    /// <param name="callback">Callback when getting message.</param>
+    public void Observe(string queueName, Action<ReadOnlyMemory<byte>, string> callback)
+    {
+        var consumer = new EventingBasicConsumer(this.consumerChannel);
+        consumer.Received += (_, eventArgs) =>
+        {
+            var body = eventArgs.Body;
+            callback.Invoke(body, eventArgs.RoutingKey);
         };
         this.consumerChannel.BasicConsume(queueName, autoAck: true, consumer);
     }

@@ -4,7 +4,7 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
-namespace LPS.Server;
+namespace LPS.Server.Instance;
 
 using System;
 using System.Collections.Concurrent;
@@ -22,6 +22,7 @@ using LPS.Common.Rpc.InnerMessages;
 using LPS.Common.Rpc.InnerMessages.ProtobufDefs;
 using LPS.Common.Rpc.RpcPropertySync.RpcPropertySyncMessage;
 using LPS.Server.Entity;
+using LPS.Server.Instance.HostConnection;
 using LPS.Server.MessageQueue;
 using LPS.Server.Rpc;
 using LPS.Server.Rpc.InnerMessages.ProtobufDefs;
@@ -57,31 +58,28 @@ public class Server : IInstance
     private readonly ConcurrentQueue<(bool, uint, RpcPropertySyncMessage)> timeCircleQueue =
         new ConcurrentQueue<(bool, uint, RpcPropertySyncMessage)>();
 
+    private readonly AsyncTaskGenerator<MailBox> asyncTaskGeneratorForMailBox;
+
     // todo: use constant value to init time circle
     private readonly TimeCircle timeCircle = new TimeCircle(50, 1000);
     private readonly Random random = new Random();
 
     private readonly TcpServer tcpServer;
-    private readonly TcpClient clientToHostManager;
 
     private readonly CountdownEvent localEntityGeneratedEvent;
     private readonly CountdownEvent waitForSyncGatesEvent;
 
-    private readonly CountdownEvent hostManagerConnectedEvent;
+    private readonly IHostConnection hostConnection;
 
-    private readonly SandBox clientsPumpMsgSandBox;
     private MessageQueueClient? messageQueueClientToWebMgr;
 
     private ServerEntity? entity;
     private CellEntity? defaultCell;
 
-    private Connection[] GateConnections => this.tcpServer.AllConnections;
+    private Common.Rpc.Connection[] GateConnections => this.tcpServer.AllConnections;
 
     private uint createEntityCounter;
     private CountdownEvent? gatesMailBoxesRegisteredEvent;
-
-    private Dictionary<uint, TaskCompletionSource<MailBox>> entityCreationTasks =
-        new Dictionary<uint, TaskCompletionSource<MailBox>>();
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Server"/> class.
@@ -92,12 +90,46 @@ public class Server : IInstance
     /// <param name="hostnum">Hostnum of the server.</param>
     /// <param name="hostManagerIp">Ip of the hostmanager.</param>
     /// <param name="hostManagerPort">Port of the hostmanager.</param>
-    public Server(string name, string ip, int port, int hostnum, string hostManagerIp, int hostManagerPort)
+    /// <param name="useMqToHostMgr">If use message queue to build connection with host manager.</param>
+    public Server(
+        string name,
+        string ip,
+        int port,
+        int hostnum,
+        string hostManagerIp,
+        int hostManagerPort,
+        bool useMqToHostMgr)
     {
         this.Name = name;
         this.Ip = ip;
         this.Port = port;
         this.HostNum = hostnum;
+
+        if (!useMqToHostMgr)
+        {
+            this.hostConnection = new ImmediateHostConnectionOfServer(
+                hostManagerIp,
+                hostManagerPort,
+                this.GenerateConnectionId,
+                () => this.tcpServer!.Stopped);
+        }
+        else
+        {
+            this.hostConnection = new MessageQueueHostConnectionOfServer(this.Name, this.GenerateConnectionId);
+        }
+
+        this.hostConnection.RegisterMessageHandler(
+            PackageType.RequireCreateEntityRes,
+            this.HandleRequireCreateEntityResFromHost);
+        this.hostConnection.RegisterMessageHandler(
+            PackageType.CreateDistributeEntity,
+            this.HandleCreateDistributeEntityFromHost);
+        this.hostConnection.RegisterMessageHandler(PackageType.HostCommand, this.HandleHostCommand);
+
+        this.asyncTaskGeneratorForMailBox = new AsyncTaskGenerator<MailBox>
+        {
+            OnGenerateAsyncId = this.GenerateConnectionId,
+        };
 
         this.tcpServer = new TcpServer(ip, port)
         {
@@ -109,64 +141,14 @@ public class Server : IInstance
         this.timeCircle.Start();
 
         this.localEntityGeneratedEvent = new CountdownEvent(2);
-        this.hostManagerConnectedEvent = new CountdownEvent(1);
         this.waitForSyncGatesEvent = new CountdownEvent(1);
-        this.clientToHostManager = new TcpClient(
-            hostManagerIp,
-            hostManagerPort,
-            new ConcurrentQueue<(TcpClient, IMessage, bool)>())
-        {
-            OnInit = _ =>
-            {
-                this.clientToHostManager!.RegisterMessageHandler(
-                    PackageType.RequireCreateEntityRes,
-                    this.HandleRequireCreateEntityResFromHost);
-                this.clientToHostManager.RegisterMessageHandler(
-                    PackageType.CreateDistributeEntity,
-                    this.HandleCreateDistributeEntity);
-                this.clientToHostManager.RegisterMessageHandler(PackageType.HostCommand, this.HandleHostCommand);
-            },
-            OnDispose = _ =>
-            {
-                this.clientToHostManager!.UnregisterMessageHandler(
-                    PackageType.RequireCreateEntityRes,
-                    this.HandleRequireCreateEntityResFromHost);
-                this.clientToHostManager.UnregisterMessageHandler(
-                    PackageType.CreateDistributeEntity,
-                    this.HandleCreateDistributeEntity);
-                this.clientToHostManager.UnregisterMessageHandler(PackageType.HostCommand, this.HandleHostCommand);
-            },
-            OnConnected = _ =>
-            {
-                this.clientToHostManager!.Send(new RequireCreateEntity
-                {
-                    EntityType = EntityType.ServerEntity,
-                    CreateType = CreateType.Manual,
-                    EntityClassName = string.Empty,
-                    Description = string.Empty,
-                    ConnectionID = this.createEntityCounter++,
-                });
-
-                this.clientToHostManager.Send(new RequireCreateEntity
-                {
-                    EntityType = EntityType.ServerDefaultCellEntity,
-                    CreateType = CreateType.Manual,
-                    EntityClassName = string.Empty,
-                    Description = string.Empty,
-                    ConnectionID = this.createEntityCounter++,
-                });
-
-                this.hostManagerConnectedEvent.Signal();
-            },
-        };
-
-        this.clientsPumpMsgSandBox = SandBox.Create(this.PumpMessageHandler);
     }
 
     /// <inheritdoc/>
     public void Stop()
     {
-        this.clientToHostManager.Stop();
+        this.hostConnection.ShutDown();
+        this.messageQueueClientToWebMgr?.ShutDown();
         this.tcpServer.Stop();
     }
 
@@ -175,14 +157,10 @@ public class Server : IInstance
     {
         Logger.Info($"Start server at {this.Ip}:{this.Port}");
         this.tcpServer.Run();
-        this.clientToHostManager.Run();
-        this.hostManagerConnectedEvent.Wait();
+        this.hostConnection.Run();
 
         Logger.Debug("Host manager connected.");
-
-        this.clientsPumpMsgSandBox.Run();
-
-        Logger.Debug($"Start time circle pump.");
+        Logger.Debug("Start time circle pump.");
         var sendQueueSandBox = SandBox.Create(this.TimeCircleSyncMessageEnqueueHandler);
         sendQueueSandBox.Run();
 
@@ -196,7 +174,7 @@ public class Server : IInstance
             Message = ControlMessage.Ready,
         };
         regCtl.Args.Add(Any.Pack(RpcHelper.RpcMailBoxToPbMailBox(this.entity!.MailBox)));
-        this.clientToHostManager.Send(regCtl);
+        this.hostConnection.Send(regCtl);
 
         Logger.Debug("wait for sync gates mailboxes");
         this.waitForSyncGatesEvent.Wait();
@@ -204,12 +182,11 @@ public class Server : IInstance
         Logger.Debug("wait for gate mailbox registered");
         this.gatesMailBoxesRegisteredEvent!.Wait();
 
-        this.InitMessageQueueClient();
+        this.InitWebManagerMessageQueueClient();
 
         // gate main thread will stuck here
-        this.clientToHostManager.WaitForExit();
+        this.hostConnection.WaitForExit();
         this.tcpServer.WaitForExit();
-        this.clientsPumpMsgSandBox.WaitForExit();
 
         this.messageQueueClientToWebMgr!.ShutDown();
     }
@@ -241,8 +218,9 @@ public class Server : IInstance
     /// <returns>MailBox of created entity.</returns>
     public Task<MailBox> CreateEntityAnywhere(string entityClassName, string description, string gateId)
     {
-        var connectionId = this.createEntityCounter++;
-        this.clientToHostManager.Send(new RequireCreateEntity
+        var (task, connectionId) = this.asyncTaskGeneratorForMailBox.GenerateAsyncTask();
+
+        this.hostConnection.Send(new RequireCreateEntity
         {
             EntityType = gateId != string.Empty ? EntityType.ServerClientEntity : EntityType.DistibuteEntity,
             CreateType = CreateType.Anywhere,
@@ -252,34 +230,37 @@ public class Server : IInstance
             GateId = gateId,
         });
 
-        var taskCompletionSource = new TaskCompletionSource<MailBox>();
+        return task;
+    }
 
-        // record
-        this.entityCreationTasks[connectionId] = taskCompletionSource;
-        return taskCompletionSource.Task;
+    private uint GenerateConnectionId()
+    {
+        return this.createEntityCounter++;
     }
 
     private void OnTick(uint deltaTime)
     {
-        this.timeCircle.Tick(deltaTime, command =>
+        this.timeCircle.Tick(deltaTime, this.DispatchSyncCommand);
+    }
+
+    private void DispatchSyncCommand(PropertySyncCommandList command)
+    {
+        var entityId = command.EntityId;
+        var entity = this.localEntityDict[entityId];
+        Connection gateConn;
+
+        // todo: handle sync to local shadow entity
+        if (entity is ServerClientEntity serverClientEntity)
         {
-            var entityId = command.EntityId;
-            var entity = this.localEntityDict[entityId];
-            Connection gateConn;
+            gateConn = serverClientEntity.Client.GateConn;
+        }
+        else
+        {
+            gateConn = this.GateConnections[this.random.Next(0, this.GateConnections.Length)];
+        }
 
-            // todo: handle sync to local shadow entity
-            if (entity is ServerClientEntity serverClientEntity)
-            {
-                gateConn = serverClientEntity.Client.GateConn;
-            }
-            else
-            {
-                gateConn = this.GateConnections[this.random.Next(0, this.GateConnections.Length)];
-            }
-
-            this.tcpServer.Send(command, gateConn);
-            Logger.Debug($"[Dispatch Prop Sync msg]: {command} to {gateConn.MailBox}");
-        });
+        this.tcpServer.Send(command, gateConn);
+        Logger.Debug($"[Dispatch Prop Sync msg]: {command} to {gateConn.MailBox}");
     }
 
     private void TimeCircleSyncMessageEnqueueHandler()
@@ -410,10 +391,15 @@ public class Server : IInstance
         this.tcpServer.UnregisterMessageHandler(PackageType.Control, this.HandleControl);
     }
 
-    private void HandleControl(object arg)
+    private void HandleControl((IMessage Message, Connection Connection, uint RpcId) arg)
     {
-        var (msg, connToGate, _) = ((IMessage, Connection, uint))arg;
+        var (msg, connToGate, _) = arg;
         var createDist = (msg as Control)!;
+
+        if (!this.waitForSyncGatesEvent.IsSet)
+        {
+            this.waitForSyncGatesEvent.Wait();
+        }
 
         var gateMailBox = createDist.Args[0].Unpack<Common.Rpc.InnerMessages.ProtobufDefs.MailBox>();
         connToGate.MailBox = RpcHelper.PbMailBoxToRpcMailBox(gateMailBox);
@@ -422,9 +408,8 @@ public class Server : IInstance
         this.gatesMailBoxesRegisteredEvent!.Signal(1);
     }
 
-    private void HandleCreateDistributeEntity(object arg)
+    private void HandleCreateDistributeEntityFromHost(IMessage msg)
     {
-        var (msg, connToHost, id) = ((IMessage, Connection, uint))arg;
         var createDist = (msg as CreateDistributeEntity)!;
 
         var newId = createDist.EntityId!;
@@ -464,13 +449,11 @@ public class Server : IInstance
         };
 
         Logger.Debug("Create Entity Anywhere");
-        var pkg = PackageHelper.FromProtoBuf(createEntityRes, id);
-        connToHost.Socket.Send(pkg.ToBytes());
+        this.hostConnection.Send(createEntityRes);
     }
 
-    private void HandleRequireCreateEntityResFromHost(object arg)
+    private void HandleRequireCreateEntityResFromHost(IMessage msg)
     {
-        var (msg, _, _) = ((IMessage, Connection, uint))arg;
         var createRes = (msg as RequireCreateEntityRes)!;
 
         Logger.Info($"Create Entity Res: {createRes.EntityType} {createRes.ConnectionID}");
@@ -494,13 +477,25 @@ public class Server : IInstance
         }
     }
 
+    private void HandleHostCommand(IMessage msg)
+    {
+        var hostCmd = (msg as HostCommand)!;
+
+        if (hostCmd.Type == HostCommandType.SyncGates)
+        {
+            this.gatesMailBoxesRegisteredEvent = new CountdownEvent(hostCmd.Args.Count);
+            this.waitForSyncGatesEvent.Signal(1);
+        }
+    }
+
     private void CreateDistributeEntity(RequireCreateEntityRes requireCreateEntityRes)
     {
         var connId = requireCreateEntityRes.ConnectionID;
-        if (this.entityCreationTasks.ContainsKey(connId))
+        if (this.asyncTaskGeneratorForMailBox.ContainsAsyncId(connId))
         {
-            var taskCompleteSource = this.entityCreationTasks[connId];
-            taskCompleteSource.TrySetResult(RpcHelper.PbMailBoxToRpcMailBox(requireCreateEntityRes.Mailbox));
+            this.asyncTaskGeneratorForMailBox.ResolveAsyncTask(
+                connId,
+                RpcHelper.PbMailBoxToRpcMailBox(requireCreateEntityRes.Mailbox));
         }
         else
         {
@@ -551,22 +546,10 @@ public class Server : IInstance
         this.localEntityGeneratedEvent.Signal(1);
     }
 
-    private void HandleHostCommand(object arg)
-    {
-        var (msg, _, _) = ((IMessage, Connection, uint))arg;
-        var hostCmd = (msg as HostCommand)!;
-
-        if (hostCmd.Type == HostCommandType.SyncGates)
-        {
-            this.gatesMailBoxesRegisteredEvent = new CountdownEvent(hostCmd.Args.Count);
-            this.waitForSyncGatesEvent.Signal(1);
-        }
-    }
-
     // how server handle entity rpc
-    private void HandleEntityRpc(object arg)
+    private void HandleEntityRpc((IMessage Message, Connection Connection, uint RpcId) arg)
     {
-        var (msg, _, _) = ((IMessage, Connection, uint))arg;
+        var (msg, _, _) = arg;
         var entityRpc = (msg as EntityRpc)!;
 
         var targetMailBox = entityRpc.EntityMailBox;
@@ -614,26 +597,10 @@ public class Server : IInstance
         }
     }
 
-    private void PumpMessageHandler()
-    {
-        try
-        {
-            while (!this.tcpServer.Stopped)
-            {
-                this.clientToHostManager.Pump();
-                Thread.Sleep(1);
-            }
-        }
-        catch (Exception e)
-        {
-            Logger.Error(e, "Pump message failed.");
-        }
-    }
-
-    private void HandleRequirePropertyFullSync(object arg)
+    private void HandleRequirePropertyFullSync((IMessage Message, Connection Connection, uint RpcId) arg)
     {
         Logger.Debug("HandleRequirePropertyFullSync");
-        var (msg, conn, id) = ((IMessage, Connection, uint))arg;
+        var (msg, conn, id) = arg;
         var requirePropertyFullSyncMsg = (msg as RequirePropertyFullSync)!;
         var entityId = requirePropertyFullSyncMsg.EntityId;
 
@@ -660,9 +627,9 @@ public class Server : IInstance
         }
     }
 
-    private void HandlePropertyFullSyncAck(object arg)
+    private void HandlePropertyFullSyncAck((IMessage Message, Connection Connection, uint RpcId) arg)
     {
-        var (msg, _, _) = ((IMessage, Connection, uint))arg;
+        var (msg, _, _) = arg;
         var propertyFullSyncAckMsg = (msg as PropertyFullSyncAck)!;
         var entityId = propertyFullSyncAckMsg.EntityId;
 
@@ -678,9 +645,9 @@ public class Server : IInstance
         }
     }
 
-    private void InitMessageQueueClient()
+    private void InitWebManagerMessageQueueClient()
     {
-        Logger.Debug("Start mq client.");
+        Logger.Debug("Start mq client for web manager.");
         this.messageQueueClientToWebMgr = new MessageQueueClient();
         this.messageQueueClientToWebMgr.Init();
         this.messageQueueClientToWebMgr.AsProducer();
@@ -694,10 +661,10 @@ public class Server : IInstance
             Consts.RoutingKeyToServer);
         this.messageQueueClientToWebMgr.Observe(
             Consts.GenerateWebManagerQueueName(this.Name),
-            this.HandleMqMessage);
+            this.HandleWebMgrMqMessage);
     }
 
-    private void HandleMqMessage(string msg, string routingKey)
+    private void HandleWebMgrMqMessage(string msg, string routingKey)
     {
         Logger.Debug($"Msg received from web mgr: {msg}, routingKey: {routingKey}");
         if (routingKey == Consts.GetServerDetailedInfo)
@@ -714,18 +681,18 @@ public class Server : IInstance
 
             var res = MessageQueueJsonBody.Create(
                 msgId,
-                new
+                new JObject
                 {
-                    name = this.Name,
-                    mailbox = new
+                    ["name"] = this.Name,
+                    ["mailbox"] = new JObject
                     {
-                        id = this.entity !.MailBox.Id,
-                        ip = this.Ip,
-                        port = this.Port,
-                        hostNum = this.HostNum,
+                        ["id"] = this.entity !.MailBox.Id,
+                        ["ip"] = this.Ip,
+                        ["port"] = this.Port,
+                        ["hostNum"] = this.HostNum,
                     },
-                    entitiesCnt = this.localEntityDict.Count,
-                    cellCnt = this.cells.Count,
+                    ["entitiesCnt"] = this.localEntityDict.Count,
+                    ["cellCnt"] = this.cells.Count,
                 });
             this.messageQueueClientToWebMgr !.Publish(
                 res.ToJson(),
@@ -746,7 +713,6 @@ public class Server : IInstance
                 return;
             }
 
-            // var entities = new List<object>();
             var entities = new JArray();
 
             foreach (var (_, distributeEntity) in this.localEntityDict)

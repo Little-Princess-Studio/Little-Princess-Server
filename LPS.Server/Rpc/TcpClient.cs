@@ -63,7 +63,7 @@ internal class TcpClient // : IClient
 
     private readonly SandBox sandboxIo;
     private readonly Bus bus;
-    private readonly Dispatcher msgDispatcher;
+    private readonly Dispatcher<(IMessage Message, Connection Connection, uint RpcId)> msgDispatcher;
     private readonly string targetIp;
     private readonly int targetPort;
     private readonly TokenSequence<uint> tokenSequence = new();
@@ -85,7 +85,7 @@ internal class TcpClient // : IClient
         this.targetPort = targetPort;
         this.sendQueue = sendQueue;
 
-        this.msgDispatcher = new Dispatcher();
+        this.msgDispatcher = new Dispatcher<(IMessage Message, Connection Connection, uint RpcId)>();
         this.bus = new Bus(this.msgDispatcher);
 
         this.sandboxIo = SandBox.Create(this.IoHandler);
@@ -154,7 +154,7 @@ internal class TcpClient // : IClient
     /// </summary>
     /// <param name="key">Message token.</param>
     /// <param name="callback">Callback to handle the message.</param>
-    public void RegisterMessageHandler(IComparable key, Action<object> callback)
+    public void RegisterMessageHandler(IComparable key, Action<(IMessage Message, Connection Connection, uint RpcId)> callback)
     {
         this.msgDispatcher.Register(key, callback);
     }
@@ -164,7 +164,7 @@ internal class TcpClient // : IClient
     /// </summary>
     /// <param name="key">Message token.</param>
     /// <param name="callback">Callback to handle the message.</param>
-    public void UnregisterMessageHandler(IComparable key, Action<object> callback)
+    public void UnregisterMessageHandler(IComparable key, Action<(IMessage Message, Connection Connection, uint RpcId)> callback)
     {
         this.msgDispatcher.Unregister(key, callback);
     }

@@ -44,18 +44,6 @@ public class MessageQueueJsonBody
     /// Create a body.
     /// </summary>
     /// <param name="rpcId">Rpc id.</param>
-    /// <param name="obj">Obj to convert to string body content.</param>
-    /// <returns>Instance of MessageQueueJsonBody.</returns>
-    public static MessageQueueJsonBody Create(uint rpcId, object obj)
-    {
-        var body = JObject.FromObject(obj);
-        return Create(rpcId, body);
-    }
-
-    /// <summary>
-    /// Create a body.
-    /// </summary>
-    /// <param name="rpcId">Rpc id.</param>
     /// <param name="obj">JObject of the body.</param>
     /// <returns>Instance of MessageQueueJsonBody.</returns>
     public static MessageQueueJsonBody Create(uint rpcId, JObject obj)
