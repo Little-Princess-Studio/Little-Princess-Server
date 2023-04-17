@@ -88,7 +88,9 @@ public class MessageQueueClient : IDisposable
     /// <param name="exchange">Name of the exchange.</param>
     /// <param name="routingKey">Routing key.</param>
     /// <param name="mandatory"><see cref="IModel"/>.</param>
-    public void Publish(ReadOnlyMemory<byte> message, string exchange, string routingKey, bool mandatory = false, int expireTime = -1)
+    /// <param name="expireTime">Message expire time.</param>
+    public void Publish(
+        ReadOnlyMemory<byte> message, string exchange, string routingKey, bool mandatory = false, int expireTime = -1)
     {
         IBasicProperties properties = null;
         if (expireTime > 0)
