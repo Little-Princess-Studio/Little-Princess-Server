@@ -56,21 +56,21 @@ internal class ImmediateHostConnectionOfServer : ImmediateHostConnectionBase
             {
                 self.RegisterMessageHandler(
                     PackageType.RequireCreateEntityRes,
-                    this.HandleRequireCreateEntityResFromHost);
+                    this.HandleMessageFromHost<RequireCreateEntityRes>);
                 self.RegisterMessageHandler(
                     PackageType.CreateDistributeEntity,
-                    this.HandleCreateDistributeEntity);
-                self.RegisterMessageHandler(PackageType.HostCommand, this.HandleHostCommand);
+                    this.HandleMessageFromHost<CreateDistributeEntity>);
+                self.RegisterMessageHandler(PackageType.HostCommand, this.HandleMessageFromHost<HostCommand>);
             },
             OnDispose = self =>
             {
                 self.UnregisterMessageHandler(
                     PackageType.RequireCreateEntityRes,
-                    this.HandleRequireCreateEntityResFromHost);
+                    this.HandleMessageFromHost<RequireCreateEntityRes>);
                 self.UnregisterMessageHandler(
                     PackageType.CreateDistributeEntity,
-                    this.HandleCreateDistributeEntity);
-                self.UnregisterMessageHandler(PackageType.HostCommand, this.HandleHostCommand);
+                    this.HandleMessageFromHost<CreateDistributeEntity>);
+                self.UnregisterMessageHandler(PackageType.HostCommand, this.HandleMessageFromHost<HostCommand>);
                 this.MsgDispatcher.Clear();
             },
             OnConnected = self =>
@@ -99,22 +99,4 @@ internal class ImmediateHostConnectionOfServer : ImmediateHostConnectionBase
 
     /// <inheritdoc/>
     protected override void BeforeStartPumpMessage() => this.hostManagerConnectedEvent.Wait();
-
-    private void HandleRequireCreateEntityResFromHost((IMessage Message, Connection Connection, uint RpcId) arg)
-    {
-        var (msg, _, _) = arg;
-        this.MsgDispatcher.Dispatch(PackageType.RequireCreateEntityRes, msg);
-    }
-
-    private void HandleCreateDistributeEntity((IMessage Message, Connection Connection, uint RpcId) arg)
-    {
-        var (msg, _, _) = arg;
-        this.MsgDispatcher.Dispatch(PackageType.CreateDistributeEntity, msg);
-    }
-
-    private void HandleHostCommand((IMessage Message, Connection Connection, uint RpcId) arg)
-    {
-        var (msg, _, _) = arg;
-        this.MsgDispatcher.Dispatch(PackageType.HostCommand, msg);
-    }
 }

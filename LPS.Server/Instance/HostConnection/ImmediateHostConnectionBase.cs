@@ -98,6 +98,18 @@ internal abstract class ImmediateHostConnectionBase : IHostConnection
     /// </summary>
     protected abstract void BeforeStartPumpMessage();
 
+    /// <summary>
+    /// Generic method to handle message from host.
+    /// </summary>
+    /// <param name="arg">Message.</param>
+    /// <typeparam name="TPackage">Protobuf package type.</typeparam>
+    protected void HandleMessageFromHost<TPackage>((IMessage Message, Connection Connection, uint RpcId) arg)
+        where TPackage : IMessage
+    {
+        var (msg, _, _) = arg;
+        this.MsgDispatcher.Dispatch(PackageHelper.GetPackageType<TPackage>(), msg);
+    }
+
     private void PumpMessageHandler()
     {
         try

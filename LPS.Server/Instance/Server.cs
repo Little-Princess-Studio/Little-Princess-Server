@@ -90,24 +90,43 @@ public class Server : IInstance
     /// <param name="hostnum">Hostnum of the server.</param>
     /// <param name="hostManagerIp">Ip of the hostmanager.</param>
     /// <param name="hostManagerPort">Port of the hostmanager.</param>
-    public Server(string name, string ip, int port, int hostnum, string hostManagerIp, int hostManagerPort)
+    /// <param name="useMqToHostMgr">If use message queue to build connection with host manager.</param>
+    public Server(
+        string name,
+        string ip,
+        int port,
+        int hostnum,
+        string hostManagerIp,
+        int hostManagerPort,
+        bool useMqToHostMgr)
     {
         this.Name = name;
         this.Ip = ip;
         this.Port = port;
         this.HostNum = hostnum;
 
-        this.hostConnection = new ImmediateHostConnectionOfServer(
-            hostManagerIp,
-            hostManagerPort,
-            this.GenerateConnectionId,
-            () => this.tcpServer!.Stopped);
+        if (!useMqToHostMgr)
+        {
+            this.hostConnection = new ImmediateHostConnectionOfServer(
+                hostManagerIp,
+                hostManagerPort,
+                this.GenerateConnectionId,
+                () => this.tcpServer!.Stopped);
+        }
+        else
+        {
+            this.hostConnection = new MessageQueueHostConnectionOfServer(this.Name, this.GenerateConnectionId);
+        }
 
-        this.hostConnection.RegisterMessageHandler(PackageType.RequireCreateEntityRes, this.HandleRequireCreateEntityResFromHost);
-        this.hostConnection.RegisterMessageHandler(PackageType.CreateDistributeEntity, this.HandleCreateDistributeEntityFromHost);
+        this.hostConnection.RegisterMessageHandler(
+            PackageType.RequireCreateEntityRes,
+            this.HandleRequireCreateEntityResFromHost);
+        this.hostConnection.RegisterMessageHandler(
+            PackageType.CreateDistributeEntity,
+            this.HandleCreateDistributeEntityFromHost);
         this.hostConnection.RegisterMessageHandler(PackageType.HostCommand, this.HandleHostCommand);
 
-        this.asyncTaskGeneratorForMailBox = new AsyncTaskGenerator<MailBox>()
+        this.asyncTaskGeneratorForMailBox = new AsyncTaskGenerator<MailBox>
         {
             OnGenerateAsyncId = this.GenerateConnectionId,
         };
@@ -376,6 +395,11 @@ public class Server : IInstance
     {
         var (msg, connToGate, _) = arg;
         var createDist = (msg as Control)!;
+
+        if (!this.waitForSyncGatesEvent.IsSet)
+        {
+            this.waitForSyncGatesEvent.Wait();
+        }
 
         var gateMailBox = createDist.Args[0].Unpack<Common.Rpc.InnerMessages.ProtobufDefs.MailBox>();
         connToGate.MailBox = RpcHelper.PbMailBoxToRpcMailBox(gateMailBox);

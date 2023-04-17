@@ -8,6 +8,7 @@ namespace LPS.Server.MessageQueue;
 
 using System;
 using System.Text;
+using LPS.Common.Debug;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 
@@ -50,6 +51,12 @@ public class MessageQueueClient : IDisposable
     public void AsProducer()
     {
         this.producerChannel = this.connection !.CreateModel();
+        this.producerChannel.BasicReturn += (sender, args) =>
+        {
+            Logger.Info($"Message publish failed ({args.Exchange}, {args.RoutingKey}), retry...");
+            var body = args.Body;
+            this.Publish(body, args.Exchange, args.RoutingKey, true);
+        };
     }
 
     /// <summary>
@@ -71,6 +78,23 @@ public class MessageQueueClient : IDisposable
     {
         var body = Encoding.UTF8.GetBytes(message);
         this.producerChannel!.BasicPublish(exchange, routingKey, null, body);
+    }
+
+    /// <summary>
+    /// Publish a message via message queue.
+    /// </summary>
+    /// <param name="message">Message.</param>
+    /// <param name="exchange">Name of the exchange.</param>
+    /// <param name="routingKey">Routing key.</param>
+    /// <param name="mandatory"><see cref="IModel"/>.</param>
+    public void Publish(ReadOnlyMemory<byte> message, string exchange, string routingKey, bool mandatory = false)
+    {
+        this.producerChannel!.BasicPublish(
+            exchange: exchange,
+            routingKey: routingKey,
+            mandatory: mandatory,
+            basicProperties: null,
+            body: message);
     }
 
     /// <summary>

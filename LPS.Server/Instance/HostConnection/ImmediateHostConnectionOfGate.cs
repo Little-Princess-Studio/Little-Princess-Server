@@ -57,8 +57,8 @@ internal class ImmediateHostConnectionOfGate : ImmediateHostConnectionBase
             {
                 self.RegisterMessageHandler(
                     PackageType.RequireCreateEntityRes,
-                    this.HandleRequireCreateEntityResFromHost);
-                self.RegisterMessageHandler(PackageType.HostCommand, this.HandleHostCommandFromHost);
+                    this.HandleMessageFromHost<RequireCreateEntityRes>);
+                self.RegisterMessageHandler(PackageType.HostCommand, this.HandleMessageFromHost<HostCommand>);
             },
             OnConnected = self =>
             {
@@ -79,24 +79,12 @@ internal class ImmediateHostConnectionOfGate : ImmediateHostConnectionBase
             {
                 self.UnregisterMessageHandler(
                     PackageType.RequireCreateEntityRes,
-                    this.HandleRequireCreateEntityResFromHost);
-                self.UnregisterMessageHandler(PackageType.HostCommand, this.HandleHostCommandFromHost);
+                    this.HandleMessageFromHost<RequireCreateEntityRes>);
+                self.UnregisterMessageHandler(PackageType.HostCommand, this.HandleMessageFromHost<HostCommand>);
             },
         };
     }
 
     /// <inheritdoc/>
     protected override void BeforeStartPumpMessage() => this.hostManagerConnectedEvent.Wait();
-
-    private void HandleRequireCreateEntityResFromHost((IMessage Message, Connection Connection, uint RpcId) arg)
-    {
-        var (msg, _, _) = arg;
-        this.MsgDispatcher.Dispatch(PackageType.RequireCreateEntityRes, msg);
-    }
-
-    private void HandleHostCommandFromHost((IMessage Message, Connection Connection, uint RpcId) arg)
-    {
-        var (msg, _, _) = arg;
-        this.MsgDispatcher.Dispatch(PackageType.HostCommand, msg);
-    }
 }

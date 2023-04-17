@@ -9,79 +9,123 @@ namespace LPS.Server.Instance.HostConnection;
 using System;
 using Google.Protobuf;
 using LPS.Common.Debug;
+using LPS.Common.Ipc;
 using LPS.Common.Rpc.InnerMessages;
 using LPS.Server.MessageQueue;
 
 /// <summary>
 /// Use message queue to connect to host manager.
 /// </summary>
-public class MessageQueueHostConnectionBase : IHostConnection
+public abstract class MessageQueueHostConnectionBase : IHostConnection
 {
+    /// <summary>
+    /// Name of the owner.
+    /// </summary>
+    protected readonly string Name;
+
     private readonly MessageQueueClient messageQueueClientToHostMgr;
-    private readonly string name;
+    private readonly Dispatcher<IMessage> dispatcher = new();
+
+    private uint rpcId;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="MessageQueueHostConnectionBase"/> class.
     /// </summary>
-    public MessageQueueHostConnectionBase()
+    /// <param name="name">Name of the connection, used to genereate message queue name.</param>
+    public MessageQueueHostConnectionBase(string name)
+    {
+        this.Name = name;
+        this.messageQueueClientToHostMgr = new MessageQueueClient();
+    }
+
+    /// <inheritdoc/>
+    public virtual void Run()
     {
         Logger.Debug("Start mq client for host manager.");
-        this.messageQueueClientToHostMgr = new MessageQueueClient();
         this.messageQueueClientToHostMgr.Init();
         this.messageQueueClientToHostMgr.AsProducer();
         this.messageQueueClientToHostMgr.AsConsumer();
 
         this.messageQueueClientToHostMgr.DeclareExchange(Consts.HostMgrToServerExchangeName);
+        this.messageQueueClientToHostMgr.DeclareExchange(Consts.HostMgrToGateExchangeName);
         this.messageQueueClientToHostMgr.DeclareExchange(Consts.ServerToHostExchangeName);
-        this.messageQueueClientToHostMgr.BindQueueAndExchange(
-            Consts.GenerateWebManagerQueueName(this.name),
-            Consts.HostMgrToServerExchangeName,
-            Consts.RoutingKeyToServer);
-        this.messageQueueClientToHostMgr.Observe(
-            Consts.GenerateHostManagerQueueName(this.name),
-            this.HandleHostMgrMqMessage);
-    }
+        this.messageQueueClientToHostMgr.DeclareExchange(Consts.GateToHostExchangeName);
 
-    /// <inheritdoc/>
-    public void Run()
-    {
-        throw new NotImplementedException();
+        this.InitializeBinding(this.messageQueueClientToHostMgr);
+
+        this.messageQueueClientToHostMgr.Observe(
+            this.GetMessageQueueName(),
+            this.HandleHostMgrMqMessage);
     }
 
     /// <inheritdoc/>
     public void ShutDown()
     {
-        throw new NotImplementedException();
+        this.messageQueueClientToHostMgr.ShutDown();
     }
 
     /// <inheritdoc/>
     public void WaitForExit()
     {
-        throw new NotImplementedException();
     }
 
     /// <inheritdoc/>
     public void Send(IMessage message)
     {
-        throw new NotImplementedException();
+        var pkg = PackageHelper.FromProtoBuf(message, this.GenerateRpcId());
+        Logger.Debug($"Send message to host manager. {this.GetHostMgrExchangeName()}, {this.GetMessagePackageRoutingKey()}");
+        this.messageQueueClientToHostMgr.Publish(
+            pkg.ToBytes(),
+            this.GetHostMgrExchangeName(),
+            this.GetMessagePackageRoutingKey(),
+            true);
     }
 
     /// <inheritdoc/>
-    public void RegisterMessageHandler(PackageType packageType, Action<IMessage> handler)
-    {
-        throw new NotImplementedException();
-    }
+    public void RegisterMessageHandler(PackageType packageType, Action<IMessage> handler) =>
+        this.dispatcher.Register(packageType, handler);
 
     /// <inheritdoc/>
-    public void UnregisterMessageHandler(PackageType packageType, Action<IMessage> handler)
-    {
-        throw new NotImplementedException();
-    }
+    public void UnregisterMessageHandler(PackageType packageType, Action<IMessage> handler) =>
+        this.dispatcher.Unregister(packageType, handler);
+
+    /// <summary>
+    /// Initialize binding between exchange and message queue.
+    /// </summary>
+    /// <param name="client">Mq client.</param>
+    protected abstract void InitializeBinding(MessageQueueClient client);
+
+    /// <summary>
+    /// Get message queue name to observe.
+    /// </summary>
+    /// <returns>Name of the message queue name.</returns>
+    protected abstract string GetMessageQueueName();
+
+    /// <summary>
+    /// Exchange name to send message.
+    /// </summary>
+    /// <returns>Name of the host exchange name.</returns>
+    protected abstract string GetHostMgrExchangeName();
+
+    /// <summary>
+    /// Get routing key of the message package.
+    /// </summary>
+    /// <returns>Routing key.</returns>
+    protected abstract string GetMessagePackageRoutingKey();
+
+    private uint GenerateRpcId() => this.rpcId++;
 
     private void HandleHostMgrMqMessage(ReadOnlyMemory<byte> msg, string routingKey)
     {
-        if (routingKey == Consts.HostMessagePackage)
+        if (routingKey == Consts.GenerateHostMessageToServerPackage(this.Name) ||
+            routingKey == Consts.GenerateHostMessageToGatePackage(this.Name) ||
+            routingKey == Consts.HostBroadCastMessagePackageToServer ||
+            routingKey == Consts.HostBroadCastMessagePackageToGate)
         {
+            var pkg = MessageBuffer.GetPackageFromBytes(msg);
+            var type = (PackageType)pkg.Header.Type;
+            var protobuf = PackageHelper.GetProtoBufObjectByType(type, pkg);
+            this.dispatcher.Dispatch(type, protobuf);
         }
     }
 }

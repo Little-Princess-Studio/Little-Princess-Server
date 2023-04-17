@@ -17,6 +17,11 @@ public static class ServerGlobal
     private static IInstance instance = null!;
 
     /// <summary>
+    /// Gets instance type.
+    /// </summary>
+    public static InstanceType InstanceType => instance.InstanceType;
+
+    /// <summary>
     /// Gets the instance as Server.
     /// </summary>
     /// <exception cref="Exception">Throw exception if current process instance is not Server.</exception>

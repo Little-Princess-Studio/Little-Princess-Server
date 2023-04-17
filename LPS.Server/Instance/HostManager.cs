@@ -40,6 +40,7 @@ using System.Linq;
 using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
 using LPS.Common.Debug;
+using LPS.Common.Ipc;
 using LPS.Common.Rpc;
 using LPS.Common.Rpc.InnerMessages;
 using LPS.Server.Database;
@@ -105,16 +106,24 @@ public class HostManager : IInstance
     /// </summary>
     public HostStatus Status { get; } = HostStatus.None;
 
-    private readonly List<Connection> serversConn = new List<Connection>();
-    private readonly List<Connection> gatesConn = new List<Connection>();
+    private readonly List<MailBox> serversMailBoxes = new List<MailBox>();
+    private readonly List<MailBox> gatesMailBoxes = new List<MailBox>();
     private readonly TcpServer tcpServer;
     private readonly Random random = new Random();
 
-    private readonly Dictionary<uint, (uint ConnId, Connection OriginConn)>
-        createDistEntityAsyncRecord = new Dictionary<uint, (uint ConnId, Connection OriginConn)>();
+    private readonly Dictionary<uint, (uint ConnId, Action<byte[]>)>
+        createDistEntityAsyncRecord = new Dictionary<uint, (uint ConnId, Action<byte[]> Send)>();
 
-    private MessageQueueClient? messageQueueClientToWebMgr;
+    private readonly MessageQueueClient messageQueueClientToWebMgr;
+    private readonly MessageQueueClient messageQueueClientToServer;
+
+    private readonly Dictionary<string, Connection> mailboxIdToConnection = new Dictionary<string, Connection>();
+    private readonly Dictionary<string, string> mailboxIdToIdentifier = new Dictionary<string, string>();
+
     private uint createEntityCnt;
+
+    private Dispatcher<(IMessage Mesage, string TargetIdentifier, InstanceType OriType)> dispatcher =
+        new Dispatcher<(IMessage Mesage, string TargetIdentifier, InstanceType OriType)>();
 
     /// <summary>
     /// Initializes a new instance of the <see cref="HostManager"/> class.
@@ -140,6 +149,46 @@ public class HostManager : IInstance
             OnDispose = this.UnregisterServerMessageHandlers,
             ServerTickHandler = null,
         };
+
+        this.dispatcher.Register(
+            PackageType.CreateDistributeEntityRes,
+            (arg)
+                =>
+            {
+                var (msg, targetIdentifier, instanceType) = arg;
+                this.CommonHandleCreateDistributeEntityRes(
+                    msg,
+                    bytes => this.messageQueueClientToServer!.Publish(
+                        bytes,
+                        GetExchangeName(instanceType),
+                        GenerateRoutingKey(targetIdentifier, instanceType)));
+            });
+
+        this.dispatcher.Register(
+            PackageType.RequireCreateEntity,
+            (arg)
+                =>
+            {
+                var (msg, targetIdentifier, instanceType) = arg;
+                this.CommonHandleRequireCreateEntity(
+                    msg,
+                    bytes => this.messageQueueClientToServer!.Publish(
+                        bytes,
+                        GetExchangeName(instanceType),
+                        GenerateRoutingKey(targetIdentifier, instanceType)));
+            });
+
+        this.dispatcher.Register(
+            PackageType.Control,
+            (arg)
+                =>
+            {
+                var (msg, targetIdentifier, _) = arg;
+                this.HandleControlCmdForMqConnection(msg, targetIdentifier);
+            });
+
+        this.messageQueueClientToWebMgr = new MessageQueueClient();
+        this.messageQueueClientToServer = new MessageQueueClient();
     }
 
     /// <inheritdoc/>
@@ -148,7 +197,8 @@ public class HostManager : IInstance
         Logger.Info($"Start Host Manager at {this.Ip}:{this.Port}");
         this.tcpServer.Run();
 
-        this.InitMessageQueueClient();
+        this.InitMessageQueueClientInternal();
+        this.InitMessageQueueClientToWebManager();
 
         this.tcpServer.WaitForExit();
     }
@@ -159,10 +209,107 @@ public class HostManager : IInstance
         this.tcpServer.Stop();
     }
 
-    private void InitMessageQueueClient()
+    private static string GenerateRoutingKey(string identifier, InstanceType instanceType)
     {
-        Logger.Debug("Start mq client.");
-        this.messageQueueClientToWebMgr = new MessageQueueClient();
+        if (instanceType == InstanceType.Gate)
+        {
+            return Consts.GenerateHostMessageToGatePackage(identifier);
+        }
+
+        if (instanceType == InstanceType.Server)
+        {
+            return Consts.GenerateHostMessageToServerPackage(identifier);
+        }
+
+        throw new Exception($"Invalid instanceType : {instanceType}");
+    }
+
+    private static string GetExchangeName(InstanceType instanceType)
+    {
+        string exchangeName = instanceType switch
+        {
+            InstanceType.Gate => Consts.HostMgrToGateExchangeName,
+            InstanceType.Server => Consts.HostMgrToServerExchangeName,
+            _ => throw new Exception($"Invalid instance type: {instanceType}"),
+        };
+
+        return exchangeName;
+    }
+
+    private void InitMessageQueueClientInternal()
+    {
+        Logger.Debug("Start mq client for server.");
+        this.messageQueueClientToServer.Init();
+        this.messageQueueClientToServer.AsProducer();
+        this.messageQueueClientToServer.AsConsumer();
+
+        this.messageQueueClientToServer.DeclareExchange(Consts.HostMgrToServerExchangeName);
+        this.messageQueueClientToServer.DeclareExchange(Consts.HostMgrToGateExchangeName);
+
+        this.messageQueueClientToServer.DeclareExchange(Consts.ServerToHostExchangeName);
+        this.messageQueueClientToServer.DeclareExchange(Consts.GateToHostExchangeName);
+
+        // As consumer for server, we should bind exchange of `Consts.ServerToHostExchangeName` with `Consts.ServerMessageQueueName`
+        this.messageQueueClientToServer.BindQueueAndExchange(
+            Consts.ServerMessageQueueName,
+            Consts.ServerToHostExchangeName,
+            Consts.RoutingKeyServerToHost);
+
+        // As consumer for gate, we should bind exchange of `Consts.GateToHostExchangeName` with `Consts.GateMessageQueueName`
+        this.messageQueueClientToServer.BindQueueAndExchange(
+            Consts.GateMessageQueueName,
+            Consts.GateToHostExchangeName,
+            Consts.RoutingKeyGateToHost);
+
+        this.messageQueueClientToServer.Observe(
+            Consts.ServerMessageQueueName,
+            (msg, routingKey) =>
+            {
+                var split = routingKey.Split('.');
+                var msgType = split[0];
+                var targetIdentifier = split[1];
+                Logger.Debug($"Message recieved from server. {msgType} {targetIdentifier} {routingKey}");
+
+                switch (msgType)
+                {
+                    case "serverMessagePackage":
+                        var pkg = MessageBuffer.GetPackageFromBytes(msg);
+                        var type = (PackageType)pkg.Header.Type;
+                        var protobuf = PackageHelper.GetProtoBufObjectByType(type, pkg);
+                        Logger.Debug($"Message package type: {type}");
+                        this.dispatcher.Dispatch(type, (protobuf, targetIdentifier, InstanceType.Server));
+                        break;
+                    default:
+                        Logger.Warn($"Unknown message type: {msgType}");
+                        break;
+                }
+            });
+
+        this.messageQueueClientToServer.Observe(
+            Consts.GateMessageQueueName,
+            (msg, routingKey) =>
+            {
+                var split = routingKey.Split('.');
+                var msgType = split[0];
+                var targetIdentifier = split[1];
+                switch (msgType)
+                {
+                    case "serverMessagePackage":
+                        var pkg = MessageBuffer.GetPackageFromBytes(msg);
+                        var type = (PackageType)pkg.Header.Type;
+                        var protobuf = PackageHelper.GetProtoBufObjectByType(type, pkg);
+                        this.dispatcher.Dispatch(type, (protobuf, targetIdentifier, InstanceType.Gate));
+                        break;
+                    default:
+                        Logger.Warn($"Unknown message type: {msgType}");
+                        break;
+                }
+            });
+    }
+
+    private void InitMessageQueueClientToWebManager()
+    {
+        Logger.Debug("Start mq client for web manager.");
         this.messageQueueClientToWebMgr.Init();
         this.messageQueueClientToWebMgr.AsProducer();
         this.messageQueueClientToWebMgr.AsConsumer();
@@ -186,12 +333,12 @@ public class HostManager : IInstance
                         new JObject
                         {
                             ["serverCnt"] = this.ServerNum,
-                            ["serverMailBoxes"] = new JArray(this.serversConn.Select(conn => new JObject
+                            ["serverMailBoxes"] = new JArray(this.serversMailBoxes.Select(conn => new JObject
                             {
-                                ["id"] = conn.MailBox.Id,
-                                ["ip"] = conn.MailBox.Ip,
-                                ["port"] = conn.MailBox.Port,
-                                ["hostNum"] = conn.MailBox.HostNum,
+                                ["id"] = conn.Id,
+                                ["ip"] = conn.Ip,
+                                ["port"] = conn.Port,
+                                ["hostNum"] = conn.HostNum,
                             })),
                         });
                     this.messageQueueClientToWebMgr.Publish(
@@ -204,8 +351,10 @@ public class HostManager : IInstance
 
     private void UnregisterServerMessageHandlers()
     {
-        this.tcpServer.UnregisterMessageHandler(PackageType.Control, this.HandleControlCmd);
-        this.tcpServer.UnregisterMessageHandler(PackageType.RequireCreateEntity, this.HandleControlCmd);
+        this.tcpServer.UnregisterMessageHandler(PackageType.Control, this.HandleControlCmdForImmediateConnection);
+        this.tcpServer.UnregisterMessageHandler(
+            PackageType.RequireCreateEntity,
+            this.HandleControlCmdForImmediateConnection);
         this.tcpServer.UnregisterMessageHandler(
             PackageType.CreateDistributeEntityRes,
             this.HandleCreateDistributeEntityRes);
@@ -213,7 +362,7 @@ public class HostManager : IInstance
 
     private void RegisterServerMessageHandlers()
     {
-        this.tcpServer.RegisterMessageHandler(PackageType.Control, this.HandleControlCmd);
+        this.tcpServer.RegisterMessageHandler(PackageType.Control, this.HandleControlCmdForImmediateConnection);
         this.tcpServer.RegisterMessageHandler(PackageType.RequireCreateEntity, this.HandleRequireCreateEntity);
         this.tcpServer.RegisterMessageHandler(
             PackageType.CreateDistributeEntityRes,
@@ -222,7 +371,12 @@ public class HostManager : IInstance
 
     private void HandleCreateDistributeEntityRes((IMessage Message, Connection Connection, uint RpcId) arg)
     {
-        var (msg, _, id) = arg;
+        var (msg, conn, _) = arg;
+        this.CommonHandleCreateDistributeEntityRes(msg, (bytes) => { conn.Socket.Send(bytes); });
+    }
+
+    private void CommonHandleCreateDistributeEntityRes(IMessage msg, Action<byte[]> send)
+    {
         var createRes = (msg as CreateDistributeEntityRes)!;
 
         Logger.Debug($"HandleCreateDistributeEntityRes, {createRes.Mailbox}");
@@ -234,7 +388,7 @@ public class HostManager : IInstance
         }
 
         this.createDistEntityAsyncRecord.Remove(createRes.ConnectionID, out var tp);
-        var (oriConnId, conn) = tp;
+        var (oriConnId, sendToOriServer) = tp;
 
         var requireCreateRes = new RequireCreateEntityRes
         {
@@ -244,13 +398,18 @@ public class HostManager : IInstance
             EntityClassName = createRes.EntityClassName,
         };
 
-        var pkg = PackageHelper.FromProtoBuf(requireCreateRes, id);
-        conn.Socket.Send(pkg.ToBytes());
+        var pkg = PackageHelper.FromProtoBuf(requireCreateRes, 0);
+        sendToOriServer(pkg.ToBytes());
     }
 
     private void HandleRequireCreateEntity((IMessage Message, Connection Connection, uint RpcId) arg)
     {
         var (msg, conn, id) = arg;
+        this.CommonHandleRequireCreateEntity(msg, (bytes) => { conn.Socket.Send(bytes); });
+    }
+
+    private void CommonHandleRequireCreateEntity(IMessage msg, Action<byte[]> send)
+    {
         var createEntity = (msg as RequireCreateEntity)!;
 
         Logger.Info($"create entity: {createEntity.CreateType}, {createEntity.EntityClassName}");
@@ -258,21 +417,21 @@ public class HostManager : IInstance
         switch (createEntity.CreateType)
         {
             case CreateType.Local:
-                this.CreateLocalEntity(createEntity, id, conn);
+                this.CreateLocalEntity(createEntity, 0, send);
                 break;
             case CreateType.Anywhere:
-                this.CreateAnywhereEntity(createEntity, id, conn);
+                this.CreateAnywhereEntity(createEntity, 0, send);
                 break;
             case CreateType.Manual:
-                this.CreateManualEntity(createEntity, id, conn);
+                this.CreateManualEntity(createEntity, 0, send);
                 break;
         }
     }
 
-    private void CreateLocalEntity(RequireCreateEntity createEntity, uint id, Connection conn) =>
-        this.CreateManualEntity(createEntity, id, conn);
+    private void CreateLocalEntity(RequireCreateEntity createEntity, uint id, Action<byte[]> send) =>
+        this.CreateManualEntity(createEntity, id, send);
 
-    private void CreateManualEntity(RequireCreateEntity createEntity, uint id, Connection conn)
+    private void CreateManualEntity(RequireCreateEntity createEntity, uint id, Action<byte[]> send)
     {
         DbHelper.GenerateNewGlobalId().ContinueWith(task =>
         {
@@ -291,7 +450,7 @@ public class HostManager : IInstance
                 EntityClassName = createEntity.EntityClassName,
             };
             var pkg = PackageHelper.FromProtoBuf(entityMailBox, id);
-            conn.Socket.Send(pkg.ToBytes());
+            send.Invoke(pkg.ToBytes());
         });
     }
 
@@ -304,14 +463,14 @@ public class HostManager : IInstance
     /// </summary>
     /// <param name="createEntity">CreateEntity object.</param>
     /// <param name="id">Message id.</param>
-    /// <param name="conn">Connection require to create entity.</param>
-    private void CreateAnywhereEntity(RequireCreateEntity createEntity, uint id, Connection conn)
+    /// <param name="send">Send to create entity.</param>
+    private void CreateAnywhereEntity(RequireCreateEntity createEntity, uint id, Action<byte[]> send)
     {
         DbHelper.GenerateNewGlobalId().ContinueWith(task =>
         {
             var newId = task.Result;
             Logger.Debug("Randomly select a server");
-            var serverConn = this.serversConn[this.random.Next(0, this.serversConn.Count)];
+            var serverMailBox = this.serversMailBoxes[this.random.Next(0, this.serversMailBoxes.Count)];
 
             Logger.Debug("Create Entity Anywhere");
             var connId = this.createEntityCnt++;
@@ -330,14 +489,34 @@ public class HostManager : IInstance
             }
 
             var pkg = PackageHelper.FromProtoBuf(createDist, id);
-            serverConn.Socket.Send(pkg.ToBytes());
+
+            var serverConn = this.mailboxIdToConnection.GetValueOrDefault(serverMailBox.Id);
+            if (serverConn != null)
+            {
+                serverConn.Socket.Send(pkg.ToBytes());
+            }
+            else
+            {
+                var targetServer = this.mailboxIdToIdentifier.GetValueOrDefault(serverMailBox.Id);
+                if (targetServer != null)
+                {
+                    this.messageQueueClientToServer.Publish(
+                        pkg.ToBytes(),
+                        Consts.HostMgrToServerExchangeName,
+                        Consts.GenerateHostMessageToServerPackage(targetServer));
+                }
+                else
+                {
+                    Logger.Warn($"Server conn {serverMailBox} not found.");
+                }
+            }
 
             // record
-            this.createDistEntityAsyncRecord[connId] = (createEntity.ConnectionID, conn);
+            this.createDistEntityAsyncRecord[connId] = (createEntity.ConnectionID, send);
         });
     }
 
-    private void HandleControlCmd((IMessage Message, Connection Connection, uint RpcId) arg)
+    private void HandleControlCmdForImmediateConnection((IMessage Message, Connection Connection, uint RpcId) arg)
     {
         var (msg, conn, _) = arg;
         var hostCmd = (msg as Control)!;
@@ -359,25 +538,69 @@ public class HostManager : IInstance
         }
     }
 
+    private void HandleControlCmdForMqConnection(IMessage msg, string targetIdentifier)
+    {
+        var hostCmd = (msg as Control)!;
+
+        switch (hostCmd.Message)
+        {
+            case ControlMessage.Ready:
+                var mb = RpcHelper.PbMailBoxToRpcMailBox(hostCmd.Args[0]
+                    .Unpack<Common.Rpc.InnerMessages.ProtobufDefs.MailBox>());
+                this.mailboxIdToIdentifier[mb.Id] = targetIdentifier;
+                this.BroadCastSyncMessage(
+                    hostCmd.From,
+                    RpcHelper.PbMailBoxToRpcMailBox(hostCmd.Args[0]
+                        .Unpack<Common.Rpc.InnerMessages.ProtobufDefs.MailBox>()));
+                break;
+            case ControlMessage.Restart:
+                break;
+            case ControlMessage.ShutDown:
+                break;
+            default:
+                throw new ArgumentOutOfRangeException();
+        }
+    }
+
     private void RegisterComponents(RemoteType hostCmdFrom, MailBox mailBox, Connection conn)
     {
         conn.MailBox = mailBox;
+        this.mailboxIdToConnection[mailBox.Id] = conn;
+        this.BroadCastSyncMessage(hostCmdFrom, mailBox);
+    }
 
-        if (hostCmdFrom == RemoteType.Gate)
+    private void BroadCastSyncMessage(RemoteType hostCmdFrom, MailBox mailBox)
+    {
+        lock (this)
         {
-            Logger.Info($"gate require sync {mailBox}");
-            this.gatesConn.Add(conn);
-        }
-        else if (hostCmdFrom == RemoteType.Server)
-        {
-            Logger.Info($"server require sync {mailBox}");
-            this.serversConn.Add(conn);
+            switch (hostCmdFrom)
+            {
+                case RemoteType.Gate:
+                    Logger.Info($"gate require sync {mailBox}");
+                    this.gatesMailBoxes.Add(mailBox);
+                    break;
+                case RemoteType.Server:
+                    Logger.Info($"server require sync {mailBox}");
+                    this.serversMailBoxes.Add(mailBox);
+                    break;
+                case RemoteType.Dbmanager:
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(hostCmdFrom), hostCmdFrom, null);
+            }
         }
 
-        if (this.serversConn.Count == this.ServerNum && this.gatesConn.Count == this.GateNum)
+        if (this.serversMailBoxes.Count == this.ServerNum && this.gatesMailBoxes.Count == this.GateNum)
         {
             Logger.Info("All gates registered, send sync msg");
             Logger.Info("All servers registered, send sync msg");
+
+            var gateConns = this.mailboxIdToConnection.Values.Where(
+                    conn => this.gatesMailBoxes.FindIndex(mb => mb.CompareOnlyID(conn.MailBox)) != -1)
+                .ToList();
+            var serverConns = this.mailboxIdToConnection.Values.Where(
+                    conn => this.serversMailBoxes.FindIndex(mb => mb.CompareOnlyID(conn.MailBox)) != -1)
+                .ToList();
 
             // send gates mailboxes
             var syncCmd = new HostCommand
@@ -385,24 +608,36 @@ public class HostManager : IInstance
                 Type = HostCommandType.SyncGates,
             };
 
-            foreach (var gateConn in this.gatesConn)
+            foreach (var gateConn in this.gatesMailBoxes)
             {
-                syncCmd.Args.Add(Any.Pack(RpcHelper.RpcMailBoxToPbMailBox(gateConn.MailBox)));
+                syncCmd.Args.Add(Any.Pack(RpcHelper.RpcMailBoxToPbMailBox(gateConn)));
             }
 
             var pkg = PackageHelper.FromProtoBuf(syncCmd, 0);
+            var bytes = pkg.ToBytes();
 
             // to gates
-            foreach (var gateConn in this.gatesConn)
+            foreach (var gateConn in gateConns)
             {
-                gateConn.Socket.Send(pkg.ToBytes());
+                gateConn.Socket.Send(bytes);
             }
 
             // to server
-            foreach (var serverConn in this.serversConn)
+            foreach (var serverConn in serverConns)
             {
-                serverConn.Socket.Send(pkg.ToBytes());
+                serverConn.Socket.Send(bytes);
             }
+
+            this.messageQueueClientToServer.Publish(
+                bytes,
+                Consts.HostMgrToServerExchangeName,
+                Consts.HostBroadCastMessagePackageToServer,
+                false);
+            this.messageQueueClientToServer.Publish(
+                bytes,
+                Consts.HostMgrToGateExchangeName,
+                Consts.HostBroadCastMessagePackageToGate,
+                false);
 
             // -----------------------------------
 
@@ -413,18 +648,25 @@ public class HostManager : IInstance
             };
 
             // send server mailboxes
-            foreach (var serverConn in this.serversConn)
+            foreach (var serverConn in this.serversMailBoxes)
             {
-                syncCmd.Args.Add(Any.Pack(RpcHelper.RpcMailBoxToPbMailBox(serverConn.MailBox)));
+                syncCmd.Args.Add(Any.Pack(RpcHelper.RpcMailBoxToPbMailBox(serverConn)));
             }
 
             pkg = PackageHelper.FromProtoBuf(syncCmd, 0);
+            bytes = pkg.ToBytes();
 
             // to gates
-            foreach (var gateConn in this.gatesConn)
+            foreach (var gateConn in gateConns)
             {
-                gateConn.Socket.Send(pkg.ToBytes());
+                gateConn.Socket.Send(bytes);
             }
+
+            this.messageQueueClientToServer.Publish(
+                bytes,
+                Consts.HostMgrToGateExchangeName,
+                Consts.HostBroadCastMessagePackageToGate,
+                false);
         }
     }
 }

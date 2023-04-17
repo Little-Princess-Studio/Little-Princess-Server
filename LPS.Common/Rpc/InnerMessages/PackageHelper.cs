@@ -115,7 +115,17 @@ public static class PackageHelper
         return pkg;
     }
 
-    private static PackageType GetPackageType<T>() => type2Enum[typeof(T)];
+    /// <summary>
+    /// Get package type from protobuf message type.
+    /// </summary>
+    /// <typeparam name="T">Protobuf package type.</typeparam>
+    /// <returns><see cref="PackageType"/>.</returns>
+    public static PackageType GetPackageType<T>() => type2Enum[typeof(T)];
 
-    private static PackageType GetPackageType(Type type) => type2Enum[type];
+    /// <summary>
+    /// Get package type from protobuf message type.
+    /// </summary>
+    /// <param name="type">Protobuf package type.</param>
+    /// <returns><see cref="PackageType"/>.</returns>
+    public static PackageType GetPackageType(Type type) => type2Enum[type];
 }
