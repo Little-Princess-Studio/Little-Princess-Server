@@ -7,6 +7,7 @@
 namespace LPS.Server.MessageQueue;
 
 using System;
+using System.Collections.Generic;
 using System.Text;
 using LPS.Common.Debug;
 using RabbitMQ.Client;
@@ -87,13 +88,20 @@ public class MessageQueueClient : IDisposable
     /// <param name="exchange">Name of the exchange.</param>
     /// <param name="routingKey">Routing key.</param>
     /// <param name="mandatory"><see cref="IModel"/>.</param>
-    public void Publish(ReadOnlyMemory<byte> message, string exchange, string routingKey, bool mandatory = false)
+    public void Publish(ReadOnlyMemory<byte> message, string exchange, string routingKey, bool mandatory = false, int expireTime = -1)
     {
+        IBasicProperties properties = null;
+        if (expireTime > 0)
+        {
+            properties = this.producerChannel!.CreateBasicProperties();
+            properties.Expiration = expireTime.ToString();
+        }
+
         this.producerChannel!.BasicPublish(
             exchange: exchange,
             routingKey: routingKey,
             mandatory: mandatory,
-            basicProperties: null,
+            basicProperties: properties,
             body: message);
     }
 

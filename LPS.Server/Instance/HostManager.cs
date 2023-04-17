@@ -548,7 +548,7 @@ public class HostManager : IInstance
                 var mb = RpcHelper.PbMailBoxToRpcMailBox(hostCmd.Args[0]
                     .Unpack<Common.Rpc.InnerMessages.ProtobufDefs.MailBox>());
                 this.mailboxIdToIdentifier[mb.Id] = targetIdentifier;
-                this.BroadCastSyncMessage(
+                this.BroadcastSyncMessage(
                     hostCmd.From,
                     RpcHelper.PbMailBoxToRpcMailBox(hostCmd.Args[0]
                         .Unpack<Common.Rpc.InnerMessages.ProtobufDefs.MailBox>()));
@@ -566,10 +566,10 @@ public class HostManager : IInstance
     {
         conn.MailBox = mailBox;
         this.mailboxIdToConnection[mailBox.Id] = conn;
-        this.BroadCastSyncMessage(hostCmdFrom, mailBox);
+        this.BroadcastSyncMessage(hostCmdFrom, mailBox);
     }
 
-    private void BroadCastSyncMessage(RemoteType hostCmdFrom, MailBox mailBox)
+    private void BroadcastSyncMessage(RemoteType hostCmdFrom, MailBox mailBox)
     {
         lock (this)
         {
@@ -590,78 +590,90 @@ public class HostManager : IInstance
             }
         }
 
-        if (this.serversMailBoxes.Count == this.ServerNum && this.gatesMailBoxes.Count == this.GateNum)
+        if (this.serversMailBoxes.Count != this.ServerNum || this.gatesMailBoxes.Count != this.GateNum)
         {
-            Logger.Info("All gates registered, send sync msg");
-            Logger.Info("All servers registered, send sync msg");
+            return;
+        }
 
-            var gateConns = this.mailboxIdToConnection.Values.Where(
-                    conn => this.gatesMailBoxes.FindIndex(mb => mb.CompareOnlyID(conn.MailBox)) != -1)
-                .ToList();
-            var serverConns = this.mailboxIdToConnection.Values.Where(
-                    conn => this.serversMailBoxes.FindIndex(mb => mb.CompareOnlyID(conn.MailBox)) != -1)
-                .ToList();
+        Logger.Info("All gates registered, send sync msg");
+        Logger.Info("All servers registered, send sync msg");
 
-            // send gates mailboxes
-            var syncCmd = new HostCommand
-            {
-                Type = HostCommandType.SyncGates,
-            };
+        var gateConns = this.mailboxIdToConnection.Values.Where(
+                conn => this.gatesMailBoxes.FindIndex(mb => mb.CompareOnlyID(conn.MailBox)) != -1)
+            .ToList();
+        var serverConns = this.mailboxIdToConnection.Values.Where(
+                conn => this.serversMailBoxes.FindIndex(mb => mb.CompareOnlyID(conn.MailBox)) != -1)
+            .ToList();
 
-            foreach (var gateConn in this.gatesMailBoxes)
-            {
-                syncCmd.Args.Add(Any.Pack(RpcHelper.RpcMailBoxToPbMailBox(gateConn)));
-            }
+        // send gates mailboxes
+        var syncCmd = new HostCommand
+        {
+            Type = HostCommandType.SyncGates,
+        };
 
-            var pkg = PackageHelper.FromProtoBuf(syncCmd, 0);
-            var bytes = pkg.ToBytes();
+        foreach (var gateConn in this.gatesMailBoxes)
+        {
+            syncCmd.Args.Add(Any.Pack(RpcHelper.RpcMailBoxToPbMailBox(gateConn)));
+        }
 
-            // to gates
-            foreach (var gateConn in gateConns)
-            {
-                gateConn.Socket.Send(bytes);
-            }
+        var pkg = PackageHelper.FromProtoBuf(syncCmd, 0);
+        var bytes = pkg.ToBytes();
 
-            // to server
-            foreach (var serverConn in serverConns)
-            {
-                serverConn.Socket.Send(bytes);
-            }
+        // to gates
+        foreach (var gateConn in gateConns)
+        {
+            gateConn.Socket.Send(bytes);
+        }
 
+        // to server
+        foreach (var serverConn in serverConns)
+        {
+            serverConn.Socket.Send(bytes);
+        }
+
+        if (serverConns.Count != this.ServerNum)
+        {
             this.messageQueueClientToServer.Publish(
                 bytes,
                 Consts.HostMgrToServerExchangeName,
                 Consts.HostBroadCastMessagePackageToServer,
                 false);
+        }
+
+        if (gateConns.Count != this.GateNum)
+        {
             this.messageQueueClientToServer.Publish(
                 bytes,
                 Consts.HostMgrToGateExchangeName,
                 Consts.HostBroadCastMessagePackageToGate,
                 false);
+        }
 
-            // -----------------------------------
+        // -----------------------------------
 
-            // broadcast sync msg
-            syncCmd = new HostCommand
-            {
-                Type = HostCommandType.SyncServers,
-            };
+        // broadcast sync msg
+        syncCmd = new HostCommand
+        {
+            Type = HostCommandType.SyncServers,
+        };
 
-            // send server mailboxes
-            foreach (var serverConn in this.serversMailBoxes)
-            {
-                syncCmd.Args.Add(Any.Pack(RpcHelper.RpcMailBoxToPbMailBox(serverConn)));
-            }
+        // send server mailboxes
+        foreach (var serverConn in this.serversMailBoxes)
+        {
+            syncCmd.Args.Add(Any.Pack(RpcHelper.RpcMailBoxToPbMailBox(serverConn)));
+        }
 
-            pkg = PackageHelper.FromProtoBuf(syncCmd, 0);
-            bytes = pkg.ToBytes();
+        pkg = PackageHelper.FromProtoBuf(syncCmd, 0);
+        bytes = pkg.ToBytes();
 
-            // to gates
-            foreach (var gateConn in gateConns)
-            {
-                gateConn.Socket.Send(bytes);
-            }
+        // to gates
+        foreach (var gateConn in gateConns)
+        {
+            gateConn.Socket.Send(bytes);
+        }
 
+        if (gateConns.Count != this.GateNum)
+        {
             this.messageQueueClientToServer.Publish(
                 bytes,
                 Consts.HostMgrToGateExchangeName,
