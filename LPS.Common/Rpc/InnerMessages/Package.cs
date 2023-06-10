@@ -9,19 +9,30 @@ namespace LPS.Common.Rpc.InnerMessages;
 using System.Runtime.InteropServices;
 
 /// <summary>
-/// Network package.
+/// Represents a network package.
 /// </summary>
-public struct Package
+public readonly struct Package
 {
     /// <summary>
-    /// Header.
+    /// Gets the package header.
     /// </summary>
-    public PackageHeader Header;
+    public readonly PackageHeader Header;
 
     /// <summary>
-    /// Body.
+    /// Gets the package body.
     /// </summary>
-    public byte[] Body;
+    public readonly byte[] Body;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Package"/> struct.
+    /// </summary>
+    /// <param name="header">The package header.</param>
+    /// <param name="body">The package body.</param>
+    public Package(in PackageHeader header, byte[] body)
+    {
+        this.Header = header;
+        this.Body = body;
+    }
 
     /// <summary>
     /// Convert package object to bytes.
@@ -63,47 +74,66 @@ public struct Package
 #pragma warning disable SA1629
 
 /// <summary>
+/// <para>
 /// Package is the unit send and recv inside LPS
 /// The structure of the Package is as follow:
-///
+/// </para>
+/// <para>
 /// -----------------------------------------------------------------------
 /// Header | package_len uint16 | id uint32 | version uint16 | type uint16
 /// -----------------------------------------------------------------------
 /// Body | Maximum 4kb
 /// -----------------------------------------------------------------------
+/// </para>
+/// Represents the header of a network package.
 /// </summary>
 #pragma warning restore SA1629
 [StructLayout(LayoutKind.Explicit, Size = 10)]
-public struct PackageHeader
+public readonly struct PackageHeader
 {
     /// <summary>
-    /// Size of the package header.
+    /// The size of the package header.
     /// </summary>
     public static readonly int Size = Marshal.SizeOf<PackageHeader>();
 
     /// <summary>
-    /// Length of the package.
+    /// The length of the package.
     /// </summary>
     [FieldOffset(0)]
-    public ushort Length;
+    public readonly ushort Length;
 
     /// <summary>
-    /// Id of the package.
+    /// The ID of the package.
     /// </summary>
     [FieldOffset(2)]
-    public uint ID;
+    public readonly uint ID;
 
     /// <summary>
-    /// Version of the package.
+    /// The version of the package.
     /// </summary>
     [FieldOffset(6)]
-    public ushort Version;
+    public readonly ushort Version;
 
     /// <summary>
-    /// Package type.
+    /// The type of the package.
     /// </summary>
     [FieldOffset(8)]
-    public ushort Type;
+    public readonly ushort Type;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="PackageHeader"/> struct with the specified values.
+    /// </summary>
+    /// <param name="length">The length of the package.</param>
+    /// <param name="id">The ID of the package.</param>
+    /// <param name="version">The version of the package.</param>
+    /// <param name="type">The type of the package.</param>
+    public PackageHeader(ushort length, uint id, ushort version, ushort type)
+    {
+        this.Length = length;
+        this.ID = id;
+        this.Version = version;
+        this.Type = type;
+    }
 }
 
 /// <summary>

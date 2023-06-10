@@ -83,16 +83,15 @@ public static class PackageHelper
     public static Package FromProtoBuf<T>(T protobufObj, uint id)
         where T : IMessage<T>, new()
     {
-        var pkg = default(Package);
         var bytes = protobufObj.ToByteArray();
 
-        pkg.Header.Length = (ushort)(PackageHeader.Size + bytes.Length);
-        pkg.Header.Version = 0x0001;
-        pkg.Header.ID = id;
-        pkg.Header.Type = (ushort)PackageHelper.GetPackageType<T>();
-        pkg.Body = bytes;
-
-        return pkg;
+        return new Package(
+            new PackageHeader(
+                length: (ushort)(PackageHeader.Size + bytes.Length),
+                id: id,
+                version: 0x0001,
+                type: (ushort)PackageHelper.GetPackageType<T>()),
+            bytes);
     }
 
     /// <summary>
@@ -103,16 +102,15 @@ public static class PackageHelper
     /// <returns>Package.</returns>
     public static Package FromProtoBuf(IMessage msg, uint id)
     {
-        var pkg = default(Package);
         var bytes = msg.ToByteArray();
 
-        pkg.Header.Length = (ushort)(PackageHeader.Size + bytes.Length);
-        pkg.Header.Version = 0x0001;
-        pkg.Header.ID = id;
-        pkg.Header.Type = (ushort)GetPackageType(msg.GetType());
-        pkg.Body = bytes;
-
-        return pkg;
+        return new Package(
+            new PackageHeader(
+                length: (ushort)(PackageHeader.Size + bytes.Length),
+                id: id,
+                version: 0x0001,
+                type: (ushort)PackageHelper.GetPackageType(msg.GetType())),
+            bytes);
     }
 
     /// <summary>

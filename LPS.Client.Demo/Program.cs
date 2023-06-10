@@ -11,7 +11,7 @@ using LPS.Client.Demo.Console;
 /// <summary>
 /// Client entry class.
 /// </summary>
-public class Program
+public static class Program
 {
     private static readonly Random Random = new Random();
 

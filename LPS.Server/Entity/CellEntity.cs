@@ -29,12 +29,12 @@ public abstract class CellEntity : DistributeEntity
     /// <summary>
     /// Gets callback When a entity left this cell.
     /// </summary>
-    public Action<DistributeEntity> EntityLeaveCallBack { private get; init; }
+    public Action<DistributeEntity> EntityLeaveCallBack { private get; init; } = null!;
 
     /// <summary>
     /// Gets callback when a entity enters this cell.
     /// </summary>
-    public Action<DistributeEntity, MailBox> EntityEnterCallBack { private get; init; }
+    public Action<DistributeEntity, MailBox> EntityEnterCallBack { private get; init; } = null!;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="CellEntity"/> class.

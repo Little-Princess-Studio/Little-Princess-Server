@@ -188,6 +188,7 @@ public abstract class RpcProperty
     protected RpcProperty(RpcPropertyContainer value)
     {
         this.Value = value;
+        this.Name = string.Empty; // Initialize Name to empty string to avoid null reference exception
     }
 
     /// <summary>

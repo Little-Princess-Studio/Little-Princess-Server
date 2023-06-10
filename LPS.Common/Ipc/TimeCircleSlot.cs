@@ -91,7 +91,7 @@ public class TimeCircleSlot
     {
         var id = incomeMsg.MailBox.Id;
 
-        lock (this)
+        lock (this.idToSyncMsgWithOrder)
         {
             Queue<RpcPropertySyncMessage> queue;
 
@@ -126,7 +126,7 @@ public class TimeCircleSlot
     /// <exception cref="ArgumentOutOfRangeException">ArgumentOutOfRangeException.</exception>
     public void AddSyncMessageNoKeepOrder(RpcPropertySyncMessage incomeMsg)
     {
-        lock (this)
+        lock (this.idToSyncMsg)
         {
             Func<RpcPropertySyncInfo> getSyncInfoFunc = incomeMsg.RpcSyncPropertyType switch
             {

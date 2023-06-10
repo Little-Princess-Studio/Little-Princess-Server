@@ -14,8 +14,9 @@ using Common.Debug;
 /// <summary>
 /// Entry class.
 /// </summary>
-public class Startup
+public static class Startup
 {
+#pragma warning disable CS8618
     /// <summary>
     /// Options for startup verb.
     /// </summary>
@@ -54,14 +55,14 @@ public class Startup
         [Option("childname", Required = true, HelpText = "Set up the child process name in conf")]
         public string ChildName { get; set; }
     }
-
+#pragma warning restore CS8618
     /// <summary>
     /// Startup entry.
     /// </summary>
     /// <param name="args">Args.</param>
     public static void Main(string[] args)
     {
-        Parser.Default.ParseArguments<StartUpOptions, ByDefaultOptions, SubProcOptions>(args)
+        _ = Parser.Default.ParseArguments<StartUpOptions, ByDefaultOptions, SubProcOptions>(args)
             .MapResult(
                 (StartUpOptions opts) =>
                 {
@@ -95,12 +96,12 @@ public class Startup
                     }
                     catch (Exception ex)
                     {
-                        Logger.Error(ex, $"Unhandled Error");
+                        Logger.Error(ex, "Unhandled Error");
                     }
 
                     return true;
                 },
-                errs =>
+                _ =>
                 {
                     Logger.Warn("Wrong cmd params");
                     return false;

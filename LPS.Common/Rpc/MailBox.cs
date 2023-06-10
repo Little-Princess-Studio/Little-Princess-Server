@@ -10,7 +10,7 @@ namespace LPS.Common.Rpc;
 /// MailBox class. MailBox is a fundamental component of every entity on the server
 /// which is unique within server-wide.
 /// </summary>
-public struct MailBox
+public readonly struct MailBox
 {
     /// <summary>
     /// Id of the MailBox.
@@ -48,7 +48,7 @@ public struct MailBox
     }
 
     /// <inheritdoc/>
-    public override string ToString()
+    public override readonly string ToString()
     {
         return $"{this.Id} {this.Ip} {this.Port} {this.HostNum}";
     }
@@ -91,7 +91,7 @@ public struct MailBox
     /// </summary>
     /// <param name="other">Target MailBox to compare with.</param>
     /// <returns>If this MailBox equals to the other MailBox.</returns>
-    public bool CompareFull(InnerMessages.ProtobufDefs.MailBox other)
+    public readonly bool CompareFull(InnerMessages.ProtobufDefs.MailBox other)
     {
         return this.Id == other.ID
                && this.Ip == other.IP
@@ -104,7 +104,7 @@ public struct MailBox
     /// </summary>
     /// <param name="other">Target MailBox to compare with.</param>
     /// <returns>If this MailBox equals to the other MailBox.</returns>
-    public bool CompareOnlyAddress(InnerMessages.ProtobufDefs.MailBox other)
+    public readonly bool CompareOnlyAddress(InnerMessages.ProtobufDefs.MailBox other)
     {
         return this.Ip == other.IP && this.Port == other.Port;
     }
@@ -114,13 +114,13 @@ public struct MailBox
     /// </summary>
     /// <param name="other">Target MailBox to compare with.</param>
     /// <returns>If this MailBox equals to the other MailBox.</returns>
-    public bool CompareOnlyAddress(MailBox other)
+    public readonly bool CompareOnlyAddress(MailBox other)
     {
         return this.Ip == other.Ip && this.Port == other.Port;
     }
 
     /// <inheritdoc/>
-    public override bool Equals(object? obj)
+    public override readonly bool Equals(object? obj)
     {
         if (obj is MailBox other)
         {
@@ -128,5 +128,21 @@ public struct MailBox
         }
 
         return false;
+    }
+
+    /// <inheritdoc/>
+    public override readonly int GetHashCode()
+    {
+        return base.GetHashCode();
+    }
+
+    public static bool operator ==(MailBox left, MailBox right)
+    {
+        return left.Equals(right);
+    }
+
+    public static bool operator !=(MailBox left, MailBox right)
+    {
+        return !(left == right);
     }
 }

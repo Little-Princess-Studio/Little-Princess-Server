@@ -17,7 +17,7 @@ using LPS.Common.Rpc.InnerMessages.ProtobufDefs;
 /// <summary>
 /// Start up manager for client.
 /// </summary>
-public class StartUpManager
+public static class StartUpManager
 {
     private static Action<ShadowClientEntity> createShadowEntityCallBack = null!;
     private static Func<ShadowClientEntity> getShadowEntityCallBack = null!;

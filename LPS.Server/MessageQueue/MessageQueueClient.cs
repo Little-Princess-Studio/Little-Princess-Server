@@ -92,7 +92,7 @@ public class MessageQueueClient : IDisposable
     public void Publish(
         ReadOnlyMemory<byte> message, string exchange, string routingKey, bool mandatory = false, int expireTime = -1)
     {
-        IBasicProperties properties = null;
+        IBasicProperties? properties = null;
         if (expireTime > 0)
         {
             properties = this.producerChannel!.CreateBasicProperties();

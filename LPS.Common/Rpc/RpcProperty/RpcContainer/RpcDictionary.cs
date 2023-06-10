@@ -331,7 +331,9 @@ public class RpcDictionary<TK, TV> : RpcPropertyContainer, IDictionary<TK, TV>,
             return true;
         }
 
-        value = default(TV);
+#pragma warning disable CS8601 // A default expression introduces a null value for a type parameter.
+        value = default;
+#pragma warning restore CS8601 // A default expression introduces a null value for a type parameter.
         return false;
     }
 

@@ -571,23 +571,28 @@ public class HostManager : IInstance
 
     private void BroadcastSyncMessage(RemoteType hostCmdFrom, MailBox mailBox)
     {
-        lock (this)
+        switch (hostCmdFrom)
         {
-            switch (hostCmdFrom)
-            {
-                case RemoteType.Gate:
-                    Logger.Info($"gate require sync {mailBox}");
+            case RemoteType.Gate:
+                Logger.Info($"gate require sync {mailBox}");
+                lock (this.gatesMailBoxes)
+                {
                     this.gatesMailBoxes.Add(mailBox);
-                    break;
-                case RemoteType.Server:
-                    Logger.Info($"server require sync {mailBox}");
+                }
+
+                break;
+            case RemoteType.Server:
+                Logger.Info($"server require sync {mailBox}");
+                lock (this.gatesMailBoxes)
+                {
                     this.serversMailBoxes.Add(mailBox);
-                    break;
-                case RemoteType.Dbmanager:
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(hostCmdFrom), hostCmdFrom, null);
-            }
+                }
+
+                break;
+            case RemoteType.Dbmanager:
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(hostCmdFrom), hostCmdFrom, null);
         }
 
         if (this.serversMailBoxes.Count != this.ServerNum || this.gatesMailBoxes.Count != this.GateNum)
