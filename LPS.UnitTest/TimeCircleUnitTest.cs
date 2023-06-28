@@ -1,24 +1,29 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using LPS.Common.Core.Ipc;
-using LPS.Common.Core.Rpc;
-using LPS.Common.Core.Rpc.RpcProperty;
-using LPS.Common.Core.Rpc.RpcPropertySync;
-using Xunit;
+﻿// -----------------------------------------------------------------------
+// <copyright file="TimeCircleUnitTest.cs" company="Little Princess Studio">
+// Copyright (c) Little Princess Studio. All rights reserved.
+// </copyright>
+// -----------------------------------------------------------------------
 
 namespace LPS.UnitTest;
 
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
+using LPS.Common.Ipc;
+using LPS.Common.Rpc;
+using LPS.Common.Rpc.RpcProperty.RpcContainer;
+using LPS.Common.Rpc.RpcPropertySync.RpcPropertySyncMessage;
+using Xunit;
+
+/// <summary>
+/// Unit test class for time circle.
+/// </summary>
 public class TimeCircleUnitTest
 {
-    private static TimeCircleSlot[] GetSlot(TimeCircle timeCircle)
-    {
-        return (TimeCircleSlot[]) typeof(TimeCircle)
-            .GetField("slots_", BindingFlags.NonPublic | BindingFlags.Instance)!
-            .GetValue(timeCircle)!;
-    }
-
+    /// <summary>
+    /// Test keeporder time circle.
+    /// </summary>
     [Fact]
     public void TestCircleKeepOrder()
     {
@@ -30,26 +35,63 @@ public class TimeCircleUnitTest
 
         var slots = GetSlot(timeCircle);
 
-        timeCircle.Tick(50, command => { });
-        timeCircle.Tick(50, command => { });
-        timeCircle.Tick(50, command => { });
+        timeCircle.Tick(50, _ => { });
+        timeCircle.Tick(50, _ => { });
+        timeCircle.Tick(50, _ => { });
 
-        var slot = GetSlot(timeCircle)[0];
+        var slot = slots[0];
         Assert.Equal(0, slot.GetSyncQueueLength(new MailBox("test_id1", "127.0.0.1", 99, 9999)));
-        slot = GetSlot(timeCircle)[1];
+        slot = slots[1];
         Assert.Equal(0, slot.GetSyncQueueLength(new MailBox("test_id2", "127.0.0.1", 99, 9999)));
-        slot = GetSlot(timeCircle)[2];
+        slot = slots[2];
         Assert.Equal(0, slot.GetSyncQueueLength(new MailBox("test_id3", "127.0.0.1", 99, 9999)));
+    }
+
+    /// <summary>
+    /// Test no-keeporder time circle.
+    /// </summary>
+    [Fact]
+    public void TestCircleNotKeepOrder()
+    {
+        var timeCircle = new TimeCircle(50, 1000);
+
+        AddPlainMessage(timeCircle, false);
+        AddListMessage(timeCircle, false);
+        AddDictMessage(timeCircle, false);
+
+        var slots = GetSlot(timeCircle);
+
+        timeCircle.Tick(50, _ => { });
+        timeCircle.Tick(50, _ => { });
+        timeCircle.Tick(50, _ => { });
+
+        var slot = slots[0];
+        Assert.Null(slot.FindRpcPropertySyncInfo(new MailBox("test_id", "127.0.0.1", 99, 9999), "testpath"));
+        slot = slots[1];
+        Assert.Null(slot.FindRpcPropertySyncInfo(new MailBox("test_id2", "127.0.0.1", 99, 9999), "testpath2"));
+        slot = slots[2];
+        Assert.Null(slot.FindRpcPropertySyncInfo(new MailBox("test_id3", "127.0.0.1", 99, 9999), "testpath3"));
+    }
+
+    private static TimeCircleSlot[] GetSlot(TimeCircle timeCircle)
+    {
+        return (TimeCircleSlot[])typeof(TimeCircle)
+            .GetField("slots", BindingFlags.NonPublic | BindingFlags.Instance)!
+            .GetValue(timeCircle)!;
     }
 
     private static void AddPlainMessage(TimeCircle timeCircle, bool keepOrder)
     {
         var mailbox1 = new MailBox("test_id1", "127.0.0.1", 88, 9999);
-        var plainMsg1 = new RpcPlaintAndCostumePropertySyncMessage(mailbox1, RpcPropertySyncOperation.SetValue,
+        var plainMsg1 = new RpcPlaintAndCostumePropertySyncMessage(
+            mailbox1,
+            RpcPropertySyncOperation.SetValue,
             "testpath",
             new RpcPropertyContainer<string>("1111"));
 
-        var plainMsg2 = new RpcPlaintAndCostumePropertySyncMessage(mailbox1, RpcPropertySyncOperation.SetValue,
+        var plainMsg2 = new RpcPlaintAndCostumePropertySyncMessage(
+            mailbox1,
+            RpcPropertySyncOperation.SetValue,
             "testpath",
             new RpcPropertyContainer<string>("2222"));
 
@@ -73,12 +115,12 @@ public class TimeCircleUnitTest
             var arr = queue!.ToArray();
             Assert.Single(arr);
 
-            var msg = (RpcPlaintAndCostumePropertySyncMessage) arr[0];
+            var msg = (RpcPlaintAndCostumePropertySyncMessage)arr[0];
             Assert.NotNull(msg);
 
             Assert.Equal(RpcPropertySyncOperation.SetValue, msg.Operation);
 
-            var val = (RpcPropertyContainer<string>) msg.Val;
+            var val = (RpcPropertyContainer<string>)msg.Val;
             Assert.NotNull(val);
             Assert.Equal("2222", val.Value);
         }
@@ -90,12 +132,12 @@ public class TimeCircleUnitTest
 
             Assert.Single(arr);
 
-            var msg = (RpcPlaintAndCostumePropertySyncMessage) arr[0];
+            var msg = (RpcPlaintAndCostumePropertySyncMessage)arr[0];
             Assert.NotNull(msg);
 
             Assert.Equal(RpcPropertySyncOperation.SetValue, msg.Operation);
 
-            var val = (RpcPropertyContainer<string>) msg.Val;
+            var val = (RpcPropertyContainer<string>)msg.Val;
             Assert.NotNull(val);
             Assert.Equal("2222", val.Value);
         }
@@ -106,8 +148,10 @@ public class TimeCircleUnitTest
         var mailbox1 = new MailBox("test_id2", "127.0.0.1", 88, 9999);
         for (int i = 0; i < 5; ++i)
         {
-            var listMsg = new RpcListPropertySyncMessage(mailbox1,
-                RpcPropertySyncOperation.AddListElem, "testpath2");
+            var listMsg = new RpcListPropertySyncMessage(
+                mailbox1,
+                RpcPropertySyncOperation.AddListElem,
+                "testpath2");
             listMsg.Action!(new RpcPropertyContainer<int>(i));
             timeCircle.AddPropertySyncMessage(
                 listMsg,
@@ -116,8 +160,10 @@ public class TimeCircleUnitTest
 
             for (int j = i; j < i + 5; ++j)
             {
-                var listMsg2 = new RpcListPropertySyncMessage(mailbox1,
-                    RpcPropertySyncOperation.RemoveElem, "testpath2");
+                var listMsg2 = new RpcListPropertySyncMessage(
+                    mailbox1,
+                    RpcPropertySyncOperation.RemoveElem,
+                    "testpath2");
                 listMsg2.Action!(j);
                 timeCircle.AddPropertySyncMessage(
                     listMsg2,
@@ -136,16 +182,16 @@ public class TimeCircleUnitTest
             var arr = queue!.ToArray();
             Assert.Equal(10, arr.Length);
 
-            CheckAddListMsg(arr[0], new int[] {0});
-            CheckRemoveListMsg(arr[1], new int[] {0, 1, 2, 3, 4});
-            CheckAddListMsg(arr[2], new int[] {1});
-            CheckRemoveListMsg(arr[3], new int[] {1, 2, 3, 4, 5});
-            CheckAddListMsg(arr[4], new int[] {2});
-            CheckRemoveListMsg(arr[5], new int[] {2, 3, 4, 5, 6});
-            CheckAddListMsg(arr[6], new int[] {3});
-            CheckRemoveListMsg(arr[7], new int[] {3, 4, 5, 6, 7});
-            CheckAddListMsg(arr[8], new int[] {4});
-            CheckRemoveListMsg(arr[9], new int[] {4, 5, 6, 7, 8});
+            CheckAddListMsg(arr[0], new[] { 0 });
+            CheckRemoveListMsg(arr[1], new[] { 0, 1, 2, 3, 4 });
+            CheckAddListMsg(arr[2], new[] { 1 });
+            CheckRemoveListMsg(arr[3], new[] { 1, 2, 3, 4, 5 });
+            CheckAddListMsg(arr[4], new[] { 2 });
+            CheckRemoveListMsg(arr[5], new[] { 2, 3, 4, 5, 6 });
+            CheckAddListMsg(arr[6], new[] { 3 });
+            CheckRemoveListMsg(arr[7], new[] { 3, 4, 5, 6, 7 });
+            CheckAddListMsg(arr[8], new[] { 4 });
+            CheckRemoveListMsg(arr[9], new[] { 4, 5, 6, 7, 8 });
         }
         else
         {
@@ -155,41 +201,41 @@ public class TimeCircleUnitTest
             var arr = syncInfo.PropPath2SyncMsgQueue.ToArray();
             Assert.Equal(10, arr.Length);
 
-            CheckAddListMsg(arr[0], new int[] {0});
-            CheckRemoveListMsg(arr[1], new int[] {0, 1, 2, 3, 4});
-            CheckAddListMsg(arr[2], new int[] {1});
-            CheckRemoveListMsg(arr[3], new int[] {1, 2, 3, 4, 5});
-            CheckAddListMsg(arr[4], new int[] {2});
-            CheckRemoveListMsg(arr[5], new int[] {2, 3, 4, 5, 6});
-            CheckAddListMsg(arr[6], new int[] {3});
-            CheckRemoveListMsg(arr[7], new int[] {3, 4, 5, 6, 7});
-            CheckAddListMsg(arr[8], new int[] {4});
-            CheckRemoveListMsg(arr[9], new int[] {4, 5, 6, 7, 8});
+            CheckAddListMsg(arr[0], new[] { 0 });
+            CheckRemoveListMsg(arr[1], new[] { 0, 1, 2, 3, 4 });
+            CheckAddListMsg(arr[2], new[] { 1 });
+            CheckRemoveListMsg(arr[3], new[] { 1, 2, 3, 4, 5 });
+            CheckAddListMsg(arr[4], new[] { 2 });
+            CheckRemoveListMsg(arr[5], new[] { 2, 3, 4, 5, 6 });
+            CheckAddListMsg(arr[6], new[] { 3 });
+            CheckRemoveListMsg(arr[7], new[] { 3, 4, 5, 6, 7 });
+            CheckAddListMsg(arr[8], new[] { 4 });
+            CheckRemoveListMsg(arr[9], new[] { 4, 5, 6, 7, 8 });
         }
     }
 
     private static void CheckAddListMsg<TElemType>(RpcPropertySyncMessage rpcMsg, TElemType[] data)
         where TElemType : IComparable
     {
-        var msg = (RpcListPropertySyncMessage) rpcMsg;
+        var msg = (RpcListPropertySyncMessage)rpcMsg;
         Assert.NotNull(msg);
 
         Assert.Equal(RpcPropertySyncOperation.AddListElem, msg.Operation);
-        var impl = msg.GetImpl<RpcListPropertyAddSyncMessageImpl>();
+        var impl = msg.GetImpl<RpcListPropertySyncMessage.RpcListPropertyAddElemSyncMessageImpl>();
         Assert.NotNull(impl);
         var addInfo = impl.GetAddInfo()
-            .Select(container => ((RpcPropertyContainer<TElemType>) container).Value)
+            .Select(container => ((RpcPropertyContainer<TElemType>)container).Value)
             .ToArray();
         Assert.Equal(data, addInfo);
     }
 
     private static void CheckRemoveListMsg(RpcPropertySyncMessage rpcMsg, int[] data)
     {
-        var msg = (RpcListPropertySyncMessage) rpcMsg;
+        var msg = (RpcListPropertySyncMessage)rpcMsg;
         Assert.NotNull(msg);
 
         Assert.Equal(RpcPropertySyncOperation.RemoveElem, msg.Operation);
-        var impl = msg.GetImpl<RpcListPropertyRemoveElemMessageImpl>();
+        var impl = msg.GetImpl<RpcListPropertySyncMessage.RpcListPropertyRemoveElemMessageImpl>();
         Assert.NotNull(impl);
         var addInfo = impl.GetRemoveElemInfo()
             .ToArray();
@@ -201,19 +247,25 @@ public class TimeCircleUnitTest
         var mailbox3 = new MailBox("test_id3", "127.0.0.1", 88, 9999);
         for (int i = 0; i < 5; ++i)
         {
-            var dictMsg = new RpcDictPropertySyncMessage(mailbox3,
-                RpcPropertySyncOperation.UpdatePair, "testpath3");
+            var dictMsg = new RpcDictPropertySyncMessage(
+                mailbox3,
+                RpcPropertySyncOperation.UpdatePair,
+                "testpath3");
             dictMsg.Action!($"{i}", new RpcPropertyContainer<string>($"{i}"));
-            timeCircle.AddPropertySyncMessage(dictMsg,
+            timeCircle.AddPropertySyncMessage(
+                dictMsg,
                 120,
                 keepOrder);
 
             for (int j = i; j < i + 10; ++j)
             {
-                var dictMsg2 = new RpcDictPropertySyncMessage(mailbox3,
-                    RpcPropertySyncOperation.RemoveElem, "testpath3");
+                var dictMsg2 = new RpcDictPropertySyncMessage(
+                    mailbox3,
+                    RpcPropertySyncOperation.RemoveElem,
+                    "testpath3");
                 dictMsg2.Action!($"{j}");
-                timeCircle.AddPropertySyncMessage(dictMsg2,
+                timeCircle.AddPropertySyncMessage(
+                    dictMsg2,
                     120,
                     keepOrder);
             }
@@ -229,16 +281,16 @@ public class TimeCircleUnitTest
             var arr = queue!.ToArray();
             Assert.Equal(10, arr.Length);
 
-            CheckUpdateDictMsg(arr[0], new Dictionary<object, string> {{"0", "0"}});
-            CheckRemoveDictMsg(arr[1], new HashSet<string> {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9"});
-            CheckUpdateDictMsg(arr[2], new Dictionary<object, string> {{"1", "1"}});
-            CheckRemoveDictMsg(arr[3], new HashSet<string> {"1", "2", "3", "4", "5", "6", "7", "8", "9", "10"});
-            CheckUpdateDictMsg(arr[4], new Dictionary<object, string> {{"2", "2"}});
-            CheckRemoveDictMsg(arr[5], new HashSet<string> {"2", "3", "4", "5", "6", "7", "8", "9", "10", "11"});
-            CheckUpdateDictMsg(arr[6], new Dictionary<object, string> {{"3", "3"}});
-            CheckRemoveDictMsg(arr[7], new HashSet<string> {"3", "4", "5", "6", "7", "8", "9", "10", "11", "12"});
-            CheckUpdateDictMsg(arr[8], new Dictionary<object, string> {{"4", "4"}});
-            CheckRemoveDictMsg(arr[9], new HashSet<string> {"4", "5", "6", "7", "8", "9", "10", "11", "12", "13"});
+            CheckUpdateDictMsg(arr[0], new Dictionary<object, string> { { "0", "0" } });
+            CheckRemoveDictMsg(arr[1], new HashSet<string> { "0", "1", "2", "3", "4", "5", "6", "7", "8", "9" });
+            CheckUpdateDictMsg(arr[2], new Dictionary<object, string> { { "1", "1" } });
+            CheckRemoveDictMsg(arr[3], new HashSet<string> { "1", "2", "3", "4", "5", "6", "7", "8", "9", "10" });
+            CheckUpdateDictMsg(arr[4], new Dictionary<object, string> { { "2", "2" } });
+            CheckRemoveDictMsg(arr[5], new HashSet<string> { "2", "3", "4", "5", "6", "7", "8", "9", "10", "11" });
+            CheckUpdateDictMsg(arr[6], new Dictionary<object, string> { { "3", "3" } });
+            CheckRemoveDictMsg(arr[7], new HashSet<string> { "3", "4", "5", "6", "7", "8", "9", "10", "11", "12" });
+            CheckUpdateDictMsg(arr[8], new Dictionary<object, string> { { "4", "4" } });
+            CheckRemoveDictMsg(arr[9], new HashSet<string> { "4", "5", "6", "7", "8", "9", "10", "11", "12", "13" });
         }
         else
         {
@@ -248,29 +300,31 @@ public class TimeCircleUnitTest
             var arr = syncInfo.PropPath2SyncMsgQueue.ToArray();
             Assert.Single(arr);
 
-            var msg = (RpcDictPropertySyncMessage) arr[0];
+            var msg = (RpcDictPropertySyncMessage)arr[0];
             Assert.NotNull(msg);
 
             CheckRemoveDictMsg(msg, new HashSet<string>
-                {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13"});
+                { "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13" });
         }
     }
 
-    private static void CheckUpdateDictMsg<TElemType>(RpcPropertySyncMessage rpcMsg,
-        Dictionary<object, TElemType> checkDict) where TElemType : IComparable
+    private static void CheckUpdateDictMsg<TElemType>(
+        RpcPropertySyncMessage rpcMsg,
+        Dictionary<object, TElemType> checkDict)
+        where TElemType : IComparable
     {
-        var msg = (RpcDictPropertySyncMessage) rpcMsg;
+        var msg = (RpcDictPropertySyncMessage)rpcMsg;
         Assert.NotNull(msg);
 
         Assert.Equal(RpcPropertySyncOperation.UpdatePair, msg.Operation);
-        var updateDictImpl = msg.GetImpl<RpcDictPropertyUpdatePairSyncMessageImpl>();
+        var updateDictImpl = msg.GetImpl<RpcDictPropertySyncMessage.RpcDictPropertyUpdatePairSyncMessageImpl>();
         Assert.NotNull(updateDictImpl);
         var updateDictInfo = updateDictImpl.GetUpdateDictInfo();
         Assert.NotNull(updateDictInfo);
 
-        var updateValueDict = updateDictInfo!
+        var updateValueDict = updateDictInfo
             .Select(kv =>
-                new KeyValuePair<object, TElemType>(kv.Key, ((RpcPropertyContainer<TElemType>) (kv.Value)).Value))
+                new KeyValuePair<object, TElemType>(kv.Key, ((RpcPropertyContainer<TElemType>)kv.Value).Value))
             .OrderBy(kv => kv.Key);
 
         Assert.Equal(
@@ -280,39 +334,15 @@ public class TimeCircleUnitTest
 
     private static void CheckRemoveDictMsg(RpcPropertySyncMessage rpcMsg, HashSet<string> keys)
     {
-        var msg = (RpcDictPropertySyncMessage) rpcMsg;
+        var msg = (RpcDictPropertySyncMessage)rpcMsg;
         Assert.NotNull(msg);
 
         Assert.Equal(RpcPropertySyncOperation.RemoveElem, msg.Operation);
-        var removeDictImpl = msg.GetImpl<RpcDictPropertyRemoveSyncMessageImpl>();
+        var removeDictImpl = msg.GetImpl<RpcDictPropertySyncMessage.RpcDictPropertyRemoveSyncMessageImpl>();
         Assert.NotNull(removeDictImpl);
         var removeDictInfo = removeDictImpl.GetRemoveDictInfo();
         Assert.NotNull(removeDictInfo);
 
         Assert.Equal(removeDictInfo, keys);
-    }
-
-    [Fact]
-    public void TestCircleNotKeepOrder()
-    {
-        var timeCircle = new TimeCircle(50, 1000);
-
-        AddPlainMessage(timeCircle, false);
-        AddListMessage(timeCircle, false);
-        AddDictMessage(timeCircle, false);
-
-        var slots = GetSlot(timeCircle);
-
-        timeCircle.Tick(50, command => { });
-        timeCircle.Tick(50, command => { });
-        timeCircle.Tick(50, command => { });
-
-        var slot = GetSlot(timeCircle)[0];
-        Assert.Null(slot.FindRpcPropertySyncInfo(new MailBox("test_id", "127.0.0.1", 99, 9999), "testpath"));
-        ;
-        slot = GetSlot(timeCircle)[1];
-        Assert.Null(slot.FindRpcPropertySyncInfo(new MailBox("test_id2", "127.0.0.1", 99, 9999), "testpath2"));
-        slot = GetSlot(timeCircle)[2];
-        Assert.Null(slot.FindRpcPropertySyncInfo(new MailBox("test_id3", "127.0.0.1", 99, 9999), "testpath3"));
     }
 }

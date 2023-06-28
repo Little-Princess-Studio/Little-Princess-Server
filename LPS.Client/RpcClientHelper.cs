@@ -1,66 +1,111 @@
+﻿// -----------------------------------------------------------------------
+// <copyright file="RpcClientHelper.cs" company="Little Princess Studio">
+// Copyright (c) Little Princess Studio. All rights reserved.
+// </copyright>
+// -----------------------------------------------------------------------
+
+namespace LPS.Client;
+
 using System.Reflection;
-using LPS.Client.Core.Entity;
-using LPS.Client.Core.Rpc.RpcProperty;
-using LPS.Common.Core.Entity;
-using LPS.Common.Core.Rpc;
-using LPS.Common.Core.Rpc.RpcProperty;
+using LPS.Client.Entity;
+using LPS.Client.Rpc.RpcProperty;
+using LPS.Common.Debug;
+using LPS.Common.Entity;
+using LPS.Common.Rpc;
+using LPS.Common.Rpc.InnerMessages.ProtobufDefs;
+using LPS.Common.Rpc.RpcProperty;
 
-namespace LPS.Client
+/// <summary>
+/// Client RPC helper class.
+/// </summary>
+public static class RpcClientHelper
 {
-    public static class RpcClientHelper
-    {
-        private static Dictionary<string, Type> EntityClassMap_ = RpcHelper.EntityClassMap;
+    private static readonly Dictionary<string, Type> EntityClassMap = RpcHelper.EntityClassMap;
 
-        public static ShadowClientEntity CreateClientEntity(string entityClassName)
+    /// <summary>
+    /// Create client entity.
+    /// </summary>
+    /// <param name="entityClassName">Entity class name.</param>
+    /// <returns><see cref="ShadowClientEntity"/>.</returns>
+    /// <exception cref="Exception">Throw exception if failed to create client entity.</exception>
+    public static ShadowClientEntity CreateClientEntity(string entityClassName)
+    {
+        if (EntityClassMap.ContainsKey(entityClassName))
         {
-            if (EntityClassMap_.ContainsKey(entityClassName))
+            var entityClass = EntityClassMap[entityClassName];
+            if (entityClass.IsSubclassOf(typeof(ShadowClientEntity)))
             {
-                var entityClass = EntityClassMap_[entityClassName];
-                if (entityClass.IsSubclassOf(typeof(ShadowClientEntity)))
+                var obj = (Activator.CreateInstance(entityClass) as ShadowClientEntity)!;
+                BuildPropertyTree(obj);
+                return obj;
+            }
+
+            throw new Exception(
+                $"Invalid class {entityClassName}, only DistributeEntity and its subclass can be created by CreateEntityLocally.");
+        }
+
+        throw new Exception($"Invalid entity class name {entityClassName}");
+    }
+
+    /// <summary>
+    /// Build property tree for entity.
+    /// </summary>
+    /// <param name="entity">Entity need to create entity with.</param>
+    public static void BuildPropertyTree(BaseEntity entity)
+    {
+        var type = entity.GetType();
+        var tree = type.GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
+            .Where(field =>
+            {
+                var fieldType = field.FieldType;
+
+                if (!fieldType.IsGenericType)
                 {
-                    var obj = (Activator.CreateInstance(entityClass) as ShadowClientEntity)!;
-                    BuildPropertyTree(obj);
-                    return obj;
+                    return false;
                 }
 
-                throw new Exception(
-                    $"Invalid class {entityClassName}, only DistributeEntity and its subclass can be created by CreateEntityLocally.");
-            }
-
-            throw new Exception($"Invalid entity class name {entityClassName}");
-        }
-
-        public static void BuildPropertyTree(BaseEntity entity)
-        {
-            var type = entity.GetType();
-            var tree = type.GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
-                .Where(field =>
+                var attr = field.GetCustomAttribute<RpcPropertyAttribute>();
+                if (attr == null)
                 {
-                    var fieldType = field.FieldType;
+                    return false;
+                }
 
-                    if (!fieldType.IsGenericType)
-                    {
-                        return false;
-                    }
+                var genType = fieldType.GetGenericTypeDefinition();
+                if (genType != typeof(RpcShadowComplexProperty<>)
+                    && genType != typeof(RpcShadowPlaintProperty<>))
+                {
+                    return false;
+                }
 
-                    var genType = fieldType.GetGenericTypeDefinition();
-                    if (genType != typeof(RpcShadowComplexProperty<>)
-                        && genType != typeof(RpcShadowPlaintProperty<>))
-                    {
-                        return false;
-                    }
+                var rpcProperty = field.GetValue(entity) as Common.Rpc.RpcProperty.RpcProperty;
 
-                    return true;
-                }).ToDictionary(
-                    field => (field.GetValue(entity) as RpcProperty)!.Name,
-                    field => (field.GetValue(entity) as RpcProperty)!);
+                rpcProperty!.Init(attr.Name ?? fieldType.Name, attr.Setting);
 
-            foreach (var (_, prop) in tree)
-            {
-                prop.Owner = entity;
-            }
+                return true;
+            }).ToDictionary(
+                field => (field.GetValue(entity) as RpcProperty)!.Name,
+                field => (field.GetValue(entity) as RpcProperty)!);
 
-            entity.SetPropertyTree(tree);
+        foreach (var (_, prop) in tree)
+        {
+            prop.Owner = entity;
         }
+
+        entity.SetPropertyTree(tree);
+    }
+
+    /// <summary>
+    /// Require property full sync to this client's shadow entity.
+    /// </summary>
+    /// <param name="entityId">shadow entity ID.</param>
+    public static void RequirePropertyFullSync(string entityId)
+    {
+        var requireFullSync = new RequirePropertyFullSync()
+        {
+            EntityId = entityId,
+        };
+
+        Client.Instance.Send(requireFullSync);
+        Logger.Info($"require full property sync");
     }
 }

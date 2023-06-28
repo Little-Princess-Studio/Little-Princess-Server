@@ -1,0 +1,52 @@
+syntax = "proto3";
+import "mailbox.proto";
+package LPS.Server.Core.Rpc.InnerMessages;
+
+enum CreateType {
+  Local = 0;
+  Anywhere = 1;
+  Manual = 2;
+};
+
+enum EntityType
+{
+  ServerClientEntity = 0;
+  ServerEntity = 1;
+  ServerDefaultCellEntity = 2;
+  GateEntity = 3;
+  DistibuteEntity = 4;
+}
+
+message RequireCreateEntity {
+  string EntityClassName = 1;
+  CreateType CreateType = 2;
+  string Description = 3;
+  EntityType EntityType = 4;
+  uint32 ConnectionID = 5;
+  optional string GateId = 6;
+}
+
+message RequireCreateEntityRes {
+  LPS.Common.Core.Rpc.InnerMessages.MailBox Mailbox = 1;
+  uint32 ConnectionID = 2;
+  EntityType EntityType = 3;
+  string EntityClassName = 4;
+  optional string GateId = 5;
+}
+
+message CreateDistributeEntity {
+  string EntityClassName = 1;
+  string Description = 2;
+  uint32 ConnectionID = 3;
+  string EntityId = 4;
+  EntityType EntityType = 5;
+  optional string GateId = 6;
+}
+
+message CreateDistributeEntityRes {
+  LPS.Common.Core.Rpc.InnerMessages.MailBox Mailbox = 1;
+  uint32 ConnectionID = 2;
+  EntityType EntityType = 3;
+  string EntityClassName = 4;
+  optional string GateId = 5;
+}

@@ -1,0 +1,15 @@
+syntax = "proto3";
+import "google/protobuf/any.proto";
+package LPS.Server.Core.Rpc.InnerMessages;
+
+enum HostCommandType {
+    SyncServers = 0;
+    SyncGates = 1;
+    Open = 2;
+    Stop = 3;
+}
+
+message HostCommand {
+    HostCommandType Type = 1;
+    repeated google.protobuf.Any Args = 2;
+}

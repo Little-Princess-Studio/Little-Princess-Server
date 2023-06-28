@@ -1,0 +1,162 @@
+// -----------------------------------------------------------------------
+// <copyright file="Package.cs" company="Little Princess Studio">
+// Copyright (c) Little Princess Studio. All rights reserved.
+// </copyright>
+// -----------------------------------------------------------------------
+
+namespace LPS.Common.Rpc.InnerMessages;
+
+using System.Runtime.InteropServices;
+
+/// <summary>
+/// Represents a network package.
+/// </summary>
+public readonly struct Package
+{
+    /// <summary>
+    /// Gets the package header.
+    /// </summary>
+    public readonly PackageHeader Header;
+
+    /// <summary>
+    /// Gets the package body.
+    /// </summary>
+    public readonly byte[] Body;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Package"/> struct.
+    /// </summary>
+    /// <param name="header">The package header.</param>
+    /// <param name="body">The package body.</param>
+    public Package(in PackageHeader header, byte[] body)
+    {
+        this.Header = header;
+        this.Body = body;
+    }
+
+    /// <summary>
+    /// Convert package object to bytes.
+    /// </summary>
+    /// <returns>Byte array.</returns>
+    public byte[] ToBytes()
+    {
+        byte[] bytes = new byte[this.Header.Length];
+
+        var tmpBytes = BitConverter.GetBytes(this.Header.Length);
+        int pos = 0;
+        Buffer.BlockCopy(tmpBytes, 0, bytes, pos, tmpBytes.Length);
+        pos += tmpBytes.Length;
+
+        tmpBytes = BitConverter.GetBytes(this.Header.ID);
+        Buffer.BlockCopy(tmpBytes, 0, bytes, pos, tmpBytes.Length);
+        pos += tmpBytes.Length;
+
+        tmpBytes = BitConverter.GetBytes(this.Header.Version);
+        Buffer.BlockCopy(tmpBytes, 0, bytes, pos, tmpBytes.Length);
+        pos += tmpBytes.Length;
+
+        tmpBytes = BitConverter.GetBytes(this.Header.Type);
+        Buffer.BlockCopy(tmpBytes, 0, bytes, pos, tmpBytes.Length);
+        pos += tmpBytes.Length;
+
+        Buffer.BlockCopy(this.Body, 0, bytes, pos, this.Body.Length);
+
+        return bytes;
+    }
+
+    /// <inheritdoc/>
+    public override string ToString()
+    {
+        return $"{this.Header.Length} {this.Header.ID} {this.Header.Version} {this.Header.Type}";
+    }
+}
+
+#pragma warning disable SA1629
+
+/// <summary>
+/// <para>
+/// Package is the unit send and recv inside LPS
+/// The structure of the Package is as follow:
+/// </para>
+/// <para>
+/// -----------------------------------------------------------------------
+/// Header | package_len uint16 | id uint32 | version uint16 | type uint16
+/// -----------------------------------------------------------------------
+/// Body | Maximum 4kb
+/// -----------------------------------------------------------------------
+/// </para>
+/// Represents the header of a network package.
+/// </summary>
+#pragma warning restore SA1629
+[StructLayout(LayoutKind.Explicit, Size = 10)]
+public readonly struct PackageHeader
+{
+    /// <summary>
+    /// The size of the package header.
+    /// </summary>
+    public static readonly int Size = Marshal.SizeOf<PackageHeader>();
+
+    /// <summary>
+    /// The length of the package.
+    /// </summary>
+    [FieldOffset(0)]
+    public readonly ushort Length;
+
+    /// <summary>
+    /// The ID of the package.
+    /// </summary>
+    [FieldOffset(2)]
+    public readonly uint ID;
+
+    /// <summary>
+    /// The version of the package.
+    /// </summary>
+    [FieldOffset(6)]
+    public readonly ushort Version;
+
+    /// <summary>
+    /// The type of the package.
+    /// </summary>
+    [FieldOffset(8)]
+    public readonly ushort Type;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="PackageHeader"/> struct with the specified values.
+    /// </summary>
+    /// <param name="length">The length of the package.</param>
+    /// <param name="id">The ID of the package.</param>
+    /// <param name="version">The version of the package.</param>
+    /// <param name="type">The type of the package.</param>
+    public PackageHeader(ushort length, uint id, ushort version, ushort type)
+    {
+        this.Length = length;
+        this.ID = id;
+        this.Version = version;
+        this.Type = type;
+    }
+}
+
+/// <summary>
+/// Package type.
+/// </summary>
+public enum PackageType
+{
+#pragma warning disable SA1602
+    Authentication = 0,
+    RequireCreateEntityRes = 1,
+    EntityRpc = 2,
+    RequireCreateEntity = 3,
+    ExchangeMailBox = 4,
+    ExchangeMailBoxRes = 5,
+    Control = 6,
+    ClientCreateEntity = 7,
+    RequirePropertyFullSync = 8,
+    PropertyFullSync = 9,
+    PropertySyncCommandList = 10,
+    PropertyFullSyncAck = 11,
+    PropertySyncAck = 12,
+    HostCommand = 13,
+    CreateDistributeEntity = 14,
+    CreateDistributeEntityRes = 15,
+#pragma warning restore SA1602
+}
