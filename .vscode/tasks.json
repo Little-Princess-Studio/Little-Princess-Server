@@ -11,7 +11,15 @@
         },
         {
             "label": "kill_process",
-            "command": "cd scripts && ./force_stop_server.sh",
+            "linux": {
+                "command": "cd scripts && ./force_stop_server.sh",
+            },
+            "osx": {
+                "command": "cd scripts && ./force_stop_server.sh",
+            },
+            "windows": {
+                "command": "echo pass",
+            },
             "type": "shell",
             "presentation": {
                 "reveal": "silent",
@@ -24,7 +32,7 @@
             "type": "process",
             "args": [
                 "build",
-                "${workspaceFolder}/LPS.Server/LPS.Server.csproj",
+                "${workspaceFolder}/LPS.Server.Demo/LPS.Server.Demo.csproj",
                 "/property:GenerateFullPaths=true",
                 "/consoleloggerparameters:NoSummary"
             ],
@@ -36,7 +44,7 @@
             "type": "process",
             "args": [
                 "publish",
-                "${workspaceFolder}/LPS.Server/LPS.Server.csproj",
+                "${workspaceFolder}/LPS.Server/LPS.Server.Demo.csproj",
                 "/property:GenerateFullPaths=true",
                 "/consoleloggerparameters:NoSummary"
             ],
@@ -49,7 +57,7 @@
             "args": [
                 "watch",
                 "run",
-                "${workspaceFolder}/LPS.Server/LPS.Server.csproj",
+                "${workspaceFolder}/LPS.Server.Demo/LPS.Server.Demo.csproj",
                 "/property:GenerateFullPaths=true",
                 "/consoleloggerparameters:NoSummary"
             ],

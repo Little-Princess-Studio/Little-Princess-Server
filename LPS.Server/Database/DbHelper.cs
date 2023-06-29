@@ -11,12 +11,44 @@ using System.Globalization;
 using System.Threading.Tasks;
 using LPS.Common.Debug;
 using LPS.Server.Database.GlobalCache;
+using Newtonsoft.Json;
 
 /// <summary>
 /// Database helper.
 /// </summary>
 public static class DbHelper
 {
+#pragma warning disable SA1600
+#pragma warning disable CS8618
+    /// <summary>
+    /// Global cache json definition.
+    /// </summary>
+    public class GlobalCache
+    {
+        [JsonProperty("dbtype")]
+        public string DbType { get; set; }
+
+        [JsonProperty("dbconfig")]
+        public DbConfig DbConfig { get; set; }
+    }
+
+    public class DbConfig
+    {
+        [JsonProperty("ip")]
+        public string Ip { get; set; }
+
+        [JsonProperty("port")]
+        public int Port { get; set; }
+
+        [JsonProperty("defaultdb")]
+        public string DefaultDb { get; set; }
+
+        [JsonProperty("password")]
+        public string Password { get; set; }
+    }
+#pragma warning restore CS8618
+#pragma warning restore SA1600
+
     /// <summary>
     /// Gets the fast global cache client.
     /// Fast* client allows current process directly access to cache (redis).
@@ -47,11 +79,19 @@ public static class DbHelper
     /// Initialize database.
     /// </summary>
     /// <returns>Task.</returns>
-    public static async Task Initialize()
+    /// <summary>
+    /// Initializes the database.
+    /// </summary>
+    /// <param name="initParam">The initialization parameter.</param>
+    /// <returns>A task.</returns>
+    public static async Task Initialize(DbHelper.GlobalCache initParam)
     {
         Logger.Info("Start initialize database...");
         FastGlobalCache = Redis.Instance;
-        await FastGlobalCache.Initialize();
+        string connectString =
+         $"{initParam.DbConfig.Ip}:{initParam.DbConfig.Port}," +
+         $"password={initParam.DbConfig.Password},defaultDatabase={initParam.DbConfig.DefaultDb}";
+        await FastGlobalCache.Initialize(connectString);
 
         // todo: slow.initialize()
         Logger.Info("Initialize database success.");

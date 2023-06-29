@@ -15,7 +15,8 @@
         "dbconfig": {
             "ip": "127.0.0.1",
             "port": 6379,
-            "defaultdb": "demo"
+            "defaultdb": "demo",
+            "password": ""
         }
     },
 
@@ -28,5 +29,7 @@
             "password": "123456",
             "collection": "demo"
         }
-    }
+    },
+
+    "mq_conf": "Config/host0/mq.conf.json"
 }

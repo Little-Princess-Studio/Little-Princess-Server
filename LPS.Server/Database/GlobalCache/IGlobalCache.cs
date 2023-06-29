@@ -39,7 +39,12 @@ public interface IGlobalCache : IGlobalCache<long>, IGlobalCache<string>
     /// Initialize global cache.
     /// </summary>
     /// <returns>Result of the initialization.</returns>
-    Task<bool> Initialize();
+    /// <summary>
+    /// Initializes the global cache with the specified initialization string.
+    /// </summary>
+    /// <param name="initString">The initialization string.</param>
+    /// <returns>True if the initialization was successful, otherwise false.</returns>
+    Task<bool> Initialize(string initString);
 
     /// <summary>
     /// Clear global cache, it's the dangerous operation.

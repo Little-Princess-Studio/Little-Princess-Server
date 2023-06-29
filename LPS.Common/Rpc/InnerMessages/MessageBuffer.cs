@@ -38,11 +38,11 @@ public class MessageBuffer
         var pos = 0;
         var pkgLen = BitConverter.ToUInt16(bytes.Span);
         pos += 2;
-        var pkgId = BitConverter.ToUInt32(bytes.Span.Slice(pos));
+        var pkgId = BitConverter.ToUInt32(bytes.Span[pos..]);
         pos += 4;
-        var pkgVersion = BitConverter.ToUInt16(bytes.Span.Slice(pos));
+        var pkgVersion = BitConverter.ToUInt16(bytes.Span[pos..]);
         pos += 2;
-        var pkgType = BitConverter.ToUInt16(bytes.Span.Slice(pos));
+        var pkgType = BitConverter.ToUInt16(bytes.Span[pos..]);
 
         // pkg.Header.Length = pkgLen;
         // pkg.Header.ID = pkgId;

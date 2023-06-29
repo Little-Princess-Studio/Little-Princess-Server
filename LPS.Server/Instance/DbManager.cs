@@ -9,6 +9,7 @@ namespace LPS.Server.Instance;
 using System.Collections.Concurrent;
 using Google.Protobuf;
 using LPS.Common.Debug;
+using LPS.Server.Database;
 using LPS.Server.Rpc;
 
 /// <summary>
@@ -46,7 +47,7 @@ public class DbManager : IInstance
         int hostNum,
         string hostManagerIp,
         int hostManagerPort,
-        (string IP, int Port, string DefaultDb) cacheInfo)
+        DbHelper.GlobalCache cacheInfo)
     {
         this.Ip = ip;
         this.Port = port;

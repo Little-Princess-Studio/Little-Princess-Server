@@ -22,9 +22,10 @@ public class Redis : IGlobalCache
     public static readonly Redis Instance = new();
 
     /// <inheritdoc/>
-    public Task<bool> Initialize()
+    public Task<bool> Initialize(string initString)
     {
-        const string connectString = "52.175.74.209:6457,password=metalnuoya12,defaultDatabase=demo";
+        // string connectString = $"{ip}:{port},password={password},defaultDatabase={defaultDatabase}";
+        var connectString = initString;
 
         Logger.Info($"Connecting to redis with {connectString}");
 

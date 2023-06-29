@@ -15,6 +15,7 @@ using LPS.Common.Debug;
 using LPS.Common.Rpc;
 using LPS.Server.Database;
 using LPS.Server.Instance;
+using LPS.Server.MessageQueue;
 using LPS.Server.Rpc;
 using Newtonsoft.Json.Linq;
 
@@ -224,9 +225,14 @@ public static class StartupManager
     private static void StartUpHostManager(string name, string confFilePath)
     {
         RpcProtobufDefs.Initialize();
-        DbHelper.Initialize().Wait();
 
         var json = GetJson(confFilePath);
+
+        var globalCacheConf = json["global_cache"]!.ToObject<DbHelper.GlobalCache>()!;
+        DbHelper.Initialize(globalCacheConf).Wait();
+
+        var messageQueueConf = GetJson(json["mq_conf"]!.ToString()).ToObject<MessageQueueClient.MqConfig>()!;
+        MessageQueueClient.InitConnectionFactory(messageQueueConf);
 
         var hostnum = Convert.ToInt32(json["hostnum"]!.ToString());
         var ip = json["ip"]!.ToString();
@@ -245,9 +251,13 @@ public static class StartupManager
     private static void StartUpDbManager(string name, string confFilePath)
     {
         RpcProtobufDefs.Initialize();
-        DbHelper.Initialize().Wait();
 
         var json = GetJson(confFilePath);
+        var globalCacheConf = json["global_cache"]!.ToObject<DbHelper.GlobalCache>()!;
+        DbHelper.Initialize(globalCacheConf).Wait();
+
+        var messageQueueConf = GetJson(json["mq_conf"]!.ToString()).ToObject<MessageQueueClient.MqConfig>()!;
+        MessageQueueClient.InitConnectionFactory(messageQueueConf);
 
         var hostnum = Convert.ToInt32(json["hostnum"]!.ToString());
 
@@ -258,16 +268,8 @@ public static class StartupManager
         var hostManagerIp = hostManagerInfo["ip"]!.ToString();
         var hostManagerPort = Convert.ToInt32(hostManagerInfo["port"]!.ToString());
 
-        var globalcacheType = json["globalcache"]!["dbtype"]!.ToString();
-        var globalcacheConfig = json["globalcache"]!["dbconfig"]!;
-        var globalcacheIp = globalcacheConfig["ip"]!.ToString();
-        var globalcachePort = globalcacheConfig["port"]!.ToObject<int>();
-        var globalcacheDefaultDb = globalcacheConfig["defaultdb"]!.ToString();
-
-        var globalCacheInfo = (globalcacheIp, globalcachePort, globalcacheDefaultDb);
-
         Logger.Debug($"Startup DbManager {name} at {ip}:{port}");
-        var databaseManager = new DbManager(ip, port, hostnum, hostManagerIp, hostManagerPort, globalCacheInfo);
+        var databaseManager = new DbManager(ip, port, hostnum, hostManagerIp, hostManagerPort, globalCacheConf);
 
         ServerGlobal.Init(databaseManager);
 
@@ -278,9 +280,13 @@ public static class StartupManager
     {
         RpcProtobufDefs.Initialize();
         RpcHelper.ScanRpcMethods("LPS.Server.Entity");
-        DbHelper.Initialize().Wait();
 
         var json = GetJson(confFilePath);
+        var globalCacheConf = json["global_cache"]!.ToObject<DbHelper.GlobalCache>()!;
+        DbHelper.Initialize(globalCacheConf).Wait();
+
+        var messageQueueConf = GetJson(json["mq_conf"]!.ToString()).ToObject<MessageQueueClient.MqConfig>()!;
+        MessageQueueClient.InitConnectionFactory(messageQueueConf);
 
         var hostnum = Convert.ToInt32(json["hostnum"]!.ToString());
 
@@ -334,7 +340,12 @@ public static class StartupManager
         RpcHelper.ScanRpcMethods("LPS.Server.Entity");
         RpcHelper.ScanRpcMethods(entityNamespace);
         RpcHelper.ScanRpcPropertyContainer(rpcPropertyNamespace);
-        DbHelper.Initialize().Wait();
+
+        var globalCacheConf = json["global_cache"]!.ToObject<DbHelper.GlobalCache>()!;
+        DbHelper.Initialize(globalCacheConf).Wait();
+
+        var messageQueueConf = GetJson(json["mq_conf"]!.ToString()).ToObject<MessageQueueClient.MqConfig>()!;
+        MessageQueueClient.InitConnectionFactory(messageQueueConf);
 
         var hostnum = Convert.ToInt32(json["hostnum"]!.ToString());
 

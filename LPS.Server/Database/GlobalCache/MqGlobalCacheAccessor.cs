@@ -32,7 +32,7 @@ public class MqGlobalCacheAccessor : IGlobalCache
     }
 
     /// <inheritdoc/>
-    public Task<bool> Initialize()
+    public Task<bool> Initialize(string initString)
     {
         throw new System.NotImplementedException();
     }

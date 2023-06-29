@@ -10,6 +10,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using LPS.Common.Debug;
+using Newtonsoft.Json;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 
@@ -18,24 +19,64 @@ using RabbitMQ.Client.Events;
 /// </summary>
 public class MessageQueueClient : IDisposable
 {
-    private static readonly ConnectionFactory Factory = new ConnectionFactory()
+#pragma warning disable SA1600
+#pragma warning disable CS8618
+    public class MqConfig
     {
-        HostName = "52.175.74.209",
-        Port = 5672,
-        UserName = "demo",
-        Password = "123456",
-    };
+        [JsonProperty("type")]
+        public string Type { get; set; }
+
+        [JsonProperty("subtype")]
+        public string Subtype { get; set; }
+
+        [JsonProperty("mqargs")]
+        public MqArgs MqArgs { get; set; }
+    }
+
+    public class MqArgs
+    {
+        [JsonProperty("ip")]
+        public string Ip { get; set; }
+
+        [JsonProperty("port")]
+        public int Port { get; set; }
+
+        [JsonProperty("username")]
+        public string Username { get; set; }
+
+        [JsonProperty("password")]
+        public string Password { get; set; }
+    }
+#pragma warning restore CS8618
+#pragma warning restore SA1600
+
+    private static ConnectionFactory factory = null!;
 
     private IConnection? connection;
     private IModel? producerChannel;
     private IModel? consumerChannel;
 
     /// <summary>
+    /// Initializes the connection factory with the provided RabbitMQ configuration.
+    /// </summary>
+    /// <param name="config">The RabbitMQ configuration.</param>
+    public static void InitConnectionFactory(MqConfig config)
+    {
+        factory = new ConnectionFactory()
+        {
+            HostName = config.MqArgs.Ip,
+            Port = config.MqArgs.Port,
+            UserName = config.MqArgs.Username,
+            Password = config.MqArgs.Password,
+        };
+    }
+
+    /// <summary>
     /// Init message queue setting.
     /// </summary>
     public void Init()
     {
-        this.connection = Factory.CreateConnection();
+        this.connection = factory.CreateConnection();
     }
 
     /// <summary>
@@ -43,7 +84,7 @@ public class MessageQueueClient : IDisposable
     /// </summary>
     public void AsConsumer()
     {
-        this.consumerChannel = this.connection !.CreateModel();
+        this.consumerChannel = this.connection!.CreateModel();
     }
 
     /// <summary>
@@ -51,7 +92,7 @@ public class MessageQueueClient : IDisposable
     /// </summary>
     public void AsProducer()
     {
-        this.producerChannel = this.connection !.CreateModel();
+        this.producerChannel = this.connection!.CreateModel();
         this.producerChannel.BasicReturn += (sender, args) =>
         {
             Logger.Info($"Message publish failed ({args.Exchange}, {args.RoutingKey}), retry...");
