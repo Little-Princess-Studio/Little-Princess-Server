@@ -56,6 +56,7 @@ public static class Startup
         public string ChildName { get; set; }
     }
 #pragma warning restore CS8618
+
     /// <summary>
     /// Startup entry.
     /// </summary>
