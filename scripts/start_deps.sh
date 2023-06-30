@@ -7,4 +7,3 @@ echo Start Redis...
 docker start lps-redis || docker run --rm -it --name lps-redis -d redis
 
 echo Command completed.
-pause
