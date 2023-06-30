@@ -7,4 +7,3 @@ echo Stop Redis...
 docker kill lps-redis
 
 echo Command completed.
-pause

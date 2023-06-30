@@ -11,7 +11,7 @@ $output = docker ps -a --filter "name=lps-redis" --format "{{.Names}}"
 if ($output -eq "lps-redis") {
     docker start lps-redis
 } else {
-    docker run --rm -it --name lps-redis -d redis
+    docker run --rm -it --name lps-redis -d -p 6379:6379 redis
 }
 
 Write-Output Command completed.
