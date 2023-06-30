@@ -10,16 +10,6 @@
         "port": 10001    
     },
 
-    "globalcache": {
-        "dbtype": "redis",
-        "dbconfig": {
-            "ip": "127.0.0.1",
-            "port": 6379,
-            "defaultdb": "demo",
-            "password": ""
-        }
-    },
-
     "database": {
         "dbtype": "mongodb",
         "dbconfig": {
@@ -31,5 +21,6 @@
         }
     },
 
-    "mq_conf": "Config/host0/mq.conf.json"
+    "mq_conf": "Config/host0/mq.conf.json",
+    "globalcache_conf": "Config/host0/globalcache.conf.json"
 }

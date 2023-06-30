@@ -228,7 +228,8 @@ public static class StartupManager
 
         var json = GetJson(confFilePath);
 
-        var globalCacheConf = json["global_cache"]!.ToObject<DbHelper.GlobalCache>()!;
+        var globalCacheConf = GetJson(json["globalcache_conf"]!.ToString())!
+            .ToObject<DbHelper.GlobalCache>()!;
         DbHelper.Initialize(globalCacheConf).Wait();
 
         var messageQueueConf = GetJson(json["mq_conf"]!.ToString()).ToObject<MessageQueueClient.MqConfig>()!;
@@ -253,7 +254,9 @@ public static class StartupManager
         RpcProtobufDefs.Initialize();
 
         var json = GetJson(confFilePath);
-        var globalCacheConf = json["global_cache"]!.ToObject<DbHelper.GlobalCache>()!;
+
+        var globalCacheConf = GetJson(json["globalcache_conf"]!.ToString())!
+            .ToObject<DbHelper.GlobalCache>()!;
         DbHelper.Initialize(globalCacheConf).Wait();
 
         var messageQueueConf = GetJson(json["mq_conf"]!.ToString()).ToObject<MessageQueueClient.MqConfig>()!;
@@ -282,7 +285,9 @@ public static class StartupManager
         RpcHelper.ScanRpcMethods("LPS.Server.Entity");
 
         var json = GetJson(confFilePath);
-        var globalCacheConf = json["global_cache"]!.ToObject<DbHelper.GlobalCache>()!;
+
+        var globalCacheConf = GetJson(json["globalcache_conf"]!.ToString())!
+            .ToObject<DbHelper.GlobalCache>()!;
         DbHelper.Initialize(globalCacheConf).Wait();
 
         var messageQueueConf = GetJson(json["mq_conf"]!.ToString()).ToObject<MessageQueueClient.MqConfig>()!;
@@ -341,7 +346,8 @@ public static class StartupManager
         RpcHelper.ScanRpcMethods(entityNamespace);
         RpcHelper.ScanRpcPropertyContainer(rpcPropertyNamespace);
 
-        var globalCacheConf = json["global_cache"]!.ToObject<DbHelper.GlobalCache>()!;
+        var globalCacheConf = GetJson(json["globalcache_conf"]!.ToString())!
+            .ToObject<DbHelper.GlobalCache>()!;
         DbHelper.Initialize(globalCacheConf).Wait();
 
         var messageQueueConf = GetJson(json["mq_conf"]!.ToString()).ToObject<MessageQueueClient.MqConfig>()!;
