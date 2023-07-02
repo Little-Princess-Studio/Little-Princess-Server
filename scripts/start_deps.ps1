@@ -14,5 +14,13 @@ if ($output -eq "lps-redis") {
     docker run --rm -it --name lps-redis -d -p 6379:6379 redis
 }
 
+Write-Output Start MongoDb...
+$output = docker ps -a --filter "name=lps-mongo" --format "{{.Names}}"
+if ($output -eq "lps-mongo") {
+    docker start lps-mongo
+} else {
+    docker run -it --name lps-mongo -d -p 27017:27017 mongo:latest
+}
+
 Write-Output Command completed.
 pause
