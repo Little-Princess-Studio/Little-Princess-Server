@@ -10,16 +10,6 @@
     "entity_namespace": "LPS.Server.Demo.Logic.Entity",
     "rpc_property_namespace": "LPS.Server.Demo.Logic.RpcProperty",
 
-    "globalcache": {
-        "dbtype": "redis",
-        "dbconfig": {
-            "ip": "127.0.0.1",
-            "port": 6379,
-            "defaultdb": "demo",
-            "password": ""
-        }
-    },
-
     "servers": {
         "server0" : {
             "ip": "127.0.0.1",
@@ -33,5 +23,6 @@
         }
     },
 
-    "mq_conf": "Config/host0/mq.conf.json"
+    "mq_conf": "Config/host0/mq.conf.json",
+    "globalcache_conf": "Config/host0/globalcache.conf.json"
 }
