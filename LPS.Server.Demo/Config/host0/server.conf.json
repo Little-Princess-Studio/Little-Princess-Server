@@ -1,11 +1,5 @@
 {
     "type": "server",
-    "hostnum": 1111,
-    
-    "hostmanager": {
-        "ip": "127.0.0.1",
-        "port": 10001    
-    },
 
     "entity_namespace": "LPS.Server.Demo.Logic.Entity",
     "rpc_property_namespace": "LPS.Server.Demo.Logic.RpcProperty",
@@ -23,6 +17,7 @@
         }
     },
 
+    "hostmanager_conf": "Config/host0/hostmanager.conf.json",
     "mq_conf": "Config/host0/mq.conf.json",
     "globalcache_conf": "Config/host0/globalcache.conf.json"
 }

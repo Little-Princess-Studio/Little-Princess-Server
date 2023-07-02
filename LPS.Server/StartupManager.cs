@@ -229,8 +229,8 @@ public static class StartupManager
         var json = GetJson(confFilePath);
 
         var globalCacheConf = GetJson(json["globalcache_conf"]!.ToString())!
-            .ToObject<DbHelper.GlobalCache>()!;
-        DbHelper.Initialize(globalCacheConf).Wait();
+            .ToObject<DbHelper.DbInfo>()!;
+        DbHelper.Initialize(globalCacheConf, name).Wait();
 
         var messageQueueConf = GetJson(json["mq_conf"]!.ToString()).ToObject<MessageQueueClient.MqConfig>()!;
         MessageQueueClient.InitConnectionFactory(messageQueueConf);
@@ -256,23 +256,34 @@ public static class StartupManager
         var json = GetJson(confFilePath);
 
         var globalCacheConf = GetJson(json["globalcache_conf"]!.ToString())!
-            .ToObject<DbHelper.GlobalCache>()!;
-        DbHelper.Initialize(globalCacheConf).Wait();
+            .ToObject<DbHelper.DbInfo>()!;
 
+        DbHelper.DbInfo? databaseConf = json["database"]!.ToObject<DbHelper.DbInfo>()!;
+
+        // DbHelper.Initialize(globalCacheConf, name).Wait();
         var messageQueueConf = GetJson(json["mq_conf"]!.ToString()).ToObject<MessageQueueClient.MqConfig>()!;
         MessageQueueClient.InitConnectionFactory(messageQueueConf);
-
-        var hostnum = Convert.ToInt32(json["hostnum"]!.ToString());
 
         var ip = json["ip"]!.ToString();
         var port = json["port"]!.ToObject<int>();
 
-        var hostManagerInfo = json["hostmanager"]!;
-        var hostManagerIp = hostManagerInfo["ip"]!.ToString();
-        var hostManagerPort = Convert.ToInt32(hostManagerInfo["port"]!.ToString());
+        var hostMgrConf = GetJson(json["hostmanager_conf"]!.ToString())!;
+        var hostnum = Convert.ToInt32(hostMgrConf["hostnum"]!.ToString());
+        var hostManagerIp = hostMgrConf["ip"]!.ToString();
+        var hostManagerPort = Convert.ToInt32(hostMgrConf["port"]!.ToString());
+
+        var databaseApiProviderNamespace = json["db_api_provider_namespace"]!.ToString();
 
         Logger.Debug($"Startup DbManager {name} at {ip}:{port}");
-        var databaseManager = new DbManager(ip, port, hostnum, hostManagerIp, hostManagerPort, globalCacheConf);
+        var databaseManager = new DbManager(
+            ip,
+            port,
+            hostnum,
+            hostManagerIp,
+            hostManagerPort,
+            globalCacheConf,
+            databaseConf,
+            databaseApiProviderNamespace);
 
         ServerGlobal.Init(databaseManager);
 
@@ -287,22 +298,21 @@ public static class StartupManager
         var json = GetJson(confFilePath);
 
         var globalCacheConf = GetJson(json["globalcache_conf"]!.ToString())!
-            .ToObject<DbHelper.GlobalCache>()!;
-        DbHelper.Initialize(globalCacheConf).Wait();
+            .ToObject<DbHelper.DbInfo>()!;
+        DbHelper.Initialize(globalCacheConf, name).Wait();
 
         var messageQueueConf = GetJson(json["mq_conf"]!.ToString()).ToObject<MessageQueueClient.MqConfig>()!;
         MessageQueueClient.InitConnectionFactory(messageQueueConf);
-
-        var hostnum = Convert.ToInt32(json["hostnum"]!.ToString());
 
         var gateInfo = json["gates"]![name]!;
         var ip = gateInfo["ip"]!.ToString();
         var port = Convert.ToInt32(gateInfo["port"]!.ToString());
         var useMqToHost = Convert.ToBoolean(gateInfo["use_mq_to_host"]!.ToString());
 
-        var hostManagerInfo = json["hostmanager"]!;
-        var hostManagerIp = hostManagerInfo["ip"]!.ToString();
-        var hostManagerPort = Convert.ToInt32(hostManagerInfo["port"]!.ToString());
+        var hostMgrConf = GetJson(json["hostmanager_conf"]!.ToString())!;
+        var hostnum = Convert.ToInt32(hostMgrConf["hostnum"]!.ToString());
+        var hostManagerIp = hostMgrConf["ip"]!.ToString();
+        var hostManagerPort = Convert.ToInt32(hostMgrConf["port"]!.ToString());
 
         #region get servers' ip/port
 
@@ -347,22 +357,21 @@ public static class StartupManager
         RpcHelper.ScanRpcPropertyContainer(rpcPropertyNamespace);
 
         var globalCacheConf = GetJson(json["globalcache_conf"]!.ToString())!
-            .ToObject<DbHelper.GlobalCache>()!;
-        DbHelper.Initialize(globalCacheConf).Wait();
+            .ToObject<DbHelper.DbInfo>()!;
+        DbHelper.Initialize(globalCacheConf, name).Wait();
 
         var messageQueueConf = GetJson(json["mq_conf"]!.ToString()).ToObject<MessageQueueClient.MqConfig>()!;
         MessageQueueClient.InitConnectionFactory(messageQueueConf);
-
-        var hostnum = Convert.ToInt32(json["hostnum"]!.ToString());
 
         var serverInfo = json["servers"]![name]!;
         var ip = serverInfo["ip"]!.ToString();
         var port = Convert.ToInt32(serverInfo["port"]!.ToString());
         var useMqToHost = Convert.ToBoolean(serverInfo["use_mq_to_host"]!.ToString());
 
-        var hostManagerInfo = json["hostmanager"]!;
-        var hostManagerIp = hostManagerInfo["ip"]!.ToString();
-        var hostManagerPort = Convert.ToInt32(hostManagerInfo["port"]!.ToString());
+        var hostMgrConf = GetJson(json["hostmanager_conf"]!.ToString())!;
+        var hostnum = Convert.ToInt32(hostMgrConf["hostnum"]!.ToString());
+        var hostManagerIp = hostMgrConf["ip"]!.ToString();
+        var hostManagerPort = Convert.ToInt32(hostMgrConf["port"]!.ToString());
 
         Logger.Debug($"Startup Server {name} at {ip}:{port}, use mq: {useMqToHost}");
         var server = new Server(name, ip, port, hostnum, hostManagerIp, hostManagerPort, useMqToHost);

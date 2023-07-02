@@ -8,7 +8,9 @@ namespace LPS.Server.Demo.Logic.Entity;
 
 using Common.Debug;
 using Common.Rpc.Attribute;
+using LPS.Common.Rpc.RpcProperty;
 using LPS.Server.Entity;
+using LPS.Server.Rpc.RpcProperty;
 
 /// <summary>
 /// Player is the real entity between server and client after login process.
@@ -16,6 +18,20 @@ using LPS.Server.Entity;
 [EntityClass]
 public class Player : ServerClientEntity
 {
+    /// <summary>
+    /// Player name.
+    /// </summary>
+    /// <returns>Name of the player.</returns>
+    [RpcProperty(nameof(Player.Name), RpcPropertySetting.Permanent | RpcPropertySetting.ServerToShadow)]
+    public RpcPlaintProperty<string> Name = new (string.Empty);
+
+    /// <summary>
+    /// Id of the player.
+    /// </summary>
+    /// <returns>Id of the player in database.</returns>
+    [RpcProperty(nameof(Player.Id), RpcPropertySetting.Permanent | RpcPropertySetting.ServerToShadow)]
+    public RpcPlaintProperty<string> Id = new (string.Empty);
+
     /// <summary>
     /// Initializes a new instance of the <see cref="Player"/> class.
     /// </summary>

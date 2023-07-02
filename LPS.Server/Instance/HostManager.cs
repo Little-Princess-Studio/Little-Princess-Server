@@ -534,7 +534,7 @@ public class HostManager : IInstance
             case ControlMessage.ShutDown:
                 break;
             default:
-                throw new ArgumentOutOfRangeException();
+                throw new ArgumentOutOfRangeException(nameof(hostCmd.Message), hostCmd.Message, null);
         }
     }
 
@@ -558,7 +558,7 @@ public class HostManager : IInstance
             case ControlMessage.ShutDown:
                 break;
             default:
-                throw new ArgumentOutOfRangeException();
+                throw new ArgumentOutOfRangeException(nameof(hostCmd.Message), hostCmd.Message, null);
         }
     }
 

@@ -1,12 +1,6 @@
 {
     "type": "gate",
     "protocal": "tcp",
-    "hostnum": 1111,
-
-    "hostmanager": {
-        "ip": "127.0.0.1",
-        "port": 10001    
-    },
 
     "gates": {
         "gate0" : {
@@ -23,6 +17,7 @@
         }
     },
 
+    "hostmanager_conf": "Config/host0/hostmanager.conf.json",
     "server_conf": "Config/host0/server.conf.json",
     "mq_conf": "Config/host0/mq.conf.json",
     "globalcache_conf": "Config/host0/globalcache.conf.json"

@@ -42,6 +42,16 @@ public static class Consts
     public const string GateToHostExchangeName = "gateToHostMgr.exchange";
 
     /// <summary>
+    /// Exchange name of database manager to server.
+    /// </summary>
+    public const string DbMgrToDbClientExchangeName = "dbmgrToDbClient.exchange";
+
+    /// <summary>
+    /// Exchange name of server to database manager.
+    /// </summary>
+    public const string DbClientToDbMgrExchangeName = "dbClientToDbmgr.exchange";
+
+    /// <summary>
     /// Host message package routing key to server.
     /// </summary>
     /// <param name="targetName">Target name.</param>
@@ -111,6 +121,11 @@ public static class Consts
     public const string RoutingKeyToGate = "#.toGate";
 
     /// <summary>
+    /// Routing key from database manager to client.
+    /// </summary>
+    public const string RoutingKeyDbMgrToClient = "#.dbMgrToClient";
+
+    /// <summary>
     /// Routing keys to web manager.
     /// </summary>
     public const string RoutingKeyToWebManager = "#.toWebMgr";
@@ -128,14 +143,19 @@ public static class Consts
     public static string GenerateWebManagerQueueName(string id) => $"webmgr_que_{id}";
 
     /// <summary>
-    /// Generate the queue name observed by server process.
+    /// Message queue name for server message queue recieved from gate.
     /// </summary>
     public const string GateMessageQueueName = "gatemsg_que";
 
     /// <summary>
-    /// Message queue name for server message queue.
+    /// Message queue name for server message queue recieved from server.
     /// </summary>
     public const string ServerMessageQueueName = "srvmsg_que";
+
+    /// <summary>
+    /// Message queue name for database manager message queue recieved from server.
+    /// </summary>
+    public const string DbClientToDbMgrMessageQueueName = "dbmgr_from_db_client_que";
 
     /// <summary>
     /// Generate the queue name observed by gate process.
@@ -152,6 +172,13 @@ public static class Consts
     public static string GenerateServerQueueName(string id) => $"srv_que_{id}";
 
     /// <summary>
+    /// Generate the queue name observed by database client process.
+    /// </summary>
+    /// <param name="id">Unique id for the message queue.</param>
+    /// <returns>Name.</returns>
+    public static string GenerateDbClientQueueName(string id) => $"dbclient_que_{id}";
+
+    /// <summary>
     /// Generate server message package routing key to host manager.
     /// </summary>
     /// <param name="name">Instance name.</param>
@@ -166,6 +193,20 @@ public static class Consts
     public static string GenerateGateMessagePackage(string name) => $"serverMessagePackage.{name}.gateToHost";
 
     /// <summary>
+    /// Generates database client message package routing key to database manager.
+    /// </summary>
+    /// <param name="name">Instance name.</param>
+    /// <returns>Routing key.</returns>
+    public static string GenerateDbClientMessagePackageToDbMgr(string name) => $"dbClientMessagePackage.{name}.dbClientToDbMgr";
+
+    /// <summary>
+    /// Generates database manager message package routing key to database client.
+    /// </summary>
+    /// <param name="name">Instance name.</param>
+    /// <returns>Routing key.</returns>
+    public static string GenerateDbMgrMessagePackageToDbClient(string name) => $"dbMgrMessagePackage.{name}.dbMgrToDbClient";
+
+    /// <summary>
     /// Routing keys of server to host manaer.
     /// </summary>
     public const string RoutingKeyServerToHost = "#.#.srvToHost";
@@ -174,4 +215,9 @@ public static class Consts
     /// Routing keys of server to host manaer.
     /// </summary>
     public const string RoutingKeyGateToHost = "#.#.gateToHost";
+
+    /// <summary>
+    /// Routing keys of server to database manager.
+    /// </summary>
+    public const string RoutingKeyDbClientToDbMgr = "#.#.dbClientToDbMgr";
 }

@@ -11,6 +11,7 @@ using Common.Debug;
 using Common.Rpc.Attribute;
 using Common.Rpc.RpcProperty;
 using Common.Rpc.RpcProperty.RpcContainer;
+using LPS.Server.Database;
 using LPS.Server.Entity;
 using LPS.Server.Rpc;
 using LPS.Server.Rpc.RpcProperty;
@@ -91,7 +92,7 @@ public class Untrusted : ServerClientEntity
     public async Task<bool> LogIn(string name, string password)
     {
         Logger.Debug($"[LogIn] {name} {password}");
-        if (!(await this.CheckPassword(name, password)))
+        if (!await this.CheckPassword(name, password))
         {
             Logger.Warn("Failed to login");
             return false;
@@ -112,9 +113,27 @@ public class Untrusted : ServerClientEntity
     /// <param name="name">User name.</param>
     /// <param name="password">Password.</param>
     /// <returns>Async value task of the check result.</returns>
-    public ValueTask<bool> CheckPassword(string name, string password)
+    public async Task<bool> CheckPassword(string name, string password)
     {
-        // mock the validation of check name & password
-        return ValueTask.FromResult(true);
+        var res = await DbHelper.CallDbApi("QueryAccountByUserName", name);
+
+        if (res == null)
+        {
+            Logger.Warn($"[LogIn][CheckPassword] No account found for {name}");
+            return false;
+        }
+
+        if (!res.TryGetValue("password", out var querriedPwd))
+        {
+            return false;
+        }
+
+        if (querriedPwd.ToString() != password)
+        {
+            Logger.Warn($"[LogIn][CheckPassword] Password not match for {name}");
+            return false;
+        }
+
+        return true;
     }
 }

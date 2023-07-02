@@ -11,7 +11,9 @@ using System.Globalization;
 using System.Threading.Tasks;
 using LPS.Common.Debug;
 using LPS.Server.Database.GlobalCache;
+using LPS.Server.Database.Storage;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 /// <summary>
 /// Database helper.
@@ -23,7 +25,7 @@ public static class DbHelper
     /// <summary>
     /// Global cache json definition.
     /// </summary>
-    public class GlobalCache
+    public class DbInfo
     {
         [JsonProperty("dbtype")]
         public string DbType { get; set; }
@@ -42,6 +44,9 @@ public static class DbHelper
 
         [JsonProperty("defaultdb")]
         public string DefaultDb { get; set; }
+
+        [JsonProperty("username")]
+        public string UserName { get; set; }
 
         [JsonProperty("password")]
         public string Password { get; set; }
@@ -65,36 +70,44 @@ public static class DbHelper
     /// </summary>
     public static readonly IGlobalCache SlowGlobalCache = new MqGlobalCacheAccessor();
 
-    /// <summary>
-    /// Gets the fast database client.
-    /// </summary>
-    public static IDatabase FastDatabase => throw new NotImplementedException();
-
-    /// <summary>
-    /// Gets the slow database client.
-    /// </summary>
-    public static IDatabase SlowDatabase => throw new NotImplementedException();
+    private static DbClient databaseClient = null!;
 
     /// <summary>
     /// Initialize database.
     /// </summary>
-    /// <returns>Task.</returns>
-    /// <summary>
-    /// Initializes the database.
-    /// </summary>
-    /// <param name="initParam">The initialization parameter.</param>
+    /// <param name="globalCacheInitParam">The initialization parameter.</param>
+    /// <param name="databaseClientIdentifier">The identifier of the database client.</param>
     /// <returns>A task.</returns>
-    public static async Task Initialize(DbHelper.GlobalCache initParam)
+    public static async Task Initialize(DbHelper.DbInfo globalCacheInitParam, string databaseClientIdentifier)
     {
         Logger.Info("Start initialize database...");
         FastGlobalCache = Redis.Instance;
         string connectString =
-         $"{initParam.DbConfig.Ip}:{initParam.DbConfig.Port}," +
-         $"password={initParam.DbConfig.Password},defaultDatabase={initParam.DbConfig.DefaultDb}";
+         $"{globalCacheInitParam.DbConfig.Ip}:{globalCacheInitParam.DbConfig.Port}," +
+         $"password={globalCacheInitParam.DbConfig.Password},defaultDatabase={globalCacheInitParam.DbConfig.DefaultDb}";
         await FastGlobalCache.Initialize(connectString);
+
+        databaseClient = new DbClient(databaseClientIdentifier);
+        databaseClient.Initialize();
 
         // todo: slow.initialize()
         Logger.Info("Initialize database success.");
+    }
+
+    /// <summary>
+    /// Invokes a database API with the specified name and arguments.
+    /// </summary>
+    /// <param name="apiName">The name of the API to invoke.</param>
+    /// <param name="args">The arguments to pass to the API.</param>
+    /// <returns>A task that represents the asynchronous operation. The task result contains the response from the API as a <see cref="JObject"/>.</returns>
+    public static Task<JObject?> CallDbApi(string apiName, params object[]? args)
+    {
+        if (databaseClient is null)
+        {
+            return Task.FromResult(null as JObject);
+        }
+
+        return databaseClient.InvokeDbApi(apiName, args);
     }
 
     /// <summary>
