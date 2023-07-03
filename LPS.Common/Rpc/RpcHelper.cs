@@ -560,10 +560,10 @@ public static class RpcHelper
     /// <returns><c>true</c> if the signature is valid; otherwise, <c>false</c>.</returns>
     public static bool ValidateMethodSignature(MethodInfo methodInfo, int startArgIdx)
     {
-        var argTypes = methodInfo.GetGenericArguments();
+        var argTypes = methodInfo.GetParameters().Select(p => p.ParameterType).ToArray();
         var valid = ValidateArgs(argTypes[startArgIdx..]);
 
-        if (!valid)
+        if (!valid && methodInfo.Name != "OnResult")
         {
             Logger.Warn($@"Args type invalid: invalid rpc method declaration: 
                                                             {methodInfo.ReturnType.Name} {methodInfo.Name}
@@ -769,84 +769,7 @@ public static class RpcHelper
 
         if (res != null)
         {
-            var returnType = methodInfo.ReturnType;
-            if (returnType.IsGenericType)
-            {
-                // TODO: for performance, need using IL instead of dynamic/reflection?
-                if (returnType.GetGenericTypeDefinition() == typeof(Task<>))
-                {
-                    SendTaskResult(entity, entityRpc, senderMailBox, sendRpcType, res);
-                }
-                else if (returnType.GetGenericTypeDefinition() == typeof(ValueTask<>))
-                {
-                    SendValueTaskResult(entity, entityRpc, senderMailBox, sendRpcType, res);
-                }
-            }
-            else if (returnType == typeof(Task))
-            {
-                ((Task)res).ContinueWith(task =>
-                {
-                    entity.SendWithRpcId(
-                        entityRpc.RpcID,
-                        PbMailBoxToRpcMailBox(senderMailBox),
-                        "OnResult",
-                        true,
-                        sendRpcType,
-                        EmptyRes);
-                });
-            }
-            else if (returnType == typeof(ValueTask))
-            {
-                var task = (ValueTask)res;
-                if (task.IsCompleted)
-                {
-                    entity.SendWithRpcId(
-                        entityRpc.RpcID,
-                        PbMailBoxToRpcMailBox(senderMailBox),
-                        "OnResult",
-                        true,
-                        sendRpcType,
-                        EmptyRes);
-                }
-                else
-                {
-                    // if ValueTask not complete, alloc awaiter to wait
-                    var awaiter = task.GetAwaiter();
-                    awaiter.OnCompleted(() =>
-                    {
-                        entity.SendWithRpcId(
-                            entityRpc.RpcID,
-                            PbMailBoxToRpcMailBox(senderMailBox),
-                            "OnResult",
-                            true,
-                            sendRpcType,
-                            EmptyRes);
-                    });
-                }
-            }
-
-            // var sendMethodInfo = entity.GetType().GetMethod("Send")!;
-            // var continueWithExpMethodInfo = res.GetType().GetMethod("ContinueWith")!;
-            // var resultFieldInfo = res.GetType().GetField("Result")!;
-            //
-            // var tParameter = Expression.Parameter(methodInfo.ReturnType.GetGenericArguments()[0], "t");
-            // var sendLambda = Expression.Lambda(
-            //     Expression.Call(
-            //         Expression.Constant(entity),
-            //         sendMethodInfo,
-            //         Expression.Constant(RpcHelper.PbMailBoxToRpcMailBox(senderMailBox)),
-            //         Expression.Constant("OnResult"),
-            //         Expression.Field(tParameter, resultFieldInfo)),
-            //     tParameter
-            // );
-            //
-            // var precompiled = Expression.Lambda<Action>(
-            //     Expression.Call(
-            //         Expression.Constant(res),
-            //         continueWithExpMethodInfo,
-            //         sendLambda)).Compile();
-            //
-            // precompiled();
+            HandleRpcMethodResult(entity, entityRpc, methodInfo, res, senderMailBox, sendRpcType);
         }
         else
         {
@@ -858,6 +781,94 @@ public static class RpcHelper
                 sendRpcType,
                 res);
         }
+    }
+
+    private static void HandleRpcMethodResult(
+        BaseEntity entity,
+        EntityRpc entityRpc,
+        MethodInfo methodInfo,
+        object res,
+        InnerMessages.MailBox senderMailBox,
+        RpcType sendRpcType)
+    {
+        var returnType = methodInfo.ReturnType;
+        if (returnType.IsGenericType)
+        {
+            // TODO: for performance, need using IL instead of dynamic/reflection?
+            if (returnType.GetGenericTypeDefinition() == typeof(Task<>))
+            {
+                SendTaskResult(entity, entityRpc, senderMailBox, sendRpcType, res);
+            }
+            else if (returnType.GetGenericTypeDefinition() == typeof(ValueTask<>))
+            {
+                SendValueTaskResult(entity, entityRpc, senderMailBox, sendRpcType, res);
+            }
+        }
+        else if (returnType == typeof(Task))
+        {
+            ((Task)res).ContinueWith(task =>
+            {
+                entity.SendWithRpcId(
+                    entityRpc.RpcID,
+                    PbMailBoxToRpcMailBox(senderMailBox),
+                    "OnResult",
+                    true,
+                    sendRpcType,
+                    EmptyRes);
+            });
+        }
+        else if (returnType == typeof(ValueTask))
+        {
+            var task = (ValueTask)res;
+            if (task.IsCompleted)
+            {
+                entity.SendWithRpcId(
+                    entityRpc.RpcID,
+                    PbMailBoxToRpcMailBox(senderMailBox),
+                    "OnResult",
+                    true,
+                    sendRpcType,
+                    EmptyRes);
+            }
+            else
+            {
+                // if ValueTask not complete, alloc awaiter to wait
+                var awaiter = task.GetAwaiter();
+                awaiter.OnCompleted(() =>
+                {
+                    entity.SendWithRpcId(
+                        entityRpc.RpcID,
+                        PbMailBoxToRpcMailBox(senderMailBox),
+                        "OnResult",
+                        true,
+                        sendRpcType,
+                        EmptyRes);
+                });
+            }
+        }
+
+        // var sendMethodInfo = entity.GetType().GetMethod("Send")!;
+        // var continueWithExpMethodInfo = res.GetType().GetMethod("ContinueWith")!;
+        // var resultFieldInfo = res.GetType().GetField("Result")!;
+        //
+        // var tParameter = Expression.Parameter(methodInfo.ReturnType.GetGenericArguments()[0], "t");
+        // var sendLambda = Expression.Lambda(
+        //     Expression.Call(
+        //         Expression.Constant(entity),
+        //         sendMethodInfo,
+        //         Expression.Constant(RpcHelper.PbMailBoxToRpcMailBox(senderMailBox)),
+        //         Expression.Constant("OnResult"),
+        //         Expression.Field(tParameter, resultFieldInfo)),
+        //     tParameter
+        // );
+        //
+        // var precompiled = Expression.Lambda<Action>(
+        //     Expression.Call(
+        //         Expression.Constant(res),
+        //         continueWithExpMethodInfo,
+        //         sendLambda)).Compile();
+        //
+        // precompiled();
     }
 
     private static bool IsTuple(Type tuple)

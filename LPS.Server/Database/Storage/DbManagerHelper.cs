@@ -11,6 +11,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
+using Google.Protobuf.WellKnownTypes;
 using LPS.Common.Debug;
 using LPS.Common.Rpc;
 using LPS.Server.Database.Storage;
@@ -84,7 +85,7 @@ public static class DbManagerHelper
         var validated = methods.All(method => RpcHelper.ValidateMethodSignature(method, 1))
                     && methods.All(ValidateFirstArg);
 
-        if (validated)
+        if (!validated)
         {
             var e = new Exception(@namespace + " contains invalid database api provider.");
             Logger.Error(e);
@@ -106,50 +107,143 @@ public static class DbManagerHelper
     /// <param name="apiName">The name of the database API method to call.</param>
     /// <param name="args">The arguments to pass to the database API method.</param>
     /// <returns>The result of the database API method call.</returns>
-    public static Task<IDbDataSet?> CallDbApi(string apiName, JArray args)
+    public static Task<object?> CallDbApi(string apiName, Any[] args)
     {
         if (!DatabaseApiStore.TryGetValue(apiName, out var method))
         {
             Logger.Warn($"Database API method not found: {apiName}");
-            return Task.FromResult<IDbDataSet?>(null);
+            return Task.FromResult<object?>(null);
         }
 
         var parameters = method.GetParameters();
-        if (args.Count != parameters.Length)
+        if ((args.Length + 1) != parameters.Length)
         {
-            Logger.Warn($"Database API method argument count mismatch: {apiName}, {args.Count} of {parameters.Length}");
-            return Task.FromResult<IDbDataSet?>(null);
+            Logger.Warn($"Database API method argument count mismatch: {apiName}, {args.Length} of {parameters.Length}");
+            return Task.FromResult<object?>(null);
         }
 
         List<object> arguments = new() { currentDatabase };
-        for (int i = 0; i < args.Count; ++i)
+        for (int i = 0; i < args.Length; ++i)
         {
-            var token = args[i];
-            var res = token.ToObject(parameters[i].ParameterType);
-            if (res == null)
-            {
-                Logger.Warn($"Database API method argument type mismatch: {apiName}, parameter {i}, {token.Type} of {parameters[i].ParameterType}");
-                return Task.FromResult<IDbDataSet?>(null);
-            }
-
-            arguments.Add(res);
+            var parsed = RpcHelper.ProtoBufAnyToRpcArg(args[i], parameters[i].ParameterType)!;
+            arguments.Add(parsed);
         }
 
         try
         {
-            var callRes = method.Invoke(null, arguments.ToArray()) as Task<IDbDataSet?>;
-            return callRes ?? Task.FromResult<IDbDataSet?>(null);
+            var callRes = method.Invoke(null, arguments.ToArray())!;
+            return HandleRpcResult(callRes, method.ReturnType);
         }
         catch (Exception ex)
         {
             Logger.Error(ex);
-            return Task.FromResult<IDbDataSet?>(null);
+            return Task.FromResult<object?>(null);
+        }
+    }
+
+    private static Task<object?> HandleTask<T>(in Task<T> task) => task.ContinueWith(t => (object?)t.Result);
+
+    private static Task<object?> HandleTask(in Task task) => task.ContinueWith(_ => (object?)null);
+
+    private static Task<object?> HandleValueTask<T>(in ValueTask<T> task)
+    {
+        if (task.IsCompleted)
+        {
+            return Task.FromResult((object?)task.Result);
+        }
+        else
+        {
+            return task.AsTask().ContinueWith(t => (object?)t.Result);
+        }
+    }
+
+    private static Task<object?> HandleValueTask(in ValueTask task)
+    {
+        if (task.IsCompleted)
+        {
+            return Task.FromResult((object?)null);
+        }
+        else
+        {
+            return task.AsTask().ContinueWith(t => (object?)null);
+        }
+    }
+
+    private static async Task<object?> HandleTaskDynamic(dynamic task)
+    {
+        var res = await task;
+        return res;
+    }
+
+    private static Task<object?> HandleRpcResult(object callRes, System.Type returnType)
+    {
+        var type = returnType;
+        if (type.IsGenericType &&
+            type.GetGenericTypeDefinition() != typeof(Task<>) && type.GetGenericTypeDefinition() != typeof(ValueTask<>))
+        {
+            var e = new Exception("Database API method return type must be Task or ValueTask.");
+            Logger.Error(e);
+            throw e;
+        }
+        else if (!type.IsGenericType && type != typeof(ValueTask) && type != typeof(Task))
+        {
+            var e = new Exception("Database API method return type must be Task or ValueTask.");
+            Logger.Error(e);
+            throw e;
+        }
+
+        if (type.IsGenericType)
+        {
+            switch (callRes)
+            {
+                case Task<int> task:
+                    return HandleTask(task);
+                case Task<float> task:
+                    return HandleTask(task);
+                case Task<string> task:
+                    return HandleTask(task);
+                case Task<bool> task:
+                    return HandleTask(task);
+                case Task<MailBox> task:
+                    return HandleTask(task);
+                case ValueTask<int> task:
+                    return HandleValueTask(task);
+                case ValueTask<float> task:
+                    return HandleValueTask(task);
+                case ValueTask<string> task:
+                    return HandleValueTask(task);
+                case ValueTask<bool> task:
+                    return HandleValueTask(task);
+                case ValueTask<MailBox> task:
+                    return HandleValueTask(task);
+                default:
+                    {
+                        dynamic task = callRes;
+                        return HandleTaskDynamic(task);
+                    }
+            }
+        }
+        else
+        {
+            switch (callRes)
+            {
+                case Task task:
+                    return HandleTask(task);
+                case ValueTask task:
+                    return HandleValueTask(task);
+                default:
+                    {
+                        var e = new Exception("Database API method return type must be Task or ValueTask.");
+                        Logger.Error(e);
+                        throw e;
+                    }
+            }
         }
     }
 
     private static bool ValidateFirstArg(MethodInfo method)
     {
-        var args = method.GetGenericArguments();
+        var args = method.GetParameters().Select(p => p.ParameterType).ToArray();
         if (args.Length == 0)
         {
             var e = new Exception("Database api provider's first parameter type mismatch. No parameter.");

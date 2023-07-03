@@ -115,7 +115,7 @@ public class Untrusted : ServerClientEntity
     /// <returns>Async value task of the check result.</returns>
     public async Task<bool> CheckPassword(string name, string password)
     {
-        var res = await DbHelper.CallDbApi("QueryAccountByUserName", name);
+        var res = await DbHelper.CallDbApi<string>(nameof(DbApi.DbApi.QueryAccountByUserName), name);
 
         if (res == null)
         {
@@ -123,12 +123,7 @@ public class Untrusted : ServerClientEntity
             return false;
         }
 
-        if (!res.TryGetValue("password", out var querriedPwd))
-        {
-            return false;
-        }
-
-        if (querriedPwd.ToString() != password)
+        if (res != password)
         {
             Logger.Warn($"[LogIn][CheckPassword] Password not match for {name}");
             return false;

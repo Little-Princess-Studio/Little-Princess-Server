@@ -228,12 +228,12 @@ public static class StartupManager
 
         var json = GetJson(confFilePath);
 
+        var messageQueueConf = GetJson(json["mq_conf"]!.ToString()).ToObject<MessageQueueClient.MqConfig>()!;
+        MessageQueueClient.InitConnectionFactory(messageQueueConf);
+
         var globalCacheConf = GetJson(json["globalcache_conf"]!.ToString())!
             .ToObject<DbHelper.DbInfo>()!;
         DbHelper.Initialize(globalCacheConf, name).Wait();
-
-        var messageQueueConf = GetJson(json["mq_conf"]!.ToString()).ToObject<MessageQueueClient.MqConfig>()!;
-        MessageQueueClient.InitConnectionFactory(messageQueueConf);
 
         var hostnum = Convert.ToInt32(json["hostnum"]!.ToString());
         var ip = json["ip"]!.ToString();
@@ -297,12 +297,12 @@ public static class StartupManager
 
         var json = GetJson(confFilePath);
 
+        var messageQueueConf = GetJson(json["mq_conf"]!.ToString()).ToObject<MessageQueueClient.MqConfig>()!;
+        MessageQueueClient.InitConnectionFactory(messageQueueConf);
+
         var globalCacheConf = GetJson(json["globalcache_conf"]!.ToString())!
             .ToObject<DbHelper.DbInfo>()!;
         DbHelper.Initialize(globalCacheConf, name).Wait();
-
-        var messageQueueConf = GetJson(json["mq_conf"]!.ToString()).ToObject<MessageQueueClient.MqConfig>()!;
-        MessageQueueClient.InitConnectionFactory(messageQueueConf);
 
         var gateInfo = json["gates"]![name]!;
         var ip = gateInfo["ip"]!.ToString();
@@ -356,12 +356,12 @@ public static class StartupManager
         RpcHelper.ScanRpcMethods(entityNamespace);
         RpcHelper.ScanRpcPropertyContainer(rpcPropertyNamespace);
 
+        var messageQueueConf = GetJson(json["mq_conf"]!.ToString()).ToObject<MessageQueueClient.MqConfig>()!;
+        MessageQueueClient.InitConnectionFactory(messageQueueConf);
+
         var globalCacheConf = GetJson(json["globalcache_conf"]!.ToString())!
             .ToObject<DbHelper.DbInfo>()!;
         DbHelper.Initialize(globalCacheConf, name).Wait();
-
-        var messageQueueConf = GetJson(json["mq_conf"]!.ToString()).ToObject<MessageQueueClient.MqConfig>()!;
-        MessageQueueClient.InitConnectionFactory(messageQueueConf);
 
         var serverInfo = json["servers"]![name]!;
         var ip = serverInfo["ip"]!.ToString();

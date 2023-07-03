@@ -12,7 +12,7 @@
             "port": 27017,
             "username": "",
             "password": "",
-            "dbname": "demo"
+            "defaultdb": "demo"
         }
     },
 

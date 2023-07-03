@@ -9,14 +9,18 @@ namespace LPS.Server.Instance;
 using System;
 using System.Collections.Concurrent;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Google.Protobuf;
+using Google.Protobuf.WellKnownTypes;
 using LPS.Common.Debug;
+using LPS.Common.Rpc;
 using LPS.Server.Database;
 using LPS.Server.Database.Storage.MongoDb;
 using LPS.Server.MessageQueue;
 using LPS.Server.Rpc;
+using LPS.Server.Rpc.InnerMessages;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -77,7 +81,7 @@ public class DbManager : IInstance
         if (databaseInfo.DbType == "mongodb")
         {
             string connString;
-            if (string.IsNullOrEmpty(databaseInfo.DbConfig.UserName))
+            if (!string.IsNullOrEmpty(databaseInfo.DbConfig.UserName))
             {
                 connString = $"mongodb://{databaseInfo.DbConfig.UserName}:{databaseInfo.DbConfig.Password}@{databaseInfo.DbConfig.Ip}:{databaseInfo.DbConfig.Port}/{databaseInfo.DbConfig.DefaultDb}";
             }
@@ -86,7 +90,7 @@ public class DbManager : IInstance
                 connString = $"mongodb://{databaseInfo.DbConfig.Ip}:{databaseInfo.DbConfig.Port}/{databaseInfo.DbConfig.DefaultDb}";
             }
 
-            Logger.Info("[DbManager] Init mongodb with connection string: {0}", connString);
+            Logger.Info("[DbManager] Init mongodb with connection string: ", connString);
             DbManagerHelper.SetDatabase(new MongoDb(), connString);
             DbManagerHelper.ScanDbApis(databaseApiProviderNamespace);
         }
@@ -158,30 +162,31 @@ public class DbManager : IInstance
 
     private async Task HandleMsgPackage(ReadOnlyMemory<byte> msg, string targetIdentifier)
     {
-        using var stream = new MemoryStream(msg.ToArray());
-        using var reader = new StreamReader(stream);
-        using var jsonReader = new JsonTextReader(reader);
-        JObject query = JObject.Load(jsonReader);
-
-        uint? id;
-        string? apiName;
-        JArray? args;
-
-        if ((id = query["id"]?.ToObject<uint>()) == null
-            || (apiName = query["apiName"]?.ToObject<string>()) == null
-            || (args = query["args"]?.ToObject<JArray>()) == null)
+        try
         {
-            Logger.Warn("Invalid query.");
-            return;
+            var resMsg = new MessageParser<DatabaseManagerRpc>(() => new DatabaseManagerRpc());
+            var databaseRpcRes = resMsg.ParseFrom(msg.ToArray());
+
+            var id = databaseRpcRes.RpcId;
+            var name = databaseRpcRes.ApiName;
+            var args = databaseRpcRes.Args.ToArray();
+
+            var res = await DbManagerHelper.CallDbApi(name, args);
+
+            var rpcRes = new DatabaseManagerRpcRes
+            {
+                RpcId = id,
+                Res = Any.Pack(RpcHelper.RpcArgToProtoBuf(res)),
+            };
+
+            this.messageQueueClientToHostMgr.Publish(
+                rpcRes.ToByteArray(),
+                Consts.DbMgrToDbClientExchangeName,
+                Consts.GenerateDbMgrMessagePackageToDbClient(targetIdentifier));
         }
-
-        Logger.Info($"Call Db Api {apiName}");
-        var res = await DbManagerHelper.CallDbApi(apiName, args);
-        var bytes = Encoding.UTF8.GetBytes(res != null ? res.ToJson() : string.Empty);
-
-        this.messageQueueClientToHostMgr.Publish(
-            bytes,
-            Consts.DbMgrToDbClientExchangeName,
-            Consts.GenerateDbMgrMessagePackageToDbClient(targetIdentifier));
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "HandleMsgPackage error.");
+        }
     }
 }

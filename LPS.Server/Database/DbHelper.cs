@@ -99,15 +99,18 @@ public static class DbHelper
     /// </summary>
     /// <param name="apiName">The name of the API to invoke.</param>
     /// <param name="args">The arguments to pass to the API.</param>
+    /// <typeparam name="T">The type of the API response.</typeparam>
     /// <returns>A task that represents the asynchronous operation. The task result contains the response from the API as a <see cref="JObject"/>.</returns>
-    public static Task<JObject?> CallDbApi(string apiName, params object[]? args)
+    public static Task<T?> CallDbApi<T>(string apiName, params object[]? args)
     {
         if (databaseClient is null)
         {
-            return Task.FromResult(null as JObject);
+            var e = new InvalidOperationException("Database is not initialized.");
+            Logger.Error(e);
+            throw e;
         }
 
-        return databaseClient.CallDbApi(apiName, args);
+        return databaseClient.CallDbApi<T?>(apiName, args);
     }
 
     /// <summary>
