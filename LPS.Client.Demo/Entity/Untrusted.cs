@@ -38,7 +38,7 @@ public class Untrusted : ShadowClientEntity
     /// <returns>If succeed to login.</returns>
     public Task<bool> Login()
     {
-        this.Server.Notify("LogIn", "username", "password");
+        this.Server.Notify("LogIn", "demo", "123456");
         return Task.FromResult(true);
     }
 

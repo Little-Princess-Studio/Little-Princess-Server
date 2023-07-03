@@ -32,10 +32,12 @@ public class ServerEntity : UniqueEntity
     /// Rpc method for Echo test.
     /// </summary>
     /// <param name="msg">Echo message.</param>
+    /// <returns>Completed task.</returns>
     [RpcMethod(Authority.All)]
-    public void Echo(string msg)
+    public ValueTask Echo(string msg)
     {
         Logger.Info($"Echo Echo Echo {msg}");
+        return ValueTask.CompletedTask;
     }
 
     /// <summary>
@@ -45,14 +47,17 @@ public class ServerEntity : UniqueEntity
     /// <param name="testInt">Int rpc arg.</param>
     /// <param name="testFloat">Float rpc arg.</param>
     /// <param name="testList">List rpc arg.</param>
+    /// <returns>Completed task.</returns>
     [RpcMethod(Authority.ServerOnly)]
-    public void Echo2(Dictionary<string, string> testMap, int testInt, float testFloat, List<string> testList)
+    public ValueTask Echo2(Dictionary<string, string> testMap, int testInt, float testFloat, List<string> testList)
     {
         Logger.Info("Echo Echo Echo");
         Logger.Info($"{testInt}");
         Logger.Info($"{testFloat}");
         Logger.Info($"{string.Join(',', testMap.Select(pair => '<' + pair.Key + ',' + pair.Value + '>'))}");
         Logger.Info($"{string.Join(',', testList)}");
+
+        return ValueTask.CompletedTask;
     }
 
     /// <summary>
@@ -64,8 +69,6 @@ public class ServerEntity : UniqueEntity
     public ValueTask Echo3(MailBox mb)
     {
         Logger.Info($"Got mailbox {mb}");
-
-        // await this.Call(mb, "Hello, LPS");
-        return default(ValueTask);
+        return ValueTask.CompletedTask;
     }
 }

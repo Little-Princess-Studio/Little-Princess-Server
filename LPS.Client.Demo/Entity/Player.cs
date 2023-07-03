@@ -7,8 +7,10 @@
 namespace LPS.Client.Demo.Entity;
 
 using Common.Debug;
+using Common.Rpc.RpcProperty;
 using Common.Rpc.Attribute;
 using LPS.Client.Entity;
+using LPS.Client.Rpc.RpcProperty;
 
 /// <summary>
 /// Player class, from Untrusted.
@@ -16,6 +18,20 @@ using LPS.Client.Entity;
 [EntityClass]
 public class Player : ShadowClientEntity
 {
+    /// <summary>
+    /// Player name.
+    /// </summary>
+    /// <returns>Name of the player.</returns>
+    [RpcProperty(nameof(Player.Name))]
+    public RpcShadowPlaintProperty<string> Name = new ();
+
+    /// <summary>
+    /// Id of the player.
+    /// </summary>
+    /// <returns>Id of the player in database.</returns>
+    [RpcProperty(nameof(Player.Id))]
+    public RpcShadowPlaintProperty<string> Id = new ();
+
     /// <summary>
     /// Test ping.
     /// </summary>

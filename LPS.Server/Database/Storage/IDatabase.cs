@@ -18,31 +18,13 @@ public interface IDatabase
     /// <summary>
     /// Initializes the database with the specified connection string.
     /// </summary>
-    /// <param name="connectString">The connection string to use for the database.</param>
+    /// <param name="connectString">The connection string to use to connect to database.</param>
     /// <returns>A task that represents the asynchronous initialization operation.</returns>
     Task<bool> Initialize(string connectString);
 
     /// <summary>
-    /// Executes a query against the specified table in the specified database.
+    /// Shuts down the database.
     /// </summary>
-    /// <param name="databaseName">The name of the database to query.</param>
-    /// <param name="tableName">The name of the table to query.</param>
-    /// <param name="queryString">The query string to execute.</param>
-    /// <returns>A task that represents the asynchronous query operation.</returns>
-    Task<IDbDataSet?> QueryOne(string databaseName, string tableName, string queryString);
-
-    /// <summary>
-    /// Executes a query against the specified table in the specified database and returns multiple results.
-    /// </summary>
-    /// <param name="databaseName">The name of the database to query.</param>
-    /// <param name="tableName">The name of the table to query.</param>
-    /// <param name="queryString">The query string to execute.</param>
-    /// <returns>A task that represents the asynchronous query operation and returns a list of <see cref="IDbDataSet"/> objects.</returns>
-    Task<List<IDbDataSet>?> QueryMulti(string databaseName, string tableName, string queryString);
-
-    /// <summary>
-    /// Returns the native database client object.
-    /// </summary>
-    /// <returns>The native database client object.</returns>
-    object GetRawDbClient();
+    /// <returns>A task that represents the asynchronous shutdown operation.</returns>
+    Task<bool> ShutDown();
 }

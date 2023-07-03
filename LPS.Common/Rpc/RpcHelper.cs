@@ -560,30 +560,37 @@ public static class RpcHelper
     /// <returns><c>true</c> if the signature is valid; otherwise, <c>false</c>.</returns>
     public static bool ValidateMethodSignature(MethodInfo methodInfo, int startArgIdx)
     {
-        var argTypes = methodInfo.GetParameters().Select(p => p.ParameterType).ToArray();
-        var valid = ValidateArgs(argTypes[startArgIdx..]);
-
-        if (!valid && methodInfo.Name != "OnResult")
+        var valid = false;
+        if (methodInfo.Name == "OnResult")
         {
-            Logger.Warn($@"Args type invalid: invalid rpc method declaration: 
+            valid = true;
+        }
+        else
+        {
+            var argTypes = methodInfo.GetParameters().Select(p => p.ParameterType).ToArray();
+            valid = ValidateArgs(argTypes[startArgIdx..]);
+
+            if (!valid)
+            {
+                Logger.Warn($@"Args type invalid: invalid rpc method declaration: 
                                                             {methodInfo.ReturnType.Name} {methodInfo.Name}
                                                             ({string.Join(',', argTypes.Select(t => t.Name))})");
+            }
         }
 
         var returnType = methodInfo.ReturnType;
 
-        if (returnType == typeof(void)
-            || returnType == typeof(Task)
+        if (returnType == typeof(Task)
             || returnType == typeof(ValueTask))
         {
-            valid = true;
+            valid = valid && true;
         }
         else if (returnType.IsGenericType &&
                  (returnType.GetGenericTypeDefinition() == typeof(Task<>)
                   || returnType.GetGenericTypeDefinition() == typeof(ValueTask<>)))
         {
             var taskReturnType = returnType.GetGenericArguments()[0];
-            valid = ValidateRpcType(taskReturnType);
+            valid = valid && ValidateRpcType(taskReturnType);
         }
         else
         {
@@ -599,6 +606,7 @@ public static class RpcHelper
 
         if (!valid)
         {
+            var argTypes = methodInfo.GetParameters().Select(p => p.ParameterType).ToArray();
             Logger.Warn("Return type invalid: rpc method declaration:" +
                         $"{methodInfo.ReturnType.Name} {methodInfo.Name}" +
                         $"$({string.Join(',', argTypes.Select(t => t.Name))})");

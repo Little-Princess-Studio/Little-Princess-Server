@@ -129,6 +129,8 @@ public class Untrusted : ServerClientEntity
             return false;
         }
 
+        Logger.Info($"[LogIn][CheckPassword] Login success. {res}");
+
         return true;
     }
 }

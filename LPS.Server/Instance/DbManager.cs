@@ -91,7 +91,7 @@ public class DbManager : IInstance
             }
 
             Logger.Info("[DbManager] Init mongodb with connection string: ", connString);
-            DbManagerHelper.SetDatabase(new MongoDb(), connString);
+            DbManagerHelper.SetDatabase(new MongoDbWrapper(), connString);
             DbManagerHelper.ScanDbApis(databaseApiProviderNamespace);
         }
         else
