@@ -8,7 +8,6 @@ namespace LPS.Client.Rpc;
 
 using Google.Protobuf;
 using LPS.Common.Rpc.InnerMessages;
-using LPS.Common.Rpc.InnerMessages.ProtobufDefs;
 
 /// <summary>
 /// Rpc protobuf related definitions, used to initialize the Rpc type registration.

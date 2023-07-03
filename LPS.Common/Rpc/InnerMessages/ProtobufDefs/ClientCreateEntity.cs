@@ -9,7 +9,7 @@ using pb = global::Google.Protobuf;
 using pbc = global::Google.Protobuf.Collections;
 using pbr = global::Google.Protobuf.Reflection;
 using scg = global::System.Collections.Generic;
-namespace LPS.Common.Rpc.InnerMessages.ProtobufDefs {
+namespace LPS.Common.Rpc.InnerMessages {
 
   /// <summary>Holder for reflection information generated from client_create_entity.proto</summary>
   public static partial class ClientCreateEntityReflection {
@@ -24,15 +24,15 @@ namespace LPS.Common.Rpc.InnerMessages.ProtobufDefs {
     static ClientCreateEntityReflection() {
       byte[] descriptorData = global::System.Convert.FromBase64String(
           string.Concat(
-            "ChpjbGllbnRfY3JlYXRlX2VudGl0eS5wcm90bxIhTFBTLkNvbW1vbi5Db3Jl",
-            "LlJwYy5Jbm5lck1lc3NhZ2VzGg1tYWlsYm94LnByb3RvInYKEkNsaWVudENy",
-            "ZWF0ZUVudGl0eRIXCg9FbnRpdHlDbGFzc05hbWUYASABKAkSRwoTU2VydmVy",
-            "Q2xpZW50TWFpbEJveBgCIAEoCzIqLkxQUy5Db21tb24uQ29yZS5ScGMuSW5u",
-            "ZXJNZXNzYWdlcy5NYWlsQm94YgZwcm90bzM="));
+            "ChpjbGllbnRfY3JlYXRlX2VudGl0eS5wcm90bxIcTFBTLkNvbW1vbi5ScGMu",
+            "SW5uZXJNZXNzYWdlcxoNbWFpbGJveC5wcm90byJxChJDbGllbnRDcmVhdGVF",
+            "bnRpdHkSFwoPRW50aXR5Q2xhc3NOYW1lGAEgASgJEkIKE1NlcnZlckNsaWVu",
+            "dE1haWxCb3gYAiABKAsyJS5MUFMuQ29tbW9uLlJwYy5Jbm5lck1lc3NhZ2Vz",
+            "Lk1haWxCb3hiBnByb3RvMw=="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
-          new pbr::FileDescriptor[] { global::LPS.Common.Rpc.InnerMessages.ProtobufDefs.MailboxReflection.Descriptor, },
+          new pbr::FileDescriptor[] { global::LPS.Common.Rpc.InnerMessages.MailboxReflection.Descriptor, },
           new pbr::GeneratedClrTypeInfo(null, null, new pbr::GeneratedClrTypeInfo[] {
-            new pbr::GeneratedClrTypeInfo(typeof(global::LPS.Common.Rpc.InnerMessages.ProtobufDefs.ClientCreateEntity), global::LPS.Common.Rpc.InnerMessages.ProtobufDefs.ClientCreateEntity.Parser, new[]{ "EntityClassName", "ServerClientMailBox" }, null, null, null, null)
+            new pbr::GeneratedClrTypeInfo(typeof(global::LPS.Common.Rpc.InnerMessages.ClientCreateEntity), global::LPS.Common.Rpc.InnerMessages.ClientCreateEntity.Parser, new[]{ "EntityClassName", "ServerClientMailBox" }, null, null, null, null)
           }));
     }
     #endregion
@@ -53,7 +53,7 @@ namespace LPS.Common.Rpc.InnerMessages.ProtobufDefs {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::LPS.Common.Rpc.InnerMessages.ProtobufDefs.ClientCreateEntityReflection.Descriptor.MessageTypes[0]; }
+      get { return global::LPS.Common.Rpc.InnerMessages.ClientCreateEntityReflection.Descriptor.MessageTypes[0]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -98,10 +98,10 @@ namespace LPS.Common.Rpc.InnerMessages.ProtobufDefs {
 
     /// <summary>Field number for the "ServerClientMailBox" field.</summary>
     public const int ServerClientMailBoxFieldNumber = 2;
-    private global::LPS.Common.Rpc.InnerMessages.ProtobufDefs.MailBox serverClientMailBox_;
+    private global::LPS.Common.Rpc.InnerMessages.MailBox serverClientMailBox_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public global::LPS.Common.Rpc.InnerMessages.ProtobufDefs.MailBox ServerClientMailBox {
+    public global::LPS.Common.Rpc.InnerMessages.MailBox ServerClientMailBox {
       get { return serverClientMailBox_; }
       set {
         serverClientMailBox_ = value;
@@ -211,7 +211,7 @@ namespace LPS.Common.Rpc.InnerMessages.ProtobufDefs {
       }
       if (other.serverClientMailBox_ != null) {
         if (serverClientMailBox_ == null) {
-          ServerClientMailBox = new global::LPS.Common.Rpc.InnerMessages.ProtobufDefs.MailBox();
+          ServerClientMailBox = new global::LPS.Common.Rpc.InnerMessages.MailBox();
         }
         ServerClientMailBox.MergeFrom(other.ServerClientMailBox);
       }
@@ -236,7 +236,7 @@ namespace LPS.Common.Rpc.InnerMessages.ProtobufDefs {
           }
           case 18: {
             if (serverClientMailBox_ == null) {
-              ServerClientMailBox = new global::LPS.Common.Core.Rpc.InnerMessages.MailBox();
+              ServerClientMailBox = new global::LPS.Common.Rpc.InnerMessages.MailBox();
             }
             input.ReadMessage(ServerClientMailBox);
             break;
@@ -262,7 +262,7 @@ namespace LPS.Common.Rpc.InnerMessages.ProtobufDefs {
           }
           case 18: {
             if (serverClientMailBox_ == null) {
-              ServerClientMailBox = new global::LPS.Common.Rpc.InnerMessages.ProtobufDefs.MailBox();
+              ServerClientMailBox = new global::LPS.Common.Rpc.InnerMessages.MailBox();
             }
             input.ReadMessage(ServerClientMailBox);
             break;

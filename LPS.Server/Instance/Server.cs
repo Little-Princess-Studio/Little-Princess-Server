@@ -19,13 +19,12 @@ using LPS.Common.Entity;
 using LPS.Common.Ipc;
 using LPS.Common.Rpc;
 using LPS.Common.Rpc.InnerMessages;
-using LPS.Common.Rpc.InnerMessages.ProtobufDefs;
 using LPS.Common.Rpc.RpcPropertySync.RpcPropertySyncMessage;
 using LPS.Server.Entity;
 using LPS.Server.Instance.HostConnection;
 using LPS.Server.MessageQueue;
 using LPS.Server.Rpc;
-using LPS.Server.Rpc.InnerMessages.ProtobufDefs;
+using LPS.Server.Rpc.InnerMessages;
 using Newtonsoft.Json.Linq;
 using MailBox = LPS.Common.Rpc.MailBox;
 
@@ -401,7 +400,7 @@ public class Server : IInstance
             this.waitForSyncGatesEvent.Wait();
         }
 
-        var gateMailBox = createDist.Args[0].Unpack<Common.Rpc.InnerMessages.ProtobufDefs.MailBox>();
+        var gateMailBox = createDist.Args[0].Unpack<Common.Rpc.InnerMessages.MailBox>();
         connToGate.MailBox = RpcHelper.PbMailBoxToRpcMailBox(gateMailBox);
         Logger.Info($"Register gates' mailbox {connToGate.MailBox}");
 

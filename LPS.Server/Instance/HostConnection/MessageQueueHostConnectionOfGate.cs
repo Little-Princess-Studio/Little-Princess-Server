@@ -9,7 +9,7 @@ namespace LPS.Server.Instance.HostConnection;
 using System;
 using LPS.Common.Debug;
 using LPS.Server.MessageQueue;
-using LPS.Server.Rpc.InnerMessages.ProtobufDefs;
+using LPS.Server.Rpc.InnerMessages;
 
 /// <summary>
 /// Message queue host connection of server.

@@ -9,7 +9,7 @@ using pb = global::Google.Protobuf;
 using pbc = global::Google.Protobuf.Collections;
 using pbr = global::Google.Protobuf.Reflection;
 using scg = global::System.Collections.Generic;
-namespace LPS.Common.Rpc.InnerMessages.ProtobufDefs {
+namespace LPS.Common.Rpc.InnerMessages {
 
   /// <summary>Holder for reflection information generated from mailbox.proto</summary>
   public static partial class MailboxReflection {
@@ -24,13 +24,13 @@ namespace LPS.Common.Rpc.InnerMessages.ProtobufDefs {
     static MailboxReflection() {
       byte[] descriptorData = global::System.Convert.FromBase64String(
           string.Concat(
-            "Cg1tYWlsYm94LnByb3RvEiFMUFMuQ29tbW9uLkNvcmUuUnBjLklubmVyTWVz",
-            "c2FnZXMiQAoHTWFpbEJveBIKCgJJRBgBIAEoCRIKCgJJUBgCIAEoCRIMCgRQ",
-            "b3J0GAMgASgNEg8KB0hvc3ROdW0YBCABKA1iBnByb3RvMw=="));
+            "Cg1tYWlsYm94LnByb3RvEhxMUFMuQ29tbW9uLlJwYy5Jbm5lck1lc3NhZ2Vz",
+            "IkAKB01haWxCb3gSCgoCSUQYASABKAkSCgoCSVAYAiABKAkSDAoEUG9ydBgD",
+            "IAEoDRIPCgdIb3N0TnVtGAQgASgNYgZwcm90bzM="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { },
           new pbr::GeneratedClrTypeInfo(null, null, new pbr::GeneratedClrTypeInfo[] {
-            new pbr::GeneratedClrTypeInfo(typeof(global::LPS.Common.Rpc.InnerMessages.ProtobufDefs.MailBox), global::LPS.Common.Rpc.InnerMessages.ProtobufDefs.MailBox.Parser, new[]{ "ID", "IP", "Port", "HostNum" }, null, null, null, null)
+            new pbr::GeneratedClrTypeInfo(typeof(global::LPS.Common.Rpc.InnerMessages.MailBox), global::LPS.Common.Rpc.InnerMessages.MailBox.Parser, new[]{ "ID", "IP", "Port", "HostNum" }, null, null, null, null)
           }));
     }
     #endregion
@@ -51,7 +51,7 @@ namespace LPS.Common.Rpc.InnerMessages.ProtobufDefs {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::LPS.Common.Rpc.InnerMessages.ProtobufDefs.MailboxReflection.Descriptor.MessageTypes[0]; }
+      get { return global::LPS.Common.Rpc.InnerMessages.MailboxReflection.Descriptor.MessageTypes[0]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]

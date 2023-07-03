@@ -68,7 +68,7 @@ public readonly struct MailBox
     /// </summary>
     /// <param name="other">Target MailBox to compare with.</param>
     /// <returns>If this MailBox equals to the other MailBox.</returns>
-    public readonly bool CompareOnlyID(InnerMessages.ProtobufDefs.MailBox other)
+    public readonly bool CompareOnlyID(InnerMessages.MailBox other)
     {
         return this.Id == other.ID;
     }
@@ -91,7 +91,7 @@ public readonly struct MailBox
     /// </summary>
     /// <param name="other">Target MailBox to compare with.</param>
     /// <returns>If this MailBox equals to the other MailBox.</returns>
-    public readonly bool CompareFull(InnerMessages.ProtobufDefs.MailBox other)
+    public readonly bool CompareFull(InnerMessages.MailBox other)
     {
         return this.Id == other.ID
                && this.Ip == other.IP
@@ -104,7 +104,7 @@ public readonly struct MailBox
     /// </summary>
     /// <param name="other">Target MailBox to compare with.</param>
     /// <returns>If this MailBox equals to the other MailBox.</returns>
-    public readonly bool CompareOnlyAddress(InnerMessages.ProtobufDefs.MailBox other)
+    public readonly bool CompareOnlyAddress(InnerMessages.MailBox other)
     {
         return this.Ip == other.IP && this.Port == other.Port;
     }

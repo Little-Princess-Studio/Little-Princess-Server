@@ -12,7 +12,6 @@ using LPS.Client.Rpc;
 using LPS.Common.Debug;
 using LPS.Common.Rpc;
 using LPS.Common.Rpc.InnerMessages;
-using LPS.Common.Rpc.InnerMessages.ProtobufDefs;
 
 /// <summary>
 /// Start up manager for client.

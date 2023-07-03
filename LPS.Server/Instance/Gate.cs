@@ -20,12 +20,11 @@ using LPS.Common.Debug;
 using LPS.Common.Ipc;
 using LPS.Common.Rpc;
 using LPS.Common.Rpc.InnerMessages;
-using LPS.Common.Rpc.InnerMessages.ProtobufDefs;
 using LPS.Server.Entity;
 using LPS.Server.Instance.HostConnection;
 using LPS.Server.Rpc;
-using LPS.Server.Rpc.InnerMessages.ProtobufDefs;
-using MailBox = LPS.Common.Rpc.InnerMessages.ProtobufDefs.MailBox;
+using LPS.Server.Rpc.InnerMessages;
+using MailBox = LPS.Common.Rpc.InnerMessages.MailBox;
 
 /// <summary>
 /// Each gate need maintain multiple connections from remote clients

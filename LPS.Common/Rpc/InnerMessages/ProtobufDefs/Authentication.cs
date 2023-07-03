@@ -9,7 +9,7 @@ using pb = global::Google.Protobuf;
 using pbc = global::Google.Protobuf.Collections;
 using pbr = global::Google.Protobuf.Reflection;
 using scg = global::System.Collections.Generic;
-namespace LPS.Common.Rpc.InnerMessages.ProtobufDefs {
+namespace LPS.Common.Rpc.InnerMessages {
 
   /// <summary>Holder for reflection information generated from authentication.proto</summary>
   public static partial class AuthenticationReflection {
@@ -24,13 +24,13 @@ namespace LPS.Common.Rpc.InnerMessages.ProtobufDefs {
     static AuthenticationReflection() {
       byte[] descriptorData = global::System.Convert.FromBase64String(
           string.Concat(
-            "ChRhdXRoZW50aWNhdGlvbi5wcm90bxIhTFBTLkNvbW1vbi5Db3JlLlJwYy5J",
-            "bm5lck1lc3NhZ2VzIjUKDkF1dGhlbnRpY2F0aW9uEg8KB0NvbnRlbnQYASAB",
-            "KAkSEgoKQ2lwaGVydGV4dBgCIAEoCWIGcHJvdG8z"));
+            "ChRhdXRoZW50aWNhdGlvbi5wcm90bxIcTFBTLkNvbW1vbi5ScGMuSW5uZXJN",
+            "ZXNzYWdlcyI1Cg5BdXRoZW50aWNhdGlvbhIPCgdDb250ZW50GAEgASgJEhIK",
+            "CkNpcGhlcnRleHQYAiABKAliBnByb3RvMw=="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { },
           new pbr::GeneratedClrTypeInfo(null, null, new pbr::GeneratedClrTypeInfo[] {
-            new pbr::GeneratedClrTypeInfo(typeof(global::LPS.Common.Rpc.InnerMessages.ProtobufDefs.Authentication), global::LPS.Common.Rpc.InnerMessages.ProtobufDefs.Authentication.Parser, new[]{ "Content", "Ciphertext" }, null, null, null, null)
+            new pbr::GeneratedClrTypeInfo(typeof(global::LPS.Common.Rpc.InnerMessages.Authentication), global::LPS.Common.Rpc.InnerMessages.Authentication.Parser, new[]{ "Content", "Ciphertext" }, null, null, null, null)
           }));
     }
     #endregion
@@ -51,7 +51,7 @@ namespace LPS.Common.Rpc.InnerMessages.ProtobufDefs {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::LPS.Common.Rpc.InnerMessages.ProtobufDefs.AuthenticationReflection.Descriptor.MessageTypes[0]; }
+      get { return global::LPS.Common.Rpc.InnerMessages.AuthenticationReflection.Descriptor.MessageTypes[0]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]

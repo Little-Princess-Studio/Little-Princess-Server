@@ -23,9 +23,10 @@ public static class DbApi
     /// <param name="userName">The username to search for.</param>
     /// <returns>An <see cref="IDbDataSet"/> object representing the account data, or null if no account was found.</returns>
     [DbApi]
-    public static async Task<IDbDataSet?> QueryAccountByUserName(MongoDb database, string userName)
+    public static async Task<string> QueryAccountByUserName(MongoDb database, string userName)
     {
         var res = await database.QueryOne("demo", "account", userName);
-        return res;
+        var password = res?.FindByDottedPath("password")?.AsString();
+        return password ?? string.Empty;
     }
 }

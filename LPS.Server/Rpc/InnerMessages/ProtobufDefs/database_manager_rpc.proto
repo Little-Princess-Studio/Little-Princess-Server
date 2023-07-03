@@ -1,0 +1,14 @@
+syntax = "proto3";
+import "google/protobuf/any.proto";
+package LPS.Server.Rpc.InnerMessages;
+
+message DatabaseManagerRpc {
+    uint32 rpcId = 1;
+    string apiName = 2;
+    repeated google.protobuf.Any Args = 3;
+};
+
+message DatabaseManagerRpcRes {
+    uint32 rpcId = 1;
+    google.protobuf.Any Res = 2;
+};

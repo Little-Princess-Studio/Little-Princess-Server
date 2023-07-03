@@ -11,7 +11,7 @@ using System.Text;
 using LPS.Client.Console;
 using LPS.Client.Demo.Entity;
 using LPS.Common.Debug;
-using LPS.Common.Rpc.InnerMessages.ProtobufDefs;
+using LPS.Common.Rpc.InnerMessages;
 using Client = LPS.Client.Client;
 using MailBox = LPS.Common.Rpc.MailBox;
 

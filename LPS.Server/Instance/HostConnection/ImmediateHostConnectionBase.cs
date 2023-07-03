@@ -15,7 +15,6 @@ using LPS.Common.Ipc;
 using LPS.Common.Rpc;
 using LPS.Common.Rpc.InnerMessages;
 using LPS.Server.Rpc;
-using LPS.Server.Rpc.InnerMessages.ProtobufDefs;
 
 /// <summary>
 /// Use socket to connect to host manager.

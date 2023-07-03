@@ -7,7 +7,7 @@
 namespace LPS.Common.Ipc;
 
 using System.Collections.Concurrent;
-using LPS.Common.Rpc.InnerMessages.ProtobufDefs;
+using LPS.Common.Rpc.InnerMessages;
 using LPS.Common.Rpc.RpcPropertySync.RpcPropertySyncMessage;
 
 /// <summary>

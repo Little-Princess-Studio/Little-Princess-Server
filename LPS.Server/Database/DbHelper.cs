@@ -107,7 +107,7 @@ public static class DbHelper
             return Task.FromResult(null as JObject);
         }
 
-        return databaseClient.InvokeDbApi(apiName, args);
+        return databaseClient.CallDbApi(apiName, args);
     }
 
     /// <summary>

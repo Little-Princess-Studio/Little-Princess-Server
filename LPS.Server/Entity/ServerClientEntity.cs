@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 using LPS.Common.Debug;
 using LPS.Common.Rpc;
 using LPS.Common.Rpc.Attribute;
-using LPS.Common.Rpc.InnerMessages.ProtobufDefs;
+using LPS.Common.Rpc.InnerMessages;
 using MailBox = LPS.Common.Rpc.MailBox;
 
 /// <summary>

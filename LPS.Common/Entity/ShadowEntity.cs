@@ -9,7 +9,7 @@ namespace LPS.Common.Entity;
 using Google.Protobuf.Collections;
 using Google.Protobuf.WellKnownTypes;
 using LPS.Common.Rpc.Attribute;
-using LPS.Common.Rpc.InnerMessages.ProtobufDefs;
+using LPS.Common.Rpc.InnerMessages;
 using LPS.Common.Rpc.RpcProperty;
 using LPS.Common.Rpc.RpcProperty.RpcContainer;
 

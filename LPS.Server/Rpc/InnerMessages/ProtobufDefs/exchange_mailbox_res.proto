@@ -1,7 +1,7 @@
 syntax = "proto3";
 import "mailbox.proto";
-package LPS.Server.Core.Rpc.InnerMessages;
+package LPS.Server.Rpc.InnerMessages;
 
 message ExchangeMailBoxRes {
-  LPS.Common.Core.Rpc.InnerMessages.MailBox Mailbox = 1;
+  LPS.Common.Rpc.InnerMessages.MailBox Mailbox = 1;
 }

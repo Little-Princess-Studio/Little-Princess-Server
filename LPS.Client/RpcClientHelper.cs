@@ -12,7 +12,7 @@ using LPS.Client.Rpc.RpcProperty;
 using LPS.Common.Debug;
 using LPS.Common.Entity;
 using LPS.Common.Rpc;
-using LPS.Common.Rpc.InnerMessages.ProtobufDefs;
+using LPS.Common.Rpc.InnerMessages;
 using LPS.Common.Rpc.RpcProperty;
 
 /// <summary>

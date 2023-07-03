@@ -11,7 +11,7 @@ using System.Diagnostics.CodeAnalysis;
 using Google.Protobuf;
 using Google.Protobuf.Collections;
 using Google.Protobuf.WellKnownTypes;
-using LPS.Common.Rpc.InnerMessages.ProtobufDefs;
+using LPS.Common.Rpc.InnerMessages;
 using LPS.Common.Rpc.RpcPropertySync.RpcPropertySyncInfo;
 using LPS.Common.Rpc.RpcPropertySync.RpcPropertySyncMessage;
 using Type = System.Type;

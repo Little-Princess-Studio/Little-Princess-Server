@@ -13,7 +13,7 @@ using Google.Protobuf;
 using LPS.Common.Rpc;
 using LPS.Common.Rpc.InnerMessages;
 using LPS.Server.Rpc;
-using LPS.Server.Rpc.InnerMessages.ProtobufDefs;
+using LPS.Server.Rpc.InnerMessages;
 
 /// <summary>
 /// Server connection to host manager.

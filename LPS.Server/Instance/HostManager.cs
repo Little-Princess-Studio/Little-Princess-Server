@@ -46,7 +46,7 @@ using LPS.Common.Rpc.InnerMessages;
 using LPS.Server.Database;
 using LPS.Server.MessageQueue;
 using LPS.Server.Rpc;
-using LPS.Server.Rpc.InnerMessages.ProtobufDefs;
+using LPS.Server.Rpc.InnerMessages;
 using Newtonsoft.Json.Linq;
 
 /// <summary>
@@ -106,8 +106,8 @@ public class HostManager : IInstance
     /// </summary>
     public HostStatus Status { get; } = HostStatus.None;
 
-    private readonly List<MailBox> serversMailBoxes = new List<MailBox>();
-    private readonly List<MailBox> gatesMailBoxes = new List<MailBox>();
+    private readonly List<Common.Rpc.MailBox> serversMailBoxes = new();
+    private readonly List<Common.Rpc.MailBox> gatesMailBoxes = new();
     private readonly TcpServer tcpServer;
     private readonly Random random = new Random();
 
@@ -438,7 +438,7 @@ public class HostManager : IInstance
             var newId = task.Result;
             var entityMailBox = new RequireCreateEntityRes
             {
-                Mailbox = new Common.Rpc.InnerMessages.ProtobufDefs.MailBox
+                Mailbox = new Common.Rpc.InnerMessages.MailBox
                 {
                     IP = string.Empty,
                     Port = 0,
@@ -526,7 +526,7 @@ public class HostManager : IInstance
                 this.RegisterComponents(
                     hostCmd.From,
                     RpcHelper.PbMailBoxToRpcMailBox(hostCmd.Args[0]
-                        .Unpack<Common.Rpc.InnerMessages.ProtobufDefs.MailBox>()),
+                        .Unpack<Common.Rpc.InnerMessages.MailBox>()),
                     conn);
                 break;
             case ControlMessage.Restart:
@@ -546,12 +546,12 @@ public class HostManager : IInstance
         {
             case ControlMessage.Ready:
                 var mb = RpcHelper.PbMailBoxToRpcMailBox(hostCmd.Args[0]
-                    .Unpack<Common.Rpc.InnerMessages.ProtobufDefs.MailBox>());
+                    .Unpack<Common.Rpc.InnerMessages.MailBox>());
                 this.mailboxIdToIdentifier[mb.Id] = targetIdentifier;
                 this.BroadcastSyncMessage(
                     hostCmd.From,
                     RpcHelper.PbMailBoxToRpcMailBox(hostCmd.Args[0]
-                        .Unpack<Common.Rpc.InnerMessages.ProtobufDefs.MailBox>()));
+                        .Unpack<Common.Rpc.InnerMessages.MailBox>()));
                 break;
             case ControlMessage.Restart:
                 break;
@@ -562,14 +562,14 @@ public class HostManager : IInstance
         }
     }
 
-    private void RegisterComponents(RemoteType hostCmdFrom, MailBox mailBox, Connection conn)
+    private void RegisterComponents(RemoteType hostCmdFrom, Common.Rpc.MailBox mailBox, Connection conn)
     {
         conn.MailBox = mailBox;
         this.mailboxIdToConnection[mailBox.Id] = conn;
         this.BroadcastSyncMessage(hostCmdFrom, mailBox);
     }
 
-    private void BroadcastSyncMessage(RemoteType hostCmdFrom, MailBox mailBox)
+    private void BroadcastSyncMessage(RemoteType hostCmdFrom, Common.Rpc.MailBox mailBox)
     {
         switch (hostCmdFrom)
         {

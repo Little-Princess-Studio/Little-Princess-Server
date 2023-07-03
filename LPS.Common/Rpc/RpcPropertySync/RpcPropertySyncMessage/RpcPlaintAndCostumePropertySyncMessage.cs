@@ -6,7 +6,7 @@
 
 namespace LPS.Common.Rpc.RpcPropertySync.RpcPropertySyncMessage;
 
-using LPS.Common.Rpc.InnerMessages.ProtobufDefs;
+using LPS.Common.Rpc.InnerMessages;
 using LPS.Common.Rpc.RpcProperty.RpcContainer;
 using LPS.Common.Rpc.RpcPropertySync.RpcPropertySyncInfo;
 using MailBox = LPS.Common.Rpc.MailBox;

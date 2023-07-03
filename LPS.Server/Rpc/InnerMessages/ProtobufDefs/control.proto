@@ -1,5 +1,5 @@
 syntax = "proto3";
-package LPS.Server.Core.Rpc.InnerMessages;
+package LPS.Server.Rpc.InnerMessages;
 import "google/protobuf/any.proto";
 
 enum ControlMessage {

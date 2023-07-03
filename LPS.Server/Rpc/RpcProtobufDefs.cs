@@ -10,8 +10,7 @@ using System;
 using System.Collections.Generic;
 using Google.Protobuf;
 using LPS.Common.Rpc.InnerMessages;
-using LPS.Common.Rpc.InnerMessages.ProtobufDefs;
-using LPS.Server.Rpc.InnerMessages.ProtobufDefs;
+using LPS.Server.Rpc.InnerMessages;
 
 /// <summary>
 /// Rpc protobuf related definitions, used to initialize the Rpc type registration.

@@ -65,7 +65,7 @@ public class DbClient
     /// <param name="apiName">The name of the API to invoke.</param>
     /// <param name="args">The arguments to pass to the API. Every arg should be able to serialized by JToken. </param>
     /// <returns>A task that represents the asynchronous operation. The task result contains the response from the API as a <see cref="JObject"/>.</returns>
-    public async Task<JObject?> InvokeDbApi(string apiName, params object[]? args)
+    public async Task<JObject?> CallDbApi(string apiName, params object[]? args)
     {
         var (task, id) = this.asyncTaskGenerator.GenerateAsyncTask(
             5000, (id) =>

@@ -7,7 +7,7 @@
 namespace LPS.Common.Ipc;
 
 using LPS.Common.Debug;
-using LPS.Common.Rpc.InnerMessages.ProtobufDefs;
+using LPS.Common.Rpc.InnerMessages;
 using LPS.Common.Rpc.RpcPropertySync.RpcPropertySyncInfo;
 using LPS.Common.Rpc.RpcPropertySync.RpcPropertySyncMessage;
 using MailBox = LPS.Common.Rpc.MailBox;

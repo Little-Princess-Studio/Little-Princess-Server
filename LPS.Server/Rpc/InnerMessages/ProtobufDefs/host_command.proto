@@ -1,6 +1,6 @@
 syntax = "proto3";
 import "google/protobuf/any.proto";
-package LPS.Server.Core.Rpc.InnerMessages;
+package LPS.Server.Rpc.InnerMessages;
 
 enum HostCommandType {
     SyncServers = 0;

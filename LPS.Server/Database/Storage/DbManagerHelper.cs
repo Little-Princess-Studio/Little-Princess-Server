@@ -12,6 +12,7 @@ using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using LPS.Common.Debug;
+using LPS.Common.Rpc;
 using LPS.Server.Database.Storage;
 using LPS.Server.Database.Storage.Attribute;
 using Newtonsoft.Json.Linq;
@@ -77,14 +78,24 @@ public static class DbManagerHelper
 
         var provider = types.First()!;
 
-        provider.GetMethods()
-            .Where(method => method.GetCustomAttribute<DbApiAttribute>() != null)
-            .ToList()
-            .ForEach(method =>
-            {
-                Logger.Info($"Database api provider found: {method.Name}");
-                DatabaseApiStore.Add(method.Name, method);
-            });
+        var methods = provider.GetMethods()
+            .Where(method => method.GetCustomAttribute<DbApiAttribute>() != null);
+
+        var validated = methods.All(method => RpcHelper.ValidateMethodSignature(method, 1))
+                    && methods.All(ValidateFirstArg);
+
+        if (validated)
+        {
+            var e = new Exception(@namespace + " contains invalid database api provider.");
+            Logger.Error(e);
+            throw e;
+        }
+
+        methods.ToList().ForEach(method =>
+        {
+            Logger.Info($"Database api provider found: {method.Name}");
+            DatabaseApiStore.Add(method.Name, method);
+        });
 
         Logger.Info("Database api provider loaded.");
     }
@@ -134,5 +145,26 @@ public static class DbManagerHelper
             Logger.Error(ex);
             return Task.FromResult<IDbDataSet?>(null);
         }
+    }
+
+    private static bool ValidateFirstArg(MethodInfo method)
+    {
+        var args = method.GetGenericArguments();
+        if (args.Length == 0)
+        {
+            var e = new Exception("Database api provider's first parameter type mismatch. No parameter.");
+            Logger.Error(e);
+            return false;
+        }
+
+        var first = args.First();
+        if (first != currentDatabase.GetType())
+        {
+            var e = new Exception($"Database api provider's first parameter type mismatch. {first} for {currentDatabase.GetType()}.");
+            Logger.Error(e);
+            return false;
+        }
+
+        return true;
     }
 }

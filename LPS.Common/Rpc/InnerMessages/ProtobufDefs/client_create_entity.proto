@@ -1,6 +1,6 @@
 syntax = "proto3";
 import "mailbox.proto";
-package LPS.Common.Core.Rpc.InnerMessages;
+package LPS.Common.Rpc.InnerMessages;
 
 message ClientCreateEntity {
   string EntityClassName = 1;

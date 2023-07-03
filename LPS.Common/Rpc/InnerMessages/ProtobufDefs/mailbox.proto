@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package LPS.Common.Core.Rpc.InnerMessages;
+package LPS.Common.Rpc.InnerMessages;
 
 message MailBox {
     string ID = 1;

@@ -9,7 +9,7 @@ using pb = global::Google.Protobuf;
 using pbc = global::Google.Protobuf.Collections;
 using pbr = global::Google.Protobuf.Reflection;
 using scg = global::System.Collections.Generic;
-namespace LPS.Server.Rpc.InnerMessages.ProtobufDefs {
+namespace LPS.Server.Rpc.InnerMessages {
 
   /// <summary>Holder for reflection information generated from host_command.proto</summary>
   public static partial class HostCommandReflection {
@@ -24,17 +24,16 @@ namespace LPS.Server.Rpc.InnerMessages.ProtobufDefs {
     static HostCommandReflection() {
       byte[] descriptorData = global::System.Convert.FromBase64String(
           string.Concat(
-            "ChJob3N0X2NvbW1hbmQucHJvdG8SIUxQUy5TZXJ2ZXIuQ29yZS5ScGMuSW5u",
-            "ZXJNZXNzYWdlcxoZZ29vZ2xlL3Byb3RvYnVmL2FueS5wcm90byJzCgtIb3N0",
-            "Q29tbWFuZBJACgRUeXBlGAEgASgOMjIuTFBTLlNlcnZlci5Db3JlLlJwYy5J",
-            "bm5lck1lc3NhZ2VzLkhvc3RDb21tYW5kVHlwZRIiCgRBcmdzGAIgAygLMhQu",
-            "Z29vZ2xlLnByb3RvYnVmLkFueSpFCg9Ib3N0Q29tbWFuZFR5cGUSDwoLU3lu",
-            "Y1NlcnZlcnMQABINCglTeW5jR2F0ZXMQARIICgRPcGVuEAISCAoEU3RvcBAD",
-            "YgZwcm90bzM="));
+            "ChJob3N0X2NvbW1hbmQucHJvdG8SHExQUy5TZXJ2ZXIuUnBjLklubmVyTWVz",
+            "c2FnZXMaGWdvb2dsZS9wcm90b2J1Zi9hbnkucHJvdG8ibgoLSG9zdENvbW1h",
+            "bmQSOwoEVHlwZRgBIAEoDjItLkxQUy5TZXJ2ZXIuUnBjLklubmVyTWVzc2Fn",
+            "ZXMuSG9zdENvbW1hbmRUeXBlEiIKBEFyZ3MYAiADKAsyFC5nb29nbGUucHJv",
+            "dG9idWYuQW55KkUKD0hvc3RDb21tYW5kVHlwZRIPCgtTeW5jU2VydmVycxAA",
+            "Eg0KCVN5bmNHYXRlcxABEggKBE9wZW4QAhIICgRTdG9wEANiBnByb3RvMw=="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { global::Google.Protobuf.WellKnownTypes.AnyReflection.Descriptor, },
-          new pbr::GeneratedClrTypeInfo(new[] {typeof(global::LPS.Server.Rpc.InnerMessages.ProtobufDefs.HostCommandType), }, null, new pbr::GeneratedClrTypeInfo[] {
-            new pbr::GeneratedClrTypeInfo(typeof(global::LPS.Server.Rpc.InnerMessages.ProtobufDefs.HostCommand), global::LPS.Server.Rpc.InnerMessages.ProtobufDefs.HostCommand.Parser, new[]{ "Type", "Args" }, null, null, null, null)
+          new pbr::GeneratedClrTypeInfo(new[] {typeof(global::LPS.Server.Rpc.InnerMessages.HostCommandType), }, null, new pbr::GeneratedClrTypeInfo[] {
+            new pbr::GeneratedClrTypeInfo(typeof(global::LPS.Server.Rpc.InnerMessages.HostCommand), global::LPS.Server.Rpc.InnerMessages.HostCommand.Parser, new[]{ "Type", "Args" }, null, null, null, null)
           }));
     }
     #endregion
@@ -65,7 +64,7 @@ namespace LPS.Server.Rpc.InnerMessages.ProtobufDefs {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::LPS.Server.Rpc.InnerMessages.ProtobufDefs.HostCommandReflection.Descriptor.MessageTypes[0]; }
+      get { return global::LPS.Server.Rpc.InnerMessages.HostCommandReflection.Descriptor.MessageTypes[0]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -98,10 +97,10 @@ namespace LPS.Server.Rpc.InnerMessages.ProtobufDefs {
 
     /// <summary>Field number for the "Type" field.</summary>
     public const int TypeFieldNumber = 1;
-    private global::LPS.Server.Rpc.InnerMessages.ProtobufDefs.HostCommandType type_ = global::LPS.Server.Rpc.InnerMessages.ProtobufDefs.HostCommandType.SyncServers;
+    private global::LPS.Server.Rpc.InnerMessages.HostCommandType type_ = global::LPS.Server.Rpc.InnerMessages.HostCommandType.SyncServers;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public global::LPS.Server.Rpc.InnerMessages.ProtobufDefs.HostCommandType Type {
+    public global::LPS.Server.Rpc.InnerMessages.HostCommandType Type {
       get { return type_; }
       set {
         type_ = value;
@@ -143,7 +142,7 @@ namespace LPS.Server.Rpc.InnerMessages.ProtobufDefs {
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override int GetHashCode() {
       int hash = 1;
-      if (Type != global::LPS.Server.Rpc.InnerMessages.ProtobufDefs.HostCommandType.SyncServers) hash ^= Type.GetHashCode();
+      if (Type != global::LPS.Server.Rpc.InnerMessages.HostCommandType.SyncServers) hash ^= Type.GetHashCode();
       hash ^= args_.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
@@ -163,7 +162,7 @@ namespace LPS.Server.Rpc.InnerMessages.ProtobufDefs {
     #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       output.WriteRawMessage(this);
     #else
-      if (Type != global::LPS.Server.Core.Rpc.InnerMessages.HostCommandType.SyncServers) {
+      if (Type != global::LPS.Server.Rpc.InnerMessages.HostCommandType.SyncServers) {
         output.WriteRawTag(8);
         output.WriteEnum((int) Type);
       }
@@ -178,7 +177,7 @@ namespace LPS.Server.Rpc.InnerMessages.ProtobufDefs {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
-      if (Type != global::LPS.Server.Rpc.InnerMessages.ProtobufDefs.HostCommandType.SyncServers) {
+      if (Type != global::LPS.Server.Rpc.InnerMessages.HostCommandType.SyncServers) {
         output.WriteRawTag(8);
         output.WriteEnum((int) Type);
       }
@@ -193,7 +192,7 @@ namespace LPS.Server.Rpc.InnerMessages.ProtobufDefs {
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public int CalculateSize() {
       int size = 0;
-      if (Type != global::LPS.Server.Rpc.InnerMessages.ProtobufDefs.HostCommandType.SyncServers) {
+      if (Type != global::LPS.Server.Rpc.InnerMessages.HostCommandType.SyncServers) {
         size += 1 + pb::CodedOutputStream.ComputeEnumSize((int) Type);
       }
       size += args_.CalculateSize(_repeated_args_codec);
@@ -209,7 +208,7 @@ namespace LPS.Server.Rpc.InnerMessages.ProtobufDefs {
       if (other == null) {
         return;
       }
-      if (other.Type != global::LPS.Server.Rpc.InnerMessages.ProtobufDefs.HostCommandType.SyncServers) {
+      if (other.Type != global::LPS.Server.Rpc.InnerMessages.HostCommandType.SyncServers) {
         Type = other.Type;
       }
       args_.Add(other.args_);
@@ -229,7 +228,7 @@ namespace LPS.Server.Rpc.InnerMessages.ProtobufDefs {
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
           case 8: {
-            Type = (global::LPS.Server.Core.Rpc.InnerMessages.HostCommandType) input.ReadEnum();
+            Type = (global::LPS.Server.Rpc.InnerMessages.HostCommandType) input.ReadEnum();
             break;
           }
           case 18: {
@@ -252,7 +251,7 @@ namespace LPS.Server.Rpc.InnerMessages.ProtobufDefs {
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
           case 8: {
-            Type = (global::LPS.Server.Rpc.InnerMessages.ProtobufDefs.HostCommandType) input.ReadEnum();
+            Type = (global::LPS.Server.Rpc.InnerMessages.HostCommandType) input.ReadEnum();
             break;
           }
           case 18: {

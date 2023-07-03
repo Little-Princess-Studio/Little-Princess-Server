@@ -16,7 +16,6 @@ using LPS.Common.Entity;
 using LPS.Common.Ipc;
 using LPS.Common.Rpc.Attribute;
 using LPS.Common.Rpc.InnerMessages;
-using LPS.Common.Rpc.InnerMessages.ProtobufDefs;
 using LPS.Common.Rpc.RpcProperty.RpcContainer;
 using Newtonsoft.Json;
 
@@ -141,7 +140,7 @@ public static class RpcHelper
     /// </summary>
     /// <param name="mb">Protobuf MailBox.</param>
     /// <returns>RPC MailBox.</returns>
-    public static MailBox PbMailBoxToRpcMailBox(InnerMessages.ProtobufDefs.MailBox mb) =>
+    public static MailBox PbMailBoxToRpcMailBox(InnerMessages.MailBox mb) =>
         new(mb.ID, mb.IP, (int)mb.Port, (int)mb.HostNum);
 
     /// <summary>
@@ -149,7 +148,7 @@ public static class RpcHelper
     /// </summary>
     /// <param name="mb">RPC MailBox.</param>
     /// <returns>Protobuf MailBox.</returns>
-    public static InnerMessages.ProtobufDefs.MailBox RpcMailBoxToPbMailBox(MailBox mb) => new()
+    public static InnerMessages.MailBox RpcMailBoxToPbMailBox(MailBox mb) => new()
     {
         ID = mb.Id,
         IP = mb.Ip,
@@ -291,7 +290,7 @@ public static class RpcHelper
         var msg = new ListArg();
         list.RawValue.ForEach(e => msg.PayLoad.Add(
             Google.Protobuf.WellKnownTypes.Any.Pack(new StringArg
-                { PayLoad = ((RpcPropertyContainer<string>)e).Value })));
+            { PayLoad = ((RpcPropertyContainer<string>)e).Value })));
 
         return msg;
     }
@@ -351,7 +350,7 @@ public static class RpcHelper
         var msg = new ListArg();
         list.RawValue.ForEach(e => msg.PayLoad.Add(
             Google.Protobuf.WellKnownTypes.Any.Pack(new MailBoxArg()
-                { PayLoad = RpcMailBoxToPbMailBox((RpcPropertyContainer<MailBox>)e) })));
+            { PayLoad = RpcMailBoxToPbMailBox((RpcPropertyContainer<MailBox>)e) })));
 
         return msg;
     }
@@ -535,55 +534,7 @@ public static class RpcHelper
                     .Select(method => method)
                     .ToDictionary(method => method.Name);
 
-                var rpcArgValidation = rpcMethods.Values.All(
-                    methodInfo =>
-                    {
-                        var argTypes = methodInfo.GetGenericArguments();
-                        var valid = ValidateArgs(argTypes);
-
-                        if (!valid)
-                        {
-                            Logger.Warn($@"Args type invalid: invalid rpc method declaration: 
-                                                            {methodInfo.ReturnType.Name} {methodInfo.Name}
-                                                            ({string.Join(',', argTypes.Select(t => t.Name))})");
-                        }
-
-                        var returnType = methodInfo.ReturnType;
-
-                        if (returnType == typeof(void)
-                            || returnType == typeof(Task)
-                            || returnType == typeof(ValueTask))
-                        {
-                            valid = true;
-                        }
-                        else if (returnType.IsGenericType &&
-                                 (returnType.GetGenericTypeDefinition() == typeof(Task<>)
-                                  || returnType.GetGenericTypeDefinition() == typeof(ValueTask<>)))
-                        {
-                            var taskReturnType = returnType.GetGenericArguments()[0];
-                            valid = ValidateRpcType(taskReturnType);
-                        }
-                        else
-                        {
-                            if (methodInfo.Name != "OnResult")
-                            {
-                                valid = ValidateRpcType(returnType);
-                            }
-                            else
-                            {
-                                Logger.Debug("BaseEntity::OnResult will not be checked");
-                            }
-                        }
-
-                        if (!valid)
-                        {
-                            Logger.Warn("Return type invalid: rpc method declaration:" +
-                                        $"{methodInfo.ReturnType.Name} {methodInfo.Name}" +
-                                        $"$({string.Join(',', argTypes.Select(t => t.Name))})");
-                        }
-
-                        return valid;
-                    });
+                var rpcArgValidation = rpcMethods.Values.All(m => ValidateMethodSignature(m, 0));
 
                 if (!rpcArgValidation)
                 {
@@ -599,6 +550,61 @@ public static class RpcHelper
                     RpcMethodInfo[type] = rpcMethods;
                 }
             });
+    }
+
+    /// <summary>
+    /// Validates the signature of an RPC method.
+    /// </summary>
+    /// <param name="methodInfo">The <see cref="MethodInfo"/> object representing the RPC method.</param>
+    /// <param name="startArgIdx">Starting index in the parameter list to check the parameter.</param>
+    /// <returns><c>true</c> if the signature is valid; otherwise, <c>false</c>.</returns>
+    public static bool ValidateMethodSignature(MethodInfo methodInfo, int startArgIdx)
+    {
+        var argTypes = methodInfo.GetGenericArguments();
+        var valid = ValidateArgs(argTypes[startArgIdx..]);
+
+        if (!valid)
+        {
+            Logger.Warn($@"Args type invalid: invalid rpc method declaration: 
+                                                            {methodInfo.ReturnType.Name} {methodInfo.Name}
+                                                            ({string.Join(',', argTypes.Select(t => t.Name))})");
+        }
+
+        var returnType = methodInfo.ReturnType;
+
+        if (returnType == typeof(void)
+            || returnType == typeof(Task)
+            || returnType == typeof(ValueTask))
+        {
+            valid = true;
+        }
+        else if (returnType.IsGenericType &&
+                 (returnType.GetGenericTypeDefinition() == typeof(Task<>)
+                  || returnType.GetGenericTypeDefinition() == typeof(ValueTask<>)))
+        {
+            var taskReturnType = returnType.GetGenericArguments()[0];
+            valid = ValidateRpcType(taskReturnType);
+        }
+        else
+        {
+            if (methodInfo.Name != "OnResult")
+            {
+                valid = ValidateRpcType(returnType);
+            }
+            else
+            {
+                Logger.Debug("BaseEntity::OnResult will not be checked");
+            }
+        }
+
+        if (!valid)
+        {
+            Logger.Warn("Return type invalid: rpc method declaration:" +
+                        $"{methodInfo.ReturnType.Name} {methodInfo.Name}" +
+                        $"$({string.Join(',', argTypes.Select(t => t.Name))})");
+        }
+
+        return valid;
     }
 
     // public static RpcPropertyContainer ProtoBufAnyToRpcPropertyContainer<T>(
@@ -699,7 +705,7 @@ public static class RpcHelper
             string s => new StringArg { PayLoad = s },
             MailBox m => new MailBoxArg { PayLoad = RpcMailBoxToPbMailBox(m) },
             _ when type.IsDefined(typeof(RpcJsonTypeAttribute)) => new JsonArg
-                { PayLoad = JsonConvert.SerializeObject(obj) },
+            { PayLoad = JsonConvert.SerializeObject(obj) },
             _ when type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Dictionary<,>) =>
                 RpcDictArgToProtoBuf(obj),
             _ when type.IsGenericType && type.GetGenericTypeDefinition() == typeof(List<>) =>
@@ -1068,7 +1074,7 @@ public static class RpcHelper
     private static void SendValueTaskResult(
         BaseEntity entity,
         EntityRpc entityRpc,
-        InnerMessages.ProtobufDefs.MailBox senderMailBox,
+        InnerMessages.MailBox senderMailBox,
         RpcType sendRpcType,
         in object res)
     {
@@ -1166,7 +1172,7 @@ public static class RpcHelper
     private static void SendTaskResult(
         BaseEntity entity,
         EntityRpc entityRpc,
-        InnerMessages.ProtobufDefs.MailBox senderMailBox,
+        InnerMessages.MailBox senderMailBox,
         RpcType sendRpcType,
         in object res)
     {
