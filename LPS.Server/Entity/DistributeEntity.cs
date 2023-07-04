@@ -8,6 +8,7 @@ namespace LPS.Server.Entity;
 
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 using System.Threading.Tasks;
 using Google.Protobuf.WellKnownTypes;
 using LPS.Common.Debug;
@@ -16,6 +17,9 @@ using LPS.Common.Rpc.Attribute;
 using LPS.Common.Rpc.InnerMessages;
 using LPS.Common.Rpc.RpcProperty;
 using LPS.Common.Rpc.RpcPropertySync.RpcPropertySyncMessage;
+using LPS.Server.Database;
+using LPS.Server.Database.Storage;
+using Newtonsoft.Json.Linq;
 using MailBox = LPS.Common.Rpc.MailBox;
 
 /// <summary>
@@ -147,7 +151,7 @@ public abstract class DistributeEntity : BaseEntity, ISendPropertySyncMessage
 
             Logger.Info("[Migrate] step 3.");
 
-            this.OnMigratedOut(targetMailBox, migrateInfo, extraInfo);
+            await this.OnMigratedOut(targetMailBox, migrateInfo, extraInfo);
 
             // destroy self
             this.Cell.OnEntityLeave(this);
@@ -171,25 +175,25 @@ public abstract class DistributeEntity : BaseEntity, ISendPropertySyncMessage
     /// <param name="extraInfo">Extra migrate info.</param>
     /// <returns>If the migration success.</returns>
     [RpcMethod(authority: Authority.ServerOnly)]
-    public Task<bool> RequireMigrate(MailBox originMailBox, string migrateInfo, Dictionary<string, string>? extraInfo)
+    public async Task<bool> RequireMigrate(MailBox originMailBox, string migrateInfo, Dictionary<string, string>? extraInfo)
     {
         Logger.Info("[Migrate] step 2.");
         this.IsFrozen = true;
         try
         {
-            this.OnMigratedIn(originMailBox, migrateInfo, extraInfo);
+            await this.OnMigratedIn(originMailBox, migrateInfo, extraInfo);
         }
         catch (Exception e)
         {
             Logger.Error(e, "Failed to migrate in");
-            return Task.FromResult(false);
+            return false;
         }
         finally
         {
             this.IsFrozen = false;
         }
 
-        return Task.FromResult(true);
+        return true;
     }
 
     /// <summary>
@@ -261,13 +265,50 @@ public abstract class DistributeEntity : BaseEntity, ISendPropertySyncMessage
     }
 
     /// <summary>
+    /// Loads the entity data from the database. For customizing loading, overwrite <see cref="LoadFromDatabase"/> to customize the loading behavior.
+    /// </summary>
+    /// <param name="queryInfo">The query information to query entity data from database, default is the query condition { keyName: keyValue }to find the data.</param>
+    /// <returns>A task that represents the asynchronous operation.</returns>
+    protected async Task LinkToDatabase(Dictionary<string, string> queryInfo)
+    {
+        var collName = this.GetType().GetCustomAttribute<EntityClassAttribute>()?.Name;
+        if (string.IsNullOrEmpty(collName))
+        {
+            var e = new Exception("No corresponding collection name found on entity class.");
+            Logger.Error(e);
+            throw e;
+        }
+
+        await this.LoadFromDatabase(collName, queryInfo);
+    }
+
+    /// <summary>
+    /// Loads the entity data from the database. Override this method to customize the loading behavior.
+    /// </summary>
+    /// <param name="collectionName">The name of the collection to query entity data from database.</param>
+    /// <param name="queryInfo">The query information to find the data, default is the key to find the data.</param>
+    /// <returns>A task that represents the asynchronous operation.</returns>
+    protected virtual async Task LoadFromDatabase(string collectionName, Dictionary<string, string> queryInfo)
+    {
+        var entityData = await DbHelper.CallDbInnerApi(
+            "LoadEntity",
+            Any.Pack(new StringArg() { PayLoad = collectionName }),
+            Any.Pack(new StringArg() { PayLoad = queryInfo["key"] }),
+            Any.Pack(new StringArg() { PayLoad = queryInfo["value"] }));
+
+        // todo: convert entityData to property tree.
+    }
+
+    /// <summary>
     /// Callback when migrated in.
     /// </summary>
     /// <param name="originMailBox">Original entity who wants to migrate into this entity.</param>
     /// <param name="migrateInfo">Migrate info.</param>
     /// <param name="extraInfo">Extra migrate info.</param>
-    protected virtual void OnMigratedIn(MailBox originMailBox, string migrateInfo, Dictionary<string, string>? extraInfo)
+    /// <returns>A task that represents the asynchronous operation.</returns>
+    protected virtual Task OnMigratedIn(MailBox originMailBox, string migrateInfo, Dictionary<string, string>? extraInfo)
     {
+        return Task.CompletedTask;
     }
 
     /// <summary>
@@ -276,7 +317,9 @@ public abstract class DistributeEntity : BaseEntity, ISendPropertySyncMessage
     /// <param name="targetMailBox">Mailbox of target entity to migrate in.</param>
     /// <param name="migrateInfo">Migrate info.</param>
     /// <param name="extraInfo">Extra migrate info.</param>
-    protected virtual void OnMigratedOut(MailBox targetMailBox, string migrateInfo, Dictionary<string, string>? extraInfo)
+    /// <returns>A task that represents the asynchronous operation.</returns>
+    protected virtual Task OnMigratedOut(MailBox targetMailBox, string migrateInfo, Dictionary<string, string>? extraInfo)
     {
+        return Task.CompletedTask;
     }
 }

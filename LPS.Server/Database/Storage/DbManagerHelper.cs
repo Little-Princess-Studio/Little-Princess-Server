@@ -11,9 +11,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
+using Google.Protobuf.Collections;
 using Google.Protobuf.WellKnownTypes;
 using LPS.Common.Debug;
 using LPS.Common.Rpc;
+using LPS.Common.Rpc.InnerMessages;
 using LPS.Server.Database.Storage;
 using LPS.Server.Database.Storage.Attribute;
 using Newtonsoft.Json.Linq;
@@ -24,6 +26,7 @@ using Newtonsoft.Json.Linq;
 public static class DbManagerHelper
 {
     private static readonly Dictionary<string, MethodInfo> DatabaseApiStore = new();
+    private static readonly Dictionary<string, MethodInfo> DatabaseInnerApiStore = new();
     private static IDatabase currentDatabase = default!;
     private static string connectString = default!;
 
@@ -102,6 +105,62 @@ public static class DbManagerHelper
     }
 
     /// <summary>
+    /// Scans the specified namespace for types that have the <see cref="DbInnerApiProviderAttribute"/> attribute and registers them in the <see cref="DatabaseInnerApiStore"/>.
+    /// </summary>
+    /// <param name="namespace">The namespace to scan.</param>
+    public static void ScanInnerDbApis(string @namespace)
+    {
+        // scan all the types inside the namespace and has attribute of DbApiProvider
+        var typesEntry = Assembly.GetEntryAssembly()!.GetTypes()
+            .Where(
+                type => type.IsClass
+                        && type.Namespace == @namespace
+                        && type.GetCustomAttribute<DbInnerApiProviderAttribute>()?.DbType == currentDatabase.GetType());
+
+        var types = Assembly.GetCallingAssembly().GetTypes()
+            .Where(
+                type => type.IsClass
+                        && type.Namespace == @namespace
+                        && type.GetCustomAttribute<DbInnerApiProviderAttribute>()?.DbType == currentDatabase.GetType())
+            .Concat(typesEntry)
+            .Distinct()
+            .ToList();
+
+        if (types == null)
+        {
+            Logger.Warn("No database api provider found.");
+            return;
+        }
+
+        if (types.Count > 1)
+        {
+            Logger.Warn($"Multiple database api provider found, only use the first found one: {types.First().Name}");
+        }
+
+        var provider = types.First()!;
+
+        var methods = provider.GetMethods()
+            .Where(method => method.GetCustomAttribute<DbInnerApiAttribute>() != null);
+
+        var validated = methods.All(ValidateInnerApiSignature) && methods.All(ValidateFirstArg);
+
+        if (!validated)
+        {
+            var e = new Exception(@namespace + " contains invalid database api provider.");
+            Logger.Error(e);
+            throw e;
+        }
+
+        methods.ToList().ForEach(method =>
+        {
+            Logger.Info($"Database inner api provider found: {method.Name}");
+            DatabaseInnerApiStore.Add(method.Name, method);
+        });
+
+        Logger.Info("Database inner api provider loaded.");
+    }
+
+    /// <summary>
     /// Calls the specified database API method with the given arguments.
     /// </summary>
     /// <param name="apiName">The name of the database API method to call.</param>
@@ -138,6 +197,34 @@ public static class DbManagerHelper
         {
             Logger.Error(ex);
             return Task.FromResult<object?>(null);
+        }
+    }
+
+    /// <summary>
+    /// Calls the specified inner database API method with the given arguments.
+    /// </summary>
+    /// <param name="innerApiName">The name of the inner database API method to call.</param>
+    /// <param name="args">The arguments to pass to the inner database API method.</param>
+    /// <returns>The result of the inner database API method call.</returns>
+    public static Task<Any> CallInnerDbApi(string innerApiName, Any[] args)
+    {
+        if (!DatabaseApiStore.TryGetValue(innerApiName, out var method))
+        {
+            Logger.Warn($"Database API method not found: {innerApiName}");
+            return Task.FromResult<Any>(Any.Pack(new NullArg()));
+        }
+
+        var arguments = new object[2] { currentDatabase, args };
+
+        try
+        {
+            var callRes = method.Invoke(null, arguments)!;
+            return (callRes as Task<Any>)!;
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex);
+            return Task.FromResult<Any>(Any.Pack(new NullArg()));
         }
     }
 
@@ -204,7 +291,7 @@ public static class DbManagerHelper
                     return HandleTask(task);
                 case Task<bool> task:
                     return HandleTask(task);
-                case Task<MailBox> task:
+                case Task<Common.Rpc.MailBox> task:
                     return HandleTask(task);
                 case ValueTask<int> task:
                     return HandleValueTask(task);
@@ -214,7 +301,7 @@ public static class DbManagerHelper
                     return HandleValueTask(task);
                 case ValueTask<bool> task:
                     return HandleValueTask(task);
-                case ValueTask<MailBox> task:
+                case ValueTask<Common.Rpc.MailBox> task:
                     return HandleValueTask(task);
                 default:
                     {
@@ -256,6 +343,32 @@ public static class DbManagerHelper
         {
             var e = new Exception($"Database api provider's first parameter type mismatch. {first} for {currentDatabase.GetType()}.");
             Logger.Error(e);
+            return false;
+        }
+
+        return true;
+    }
+
+    private static bool ValidateInnerApiSignature(MethodInfo method)
+    {
+        var args = method.GetParameters();
+        if (args.Length != 2)
+        {
+            Logger.Warn($"Invalid method parameter list of {method.Name}");
+            return false;
+        }
+
+        if (args[0].ParameterType != currentDatabase.GetType() || args[1].ParameterType != typeof(Any[]))
+        {
+            Logger.Warn($"Invalid method parameter list of {method.Name}");
+            return false;
+        }
+
+        var returnType = method.ReturnType;
+
+        if (returnType != typeof(Task<Any>))
+        {
+            Logger.Warn($"Return type of {method.Name} must be Task<Any>.");
             return false;
         }
 

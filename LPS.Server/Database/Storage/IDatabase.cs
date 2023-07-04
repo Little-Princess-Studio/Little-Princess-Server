@@ -8,6 +8,7 @@ namespace LPS.Server.Database.Storage;
 
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Google.Protobuf.WellKnownTypes;
 using MongoDB.Driver;
 
 /// <summary>
@@ -15,6 +16,11 @@ using MongoDB.Driver;
 /// </summary>
 public interface IDatabase
 {
+    /// <summary>
+    /// Gets the name of the default database.
+    /// </summary>
+    string DefaultDatabaseName { get; }
+
     /// <summary>
     /// Initializes the database with the specified connection string.
     /// </summary>
@@ -27,4 +33,13 @@ public interface IDatabase
     /// </summary>
     /// <returns>A task that represents the asynchronous shutdown operation.</returns>
     Task<bool> ShutDown();
+
+    /// <summary>
+    /// Loads an entity from the specified collection with the specified key-value pair.
+    /// </summary>
+    /// <param name="collectionName">The name of the collection to load the entity from.</param>
+    /// <param name="keyName">The name of the key to search for.</param>
+    /// <param name="value">The value of the key to search for.</param>
+    /// <returns>A task that represents the asynchronous load operation. The task result contains the loaded entity.</returns>
+    Task<Any> LoadEntity(string collectionName, string keyName, string value);
 }

@@ -92,18 +92,19 @@ public class Untrusted : ServerClientEntity
     public async Task<bool> LogIn(string name, string password)
     {
         Logger.Debug($"[LogIn] {name} {password}");
-        if (!await this.CheckPassword(name, password))
+        var (success, accountId) = await this.CheckPassword(name, password);
+        if (!success)
         {
             Logger.Warn("Failed to login");
             return false;
         }
 
-        Logger.Debug("[LogIn] Wait for creating Player entity anywhere.");
+        Logger.Debug($"[LogIn] Wait for creating Player entity anywhere by account id {accountId}.");
         var mailbox =
             await RpcServerHelper.CreateServerClientEntityAnywhere(nameof(Player), string.Empty, this);
 
         Logger.Debug($"[LogIn] Player entity created, mailbox {mailbox}.");
-        var res = await this.MigrateTo(mailbox, string.Empty, nameof(Player));
+        var res = await this.MigrateTo(mailbox, accountId, nameof(Player));
         return res;
     }
 
@@ -113,24 +114,18 @@ public class Untrusted : ServerClientEntity
     /// <param name="name">User name.</param>
     /// <param name="password">Password.</param>
     /// <returns>Async value task of the check result.</returns>
-    public async Task<bool> CheckPassword(string name, string password)
+    public async Task<(bool Success, string AccountId)> CheckPassword(string name, string password)
     {
-        var res = await DbHelper.CallDbApi<string>(nameof(DbApi.DbApi.QueryAccountByUserName), name);
+        var res = await DbHelper.CallDbApi<(string Password, string AccountId)>(nameof(DbApi.DbApi.QueryAccountByUserName), name);
 
-        if (res == null)
-        {
-            Logger.Warn($"[LogIn][CheckPassword] No account found for {name}");
-            return false;
-        }
-
-        if (res != password)
+        if (res.Password != password)
         {
             Logger.Warn($"[LogIn][CheckPassword] Password not match for {name}");
-            return false;
+            return (false, string.Empty);
         }
 
         Logger.Info($"[LogIn][CheckPassword] Login success. {res}");
 
-        return true;
+        return (true, res.AccountId);
     }
 }

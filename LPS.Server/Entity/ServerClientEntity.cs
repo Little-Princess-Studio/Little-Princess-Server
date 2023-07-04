@@ -131,12 +131,13 @@ public class ServerClientEntity : DistributeEntity
     }
 
     /// <inheritdoc/>
-    protected override void OnMigratedOut(
+    protected override Task OnMigratedOut(
         MailBox targetMailBox,
         string migrateInfo,
         Dictionary<string, string>? extraInfo)
     {
         this.Client.Notify("OnMigrated", targetMailBox, string.Empty, extraInfo!["targetEntityClassName"]);
+        return Task.CompletedTask;
     }
 
     /// <summary>

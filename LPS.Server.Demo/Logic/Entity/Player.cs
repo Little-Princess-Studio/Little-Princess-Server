@@ -8,6 +8,7 @@ namespace LPS.Server.Demo.Logic.Entity;
 
 using Common.Debug;
 using Common.Rpc.Attribute;
+using LPS.Common.Rpc;
 using LPS.Common.Rpc.RpcProperty;
 using LPS.Server.Entity;
 using LPS.Server.Rpc.RpcProperty;
@@ -15,7 +16,7 @@ using LPS.Server.Rpc.RpcProperty;
 /// <summary>
 /// Player is the real entity between server and client after login process.
 /// </summary>
-[EntityClass]
+[EntityClass(IsDatabaseEntity = true)]
 public class Player : ServerClientEntity
 {
     /// <summary>
@@ -51,5 +52,15 @@ public class Player : ServerClientEntity
     {
         Logger.Info($"[Player] Ping: {content}");
         return Task.FromResult("Res: " + content);
+    }
+
+    /// <inheritdoc/>
+    protected override async Task OnMigratedIn(MailBox originMailBox, string migrateInfo, Dictionary<string, string>? extraInfo)
+    {
+        await base.OnMigratedIn(originMailBox, migrateInfo, extraInfo);
+        Logger.Info($"Player migrated in with account id {migrateInfo}");
+
+        // initialize entity
+        await this.LinkToDatabase(new Dictionary<string, string> { ["key"] = "accountId", ["value"] = migrateInfo });
     }
 }

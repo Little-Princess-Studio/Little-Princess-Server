@@ -200,11 +200,25 @@ public static class Consts
     public static string GenerateDbClientMessagePackageToDbMgr(string name) => $"dbClientMessagePackage.{name}.dbClientToDbMgr";
 
     /// <summary>
+    /// Generates database client inner message package routing key to database manager.
+    /// </summary>
+    /// <param name="name">Instance name.</param>
+    /// <returns>Routing key.</returns>
+    public static string GenerateDbClientInnerMessagePackageToDbMgr(string name) => $"dbClientInnerMessagePackage.{name}.dbClientToDbMgr";
+
+    /// <summary>
     /// Generates database manager message package routing key to database client.
     /// </summary>
     /// <param name="name">Instance name.</param>
     /// <returns>Routing key.</returns>
     public static string GenerateDbMgrMessagePackageToDbClient(string name) => $"dbMgrMessagePackage.{name}.dbMgrToDbClient";
+
+    /// <summary>
+    /// Generates database manager message inner package routing key to database client.
+    /// </summary>
+    /// <param name="name">Instance name.</param>
+    /// <returns>Routing key.</returns>
+    public static string GenerateDbMgrMessageInnerPackageToDbClient(string name) => $"dbMgrInnerMessagePackage.{name}.dbMgrToDbClient";
 
     /// <summary>
     /// Routing keys of server to host manaer.

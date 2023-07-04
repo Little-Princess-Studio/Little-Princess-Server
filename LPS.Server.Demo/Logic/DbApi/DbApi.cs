@@ -25,21 +25,23 @@ public static class DbApi
     /// <param name="userName">The username to search for.</param>
     /// <returns>An <see cref="IDbDataSet"/> object representing the account data, or null if no account was found.</returns>
     [DbApi]
-    public static async Task<string> QueryAccountByUserName(MongoDbWrapper database, string userName)
+    public static async Task<(string Password, string AccountId)> QueryAccountByUserName(MongoDbWrapper database, string userName)
     {
         var filter = Builders<BsonDocument>.Filter.Eq("username", userName);
-        var coll = database.GetCollection("demo", "account");
+        var coll = database.GetCollectionFromDefaultDb("account");
         var res = await coll.FindAsync(filter);
         var resColl = await res.ToListAsync();
 
         if (!resColl.Any())
         {
-            return string.Empty;
+            return (string.Empty, string.Empty);
         }
         else
         {
-            var password = resColl.First()["password"].AsString;
-            return password;
+            var account = resColl.First();
+            var password = account["password"].AsString;
+            var accountId = account["_id"].AsObjectId.ToString();
+            return (password, accountId);
         }
     }
 }

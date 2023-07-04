@@ -13,16 +13,18 @@ namespace LPS.Common.Rpc.Attribute;
 public class EntityClassAttribute : System.Attribute
 {
     /// <summary>
-    /// Name of the entity class.
+    /// Gets or sets name of the entity class.
     /// </summary>
-    public readonly string Name;
+    public string Name { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Gets or sets a value indicating whether instances of the entity class should be saved to the database.
+    /// </summary>
+    public bool IsDatabaseEntity { get; set; } = false;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="EntityClassAttribute"/> class.
     /// </summary>
     /// <param name="name">Name of the entity class.</param>
-    public EntityClassAttribute(string name = "")
-    {
-        this.Name = name;
-    }
+    /// <param name="isDatabaseEntity">Indicates whether instances of the entity class should be automatically saved/load from the database.</param>
 }

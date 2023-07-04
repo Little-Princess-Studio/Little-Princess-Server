@@ -33,7 +33,7 @@ public class ShadowEntity : BaseEntity
             {
                 if (this.PropertyTree!.ContainsKey(key))
                 {
-                    var prop = this.PropertyTree[key];
+                    RpcProperty? prop = this.PropertyTree[key];
                     prop.FromProtobuf(value);
                 }
                 else

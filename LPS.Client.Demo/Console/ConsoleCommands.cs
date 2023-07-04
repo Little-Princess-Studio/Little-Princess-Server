@@ -79,13 +79,24 @@ public static class ConsoleCommands
     /// <summary>
     /// Do local property check.
     /// </summary>
-    [ConsoleCommand("local.check_property")]
-    public static void CheckProperty()
+    [ConsoleCommand("local.check_untrusted_property")]
+    public static void CheckUntrustedProperty()
     {
         var untrusted = ClientGlobal.ShadowClientEntity as Untrusted;
         var list = untrusted!.TestRpcProp.Val;
         Logger.Debug($"TestRpcProp: {string.Join(',', list)}");
         Logger.Debug($"TestRpcPlaintPropStr: {untrusted?.TestRpcPlaintPropStr.Val}");
+    }
+
+    /// <summary>
+    /// Do local property check.
+    /// </summary>
+    [ConsoleCommand("local.check_player_property")]
+    public static void CheckPlayerProperty()
+    {
+        var player = (ClientGlobal.ShadowClientEntity as Player) !;
+        Logger.Debug($"Name: {player.Name.Val}");
+        Logger.Debug($"Id: {player.Id.Val}");
     }
 
     /// <summary>
@@ -138,8 +149,8 @@ public static class ConsoleCommands
     [ConsoleCommand("send.login")]
     public static async void LogIn()
     {
-        var result = await (ClientGlobal.ShadowClientEntity as Untrusted) !.Login();
-        Logger.Debug($"Login result {result}");
+        await (ClientGlobal.ShadowClientEntity as Untrusted) !.Login();
+        Logger.Debug($"Start login...");
     }
 
     /// <summary>

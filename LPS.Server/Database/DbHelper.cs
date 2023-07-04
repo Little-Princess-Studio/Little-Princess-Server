@@ -8,7 +8,10 @@ namespace LPS.Server.Database;
 
 using System;
 using System.Globalization;
+using System.Linq;
 using System.Threading.Tasks;
+using Google.Protobuf.Collections;
+using Google.Protobuf.WellKnownTypes;
 using LPS.Common.Debug;
 using LPS.Server.Database.GlobalCache;
 using LPS.Server.Database.Storage;
@@ -111,6 +114,24 @@ public static class DbHelper
         }
 
         return databaseClient.CallDbApi<T?>(apiName, args);
+    }
+
+    /// <summary>
+    /// Invokes an inner database API with the specified name and arguments.
+    /// </summary>
+    /// <param name="innerApiName">The name of the inner API to invoke.</param>
+    /// <param name="args">The arguments to pass to the inner API.</param>
+    /// <returns>A task that represents the asynchronous operation. The task result contains the response from the inner API as an <see cref="Any"/>.</returns>
+    public static Task<Any> CallDbInnerApi(string innerApiName, params Any[] args)
+    {
+        if (databaseClient is null)
+        {
+            var e = new InvalidOperationException("Database is not initialized.");
+            Logger.Error(e);
+            throw e;
+        }
+
+        return databaseClient.CallDbInnerApi(innerApiName, params args);
     }
 
     /// <summary>

@@ -91,8 +91,9 @@ public class DbManager : IInstance
             }
 
             Logger.Info("[DbManager] Init mongodb with connection string: ", connString);
-            DbManagerHelper.SetDatabase(new MongoDbWrapper(), connString);
+            DbManagerHelper.SetDatabase(new MongoDbWrapper(databaseInfo.DbConfig.DefaultDb), connString);
             DbManagerHelper.ScanDbApis(databaseApiProviderNamespace);
+            DbManagerHelper.ScanInnerDbApis("LPS.Server.Database.Storage.MongoDb");
         }
         else
         {
@@ -152,7 +153,10 @@ public class DbManager : IInstance
         switch (msgType)
         {
             case "dbClientMessagePackage":
-                _ = this.HandleMsgPackage(msg, targetIdentifier);
+                _ = this.HandleDbApiPackage(msg, targetIdentifier);
+                break;
+            case "dbClientInnerMessagePackage":
+                _ = this.HandleDbInnerApiPackage(msg, targetIdentifier);
                 break;
             default:
                 Logger.Warn($"Unknown message type: {msgType}");
@@ -160,7 +164,7 @@ public class DbManager : IInstance
         }
     }
 
-    private async Task HandleMsgPackage(ReadOnlyMemory<byte> msg, string targetIdentifier)
+    private async Task HandleDbApiPackage(ReadOnlyMemory<byte> msg, string targetIdentifier)
     {
         try
         {
@@ -183,6 +187,36 @@ public class DbManager : IInstance
                 rpcRes.ToByteArray(),
                 Consts.DbMgrToDbClientExchangeName,
                 Consts.GenerateDbMgrMessagePackageToDbClient(targetIdentifier));
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "HandleMsgPackage error.");
+        }
+    }
+
+    private async Task HandleDbInnerApiPackage(ReadOnlyMemory<byte> msg, string targetIdentifier)
+    {
+        try
+        {
+            var resMsg = new MessageParser<DatabaseManagerInnerRpc>(() => new DatabaseManagerInnerRpc());
+            var databaseRpcRes = resMsg.ParseFrom(msg.ToArray());
+
+            var id = databaseRpcRes.RpcId;
+            var name = databaseRpcRes.InnerApiName;
+            var args = databaseRpcRes.Args.ToArray();
+
+            var res = await DbManagerHelper.CallInnerDbApi(name, args);
+
+            var rpcRes = new DatabaseManagerRpcRes
+            {
+                RpcId = id,
+                Res = res,
+            };
+
+            this.messageQueueClientToHostMgr.Publish(
+                rpcRes.ToByteArray(),
+                Consts.DbMgrToDbClientExchangeName,
+                Consts.GenerateDbMgrMessageInnerPackageToDbClient(targetIdentifier));
         }
         catch (Exception ex)
         {

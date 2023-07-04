@@ -11,6 +11,8 @@ using System.IO;
 using System.Text;
 using System.Threading.Tasks;
 using Google.Protobuf;
+using Google.Protobuf.Collections;
+using Google.Protobuf.WellKnownTypes;
 using LPS.Common.Debug;
 using LPS.Common.Entity;
 using LPS.Common.Ipc;
@@ -27,7 +29,8 @@ public class DbClient
 {
     private readonly MessageQueueClient msgQueueClient;
     private readonly string identifier;
-    private readonly AsyncTaskGenerator<object?, Type> asyncTaskGenerator = new();
+    private readonly AsyncTaskGenerator<object?, System.Type> asyncTaskGeneratorForDbApi = new();
+    private readonly AsyncTaskGenerator<Any> asyncTaskGeneratorForDbInnerApi = new();
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DbClient"/> class.
@@ -71,10 +74,10 @@ public class DbClient
     /// <returns>A task that represents the asynchronous operation. The task result contains the response from the API as a <see cref="JObject"/>.</returns>
     public async Task<T> CallDbApi<T>(string apiName, params object[]? args)
     {
-        var (task, id) = this.asyncTaskGenerator.GenerateAsyncTask(
+        var (task, id) = this.asyncTaskGeneratorForDbApi.GenerateAsyncTask(
             typeof(T), 5000, (id) =>
         {
-            this.asyncTaskGenerator.ResolveAsyncTask(id, null);
+            this.asyncTaskGeneratorForDbApi.ResolveAsyncTask(id, null);
             return new RpcTimeOutException($"DbApi {apiName} timeout.");
         });
 
@@ -88,7 +91,7 @@ public class DbClient
         {
             foreach (var arg in args)
             {
-                dbrpc.Args.Add(Google.Protobuf.WellKnownTypes.Any.Pack(RpcHelper.RpcArgToProtoBuf(arg)));
+                dbrpc.Args.Add(Any.Pack(RpcHelper.RpcArgToProtoBuf(arg)));
             }
         }
 
@@ -101,27 +104,87 @@ public class DbClient
         return (T)res!;
     }
 
+    /// <summary>
+    /// Invokes an inner database API with the specified name and arguments.
+    /// </summary>
+    /// <param name="innerApiName">The name of the inner API to invoke.</param>
+    /// <param name="args">The arguments to pass to the inner API. Every arg should be able to serialized by Google.Protobuf.Any.</param>
+    /// <returns>A task that represents the asynchronous operation. The task result contains the response from the API as a <see cref="Google.Protobuf.WellKnownTypes.Any"/>.</returns>
+    public async Task<Any> CallDbInnerApi(string innerApiName, Any[] args)
+    {
+        var (task, id) = this.asyncTaskGeneratorForDbInnerApi.GenerateAsyncTask(5000, (id) =>
+        {
+            this.asyncTaskGeneratorForDbApi.ResolveAsyncTask(asyncId: id, null);
+            return new RpcTimeOutException($"DbApi {innerApiName} timeout.");
+        });
+
+        var dbrpc = new DatabaseManagerInnerRpc()
+        {
+            InnerApiName = innerApiName,
+            RpcId = id,
+        };
+        dbrpc.Args.Add(args);
+
+        this.msgQueueClient.Publish(
+            dbrpc.ToByteArray(),
+            Consts.DbClientToDbMgrExchangeName,
+            Consts.GenerateDbClientInnerMessagePackageToDbMgr(this.identifier));
+
+        var res = await task;
+        return res;
+    }
+
     private void HandleDbMgrMqMessage(ReadOnlyMemory<byte> msg, string routingKey)
     {
-        if (routingKey != Consts.GenerateDbMgrMessagePackageToDbClient(this.identifier))
+        if (routingKey == Consts.GenerateDbMgrMessagePackageToDbClient(this.identifier))
         {
-            return;
+            this.HandleDbApiRes(msg);
         }
+        else if (routingKey == Consts.GenerateDbMgrMessageInnerPackageToDbClient(this.identifier))
+        {
+            this.HandleDbInnerApiRes(msg);
+        }
+    }
 
+    private void HandleDbApiRes(ReadOnlyMemory<byte> msg)
+    {
         try
         {
+            // todo: cache MessageParser
             var res = new MessageParser<DatabaseManagerRpcRes>(() => new DatabaseManagerRpcRes());
             var databaseRpcRes = res.ParseFrom(msg.ToArray());
 
             var id = databaseRpcRes.RpcId;
 
-            if (this.asyncTaskGenerator.ContainsAsyncId(id))
+            if (this.asyncTaskGeneratorForDbApi.ContainsAsyncId(id))
             {
-                var returnType = this.asyncTaskGenerator.GetDataByAsyncTaskId(id);
+                var returnType = this.asyncTaskGeneratorForDbApi.GetDataByAsyncTaskId(id);
                 var result = databaseRpcRes.Res;
 
                 var parsed = RpcHelper.ProtoBufAnyToRpcArg(result, returnType);
-                this.asyncTaskGenerator.ResolveAsyncTask((uint)id, parsed);
+                this.asyncTaskGeneratorForDbApi.ResolveAsyncTask((uint)id, parsed);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "HandleDbMgrMqMessage error.");
+        }
+    }
+
+    private void HandleDbInnerApiRes(ReadOnlyMemory<byte> msg)
+    {
+        try
+        {
+            // todo: cache MessageParser
+            var res = new MessageParser<DatabaseManagerInnerRpcRes>(() => new DatabaseManagerInnerRpcRes());
+            var databaseRpcRes = res.ParseFrom(msg.ToArray());
+
+            var id = databaseRpcRes.RpcId;
+
+            if (this.asyncTaskGeneratorForDbInnerApi.ContainsAsyncId(id))
+            {
+                var result = databaseRpcRes.Res;
+                this.asyncTaskGeneratorForDbInnerApi.ResolveAsyncTask((uint)id, result);
             }
         }
         catch (Exception ex)

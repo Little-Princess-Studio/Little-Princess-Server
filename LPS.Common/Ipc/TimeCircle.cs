@@ -99,7 +99,7 @@ public class TimeCircle
         var targetEndTime = (uint)(slotIndex + 1) * this.timeInterval;
         do
         {
-            if (this.waitingMessageQueue.Count == 0)
+            if (this.waitingMessageQueue.IsEmpty)
             {
                 break;
             }
