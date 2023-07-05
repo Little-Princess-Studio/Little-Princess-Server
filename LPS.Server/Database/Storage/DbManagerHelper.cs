@@ -29,6 +29,8 @@ public static class DbManagerHelper
     private static readonly Dictionary<string, MethodInfo> DatabaseInnerApiStore = new();
     private static IDatabase currentDatabase = default!;
     private static string connectString = default!;
+    private static object databaseApiInstance = default!;
+    private static object databaseInnerApiInstance = default!;
 
     /// <summary>
     /// Initializes static members of the <see cref="DbManagerHelper"/> class.
@@ -101,6 +103,8 @@ public static class DbManagerHelper
             DatabaseApiStore.Add(method.Name, method);
         });
 
+        databaseApiInstance = Activator.CreateInstance(provider)!;
+
         Logger.Info("Database api provider loaded.");
     }
 
@@ -139,10 +143,23 @@ public static class DbManagerHelper
 
         var provider = types.First()!;
 
+        var validated = provider.GetInterfaces().Any(
+            @interface => @interface.IsGenericType
+                && @interface.GetGenericTypeDefinition() == typeof(IDbInnerApi<>)
+                && @interface.GetGenericArguments().Length == 1
+                && @interface.GetGenericArguments()[0] == currentDatabase.GetType());
+
+        if (!validated)
+        {
+            var e = new Exception($"Invalid database inner api provider definition: {provider}");
+            Logger.Error(e);
+            throw e;
+        }
+
         var methods = provider.GetMethods()
             .Where(method => method.GetCustomAttribute<DbInnerApiAttribute>() != null);
 
-        var validated = methods.All(ValidateInnerApiSignature) && methods.All(ValidateFirstArg);
+        validated = methods.All(ValidateInnerApiSignature) && methods.All(ValidateFirstArg);
 
         if (!validated)
         {
@@ -156,6 +173,8 @@ public static class DbManagerHelper
             Logger.Info($"Database inner api provider found: {method.Name}");
             DatabaseInnerApiStore.Add(method.Name, method);
         });
+
+        databaseInnerApiInstance = Activator.CreateInstance(provider)!;
 
         Logger.Info("Database inner api provider loaded.");
     }
@@ -190,7 +209,7 @@ public static class DbManagerHelper
 
         try
         {
-            var callRes = method.Invoke(null, arguments.ToArray())!;
+            var callRes = method.Invoke(databaseApiInstance, arguments.ToArray())!;
             return HandleRpcResult(callRes, method.ReturnType);
         }
         catch (Exception ex)
@@ -218,7 +237,7 @@ public static class DbManagerHelper
 
         try
         {
-            var callRes = method.Invoke(null, arguments)!;
+            var callRes = method.Invoke(databaseInnerApiInstance, arguments)!;
             return (callRes as Task<Any>)!;
         }
         catch (Exception ex)

@@ -16,7 +16,7 @@ using MongoDB.Driver;
 /// Provides a set of static methods for interacting with the database.
 /// </summary>
 [DbApiProvider(typeof(MongoDbWrapper))]
-public static class DbApi
+public class DbApi
 {
     /// <summary>
     /// Queries the database for an account with the specified username.
@@ -25,7 +25,7 @@ public static class DbApi
     /// <param name="userName">The username to search for.</param>
     /// <returns>An <see cref="IDbDataSet"/> object representing the account data, or null if no account was found.</returns>
     [DbApi]
-    public static async Task<(string Password, string AccountId)> QueryAccountByUserName(MongoDbWrapper database, string userName)
+    public async Task<(string Password, string AccountId)> QueryAccountByUserName(MongoDbWrapper database, string userName)
     {
         var filter = Builders<BsonDocument>.Filter.Eq("username", userName);
         var coll = database.GetCollectionFromDefaultDb("account");
