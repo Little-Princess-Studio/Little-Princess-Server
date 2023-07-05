@@ -18,12 +18,7 @@ using LPS.Server.Database.Storage.Attribute;
 [DbInnerApiProvider(typeof(MongoDbWrapper))]
 public class MongoDbInnerDbApi : IDbInnerApi<MongoDbWrapper>
 {
-    /// <summary>
-    /// Loads an entity from the specified MongoDB collection based on the given key-value pair.
-    /// </summary>
-    /// <param name="mongoDb">The MongoDB wrapper instance.</param>
-    /// <param name="args">The arguments for the method call.</param>
-    /// <returns>A task that represents the asynchronous operation. The task result contains the loaded entity.</returns>
+    /// <inheritdoc/>
     public Task<Any> LoadEntity(MongoDbWrapper mongoDb, Any[] args)
     {
         var collName = args[1].Unpack<StringArg>().PayLoad;

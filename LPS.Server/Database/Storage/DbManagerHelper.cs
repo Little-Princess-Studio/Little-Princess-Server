@@ -68,8 +68,7 @@ public static class DbManagerHelper
                         && type.Namespace == @namespace
                         && type.GetCustomAttribute<DbApiProviderAttribute>()?.DbType == currentDatabase.GetType())
             .Concat(typesEntry)
-            .Distinct()
-            .ToList();
+            .Distinct();
 
         if (types == null)
         {
@@ -77,7 +76,7 @@ public static class DbManagerHelper
             return;
         }
 
-        if (types.Count > 1)
+        if (types.Count() > 1)
         {
             Logger.Warn($"Multiple database api provider found, only use the first found one: {types.First().Name}");
         }
@@ -127,8 +126,7 @@ public static class DbManagerHelper
                         && type.Namespace == @namespace
                         && type.GetCustomAttribute<DbInnerApiProviderAttribute>()?.DbType == currentDatabase.GetType())
             .Concat(typesEntry)
-            .Distinct()
-            .ToList();
+            .Distinct();
 
         if (types == null)
         {
@@ -136,7 +134,7 @@ public static class DbManagerHelper
             return;
         }
 
-        if (types.Count > 1)
+        if (types.Count() > 1)
         {
             Logger.Warn($"Multiple database api provider found, only use the first found one: {types.First().Name}");
         }
