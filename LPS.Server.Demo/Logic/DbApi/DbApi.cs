@@ -6,6 +6,7 @@
 
 namespace LPS.Server.Demo.Logic.DbApi;
 
+using LPS.Common.Debug;
 using LPS.Server.Database.Storage;
 using LPS.Server.Database.Storage.Attribute;
 using LPS.Server.Database.Storage.MongoDb;
@@ -42,6 +43,43 @@ public class DbApi
             var password = account["password"].AsString;
             var accountId = account["_id"].AsObjectId.ToString();
             return (password, accountId);
+        }
+    }
+
+    /// <summary>
+    /// Creates a new player entity data into Player collection.
+    /// </summary>
+    /// <param name="database">The database instance to use.</param>
+    /// <param name="accountId">The accountId related to player entity.</param>
+    /// <returns>A boolean value indicating whether the player account was successfully created.</returns>
+    [DbApi]
+    public async Task<string> CreatePlayerIfNotExist(MongoDbWrapper database, string accountId)
+    {
+        var coll = database.GetCollectionFromDefaultDb("player");
+
+        var accountIdAsObjectId = new BsonObjectId(new ObjectId(accountId));
+        var filter = Builders<BsonDocument>.Filter.Eq(
+            "AccountId", accountIdAsObjectId);
+        var query = await coll.FindAsync<BsonDocument>(filter);
+        var resColl = await query.ToListAsync();
+
+        if (resColl.Any())
+        {
+            var playerId = resColl.First()["_id"];
+            var playerStrId = playerId.AsObjectId.ToString();
+            Logger.Debug($"[CreatePlayerIfNotExist] Player exist, id: {playerStrId}");
+            return playerStrId;
+        }
+        else
+        {
+            var insertData = new BsonDocument()
+            {
+                ["AccountId"] = accountIdAsObjectId,
+            };
+            await coll.InsertOneAsync(insertData);
+            var playerStrId = insertData["_id"].AsObjectId.ToString();
+            Logger.Debug($"[CreatePlayerIfNotExist] Player not exist, create a new, id: {playerStrId}");
+            return playerStrId;
         }
     }
 }

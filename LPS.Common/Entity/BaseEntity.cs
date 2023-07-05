@@ -6,6 +6,7 @@
 
 namespace LPS.Common.Entity;
 
+using Google.Protobuf.WellKnownTypes;
 using LPS.Common.Debug;
 using LPS.Common.Ipc;
 using LPS.Common.Rpc;
@@ -30,7 +31,7 @@ public abstract class BaseEntity
     protected Dictionary<string, RpcProperty>? PropertyTree => this.propertyTree;
 
     private readonly AsyncTaskGenerator<object> rpcBlankAsyncTaskGenerator;
-    private readonly AsyncTaskGenerator<object, Type> rpcAsyncTaskGenerator;
+    private readonly AsyncTaskGenerator<object, System.Type> rpcAsyncTaskGenerator;
     private Dictionary<string, RpcProperty>? propertyTree;
 
     /// <summary>
@@ -69,10 +70,43 @@ public abstract class BaseEntity
         {
             OnGenerateAsyncId = () => this.IncreaseRpcIdCnt(),
         };
-        this.rpcAsyncTaskGenerator = new AsyncTaskGenerator<object, Type>
+        this.rpcAsyncTaskGenerator = new AsyncTaskGenerator<object, System.Type>
         {
             OnGenerateAsyncId = () => this.IncreaseRpcIdCnt(),
         };
+    }
+
+    /// <summary>
+    /// Builds the property tree of the entity from the given content.
+    /// </summary>
+    /// <param name="propertyTree">The content used to build the property tree.</param>
+    /// <param name="databaseId">The ID of the entity in the database.</param>
+    public void BuildPropertyTreeByContent(Any propertyTree, out string databaseId)
+    {
+        databaseId = string.Empty;
+        if (propertyTree.Is(descriptor: DictWithStringKeyArg.Descriptor))
+        {
+            var content = propertyTree.Unpack<DictWithStringKeyArg>();
+
+            foreach (var (key, value) in content.PayLoad)
+            {
+                if (key == "_id")
+                {
+                    databaseId = value.Unpack<StringArg>().PayLoad;
+                    continue;
+                }
+
+                if (this.PropertyTree!.ContainsKey(key))
+                {
+                    RpcProperty? prop = this.PropertyTree[key];
+                    prop.FromProtobuf(value);
+                }
+                else
+                {
+                    Debug.Logger.Warn($"Missing sync property {key} in {this.GetType()}");
+                }
+            }
+        }
     }
 
     /// <summary>

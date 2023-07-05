@@ -19,11 +19,24 @@ using LPS.Server.Database.Storage.Attribute;
 public class MongoDbInnerDbApi : IDbInnerApi<MongoDbWrapper>
 {
     /// <inheritdoc/>
+    [DbInnerApi]
     public Task<Any> LoadEntity(MongoDbWrapper mongoDb, Any[] args)
     {
         var collName = args[1].Unpack<StringArg>().PayLoad;
         var keyName = args[0].Unpack<StringArg>().PayLoad;
         var value = args[2].Unpack<StringArg>().PayLoad;
         return mongoDb.LoadEntity(collName, keyName, value);
+    }
+
+    /// <inheritdoc/>
+    [DbInnerApi]
+    public Task<Any> SaveEntity(MongoDbWrapper mongoDb, Any[] args)
+    {
+        var collName = args[0].Unpack<StringArg>().PayLoad;
+        var id = args[1].Unpack<StringArg>().PayLoad;
+        return mongoDb.SaveEntity(collName, id, args[2])
+            .ContinueWith(
+                t => Any.Pack(
+                    new BoolArg() { PayLoad = t.Result }));
     }
 }

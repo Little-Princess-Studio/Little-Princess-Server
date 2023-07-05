@@ -76,19 +76,25 @@ public class MongoDbWrapper : IDatabase
         if (queryRes.Any())
         {
             var entity = queryRes.First();
-
-            var treeDict = new DictWithStringKeyArg();
-
-            // todo: serialize bson to any
-            foreach (var elem in entity.AsEnumerable())
-            {
-                this.BuildPropTree(elem, treeDict);
-            }
-
-            return Any.Pack(treeDict);
+            return BsonDocumentToAny(entity);
         }
 
         return Any.Pack(new NullArg());
+    }
+
+    /// <inheritdoc/>
+    public async Task<bool> SaveEntity(string collectionName, string entityDbId, Any entityValue)
+    {
+        var coll = this.GetCollection(this.defaultDatabaseName, collectionName);
+        var filter = Builders<BsonDocument>.Filter.Eq("_id", new BsonObjectId(new ObjectId(entityDbId)));
+
+        var entityDoc = AnyToBsonDocument(entityValue);
+        var updateBuilder = Builders<BsonDocument>.Update;
+        var combinedUpdate =
+            entityDoc.AsQueryable().Select((pair) => updateBuilder.Set(pair.Name, pair.Value));
+
+        var updateRes = await coll.UpdateOneAsync(filter, updateBuilder.Combine(combinedUpdate));
+        return updateRes.IsAcknowledged && updateRes.ModifiedCount > 0;
     }
 
     /// <summary>
@@ -116,6 +122,101 @@ public class MongoDbWrapper : IDatabase
                 .GetCollection<BsonDocument>(collectionName);
     }
 
+    private static Any BsonDocumentToAny(BsonDocument entity)
+    {
+        var treeDict = new DictWithStringKeyArg();
+
+        foreach (var elem in entity.AsEnumerable())
+        {
+            BsonElemToAny(elem, treeDict);
+        }
+
+        return Any.Pack(treeDict);
+    }
+
+    private static BsonDocument AnyToBsonDocument(Any entity)
+    {
+        var treeDict = entity.Unpack<DictWithStringKeyArg>();
+        var bsonDoc = new BsonDocument();
+
+        foreach (var elem in treeDict.PayLoad)
+        {
+            var fieldName = elem.Key;
+            var value = elem.Value;
+            if (value.Is(BoolArg.Descriptor))
+            {
+                bsonDoc.Add(fieldName, new BsonBoolean(value.Unpack<BoolArg>().PayLoad));
+            }
+            else if (value.Is(StringArg.Descriptor))
+            {
+                bsonDoc.Add(fieldName, new BsonString(value.Unpack<StringArg>().PayLoad));
+            }
+            else if (value.Is(FloatArg.Descriptor))
+            {
+                bsonDoc.Add(fieldName, new BsonDouble(value.Unpack<FloatArg>().PayLoad));
+            }
+            else if (value.Is(IntArg.Descriptor))
+            {
+                bsonDoc.Add(fieldName, new BsonInt32(value.Unpack<IntArg>().PayLoad));
+            }
+            else if (value.Is(MailBoxArg.Descriptor))
+            {
+                var mbox = value.Unpack<MailBoxArg>().PayLoad;
+                bsonDoc.Add(fieldName, PbMailBoxToBsonDocument(mbox));
+            }
+            else if (value.Is(ListArg.Descriptor))
+            {
+                var anyList = value.Unpack<ListArg>().PayLoad;
+                var bsonArray = new BsonArray(anyList.Select(x => AnyToBsonDocument(x)));
+                var arrayDoc = new BsonDocument()
+                {
+                    ["$_complex_type"] = (int)ComplexValueType.List,
+                    ["data"] = bsonArray,
+                };
+                bsonDoc.Add(fieldName, arrayDoc);
+            }
+            else if (value.Is(DictWithIntKeyArg.Descriptor))
+            {
+                var dict = value.Unpack<DictWithIntKeyArg>().PayLoad;
+                var bsonDict = new BsonDocument(
+                    dict.ToDictionary(
+                        pair => pair.Key.ToString(),
+                        pair => AnyToBsonDocument(pair.Value)));
+                AddComplexDict(bsonDoc, fieldName, ComplexKeyType.Int, bsonDict);
+            }
+            else if (value.Is(DictWithMailBoxKeyArg.Descriptor))
+            {
+                var dict = value.Unpack<DictWithMailBoxKeyArg>().PayLoad;
+                var bsonDict = new BsonDocument(
+                    dict.ToDictionary(
+                        pair => PbMailBoxToString(pair.Key),
+                        pair => AnyToBsonDocument(pair.Value)));
+                AddComplexDict(bsonDoc, fieldName, valueType: ComplexKeyType.MailBox, bsonDict);
+            }
+            else if (value.Is(DictWithStringKeyArg.Descriptor))
+            {
+                var dict = value.Unpack<DictWithStringKeyArg>().PayLoad;
+                var bsonDict = new BsonDocument(
+                    dict.ToDictionary(
+                        pair => pair.Key,
+                        pair => AnyToBsonDocument(pair.Value)));
+                AddComplexDict(bsonDoc, fieldName, valueType: ComplexKeyType.String, bsonDict);
+            }
+        }
+
+        return bsonDoc;
+    }
+
+    private static void AddComplexDict(BsonDocument bsonDoc, string fieldName, ComplexKeyType valueType, BsonDocument bsonDict)
+    {
+        bsonDoc.Add(fieldName, new BsonDocument()
+        {
+            ["$_complex_type"] = (int)ComplexValueType.Dict,
+            ["$_key_type"] = (int)valueType,
+            ["data"] = bsonDict,
+        });
+    }
+
     private static MailBox StringToPbMailBox(string mailboxString)
     {
         var split = mailboxString.Split(':');
@@ -131,6 +232,23 @@ public class MongoDbWrapper : IDatabase
             HostNum = Convert.ToUInt32(split[2]),
             ID = split[3],
         };
+    }
+
+    private static string PbMailBoxToString(in MailBox mbox)
+    {
+        return $"{mbox.IP}:{mbox.Port}:{mbox.HostNum}:{mbox.ID}";
+    }
+
+    private static BsonDocument PbMailBoxToBsonDocument(in MailBox mbox)
+    {
+        var bsonValue = new BsonDocument
+        {
+            ["ip"] = mbox.IP,
+            ["port"] = mbox.Port,
+            ["hostnum"] = mbox.HostNum,
+            ["id"] = mbox.ID,
+        };
+        return bsonValue;
     }
 
     private static void BsonElemToAny(BsonElement elem, DictWithStringKeyArg root)
@@ -188,13 +306,7 @@ public class MongoDbWrapper : IDatabase
             }
             else // normal dict
             {
-                var dict = new DictWithStringKeyArg();
-                foreach (var elem in value.AsBsonDocument)
-                {
-                    BsonElemToAny(elem, dict);
-                }
-
-                anyValue = Any.Pack(dict);
+                anyValue = BsonDocumentToAny(doc);
             }
         }
 

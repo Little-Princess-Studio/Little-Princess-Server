@@ -40,6 +40,29 @@ public abstract class DistributeEntity : BaseEntity, ISendPropertySyncMessage
     public Action<bool, uint, RpcPropertySyncMessage>? SendSyncMessageHandler { get; set; }
 
     /// <summary>
+    /// Gets or sets the database ID of the entity.
+    /// </summary>
+    public string DbId
+    {
+        get => this.databaseId;
+        set
+        {
+            if (string.IsNullOrEmpty(this.databaseId))
+            {
+                this.databaseId = value;
+            }
+            else
+            {
+                var e = new Exception("Db id could not be set multiple times.");
+                Logger.Error(e);
+                throw e;
+            }
+        }
+    }
+
+    private string databaseId = string.Empty;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="DistributeEntity"/> class.
     /// </summary>
     /// <param name="desc">Description string for constructing DistributeEntity.</param>
@@ -84,17 +107,9 @@ public abstract class DistributeEntity : BaseEntity, ISendPropertySyncMessage
     /// <param name="onSyncContentReady">Callback when sync ready.</param>
     public void FullSync(Action<string, Any> onSyncContentReady)
     {
-        var treeDict = new DictWithStringKeyArg();
+        var treeDict = this.ToAny();
 
-        foreach (var (key, value) in this.PropertyTree!)
-        {
-            if (value.CanSyncToClient)
-            {
-                treeDict.PayLoad.Add(key, value.ToProtobuf());
-            }
-        }
-
-        onSyncContentReady.Invoke(this.MailBox.Id, Any.Pack(treeDict));
+        onSyncContentReady.Invoke(this.MailBox.Id, treeDict);
     }
 
     /// <summary>
@@ -265,6 +280,25 @@ public abstract class DistributeEntity : BaseEntity, ISendPropertySyncMessage
     }
 
     /// <summary>
+    /// Converts the entity's property tree to a protobuf Any object.
+    /// </summary>
+    /// <returns>The protobuf Any object containing the entity's property tree.</returns>
+    protected Any ToAny()
+    {
+        var treeDict = new DictWithStringKeyArg();
+
+        foreach (var (key, value) in this.PropertyTree!)
+        {
+            if (value.CanSyncToClient)
+            {
+                treeDict.PayLoad.Add(key, value.ToProtobuf());
+            }
+        }
+
+        return Any.Pack(treeDict);
+    }
+
+    /// <summary>
     /// Loads the entity data from the database. For customizing loading, overwrite <see cref="LoadFromDatabase"/> to customize the loading behavior.
     /// </summary>
     /// <param name="queryInfo">The query information to query entity data from database, default is the query condition { keyName: keyValue }to find the data.</param>
@@ -296,7 +330,38 @@ public abstract class DistributeEntity : BaseEntity, ISendPropertySyncMessage
             Any.Pack(new StringArg() { PayLoad = queryInfo["key"] }),
             Any.Pack(new StringArg() { PayLoad = queryInfo["value"] }));
 
-        // todo: convert entityData to property tree.
+        if (entityData.Is(NullArg.Descriptor))
+        {
+            var e = new Exception("Failed to load player data.");
+            Logger.Error(e);
+            throw e;
+        }
+
+        this.BuildPropertyTreeByContent(entityData, out var databaseId);
+        this.DbId = databaseId;
+    }
+
+    /// <summary>
+    /// Saves the entity data to the database. Override this method to customize the saving behavior.
+    /// </summary>
+    /// <param name="collectionName">The name of the collection to save entity data to database.</param>
+    /// <param name="queryInfo">The query information to find the data, default is the key to update the data.</param>
+    /// <returns>A task that represents the asynchronous operation.</returns>
+    protected virtual async Task SaveToDatabase(string collectionName, Dictionary<string, string> queryInfo)
+    {
+        var serialContent = this.ToAny();
+        var res = await DbHelper.CallDbInnerApi(
+            "SaveEntity",
+            Any.Pack(new StringArg() { PayLoad = queryInfo["id"] }),
+            serialContent);
+        if (res.Is(BoolArg.Descriptor))
+        {
+            var succ = res.Unpack<BoolArg>().PayLoad;
+            if (!succ)
+            {
+                Logger.Warn("Failed to save entity.");
+            }
+        }
     }
 
     /// <summary>

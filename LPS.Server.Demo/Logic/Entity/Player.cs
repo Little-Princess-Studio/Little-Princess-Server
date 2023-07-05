@@ -10,13 +10,14 @@ using Common.Debug;
 using Common.Rpc.Attribute;
 using LPS.Common.Rpc;
 using LPS.Common.Rpc.RpcProperty;
+using LPS.Server.Database;
 using LPS.Server.Entity;
 using LPS.Server.Rpc.RpcProperty;
 
 /// <summary>
 /// Player is the real entity between server and client after login process.
 /// </summary>
-[EntityClass(IsDatabaseEntity = true)]
+[EntityClass(Name = "player", IsDatabaseEntity = true)]
 public class Player : ServerClientEntity
 {
     /// <summary>
@@ -29,9 +30,9 @@ public class Player : ServerClientEntity
     /// <summary>
     /// Id of the player.
     /// </summary>
-    /// <returns>Id of the player in database.</returns>
-    [RpcProperty(nameof(Player.Id), RpcPropertySetting.Permanent | RpcPropertySetting.ServerToShadow)]
-    public RpcPlaintProperty<string> Id = new (string.Empty);
+    /// <returns>Account id of the player in database.</returns>
+    [RpcProperty(nameof(Player.AccountId), RpcPropertySetting.Permanent | RpcPropertySetting.ServerToShadow)]
+    public RpcPlaintProperty<string> AccountId = new (string.Empty);
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Player"/> class.
@@ -58,9 +59,11 @@ public class Player : ServerClientEntity
     protected override async Task OnMigratedIn(MailBox originMailBox, string migrateInfo, Dictionary<string, string>? extraInfo)
     {
         await base.OnMigratedIn(originMailBox, migrateInfo, extraInfo);
-        Logger.Info($"Player migrated in with account id {migrateInfo}");
+        Logger.Info($"Player migrated in with account id: {migrateInfo}");
 
-        // initialize entity
-        await this.LinkToDatabase(new Dictionary<string, string> { ["key"] = "accountId", ["value"] = migrateInfo });
+        var playerId = await DbHelper.CallDbApi<string>(nameof(DbApi.DbApi.CreatePlayerIfNotExist), migrateInfo);
+        Logger.Debug($"[OnMigratedIn] Player id: {playerId}");
+
+        await this.LinkToDatabase(new Dictionary<string, string> { ["key"] = "AccountId", ["value"] = migrateInfo });
     }
 }

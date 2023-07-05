@@ -23,26 +23,8 @@ public class ShadowEntity : BaseEntity
     /// Build shadow entity from protobuf.
     /// </summary>
     /// <param name="syncBody">Protobuf data.</param>
-    public void FromSyncContent(Any syncBody)
-    {
-        if (syncBody.Is(DictWithStringKeyArg.Descriptor))
-        {
-            var content = syncBody.Unpack<DictWithStringKeyArg>();
-
-            foreach (var (key, value) in content.PayLoad)
-            {
-                if (this.PropertyTree!.ContainsKey(key))
-                {
-                    RpcProperty? prop = this.PropertyTree[key];
-                    prop.FromProtobuf(value);
-                }
-                else
-                {
-                    Debug.Logger.Warn($"Missing sync property {key} in {this.GetType()}");
-                }
-            }
-        }
-    }
+    public void FromSyncContent(Any syncBody) =>
+        this.BuildPropertyTreeByContent(syncBody, out var _);
 
     /// <summary>
     /// Apply sync command list to this entity.

@@ -42,4 +42,13 @@ public interface IDatabase
     /// <param name="value">The value of the key to search for.</param>
     /// <returns>A task that represents the asynchronous load operation. The task result contains the loaded entity.</returns>
     Task<Any> LoadEntity(string collectionName, string keyName, string value);
+
+    /// <summary>
+    /// Saves an entity to the specified collection with the specified key-value pair.
+    /// </summary>
+    /// <param name="collectionName">The name of the collection to save the entity to.</param>
+    /// <param name="entityDbId">The unique identifier of the entity in the database.</param>
+    /// <param name="entityValue">The value of the entity to save.</param>
+    /// <returns>A task that represents the asynchronous save operation.</returns>
+    Task<bool> SaveEntity(string collectionName, string entityDbId, Any entityValue);
 }
