@@ -131,7 +131,7 @@ public static class DbHelper
             throw e;
         }
 
-        return databaseClient.CallDbInnerApi(innerApiName, params args);
+        return databaseClient.CallDbInnerApi(innerApiName, args);
     }
 
     /// <summary>
