@@ -8,6 +8,7 @@ namespace LPS.Server.Demo.Logic.Entity;
 
 using Common.Debug;
 using Common.Rpc.Attribute;
+using LPS.Common.Entity.Component;
 using LPS.Common.Rpc;
 using LPS.Common.Rpc.RpcProperty;
 using LPS.Server.Database;
@@ -18,6 +19,8 @@ using LPS.Server.Rpc.RpcProperty;
 /// Player is the real entity between server and client after login process.
 /// </summary>
 [EntityClass(DbCollectionName = "player", IsDatabaseEntity = true)]
+[Component(typeof(GamePropertyComponent), "GameProperty")]
+[Component(typeof(BagComponent), "Bag")]
 public class Player : ServerClientEntity
 {
     /// <summary>
@@ -53,6 +56,22 @@ public class Player : ServerClientEntity
     {
         Logger.Info($"[Player] Ping: {content}");
         return Task.FromResult("Res: " + content);
+    }
+
+    /// <summary>
+    /// Updates the game properties of the player.
+    /// </summary>
+    /// <param name="hp">The new value for the player's health points.</param>
+    /// <param name="sp">The new value for the player's stamina points.</param>
+    /// <returns>A task that represents the asynchronous operation.</returns>
+    [RpcMethod(Authority.ClientOnly)]
+    public Task UpdateGameProperty(int hp, int sp)
+    {
+        var props = this.GetComponent<GamePropertyComponent>();
+        props.Hp.Val = hp;
+        props.Sp.Val = sp;
+        Logger.Info($"[Player] UpdateGameProperty, hp -> {hp}, sp -> {sp}");
+        return Task.CompletedTask;
     }
 
     /// <inheritdoc/>

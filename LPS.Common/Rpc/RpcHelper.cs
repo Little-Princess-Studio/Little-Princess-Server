@@ -57,6 +57,7 @@ public static class RpcHelper
 
             if (entry == null)
             {
+                // TODO: use RpcPropertyContainer.CreateSerializedContainer instead of throw exception
                 throw new Exception($"RpcContainerType {entry} not have deserialize entry.");
             }
 

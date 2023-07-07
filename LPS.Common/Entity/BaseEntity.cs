@@ -8,6 +8,7 @@ namespace LPS.Common.Entity;
 
 using Google.Protobuf.WellKnownTypes;
 using LPS.Common.Debug;
+using LPS.Common.Entity.Component;
 using LPS.Common.Ipc;
 using LPS.Common.Rpc;
 using LPS.Common.Rpc.Attribute;
@@ -35,15 +36,6 @@ public abstract class BaseEntity
     private Dictionary<string, RpcProperty>? propertyTree;
 
     /// <summary>
-    /// Sets property tree.
-    /// </summary>
-    /// <param name="propertyTree">Property tree dictionary.</param>
-    public virtual void SetPropertyTree(Dictionary<string, RpcProperty> propertyTree)
-    {
-        this.propertyTree = propertyTree;
-    }
-
-    /// <summary>
     /// Gets or sets a value indicating whether this entity has been destroyed.
     /// </summary>
     public bool IsDestroyed { get; protected set; }
@@ -60,6 +52,46 @@ public abstract class BaseEntity
     public Action<EntityRpc> OnSend { private get; set; } = null!;
 
     private uint rpcIdCnt;
+
+    /// <summary>
+    /// Sets property tree.
+    /// </summary>
+    /// <param name="propertyTree">Property tree dictionary.</param>
+    public virtual void SetPropertyTree(Dictionary<string, RpcProperty> propertyTree)
+    {
+        this.propertyTree = propertyTree;
+    }
+
+    /// <summary>
+    /// Gets the component of type T from the entity.
+    /// </summary>
+    /// <typeparam name="T">The type of component to get.</typeparam>
+    /// <returns>The component of type T.</returns>
+    public T GetComponent<T>()
+        where T : ComponentBase
+    {
+        throw new NotImplementedException();
+    }
+
+    /// <summary>
+    /// Gets the component of the specified type from the entity.
+    /// </summary>
+    /// <param name="componentType">The type of component to get.</param>
+    /// <returns>The component of the specified type.</returns>
+    public ComponentBase GetComponent(System.Type componentType)
+    {
+        throw new NotImplementedException();
+    }
+
+    /// <summary>
+    /// Gets the component with the specified name from the entity.
+    /// </summary>
+    /// <param name="componentName">The name of the component to get.</param>
+    /// <returns>The component with the specified name.</returns>
+    public ComponentBase GetComponent(string componentName)
+    {
+        throw new NotImplementedException();
+    }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="BaseEntity"/> class.

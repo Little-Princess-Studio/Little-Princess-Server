@@ -16,6 +16,46 @@ using LPS.Common.Rpc.RpcPropertySync.RpcPropertySyncMessage;
 #pragma warning disable SA1629
 
 /// <summary>
+/// Base Rpc property class for implementing costume container.
+/// </summary>
+public abstract class RpcPropertyCostumeContainer : RpcPropertyContainer
+{
+    /// <summary>
+    /// Deserialize content from protobuf any object.
+    /// </summary>
+    /// <param name="content">Protobuf any object.</param>
+    public void Deserialize(Any content)
+    {
+        if (content.Is(DictWithStringKeyArg.Descriptor))
+        {
+            var dict = content.Unpack<DictWithStringKeyArg>();
+            var props = this.GetType()
+                .GetFields(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public)
+                .Where(field => field.IsDefined(typeof(RpcPropertyAttribute)));
+
+            this.Children!.Clear();
+
+            foreach (var fieldInfo in props)
+            {
+                var rpcProperty = (fieldInfo.GetValue(this) as RpcPropertyContainer)!;
+
+                if (dict.PayLoad.ContainsKey(rpcProperty.Name!))
+                {
+                    var fieldValue = RpcHelper.CreateRpcPropertyContainerByType(
+                        fieldInfo.FieldType,
+                        dict.PayLoad[rpcProperty.Name!]);
+
+                    fieldValue.Name = rpcProperty.Name!;
+                    fieldValue.IsReferred = true;
+                    fieldInfo.SetValue(this, fieldValue);
+                    this.Children.Add(rpcProperty.Name!, fieldValue);
+                }
+            }
+        }
+    }
+}
+
+/// <summary>
 /// Bse Rpc property class for implementing costume container.
 /// And the MyContainer must have a method attributed as <see cref="RpcPropertyContainerDeserializeEntryAttribute"/>
 ///
@@ -23,12 +63,14 @@ using LPS.Common.Rpc.RpcPropertySync.RpcPropertySyncMessage;
 /// class MyCostumeRpcProperty : RpcPropertyCostumeContainer&lt;MyCostumeRpcProperty&gt;<para />
 /// {<para />
 ///     [RpcPropertyContainerDeserializeEntry]<para />
-///     public static void RpcPropertyContainer FromRpcArg(Any content) {}<para />
+///     public static RpcPropertyContainer FromRpcArg(Any content) {}<para />
 /// }<para />
 /// </summary>
 /// <typeparam name="TSub">Sub class type of the container's value.</typeparam>
-/// #pragma warning restore SA1629
-public abstract class RpcPropertyCostumeContainer<TSub> : RpcPropertyContainer, ISyncOpActionSetValue
+#pragma warning restore SA1629
+
+#pragma warning disable SA1402
+public abstract class RpcPropertyCostumeContainer<TSub> : RpcPropertyCostumeContainer, ISyncOpActionSetValue
     where TSub : RpcPropertyContainer, new()
 {
     /// <summary>
@@ -47,6 +89,25 @@ public abstract class RpcPropertyCostumeContainer<TSub> : RpcPropertyContainer, 
     {
         var obj = new T();
         obj.Deserialize(content);
+        return obj;
+    }
+
+    /// <summary>
+    /// Create a container with protobuf object.
+    /// </summary>
+    /// <param name="content">Protobuf object.</param>
+    /// <param name="rawType">Typeof the container.</param>
+    /// <returns>Rpc container.</returns>
+    public static RpcPropertyContainer CreateSerializedContainer(Any content, System.Type rawType)
+    {
+        var parent = typeof(RpcPropertyCostumeContainer<>).MakeGenericType(rawType);
+        if (!rawType.IsSubclassOf(parent))
+        {
+            throw new Exception($"Type {rawType} is not a subclass of RpcPropertyCostumeContainer<T>.");
+        }
+
+        var obj = Activator.CreateInstance(rawType) as RpcPropertyCostumeContainer;
+        obj!.Deserialize(content);
         return obj;
     }
 
@@ -102,40 +163,6 @@ public abstract class RpcPropertyCostumeContainer<TSub> : RpcPropertyContainer, 
         }
     }
 
-    /// <summary>
-    /// Deserialize content from protobuf any object.
-    /// </summary>
-    /// <param name="content">Protobuf any object.</param>
-    public virtual void Deserialize(Any content)
-    {
-        if (content.Is(DictWithStringKeyArg.Descriptor))
-        {
-            var dict = content.Unpack<DictWithStringKeyArg>();
-            var props = this.GetType()
-                .GetFields(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public)
-                .Where(field => field.IsDefined(typeof(RpcPropertyAttribute)));
-
-            this.Children!.Clear();
-
-            foreach (var fieldInfo in props)
-            {
-                var rpcProperty = (fieldInfo.GetValue(this) as RpcPropertyContainer)!;
-
-                if (dict.PayLoad.ContainsKey(rpcProperty.Name!))
-                {
-                    var fieldValue = RpcHelper.CreateRpcPropertyContainerByType(
-                        fieldInfo.FieldType,
-                        dict.PayLoad[rpcProperty.Name!]);
-
-                    fieldValue.Name = rpcProperty.Name!;
-                    fieldValue.IsReferred = true;
-                    fieldInfo.SetValue(this, fieldValue);
-                    this.Children.Add(rpcProperty.Name!, fieldValue);
-                }
-            }
-        }
-    }
-
     /// <inheritdoc/>
     void ISyncOpActionSetValue.Apply(RepeatedField<Any> args)
     {
@@ -143,3 +170,4 @@ public abstract class RpcPropertyCostumeContainer<TSub> : RpcPropertyContainer, 
         this.Assign((TSub)value);
     }
 }
+#pragma warning restore SA1402

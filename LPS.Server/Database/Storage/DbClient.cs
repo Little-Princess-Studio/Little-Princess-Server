@@ -73,10 +73,10 @@ public class DbClient
     /// <summary>
     /// Invokes a database API with the specified name and arguments.
     /// </summary>
+    /// <typeparam name="T">The type of the expected result from the API.</typeparam>
     /// <param name="apiName">The name of the API to invoke.</param>
-    /// <param name="args">The arguments to pass to the API. Every arg should be able to serialized by JToken. </param>
-    /// <typeparam name="T">The type of the result.</typeparam>
-    /// <returns>A task that represents the asynchronous operation. The task result contains the response from the API as a <see cref="JObject"/>.</returns>
+    /// <param name="args">The arguments to pass to the API. Each argument should be serializable by Google.Protobuf.Any.</param>
+    /// <returns>A task that represents the asynchronous operation. The task result contains the response from the API as an object of type T.</returns>
     public async Task<T> CallDbApi<T>(string apiName, params object[]? args)
     {
         var (task, id) = this.asyncTaskGeneratorForDbApi.GenerateAsyncTask(
