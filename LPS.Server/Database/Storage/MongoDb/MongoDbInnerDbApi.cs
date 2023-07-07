@@ -22,8 +22,8 @@ public class MongoDbInnerDbApi : IDbInnerApi<MongoDbWrapper>
     [DbInnerApi]
     public Task<Any> LoadEntity(MongoDbWrapper mongoDb, Any[] args)
     {
-        var collName = args[1].Unpack<StringArg>().PayLoad;
-        var keyName = args[0].Unpack<StringArg>().PayLoad;
+        var collName = args[0].Unpack<StringArg>().PayLoad;
+        var keyName = args[1].Unpack<StringArg>().PayLoad;
         var value = args[2].Unpack<StringArg>().PayLoad;
         return mongoDb.LoadEntity(collName, keyName, value);
     }

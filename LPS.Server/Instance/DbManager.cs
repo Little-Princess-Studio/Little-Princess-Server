@@ -44,7 +44,7 @@ public class DbManager : IInstance
     private readonly TcpClient clientToHostManager;
 
     // We only use mq to handle db request from other instances.
-    private readonly MessageQueueClient messageQueueClientToHostMgr;
+    private readonly MessageQueueClient messageQueueClientToOtherInstance;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DbManager"/> class.
@@ -71,7 +71,7 @@ public class DbManager : IInstance
         this.Port = port;
         this.HostNum = hostNum;
 
-        this.messageQueueClientToHostMgr = new MessageQueueClient();
+        this.messageQueueClientToOtherInstance = new MessageQueueClient();
         this.clientToHostManager = new TcpClient(
             hostManagerIp,
             hostManagerPort,
@@ -105,7 +105,7 @@ public class DbManager : IInstance
     public void Stop()
     {
         this.clientToHostManager.Stop();
-        this.messageQueueClientToHostMgr.ShutDown();
+        this.messageQueueClientToOtherInstance.ShutDown();
     }
 
     /// <inheritdoc/>
@@ -119,26 +119,26 @@ public class DbManager : IInstance
         this.clientToHostManager.Run();
 
         this.clientToHostManager.WaitForExit();
-        this.messageQueueClientToHostMgr.ShutDown();
+        this.messageQueueClientToOtherInstance.ShutDown();
         Logger.Debug("DbManager Exit.");
     }
 
     private void InitMqClient()
     {
         Logger.Debug("Start mq client for host manager.");
-        this.messageQueueClientToHostMgr.Init();
-        this.messageQueueClientToHostMgr.AsProducer();
-        this.messageQueueClientToHostMgr.AsConsumer();
+        this.messageQueueClientToOtherInstance.Init();
+        this.messageQueueClientToOtherInstance.AsProducer();
+        this.messageQueueClientToOtherInstance.AsConsumer();
 
-        this.messageQueueClientToHostMgr.DeclareExchange(Consts.DbMgrToDbClientExchangeName);
-        this.messageQueueClientToHostMgr.DeclareExchange(Consts.DbClientToDbMgrExchangeName);
+        this.messageQueueClientToOtherInstance.DeclareExchange(Consts.DbMgrToDbClientExchangeName);
+        this.messageQueueClientToOtherInstance.DeclareExchange(Consts.DbClientToDbMgrExchangeName);
 
-        this.messageQueueClientToHostMgr.BindQueueAndExchange(
+        this.messageQueueClientToOtherInstance.BindQueueAndExchange(
             Consts.DbClientToDbMgrMessageQueueName,
             Consts.DbClientToDbMgrExchangeName,
             Consts.RoutingKeyDbClientToDbMgr);
 
-        this.messageQueueClientToHostMgr.Observe(
+        this.messageQueueClientToOtherInstance.Observe(
             Consts.DbClientToDbMgrMessageQueueName,
             this.HandleServerMqMessage);
     }
@@ -169,21 +169,21 @@ public class DbManager : IInstance
         try
         {
             var resMsg = new MessageParser<DatabaseManagerRpc>(() => new DatabaseManagerRpc());
-            var databaseRpcRes = resMsg.ParseFrom(msg.ToArray());
+            var databaseRpc = resMsg.ParseFrom(msg.ToArray());
 
-            var id = databaseRpcRes.RpcId;
-            var name = databaseRpcRes.ApiName;
-            var args = databaseRpcRes.Args.ToArray();
+            var id = databaseRpc.RpcId;
+            var name = databaseRpc.ApiName;
+            var args = databaseRpc.Args.ToArray();
 
             var res = await DbManagerHelper.CallDbApi(name, args);
 
-            var rpcRes = new DatabaseManagerRpcRes
+            DatabaseManagerRpcRes? rpcRes = new()
             {
                 RpcId = id,
                 Res = Any.Pack(RpcHelper.RpcArgToProtoBuf(res)),
             };
 
-            this.messageQueueClientToHostMgr.Publish(
+            this.messageQueueClientToOtherInstance.Publish(
                 rpcRes.ToByteArray(),
                 Consts.DbMgrToDbClientExchangeName,
                 Consts.GenerateDbMgrMessagePackageToDbClient(targetIdentifier));
@@ -199,21 +199,21 @@ public class DbManager : IInstance
         try
         {
             var resMsg = new MessageParser<DatabaseManagerInnerRpc>(() => new DatabaseManagerInnerRpc());
-            var databaseRpcRes = resMsg.ParseFrom(msg.ToArray());
+            var databaseRpc = resMsg.ParseFrom(msg.ToArray());
 
-            var id = databaseRpcRes.RpcId;
-            var name = databaseRpcRes.InnerApiName;
-            var args = databaseRpcRes.Args.ToArray();
+            var id = databaseRpc.RpcId;
+            var name = databaseRpc.InnerApiName;
+            var args = databaseRpc.Args.ToArray();
 
             var res = await DbManagerHelper.CallInnerDbApi(name, args);
 
-            var rpcRes = new DatabaseManagerRpcRes
+            var rpcRes = new DatabaseManagerInnerRpcRes
             {
                 RpcId = id,
                 Res = res,
             };
 
-            this.messageQueueClientToHostMgr.Publish(
+            this.messageQueueClientToOtherInstance.Publish(
                 rpcRes.ToByteArray(),
                 Consts.DbMgrToDbClientExchangeName,
                 Consts.GenerateDbMgrMessageInnerPackageToDbClient(targetIdentifier));

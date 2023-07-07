@@ -60,6 +60,11 @@ public class DbClient
             Consts.DbMgrToDbClientExchangeName,
             Consts.GenerateDbMgrMessagePackageToDbClient(this.identifier));
 
+        this.msgQueueClient.BindQueueAndExchange(
+            Consts.GenerateDbClientQueueName(this.identifier),
+            Consts.DbMgrToDbClientExchangeName,
+            Consts.GenerateDbMgrMessageInnerPackageToDbClient(this.identifier));
+
         this.msgQueueClient.Observe(
             Consts.GenerateDbClientQueueName(this.identifier),
             this.HandleDbMgrMqMessage);
@@ -115,7 +120,7 @@ public class DbClient
         var (task, id) = this.asyncTaskGeneratorForDbInnerApi.GenerateAsyncTask(5000, (id) =>
         {
             this.asyncTaskGeneratorForDbApi.ResolveAsyncTask(asyncId: id, null);
-            return new RpcTimeOutException($"DbApi {innerApiName} timeout.");
+            return new RpcTimeOutException($"DbInnerApi {innerApiName} timeout.");
         });
 
         var dbrpc = new DatabaseManagerInnerRpc()

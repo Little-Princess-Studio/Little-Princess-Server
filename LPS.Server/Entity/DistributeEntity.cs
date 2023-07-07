@@ -305,7 +305,8 @@ public abstract class DistributeEntity : BaseEntity, ISendPropertySyncMessage
     /// <returns>A task that represents the asynchronous operation.</returns>
     protected async Task LinkToDatabase(Dictionary<string, string> queryInfo)
     {
-        var collName = this.GetType().GetCustomAttribute<EntityClassAttribute>()?.Name;
+        var attr = this.GetType().GetCustomAttribute<EntityClassAttribute>();
+        var collName = attr?.DbCollectionName ?? attr?.Name;
         if (string.IsNullOrEmpty(collName))
         {
             var e = new Exception("No corresponding collection name found on entity class.");

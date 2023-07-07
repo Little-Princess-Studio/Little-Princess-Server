@@ -8,9 +8,9 @@ namespace LPS.Server.Database.Storage.MongoDb;
 
 using System;
 using System.Linq;
-using System.Reflection;
 using System.Threading.Tasks;
 using Google.Protobuf.WellKnownTypes;
+using LPS.Common.Debug;
 using LPS.Common.Rpc.InnerMessages;
 using MongoDB.Bson;
 using MongoDB.Driver;
@@ -69,16 +69,22 @@ public class MongoDbWrapper : IDatabase
     /// <inheritdoc/>
     public async Task<Any> LoadEntity(string collectionName, string keyName, string value)
     {
+        Logger.Debug($"[Load Entity] collectionName: {collectionName} key: {keyName}, value: {value}");
+
         var coll = this.GetCollection(this.defaultDatabaseName, collectionName);
-        var filter = Builders<BsonDocument>.Filter.Eq(keyName, value);
+        var filter = Builders<BsonDocument>.Filter.Eq(keyName, new BsonObjectId(new ObjectId(value)));
         var queryRes = (await coll.FindAsync(filter)).ToList();
 
         if (queryRes.Any())
         {
             var entity = queryRes.First();
-            return BsonDocumentToAny(entity);
+
+            var res = BsonDocumentToAny(entity);
+            Logger.Debug($"LoadEntity of {keyName} succ.");
+            return res;
         }
 
+        Logger.Debug($"LoadEntity of {keyName} failed.");
         return Any.Pack(new NullArg());
     }
 
@@ -304,8 +310,9 @@ public class MongoDbWrapper : IDatabase
             {
                 anyValue = HandleComplexData(anyValue, doc, type);
             }
-            else // normal dict
+            else
             {
+                // normal dict
                 anyValue = BsonDocumentToAny(doc);
             }
         }

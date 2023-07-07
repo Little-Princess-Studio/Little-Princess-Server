@@ -18,6 +18,11 @@ public class EntityClassAttribute : System.Attribute
     public string Name { get; set; } = string.Empty;
 
     /// <summary>
+    /// Gets or sets db collection name of the entity class.
+    /// </summary>
+    public string DbCollectionName { get; set; } = string.Empty;
+
+    /// <summary>
     /// Gets or sets a value indicating whether instances of the entity class should be saved to the database.
     /// </summary>
     public bool IsDatabaseEntity { get; set; } = false;

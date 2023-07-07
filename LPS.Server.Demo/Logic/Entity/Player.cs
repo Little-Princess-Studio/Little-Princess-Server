@@ -17,7 +17,7 @@ using LPS.Server.Rpc.RpcProperty;
 /// <summary>
 /// Player is the real entity between server and client after login process.
 /// </summary>
-[EntityClass(Name = "player", IsDatabaseEntity = true)]
+[EntityClass(DbCollectionName = "player", IsDatabaseEntity = true)]
 public class Player : ServerClientEntity
 {
     /// <summary>

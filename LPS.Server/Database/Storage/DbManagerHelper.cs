@@ -225,7 +225,7 @@ public static class DbManagerHelper
     /// <returns>The result of the inner database API method call.</returns>
     public static Task<Any> CallInnerDbApi(string innerApiName, Any[] args)
     {
-        if (!DatabaseApiStore.TryGetValue(innerApiName, out var method))
+        if (!DatabaseInnerApiStore.TryGetValue(innerApiName, out var method))
         {
             Logger.Warn($"Database API method not found: {innerApiName}");
             return Task.FromResult<Any>(Any.Pack(new NullArg()));
