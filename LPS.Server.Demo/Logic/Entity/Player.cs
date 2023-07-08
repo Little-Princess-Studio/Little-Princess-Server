@@ -19,8 +19,8 @@ using LPS.Server.Rpc.RpcProperty;
 /// Player is the real entity between server and client after login process.
 /// </summary>
 [EntityClass(DbCollectionName = "player", IsDatabaseEntity = true)]
-[Component(typeof(GamePropertyComponent), "GameProperty")]
-[Component(typeof(BagComponent), "Bag")]
+[Component(typeof(GamePropertyComponent), PropertyName = "GameProperty")]
+[Component(typeof(BagComponent), PropertyName = "Bag")]
 public class Player : ServerClientEntity
 {
     /// <summary>
@@ -65,13 +65,12 @@ public class Player : ServerClientEntity
     /// <param name="sp">The new value for the player's stamina points.</param>
     /// <returns>A task that represents the asynchronous operation.</returns>
     [RpcMethod(Authority.ClientOnly)]
-    public Task UpdateGameProperty(int hp, int sp)
+    public async Task UpdateGameProperty(int hp, int sp)
     {
-        var props = this.GetComponent<GamePropertyComponent>();
+        var props = await this.GetComponent<GamePropertyComponent>();
         props.Hp.Val = hp;
         props.Sp.Val = sp;
         Logger.Info($"[Player] UpdateGameProperty, hp -> {hp}, sp -> {sp}");
-        return Task.CompletedTask;
     }
 
     /// <inheritdoc/>

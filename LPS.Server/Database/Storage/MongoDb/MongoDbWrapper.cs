@@ -7,6 +7,7 @@
 namespace LPS.Server.Database.Storage.MongoDb;
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Google.Protobuf.WellKnownTypes;
@@ -73,7 +74,12 @@ public class MongoDbWrapper : IDatabase
 
         var coll = this.GetCollection(this.defaultDatabaseName, collectionName);
         var filter = Builders<BsonDocument>.Filter.Eq(keyName, new BsonObjectId(new ObjectId(value)));
-        var queryRes = (await coll.FindAsync(filter)).ToList();
+        var projection = Builders<BsonDocument>.Projection.Exclude("$_components");
+        var findOption = new FindOptions<BsonDocument, BsonDocument>
+        {
+            Projection = projection,
+        };
+        var queryRes = await (await coll.FindAsync(filter, findOption)).ToListAsync();
 
         if (queryRes.Any())
         {
@@ -101,6 +107,83 @@ public class MongoDbWrapper : IDatabase
 
         var updateRes = await coll.UpdateOneAsync(filter, updateBuilder.Combine(combinedUpdate));
         return updateRes.IsAcknowledged && updateRes.ModifiedCount > 0;
+    }
+
+    /// <inheritdoc/>
+    public async Task<Any> LoadComponent(string collectionName, string entityDbId, string componentName)
+    {
+        var coll = this.GetCollection(databaseName: this.defaultDatabaseName, collectionName);
+        var filter = Builders<BsonDocument>.Filter.Eq("_id", new BsonObjectId(new ObjectId(entityDbId)));
+        var projection =
+            Builders<BsonDocument>.Projection.Include($"$_components.{componentName}");
+
+        var findOption = new FindOptions<BsonDocument, BsonDocument>
+        {
+            Projection = projection,
+        };
+        var queryRes = (await coll.FindAsync(filter, findOption)).ToList();
+        if (queryRes.Any())
+        {
+            var first = queryRes.First();
+            return BsonDocumentToAny(first["$_components"][componentName].AsBsonDocument);
+        }
+
+        return Any.Pack(new NullArg());
+    }
+
+    /// <inheritdoc/>
+    public async Task<bool> SaveComponent(string collectionName, string entityDbId, string componentName, Any componentData)
+    {
+        var componentDoc = AnyToBsonDocument(componentData);
+
+        var coll = this.GetCollection(this.defaultDatabaseName, collectionName);
+        var filter = Builders<BsonDocument>.Filter.Eq("_id", new BsonObjectId(new ObjectId(entityDbId)));
+        var update = Builders<BsonDocument>.Update.Set($"$_components.{componentName}", componentDoc);
+
+        var res = await coll.UpdateOneAsync(filter, update);
+
+        return res.IsAcknowledged && res.ModifiedCount > 0;
+    }
+
+    /// <inheritdoc/>
+    public async Task<Any> BatchLoadComponents(string collectionName, string entityDbId, string[] componentNames)
+    {
+        var coll = this.GetCollection(databaseName: this.defaultDatabaseName, collectionName);
+        var filter = Builders<BsonDocument>.Filter.Eq("_id", new BsonObjectId(new ObjectId(entityDbId)));
+        var projection = Builders<BsonDocument>.Projection;
+        var batchProjectionColl = componentNames.Select(name => projection.Include($"$_components.{name}"));
+        var batchProjection = projection.Combine(batchProjectionColl);
+
+        var findOption = new FindOptions<BsonDocument, BsonDocument>
+        {
+            Projection = batchProjection,
+        };
+
+        var queryRes = (await coll.FindAsync(filter, findOption)).ToList();
+        if (queryRes.Any())
+        {
+            var first = queryRes.First();
+            return BsonDocumentToAny(first["$_components"].AsBsonDocument);
+        }
+
+        return Any.Pack(new NullArg());
+    }
+
+    /// <inheritdoc/>
+    public async Task<bool> BatchSaveComponents(string collectionName, string entityDbId, Dictionary<string, Any> componentsDict)
+    {
+        var coll = this.GetCollection(databaseName: this.defaultDatabaseName, collectionName);
+        var filter = Builders<BsonDocument>.Filter.Eq("_id", new BsonObjectId(new ObjectId(entityDbId)));
+
+        var updateBuilder = Builders<BsonDocument>.Update;
+        var batchSet =
+            componentsDict.Select(pair => updateBuilder.Set($"$_components.{pair.Key}", AnyToBsonDocument(pair.Value)));
+
+        var updateRes = await coll.UpdateOneAsync(filter, updateBuilder.Combine(batchSet));
+
+        var succ = updateRes.IsAcknowledged && updateRes.ModifiedCount > 0;
+        Logger.Debug($"[BatchSaveComponents] batch save res: {succ}");
+        return succ;
     }
 
     /// <summary>

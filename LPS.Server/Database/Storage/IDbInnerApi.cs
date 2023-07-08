@@ -32,4 +32,36 @@ public interface IDbInnerApi<T>
     /// <param name="args">The arguments for the method call.</param>
     /// <returns>A task that represents the asynchronous operation. The task result contains the saved entity.</returns>
     Task<Any> SaveEntity(T database, Any[] args);
+
+    /// <summary>
+    /// Loads a component from the specified MongoDB collection based on the given arguments.
+    /// </summary>
+    /// <param name="database">The database wrapper instance.</param>
+    /// <param name="args">The arguments for the method call.</param>
+    /// <returns>A task that represents the asynchronous operation. The task result contains the loaded component.</returns>
+    Task<Any> LoadComponent(T database, Any[] args);
+
+    /// <summary>
+    /// Saves a component to the specified MongoDB collection.
+    /// </summary>
+    /// <param name="database">The database wrapper instance.</param>
+    /// <param name="args">The arguments for the method call.</param>
+    /// <returns>A task that represents the asynchronous operation. The task result contains the saved component.</returns>
+    Task<Any> SaveComponent(T database, Any[] args);
+
+    /// <summary>
+    /// Loads multiple components from the specified MongoDB collection based on the given arguments.
+    /// </summary>
+    /// <param name="database">The database wrapper instance.</param>
+    /// <param name="args">The arguments for the method call.</param>
+    /// <returns>A task that represents the asynchronous operation. The task result contains the loaded components.</returns>
+    Task<Any> BatchLoadComponents(T database, Any[] args);
+
+    /// <summary>
+    /// Saves multiple components to the specified MongoDB collection.
+    /// </summary>
+    /// <param name="database">The database wrapper instance.</param>
+    /// <param name="args">The arguments for the method call.</param>
+    /// <returns>A task that represents the asynchronous operation. The task result contains the saved components.</returns>
+    Task<Any> BathcSaveComponents(T database, Any[] args);
 }

@@ -20,7 +20,7 @@ public class AsyncTaskGenerator<TResult>
     public Func<uint>? OnGenerateAsyncId { private get; init; }
 
     private readonly ConcurrentDictionary<uint, TaskCompletionSource<TResult>> dictionary =
-        new ConcurrentDictionary<uint, TaskCompletionSource<TResult>>();
+        new();
 
     private uint asyncId;
 
@@ -124,7 +124,7 @@ public class AsyncTaskGenerator<TResult, TData>
     public Func<uint>? OnGenerateAsyncId { private get; init; }
 
     private readonly ConcurrentDictionary<uint, (TaskCompletionSource<TResult> Result, TData Data)>
-        dictionary = new ConcurrentDictionary<uint, (TaskCompletionSource<TResult> Result, TData Data)>();
+        dictionary = new();
 
     private uint asyncId;
 

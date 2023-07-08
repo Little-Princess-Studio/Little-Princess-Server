@@ -31,7 +31,7 @@ public static class RpcServerHelper
     /// <param name="desc">Description string to construct the entity.</param>
     /// <returns>DistributeEntity object.</returns>
     /// <exception cref="Exception">Throw exception if failed to create entity.</exception>
-    public static DistributeEntity CreateEntityLocally(string entityClassName, string desc)
+    public static async Task<DistributeEntity> CreateEntityLocally(string entityClassName, string desc)
     {
         if (EntityClassMap.ContainsKey(entityClassName))
         {
@@ -39,6 +39,7 @@ public static class RpcServerHelper
             if (entityClass.IsSubclassOf(typeof(DistributeEntity)))
             {
                 var obj = (Activator.CreateInstance(entityClass, desc) as DistributeEntity)!;
+                await obj.InitComponents();
                 BuildPropertyTree(obj);
                 return obj;
             }

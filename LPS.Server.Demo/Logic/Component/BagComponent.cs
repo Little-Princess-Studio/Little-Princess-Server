@@ -9,7 +9,6 @@ namespace LPS.Common.Entity.Component;
 using Google.Protobuf.WellKnownTypes;
 using LPS.Common.Rpc.RpcProperty;
 using LPS.Common.Rpc.RpcProperty.RpcContainer;
-using LPS.Server.Rpc.RpcProperty;
 
 /// <summary>
 /// Represents a component that manages game properties of the <see cref="Player"/> entity.
@@ -17,10 +16,10 @@ using LPS.Server.Rpc.RpcProperty;
 public class BagComponent : ComponentBase
 {
     /// <summary>
-    /// Represents the Hp of the <see cref="Player"/> entity.
+    /// Represents the item list in the bag of the <see cref="Player"/> entity.
     /// </summary>
-    [RpcProperty(nameof(GamePropertyComponent.Hp), RpcPropertySetting.Permanent | RpcPropertySetting.ServerToShadow)]
-    public readonly RpcList<Item> Hp = new ();
+    [RpcProperty(nameof(BagComponent.Items), RpcPropertySetting.Permanent | RpcPropertySetting.ServerToShadow)]
+    public readonly RpcList<Item> Items = new ();
 
     /// <inheritdoc/>
     public override void OnInit()

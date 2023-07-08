@@ -8,18 +8,18 @@ namespace LPS.Server.Entity;
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using Google.Protobuf.WellKnownTypes;
 using LPS.Common.Debug;
 using LPS.Common.Entity;
+using LPS.Common.Entity.Component;
 using LPS.Common.Rpc.Attribute;
 using LPS.Common.Rpc.InnerMessages;
 using LPS.Common.Rpc.RpcProperty;
 using LPS.Common.Rpc.RpcPropertySync.RpcPropertySyncMessage;
 using LPS.Server.Database;
-using LPS.Server.Database.Storage;
-using Newtonsoft.Json.Linq;
 using MailBox = LPS.Common.Rpc.MailBox;
 
 /// <summary>
@@ -279,6 +279,100 @@ public abstract class DistributeEntity : BaseEntity, ISendPropertySyncMessage
     {
     }
 
+    /// <inheritdoc/>
+    protected override async Task OnComponentsLoaded(IEnumerable<ComponentBase> loadedComponents)
+    {
+        var componentsAny = await this.BatchLoadComponentsFromDatabase(loadedComponents);
+        var componentsDict = componentsAny
+            .Unpack<DictWithStringKeyArg>()
+            .PayLoad
+            .ToDictionary(
+                pair => pair.Key,
+                pair => pair.Value);
+
+        foreach (var comp in loadedComponents)
+        {
+            if (componentsDict.ContainsKey(comp.Name))
+            {
+                comp.Deserialize(componentsDict[comp.Name]);
+            }
+            else
+            {
+                Logger.Warn($"Component {comp.Name} not found in database.");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Batch loads the components from the database.
+    /// </summary>
+    /// <param name="componentList">The list of components to load.</param>
+    /// <returns>The protobuf Any object containing the loaded components.</returns>
+    /// <exception cref="Exception">Thrown when failed to load components from the database.</exception>
+    protected async Task<Any> BatchLoadComponentsFromDatabase(IEnumerable<ComponentBase> componentList)
+    {
+        string? collName = this.GetCollectionName();
+        if (string.IsNullOrEmpty(collName))
+        {
+            var e = new Exception("No corresponding collection name found on entity class.");
+            Logger.Error(e);
+            throw e;
+        }
+
+        var components = new ListArg();
+
+        foreach (var comp in componentList)
+        {
+            components.PayLoad.Add(Any.Pack(new StringArg { PayLoad = comp.Name }));
+        }
+
+        var res = await DbHelper.CallDbInnerApi(
+            "BatchLoadComponents",
+            Any.Pack(new StringArg { PayLoad = collName }),
+            Any.Pack(new StringArg { PayLoad = this.DbId }),
+            Any.Pack(components));
+
+        if (res.Is(NullArg.Descriptor))
+        {
+            var e = new Exception("Failed to load components from database");
+            Logger.Error(e);
+            throw e;
+        }
+
+        return res;
+    }
+
+    /// <summary>
+    /// Batch saves the components to the database.
+    /// </summary>
+    /// <param name="componentList">The list of components to save.</param>
+    /// <returns>A boolean indicating whether the save operation was successful or not.</returns>
+    protected async Task<bool> BatchSaveComponentsToDatabase(IEnumerable<ComponentBase> componentList)
+    {
+        string? collName = this.GetCollectionName();
+        if (string.IsNullOrEmpty(collName))
+        {
+            var e = new Exception("No corresponding collection name found on entity class.");
+            Logger.Error(e);
+            throw e;
+        }
+
+        var components = new DictWithStringKeyArg();
+        foreach (var comp in componentList)
+        {
+            var compToAny = comp.Serialize();
+            components.PayLoad.Add(comp.Name, compToAny);
+        }
+
+        var res = await DbHelper.CallDbInnerApi(
+            "BatchSaveComponents",
+            Any.Pack(new StringArg { PayLoad = collName }),
+            Any.Pack(new StringArg { PayLoad = this.DbId }),
+            Any.Pack(components));
+
+        return res.Unpack<BoolArg>().PayLoad;
+    }
+
     /// <summary>
     /// Converts the entity's property tree to a protobuf Any object.
     /// </summary>
@@ -305,8 +399,7 @@ public abstract class DistributeEntity : BaseEntity, ISendPropertySyncMessage
     /// <returns>A task that represents the asynchronous operation.</returns>
     protected async Task LinkToDatabase(Dictionary<string, string> queryInfo)
     {
-        var attr = this.GetType().GetCustomAttribute<EntityClassAttribute>();
-        var collName = attr?.DbCollectionName ?? attr?.Name;
+        string? collName = this.GetCollectionName();
         if (string.IsNullOrEmpty(collName))
         {
             var e = new Exception("No corresponding collection name found on entity class.");
@@ -387,5 +480,16 @@ public abstract class DistributeEntity : BaseEntity, ISendPropertySyncMessage
     protected virtual Task OnMigratedOut(MailBox targetMailBox, string migrateInfo, Dictionary<string, string>? extraInfo)
     {
         return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Gets the name of the database collection for this entity.
+    /// </summary>
+    /// <returns>The name of the database collection for this entity.</returns>
+    protected string? GetCollectionName()
+    {
+        var attr = this.GetType().GetCustomAttribute<EntityClassAttribute>();
+        var collName = attr?.DbCollectionName ?? attr?.Name;
+        return collName;
     }
 }

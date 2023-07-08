@@ -340,9 +340,9 @@ public class Server : IInstance
         }
     }
 
-    private void OnCreateEntity(Connection? gateConn, string entityClassName, string jsonDesc, MailBox mailBox)
+    private async Task OnCreateEntity(Connection? gateConn, string entityClassName, string jsonDesc, MailBox mailBox)
     {
-        var entity = RpcServerHelper.CreateEntityLocally(entityClassName, jsonDesc);
+        var entity = await RpcServerHelper.CreateEntityLocally(entityClassName, jsonDesc);
 
         Logger.Info($"Server create a new entity with mailbox {mailBox}");
 
@@ -416,6 +416,7 @@ public class Server : IInstance
         var jsonDesc = createDist.Description!;
 
         var entityMailBox = new MailBox(newId, this.Ip, this.Port, this.HostNum);
+        Task? task = null;
 
         if (createDist.EntityType == EntityType.ServerClientEntity)
         {
@@ -424,7 +425,7 @@ public class Server : IInstance
             if (connToGate != null)
             {
                 Logger.Debug("[HandleCreateDistributeEntity] Bind gate conn to new entity");
-                this.OnCreateEntity(connToGate, entityClassName, jsonDesc, entityMailBox);
+                task = this.OnCreateEntity(connToGate, entityClassName, jsonDesc, entityMailBox);
             }
             else
             {
@@ -436,19 +437,22 @@ public class Server : IInstance
         }
         else
         {
-            this.OnCreateEntity(null!, entityClassName, jsonDesc, entityMailBox);
+            task = this.OnCreateEntity(null!, entityClassName, jsonDesc, entityMailBox);
         }
 
-        var createEntityRes = new CreateDistributeEntityRes
-        {
-            Mailbox = RpcHelper.RpcMailBoxToPbMailBox(entityMailBox),
-            ConnectionID = createDist.ConnectionID,
-            EntityType = createDist.EntityType,
-            EntityClassName = createDist.EntityClassName,
-        };
+        task?.ContinueWith(_ =>
+            {
+                var createEntityRes = new CreateDistributeEntityRes
+                {
+                    Mailbox = RpcHelper.RpcMailBoxToPbMailBox(entityMailBox),
+                    ConnectionID = createDist.ConnectionID,
+                    EntityType = createDist.EntityType,
+                    EntityClassName = createDist.EntityClassName,
+                };
 
-        Logger.Debug("Create Entity Anywhere");
-        this.hostConnection.Send(createEntityRes);
+                Logger.Debug("Create Entity Anywhere");
+                this.hostConnection.Send(createEntityRes);
+            });
     }
 
     private void HandleRequireCreateEntityResFromHost(IMessage msg)
@@ -685,7 +689,7 @@ public class Server : IInstance
                     ["name"] = this.Name,
                     ["mailbox"] = new JObject
                     {
-                        ["id"] = this.entity !.MailBox.Id,
+                        ["id"] = this.entity!.MailBox.Id,
                         ["ip"] = this.Ip,
                         ["port"] = this.Port,
                         ["hostNum"] = this.HostNum,
@@ -693,7 +697,7 @@ public class Server : IInstance
                     ["entitiesCnt"] = this.localEntityDict.Count,
                     ["cellCnt"] = this.cells.Count,
                 });
-            this.messageQueueClientToWebMgr !.Publish(
+            this.messageQueueClientToWebMgr!.Publish(
                 res.ToJson(),
                 Consts.ServerExchangeName,
                 Consts.ServerDetailedInfo);
@@ -753,7 +757,7 @@ public class Server : IInstance
                 msgId,
                 entities);
             Logger.Debug("Send all entities to web mgr sent");
-            this.messageQueueClientToWebMgr !.Publish(
+            this.messageQueueClientToWebMgr!.Publish(
                 res.ToJson(),
                 Consts.ServerExchangeName,
                 Consts.AllEntitiesRes);

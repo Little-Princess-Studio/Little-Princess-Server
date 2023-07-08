@@ -18,18 +18,21 @@ public class ComponentAttribute : Attribute
     public readonly Type ComponentType;
 
     /// <summary>
-    /// The name of the component in the property tree of the entity.
+    /// Gets or Sets the name of the component in the property tree of the entity.
     /// </summary>
-    public readonly string PropertyName;
+    public string PropertyName { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the component should be lazily loaded.
+    /// </summary>
+    public bool LazyLoad { get; set; } = true;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ComponentAttribute"/> class.
     /// </summary>
     /// <param name="componentType">The type of the component.</param>
-    /// <param name="propertyName">The name of the component in the property tree of the entity.</param>
-    public ComponentAttribute(Type componentType, string propertyName)
+    public ComponentAttribute(Type componentType)
     {
         this.ComponentType = componentType;
-        this.PropertyName = propertyName;
     }
 }

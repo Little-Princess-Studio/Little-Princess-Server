@@ -6,6 +6,8 @@
 
 namespace LPS.Common.Entity;
 
+using System.Linq;
+using System.Reflection;
 using Google.Protobuf.WellKnownTypes;
 using LPS.Common.Debug;
 using LPS.Common.Entity.Component;
@@ -14,6 +16,7 @@ using LPS.Common.Rpc;
 using LPS.Common.Rpc.Attribute;
 using LPS.Common.Rpc.InnerMessages;
 using LPS.Common.Rpc.RpcProperty;
+using LPS.Common.Util;
 using MailBox = LPS.Common.Rpc.MailBox;
 
 /// <summary>
@@ -33,6 +36,10 @@ public abstract class BaseEntity
 
     private readonly AsyncTaskGenerator<object> rpcBlankAsyncTaskGenerator;
     private readonly AsyncTaskGenerator<object, System.Type> rpcAsyncTaskGenerator;
+
+    private readonly Dictionary<uint, ComponentBase> components = new();
+    private readonly Dictionary<string, uint> componentNameToComponentTypeId = new();
+
     private Dictionary<string, RpcProperty>? propertyTree;
 
     /// <summary>
@@ -63,14 +70,53 @@ public abstract class BaseEntity
     }
 
     /// <summary>
+    /// Initializes all components of the entity.
+    /// </summary>
+    /// <returns>A task that represents the asynchronous initialization operation.</returns>
+    public async Task InitComponents()
+    {
+        var componentAttr = this.GetType().GetCustomAttributes<ComponentAttribute>();
+        var componentToLoad = new List<ComponentBase>();
+        foreach (var attr in componentAttr)
+        {
+            var componentType = attr.ComponentType;
+            var component = (ComponentBase)Activator.CreateInstance(componentType)!;
+            var componentName = string.IsNullOrEmpty(componentType.Name) ? attr.ComponentType.Name : componentType.Name;
+
+            component.Init(this, componentName);
+            var componentTypeId = TypeIdHelper.GetId(componentType);
+
+            if (this.components.ContainsKey(componentTypeId))
+            {
+                Logger.Warn($"Component {componentType.Name} is already added to entity {this.GetType().Name}.");
+                continue;
+            }
+
+            if (!attr.LazyLoad)
+            {
+                componentToLoad.Add(component);
+            }
+
+            this.components.Add(componentTypeId, component);
+            this.componentNameToComponentTypeId.Add(componentName, componentTypeId);
+        }
+
+        await this.OnComponentsLoaded(componentToLoad);
+
+        componentToLoad.ForEach(comp => comp.OnInit());
+    }
+
+    /// <summary>
     /// Gets the component of type T from the entity.
     /// </summary>
     /// <typeparam name="T">The type of component to get.</typeparam>
-    /// <returns>The component of type T.</returns>
-    public T GetComponent<T>()
+    /// <returns>The component of type T. If the component is marked as `LazyLoad`, it will be loaded this time.</returns>
+    public async ValueTask<T> GetComponent<T>()
         where T : ComponentBase
     {
-        throw new NotImplementedException();
+        var typeId = TypeIdHelper.GetId<T>();
+        var component = await this.GetComponentInternal(typeId);
+        return (T)component;
     }
 
     /// <summary>
@@ -78,9 +124,11 @@ public abstract class BaseEntity
     /// </summary>
     /// <param name="componentType">The type of component to get.</param>
     /// <returns>The component of the specified type.</returns>
-    public ComponentBase GetComponent(System.Type componentType)
+    public async ValueTask<ComponentBase> GetComponent(System.Type componentType)
     {
-        throw new NotImplementedException();
+        var typeId = TypeIdHelper.GetId(componentType);
+        var component = await this.GetComponentInternal(typeId);
+        return component;
     }
 
     /// <summary>
@@ -88,9 +136,11 @@ public abstract class BaseEntity
     /// </summary>
     /// <param name="componentName">The name of the component to get.</param>
     /// <returns>The component with the specified name.</returns>
-    public ComponentBase GetComponent(string componentName)
+    public async ValueTask<ComponentBase> GetComponent(string componentName)
     {
-        throw new NotImplementedException();
+        var typeId = this.componentNameToComponentTypeId[componentName];
+        var component = await this.GetComponentInternal(typeId);
+        return component;
     }
 
     /// <summary>
@@ -100,11 +150,11 @@ public abstract class BaseEntity
     {
         this.rpcBlankAsyncTaskGenerator = new AsyncTaskGenerator<object>
         {
-            OnGenerateAsyncId = () => this.IncreaseRpcIdCnt(),
+            OnGenerateAsyncId = this.IncreaseRpcIdCnt,
         };
         this.rpcAsyncTaskGenerator = new AsyncTaskGenerator<object, System.Type>
         {
-            OnGenerateAsyncId = () => this.IncreaseRpcIdCnt(),
+            OnGenerateAsyncId = this.IncreaseRpcIdCnt,
         };
     }
 
@@ -388,6 +438,16 @@ public abstract class BaseEntity
         this.RpcAsyncCallBack(rpcId, entityRpc);
     }
 
+    /// <summary>
+    /// This method is called after components are loaded from the database.
+    /// </summary>
+    /// <param name="loadedComponents">The list of loaded components.</param>
+    /// <returns>A task that represents the asynchronous operation.</returns>
+    protected virtual Task OnComponentsLoaded(IEnumerable<ComponentBase> loadedComponents)
+    {
+        return Task.CompletedTask;
+    }
+
     private void RpcAsyncCallBack(uint rpcId, EntityRpc entityRpc)
     {
         if (this.rpcAsyncTaskGenerator.ContainsAsyncId(rpcId))
@@ -400,6 +460,25 @@ public abstract class BaseEntity
         {
             this.rpcBlankAsyncTaskGenerator.ResolveAsyncTask(rpcId, null!);
         }
+    }
+
+    private async ValueTask<ComponentBase> GetComponentInternal(uint typeId)
+    {
+        if (!this.components.ContainsKey(typeId))
+        {
+            var e = new Exception($"Component not found.");
+            Logger.Error(e);
+            throw e;
+        }
+
+        var component = this.components[typeId];
+
+        if (!component.IsLoaded)
+        {
+            await component.LoadFromDatabase();
+        }
+
+        return component;
     }
 
     private uint IncreaseRpcIdCnt() => this.rpcIdCnt++;
