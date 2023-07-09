@@ -76,14 +76,14 @@ public abstract class BaseEntity
     public async Task InitComponents()
     {
         var componentAttr = this.GetType().GetCustomAttributes<ComponentAttribute>();
-        var componentToLoad = new List<ComponentBase>();
+        var componentsToLoad = new List<ComponentBase>();
         foreach (var attr in componentAttr)
         {
             var componentType = attr.ComponentType;
             var component = (ComponentBase)Activator.CreateInstance(componentType)!;
             var componentName = string.IsNullOrEmpty(componentType.Name) ? attr.ComponentType.Name : componentType.Name;
 
-            component.Init(this, componentName);
+            component.InitComponent(this, componentName);
             var componentTypeId = TypeIdHelper.GetId(componentType);
 
             if (this.components.ContainsKey(componentTypeId))
@@ -94,16 +94,16 @@ public abstract class BaseEntity
 
             if (!attr.LazyLoad)
             {
-                componentToLoad.Add(component);
+                componentsToLoad.Add(component);
             }
 
             this.components.Add(componentTypeId, component);
             this.componentNameToComponentTypeId.Add(componentName, componentTypeId);
         }
 
-        await this.OnComponentsLoaded(componentToLoad);
+        await this.OnComponentsLoaded(componentsToLoad);
 
-        componentToLoad.ForEach(comp => comp.OnInit());
+        componentsToLoad.ForEach(comp => comp.OnInit());
     }
 
     /// <summary>

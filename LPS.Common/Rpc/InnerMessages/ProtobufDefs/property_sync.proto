@@ -32,7 +32,9 @@ message PropertySyncCommandList {
     SyncPropType PropType = 1;
     string EntityId = 2;
     string Path = 3;
-    repeated PropertySyncCommand SyncArg = 4;
+    bool IsComponentSyncMsg = 4;
+    string ComponentName = 5;
+    repeated PropertySyncCommand SyncArg = 6;
 }
 
 message PropertySyncCommand {

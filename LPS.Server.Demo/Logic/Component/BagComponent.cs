@@ -13,7 +13,7 @@ using LPS.Common.Rpc.RpcProperty.RpcContainer;
 /// <summary>
 /// Represents a component that manages game properties of the <see cref="Player"/> entity.
 /// </summary>
-public class BagComponent : ComponentBase
+public class BagComponent : ServerComponent
 {
     /// <summary>
     /// Represents the item list in the bag of the <see cref="Player"/> entity.

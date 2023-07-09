@@ -36,11 +36,21 @@ public class RpcDictPropertySyncMessage : RpcPropertySyncMessage
     /// <param name="mailbox">MailBox of the syncing entity.</param>
     /// <param name="operation">Sync operation.</param>
     /// <param name="rpcPropertyPath">Sync property path in property tree.</param>
+    /// <param name="isComponentsSyncMsg">Indicates whether the sync message is for components.</param>
+    /// <param name="componentName">Name of the component associated with the sync message.</param>
     public RpcDictPropertySyncMessage(
         MailBox mailbox,
         RpcPropertySyncOperation operation,
-        string rpcPropertyPath)
-        : base(mailbox, operation, rpcPropertyPath, RpcSyncPropertyType.Dict)
+        string rpcPropertyPath,
+        bool isComponentsSyncMsg,
+        string componentName)
+        : base(
+            mailbox,
+            operation,
+            rpcPropertyPath,
+            RpcSyncPropertyType.Dict,
+            isComponentsSyncMsg,
+            componentName)
     {
         switch (operation)
         {
@@ -239,7 +249,7 @@ public class RpcDictPropertySyncMessage : RpcPropertySyncMessage
                 var removeImpl =
                     (lastMsg as RpcDictPropertySyncMessage)!.GetImpl<RpcDictPropertyRemoveSyncMessageImpl>();
                 var removedKeys = removeImpl.GetRemoveDictInfo();
-                foreach (var (key, value) in this.updateDictInfo)
+                foreach (var (key, _) in this.updateDictInfo)
                 {
                     if (removedKeys.Contains(key))
                     {

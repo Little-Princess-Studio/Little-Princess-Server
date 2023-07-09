@@ -36,11 +36,21 @@ public class RpcListPropertySyncMessage : RpcPropertySyncMessage
     /// <param name="mailbox">MailBox of the syncing entity.</param>
     /// <param name="operation">Sync operation.</param>
     /// <param name="rpcPropertyPath">Sync property path in property tree.</param>
+    /// <param name="isComponentsSyncMsg">Indicates whether the sync message is for components.</param>
+    /// <param name="componentName">Name of the component associated with the sync message.</param>
     public RpcListPropertySyncMessage(
         Rpc.MailBox mailbox,
         RpcPropertySyncOperation operation,
-        string rpcPropertyPath)
-        : base(mailbox, operation, rpcPropertyPath, RpcSyncPropertyType.List)
+        string rpcPropertyPath,
+        bool isComponentsSyncMsg,
+        string componentName)
+        : base(
+            mailbox,
+            operation,
+            rpcPropertyPath,
+            rpcSyncPropertyType: RpcSyncPropertyType.List,
+            isComponentsSyncMsg,
+            componentName)
     {
         switch (operation)
         {
@@ -48,8 +58,7 @@ public class RpcListPropertySyncMessage : RpcPropertySyncMessage
                 this.impl = new RpcListPropertyAddElemSyncMessageImpl();
                 this.Action = args =>
                 {
-                    var elem = args[0] as RpcPropertyContainer;
-                    if (elem == null)
+                    if (args[0] is not RpcPropertyContainer elem)
                     {
                         throw new Exception($"Invalid args {args}");
                     }
@@ -74,8 +83,7 @@ public class RpcListPropertySyncMessage : RpcPropertySyncMessage
                 this.Action = args =>
                 {
                     var index = (int)args[0];
-                    var elem = args[1] as RpcPropertyContainer;
-                    if (elem == null)
+                    if (args[1] is not RpcPropertyContainer elem)
                     {
                         throw new Exception($"Invalid args {args}");
                     }
@@ -88,8 +96,7 @@ public class RpcListPropertySyncMessage : RpcPropertySyncMessage
                 this.Action = args =>
                 {
                     var index = (int)args[0];
-                    var elem = args[1] as RpcPropertyContainer;
-                    if (elem == null)
+                    if (args[1] is not RpcPropertyContainer elem)
                     {
                         throw new Exception($"Invalid args {args}");
                     }

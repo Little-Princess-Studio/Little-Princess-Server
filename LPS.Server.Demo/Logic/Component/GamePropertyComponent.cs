@@ -12,7 +12,7 @@ using LPS.Server.Rpc.RpcProperty;
 /// <summary>
 /// Represents a component that manages game properties of the <see cref="Player"/> entity.
 /// </summary>
-public class GamePropertyComponent : ComponentBase
+public class GamePropertyComponent : ServerComponent
 {
     /// <summary>
     /// Represents the Hp of the <see cref="Player"/> entity.

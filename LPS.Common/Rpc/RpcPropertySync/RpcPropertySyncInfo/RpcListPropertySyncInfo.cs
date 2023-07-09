@@ -16,8 +16,10 @@ public class RpcListPropertySyncInfo : RpcPropertySyncInfo
     /// <summary>
     /// Initializes a new instance of the <see cref="RpcListPropertySyncInfo"/> class.
     /// </summary>
-    public RpcListPropertySyncInfo()
-        : base(RpcSyncPropertyType.List)
+    /// <param name="isComponentSyncMsg">Whether the sync message is for a component.</param>
+    /// <param name="componentName">The name of the component associated with this sync message.</param>
+    public RpcListPropertySyncInfo(bool isComponentSyncMsg, string componentName)
+        : base(RpcSyncPropertyType.List, isComponentSyncMsg, componentName)
     {
     }
 

@@ -53,11 +53,27 @@ public abstract class RpcPropertySyncInfo
     public readonly RpcSyncPropertyType RpcSyncPropertyType;
 
     /// <summary>
+    /// Gets a value indicating whether this sync message is for a component.
+    /// </summary>
+    public readonly bool IsComponentSyncMsg;
+
+    /// <summary>
+    /// The name of the component associated with this sync message.
+    /// </summary>
+    public readonly string ComponentName;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="RpcPropertySyncInfo"/> class.
     /// </summary>
     /// <param name="rpcSyncPropertyType">Rpc sync property type.</param>
-    protected RpcPropertySyncInfo(RpcSyncPropertyType rpcSyncPropertyType) =>
+    /// <param name="isComponentSyncMsg">Indicates whether this sync message is for a component.</param>
+    /// <param name="componentName">The name of the component associated with this sync message.</param>
+    protected RpcPropertySyncInfo(RpcSyncPropertyType rpcSyncPropertyType, bool isComponentSyncMsg, string componentName)
+    {
         this.RpcSyncPropertyType = rpcSyncPropertyType;
+        this.IsComponentSyncMsg = isComponentSyncMsg;
+        this.ComponentName = componentName;
+    }
 
     /// <summary>
     /// Add new sync message to sync message queue.

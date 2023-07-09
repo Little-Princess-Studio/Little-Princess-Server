@@ -28,26 +28,27 @@ namespace LPS.Common.Rpc.InnerMessages {
             "c3NhZ2VzGhlnb29nbGUvcHJvdG9idWYvYW55LnByb3RvIisKF1JlcXVpcmVQ",
             "cm9wZXJ0eUZ1bGxTeW5jEhAKCEVudGl0eUlkGAEgASgJIlAKEFByb3BlcnR5",
             "RnVsbFN5bmMSEAoIRW50aXR5SWQYASABKAkSKgoMUHJvcGVydHlUcmVlGAIg",
-            "ASgLMhQuZ29vZ2xlLnByb3RvYnVmLkFueSK7AQoXUHJvcGVydHlTeW5jQ29t",
+            "ASgLMhQuZ29vZ2xlLnByb3RvYnVmLkFueSLuAQoXUHJvcGVydHlTeW5jQ29t",
             "bWFuZExpc3QSPAoIUHJvcFR5cGUYASABKA4yKi5MUFMuQ29tbW9uLlJwYy5J",
             "bm5lck1lc3NhZ2VzLlN5bmNQcm9wVHlwZRIQCghFbnRpdHlJZBgCIAEoCRIM",
-            "CgRQYXRoGAMgASgJEkIKB1N5bmNBcmcYBCADKAsyMS5MUFMuQ29tbW9uLlJw",
-            "Yy5Jbm5lck1lc3NhZ2VzLlByb3BlcnR5U3luY0NvbW1hbmQieQoTUHJvcGVy",
-            "dHlTeW5jQ29tbWFuZBI+CglPcGVyYXRpb24YASABKA4yKy5MUFMuQ29tbW9u",
-            "LlJwYy5Jbm5lck1lc3NhZ2VzLlN5bmNPcGVyYXRpb24SIgoEQXJncxgCIAMo",
-            "CzIULmdvb2dsZS5wcm90b2J1Zi5BbnkiJwoTUHJvcGVydHlGdWxsU3luY0Fj",
-            "axIQCghFbnRpdHlJZBgBIAEoCSIjCg9Qcm9wZXJ0eVN5bmNBY2sSEAoIRW50",
-            "aXR5SWQYASABKAkqOAoMU3luY1Byb3BUeXBlEhQKEFBsYWludEFuZENvc3R1",
-            "bWUQABIICgREaWN0EAESCAoETGlzdBACKmkKDVN5bmNPcGVyYXRpb24SDAoI",
-            "U2V0VmFsdWUQABIOCgpVcGRhdGVQYWlyEAESDwoLQWRkTGlzdEVsZW0QAhIO",
-            "CgpSZW1vdmVFbGVtEAMSCQoFQ2xlYXIQBBIOCgpJbnNlcnRFbGVtEAViBnBy",
-            "b3RvMw=="));
+            "CgRQYXRoGAMgASgJEhoKEklzQ29tcG9uZW50U3luY01zZxgEIAEoCBIVCg1D",
+            "b21wb25lbnROYW1lGAUgASgJEkIKB1N5bmNBcmcYBiADKAsyMS5MUFMuQ29t",
+            "bW9uLlJwYy5Jbm5lck1lc3NhZ2VzLlByb3BlcnR5U3luY0NvbW1hbmQieQoT",
+            "UHJvcGVydHlTeW5jQ29tbWFuZBI+CglPcGVyYXRpb24YASABKA4yKy5MUFMu",
+            "Q29tbW9uLlJwYy5Jbm5lck1lc3NhZ2VzLlN5bmNPcGVyYXRpb24SIgoEQXJn",
+            "cxgCIAMoCzIULmdvb2dsZS5wcm90b2J1Zi5BbnkiJwoTUHJvcGVydHlGdWxs",
+            "U3luY0FjaxIQCghFbnRpdHlJZBgBIAEoCSIjCg9Qcm9wZXJ0eVN5bmNBY2sS",
+            "EAoIRW50aXR5SWQYASABKAkqOAoMU3luY1Byb3BUeXBlEhQKEFBsYWludEFu",
+            "ZENvc3R1bWUQABIICgREaWN0EAESCAoETGlzdBACKmkKDVN5bmNPcGVyYXRp",
+            "b24SDAoIU2V0VmFsdWUQABIOCgpVcGRhdGVQYWlyEAESDwoLQWRkTGlzdEVs",
+            "ZW0QAhIOCgpSZW1vdmVFbGVtEAMSCQoFQ2xlYXIQBBIOCgpJbnNlcnRFbGVt",
+            "EAViBnByb3RvMw=="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { global::Google.Protobuf.WellKnownTypes.AnyReflection.Descriptor, },
           new pbr::GeneratedClrTypeInfo(new[] {typeof(global::LPS.Common.Rpc.InnerMessages.SyncPropType), typeof(global::LPS.Common.Rpc.InnerMessages.SyncOperation), }, null, new pbr::GeneratedClrTypeInfo[] {
             new pbr::GeneratedClrTypeInfo(typeof(global::LPS.Common.Rpc.InnerMessages.RequirePropertyFullSync), global::LPS.Common.Rpc.InnerMessages.RequirePropertyFullSync.Parser, new[]{ "EntityId" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::LPS.Common.Rpc.InnerMessages.PropertyFullSync), global::LPS.Common.Rpc.InnerMessages.PropertyFullSync.Parser, new[]{ "EntityId", "PropertyTree" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::LPS.Common.Rpc.InnerMessages.PropertySyncCommandList), global::LPS.Common.Rpc.InnerMessages.PropertySyncCommandList.Parser, new[]{ "PropType", "EntityId", "Path", "SyncArg" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::LPS.Common.Rpc.InnerMessages.PropertySyncCommandList), global::LPS.Common.Rpc.InnerMessages.PropertySyncCommandList.Parser, new[]{ "PropType", "EntityId", "Path", "IsComponentSyncMsg", "ComponentName", "SyncArg" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::LPS.Common.Rpc.InnerMessages.PropertySyncCommand), global::LPS.Common.Rpc.InnerMessages.PropertySyncCommand.Parser, new[]{ "Operation", "Args" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::LPS.Common.Rpc.InnerMessages.PropertyFullSyncAck), global::LPS.Common.Rpc.InnerMessages.PropertyFullSyncAck.Parser, new[]{ "EntityId" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::LPS.Common.Rpc.InnerMessages.PropertySyncAck), global::LPS.Common.Rpc.InnerMessages.PropertySyncAck.Parser, new[]{ "EntityId" }, null, null, null, null)
@@ -536,6 +537,8 @@ namespace LPS.Common.Rpc.InnerMessages {
       propType_ = other.propType_;
       entityId_ = other.entityId_;
       path_ = other.path_;
+      isComponentSyncMsg_ = other.isComponentSyncMsg_;
+      componentName_ = other.componentName_;
       syncArg_ = other.syncArg_.Clone();
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
@@ -582,10 +585,34 @@ namespace LPS.Common.Rpc.InnerMessages {
       }
     }
 
+    /// <summary>Field number for the "IsComponentSyncMsg" field.</summary>
+    public const int IsComponentSyncMsgFieldNumber = 4;
+    private bool isComponentSyncMsg_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool IsComponentSyncMsg {
+      get { return isComponentSyncMsg_; }
+      set {
+        isComponentSyncMsg_ = value;
+      }
+    }
+
+    /// <summary>Field number for the "ComponentName" field.</summary>
+    public const int ComponentNameFieldNumber = 5;
+    private string componentName_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string ComponentName {
+      get { return componentName_; }
+      set {
+        componentName_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
     /// <summary>Field number for the "SyncArg" field.</summary>
-    public const int SyncArgFieldNumber = 4;
+    public const int SyncArgFieldNumber = 6;
     private static readonly pb::FieldCodec<global::LPS.Common.Rpc.InnerMessages.PropertySyncCommand> _repeated_syncArg_codec
-        = pb::FieldCodec.ForMessage(34, global::LPS.Common.Rpc.InnerMessages.PropertySyncCommand.Parser);
+        = pb::FieldCodec.ForMessage(50, global::LPS.Common.Rpc.InnerMessages.PropertySyncCommand.Parser);
     private readonly pbc::RepeatedField<global::LPS.Common.Rpc.InnerMessages.PropertySyncCommand> syncArg_ = new pbc::RepeatedField<global::LPS.Common.Rpc.InnerMessages.PropertySyncCommand>();
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
@@ -611,6 +638,8 @@ namespace LPS.Common.Rpc.InnerMessages {
       if (PropType != other.PropType) return false;
       if (EntityId != other.EntityId) return false;
       if (Path != other.Path) return false;
+      if (IsComponentSyncMsg != other.IsComponentSyncMsg) return false;
+      if (ComponentName != other.ComponentName) return false;
       if(!syncArg_.Equals(other.syncArg_)) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
@@ -622,6 +651,8 @@ namespace LPS.Common.Rpc.InnerMessages {
       if (PropType != global::LPS.Common.Rpc.InnerMessages.SyncPropType.PlaintAndCostume) hash ^= PropType.GetHashCode();
       if (EntityId.Length != 0) hash ^= EntityId.GetHashCode();
       if (Path.Length != 0) hash ^= Path.GetHashCode();
+      if (IsComponentSyncMsg != false) hash ^= IsComponentSyncMsg.GetHashCode();
+      if (ComponentName.Length != 0) hash ^= ComponentName.GetHashCode();
       hash ^= syncArg_.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
@@ -653,6 +684,14 @@ namespace LPS.Common.Rpc.InnerMessages {
         output.WriteRawTag(26);
         output.WriteString(Path);
       }
+      if (IsComponentSyncMsg != false) {
+        output.WriteRawTag(32);
+        output.WriteBool(IsComponentSyncMsg);
+      }
+      if (ComponentName.Length != 0) {
+        output.WriteRawTag(42);
+        output.WriteString(ComponentName);
+      }
       syncArg_.WriteTo(output, _repeated_syncArg_codec);
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
@@ -676,6 +715,14 @@ namespace LPS.Common.Rpc.InnerMessages {
         output.WriteRawTag(26);
         output.WriteString(Path);
       }
+      if (IsComponentSyncMsg != false) {
+        output.WriteRawTag(32);
+        output.WriteBool(IsComponentSyncMsg);
+      }
+      if (ComponentName.Length != 0) {
+        output.WriteRawTag(42);
+        output.WriteString(ComponentName);
+      }
       syncArg_.WriteTo(ref output, _repeated_syncArg_codec);
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
@@ -695,6 +742,12 @@ namespace LPS.Common.Rpc.InnerMessages {
       }
       if (Path.Length != 0) {
         size += 1 + pb::CodedOutputStream.ComputeStringSize(Path);
+      }
+      if (IsComponentSyncMsg != false) {
+        size += 1 + 1;
+      }
+      if (ComponentName.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(ComponentName);
       }
       size += syncArg_.CalculateSize(_repeated_syncArg_codec);
       if (_unknownFields != null) {
@@ -717,6 +770,12 @@ namespace LPS.Common.Rpc.InnerMessages {
       }
       if (other.Path.Length != 0) {
         Path = other.Path;
+      }
+      if (other.IsComponentSyncMsg != false) {
+        IsComponentSyncMsg = other.IsComponentSyncMsg;
+      }
+      if (other.ComponentName.Length != 0) {
+        ComponentName = other.ComponentName;
       }
       syncArg_.Add(other.syncArg_);
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
@@ -746,7 +805,15 @@ namespace LPS.Common.Rpc.InnerMessages {
             Path = input.ReadString();
             break;
           }
-          case 34: {
+          case 32: {
+            IsComponentSyncMsg = input.ReadBool();
+            break;
+          }
+          case 42: {
+            ComponentName = input.ReadString();
+            break;
+          }
+          case 50: {
             syncArg_.AddEntriesFrom(input, _repeated_syncArg_codec);
             break;
           }
@@ -777,7 +844,15 @@ namespace LPS.Common.Rpc.InnerMessages {
             Path = input.ReadString();
             break;
           }
-          case 34: {
+          case 32: {
+            IsComponentSyncMsg = input.ReadBool();
+            break;
+          }
+          case 42: {
+            ComponentName = input.ReadString();
+            break;
+          }
+          case 50: {
             syncArg_.AddEntriesFrom(ref input, _repeated_syncArg_codec);
             break;
           }

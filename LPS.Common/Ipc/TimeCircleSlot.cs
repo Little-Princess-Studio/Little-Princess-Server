@@ -130,10 +130,10 @@ public class TimeCircleSlot
         {
             Func<RpcPropertySyncInfo> getSyncInfoFunc = incomeMsg.RpcSyncPropertyType switch
             {
-                RpcSyncPropertyType.PlaintAndCostume => () => new RpcPlaintAndCostumePropertySyncInfo(),
-                RpcSyncPropertyType.List => () => new RpcListPropertySyncInfo(),
-                RpcSyncPropertyType.Dict => () => new RpcDictPropertySyncInfo(),
-                _ => throw new ArgumentOutOfRangeException(),
+                RpcSyncPropertyType.PlaintAndCostume => () => new RpcPlaintAndCostumePropertySyncInfo(incomeMsg.IsComponentsSyncMsg, incomeMsg.ComponentName),
+                RpcSyncPropertyType.List => () => new RpcListPropertySyncInfo(incomeMsg.IsComponentsSyncMsg, incomeMsg.ComponentName),
+                RpcSyncPropertyType.Dict => () => new RpcDictPropertySyncInfo(incomeMsg.IsComponentsSyncMsg, incomeMsg.ComponentName),
+                _ => throw new ArgumentOutOfRangeException("incomeMsg.RpcSyncPropertyType", incomeMsg.RpcSyncPropertyType, "Unknown RpcSyncPropertyType"),
             };
 
             var syncInfo = this.GetRpcPropertySyncInfo(
@@ -161,6 +161,8 @@ public class TimeCircleSlot
                     Path = propPath,
                     EntityId = entityId,
                     PropType = (SyncPropType)syncInfo.RpcSyncPropertyType,
+                    IsComponentSyncMsg = syncInfo.IsComponentSyncMsg,
+                    ComponentName = syncInfo.ComponentName,
                 };
 
                 foreach (var msg in syncInfo.PropPath2SyncMsgQueue)
@@ -187,6 +189,8 @@ public class TimeCircleSlot
                     Path = propPath,
                     EntityId = entityId,
                     PropType = (SyncPropType)msg.RpcSyncPropertyType,
+                    IsComponentSyncMsg = msg.IsComponentsSyncMsg,
+                    ComponentName = msg.ComponentName,
                 };
 
                 cmdList.SyncArg.Add(msg.Serialize());

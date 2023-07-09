@@ -12,6 +12,7 @@ using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using LPS.Common.Entity;
+using LPS.Common.Entity.Component;
 using LPS.Common.Rpc;
 using LPS.Common.Rpc.RpcProperty;
 using LPS.Server.Entity;
@@ -23,6 +24,8 @@ using LPS.Server.Rpc.RpcProperty;
 public static class RpcServerHelper
 {
     private static Dictionary<string, Type> EntityClassMap => RpcHelper.EntityClassMap;
+
+    private static readonly HashSet<Type> AllowedRpcPropertyGenTypes = new() { typeof(RpcPlaintProperty<>), typeof(RpcComplexProperty<>) };
 
     /// <summary>
     /// Create a local entity.
@@ -40,7 +43,7 @@ public static class RpcServerHelper
             {
                 var obj = (Activator.CreateInstance(entityClass, desc) as DistributeEntity)!;
                 await obj.InitComponents();
-                BuildPropertyTree(obj);
+                RpcHelper.BuildPropertyTree(obj, AllowedRpcPropertyGenTypes);
                 return obj;
             }
 
@@ -102,7 +105,7 @@ public static class RpcServerHelper
                 var obj = (Activator.CreateInstance(entityClass, null) as DistributeEntity)!;
                 obj.MailBox = entityMailBox;
                 obj.Deserialize(serialContent);
-                BuildPropertyTree(obj);
+                RpcHelper.BuildPropertyTree(obj, AllowedRpcPropertyGenTypes);
                 return obj;
             }
 
@@ -111,55 +114,5 @@ public static class RpcServerHelper
         }
 
         throw new Exception($"Invalid entity class name {entityClassName}");
-    }
-
-    /// <summary>
-    /// Build property tree for an entity.
-    /// </summary>
-    /// <param name="entity">Entity to build property tree.</param>
-    public static void BuildPropertyTree(BaseEntity entity)
-    {
-        var type = entity.GetType();
-        var tree = type.GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
-            .Where(field =>
-            {
-                var fieldType = field.FieldType;
-
-                var attr = field.GetCustomAttribute<RpcPropertyAttribute>();
-                if (attr == null)
-                {
-                    return false;
-                }
-
-                if (!fieldType.IsGenericType)
-                {
-                    return false;
-                }
-
-                var genType = fieldType.GetGenericTypeDefinition();
-
-                // && genType != typeof(RpcShadowComplexProperty<>)
-                // && genType != typeof(RpcShadowPlaintProperty<>))
-                if (genType != typeof(RpcPlaintProperty<>)
-                    && genType != typeof(RpcComplexProperty<>))
-                {
-                    return false;
-                }
-
-                var rpcProperty = field.GetValue(entity) as Common.Rpc.RpcProperty.RpcProperty;
-
-                rpcProperty!.Init(attr.Name ?? fieldType.Name, attr.Setting);
-
-                return true;
-            }).ToDictionary(
-                field => (field.GetValue(entity) as Common.Rpc.RpcProperty.RpcProperty)!.Name,
-                field => (field.GetValue(entity) as Common.Rpc.RpcProperty.RpcProperty)!);
-
-        foreach (var (_, prop) in tree)
-        {
-            prop.Owner = entity;
-        }
-
-        entity.SetPropertyTree(tree);
     }
 }

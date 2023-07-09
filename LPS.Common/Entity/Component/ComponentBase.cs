@@ -7,6 +7,8 @@
 namespace LPS.Common.Entity.Component;
 
 using Google.Protobuf.WellKnownTypes;
+using LPS.Common.Rpc.InnerMessages;
+using LPS.Common.Rpc.RpcProperty;
 
 /// <summary>
 /// Represents a component that can be attached to an entity.
@@ -29,15 +31,28 @@ public abstract class ComponentBase
     /// </summary>
     public bool IsLoaded { get; private set; } = false;
 
+    private Dictionary<string, RpcProperty>? propertyTree;
+
+    /// <summary>
+    /// Sets the property tree for this component.
+    /// </summary>
+    /// <param name="tree">The property tree to set.</param>
+    public void SetPropertyTree(Dictionary<string, RpcProperty> tree)
+    {
+        this.propertyTree = tree;
+    }
+
     /// <summary>
     /// Initializes the component with the specified owner and name.
     /// </summary>
     /// <param name="owner">The entity that owns this component.</param>
     /// <param name="name">The name of this component.</param>
-    public void Init(BaseEntity owner, string name)
+    public void InitComponent(BaseEntity owner, string name)
     {
         this.Owner = owner;
         this.Name = name;
+
+        this.InitPropertyTree();
     }
 
     /// <summary>
@@ -74,10 +89,26 @@ public abstract class ComponentBase
     /// <summary>
     /// Deserializes the component's data from an Any message.
     /// </summary>
-    /// <param name="any">An Any message containing the serialized data.</param>
-    public void Deserialize(Any any)
+    /// <param name="propertyTree">An Any message containing the serialized data.</param>
+    public void Deserialize(Any propertyTree)
     {
-        throw new NotImplementedException();
+        if (propertyTree.Is(descriptor: DictWithStringKeyArg.Descriptor))
+        {
+            var content = propertyTree.Unpack<DictWithStringKeyArg>();
+
+            foreach (var (key, value) in content.PayLoad)
+            {
+                if (this.propertyTree!.ContainsKey(key))
+                {
+                    RpcProperty? prop = this.propertyTree[key];
+                    prop.FromProtobuf(value);
+                }
+                else
+                {
+                    Debug.Logger.Warn($"Missing sync property {key} in {this.GetType()}");
+                }
+            }
+        }
     }
 
     /// <summary>
@@ -89,4 +120,9 @@ public abstract class ComponentBase
     /// Called when the component's entity is destroyed.
     /// </summary>
     public abstract void OnDestory();
+
+    /// <summary>
+    /// Initializes the property tree for this component.
+    /// </summary>
+    protected abstract void InitPropertyTree();
 }

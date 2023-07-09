@@ -67,6 +67,16 @@ public abstract class RpcPropertySyncMessage
     public readonly string RpcPropertyPath;
 
     /// <summary>
+    /// Indicates whether this is a components sync message.
+    /// </summary>
+    public readonly bool IsComponentsSyncMsg;
+
+    /// <summary>
+    /// Name of the component associated with the sync message.
+    /// </summary>
+    public readonly string ComponentName;
+
+    /// <summary>
     /// RPC property sync type.
     /// </summary>
     public readonly RpcSyncPropertyType RpcSyncPropertyType;
@@ -78,16 +88,22 @@ public abstract class RpcPropertySyncMessage
     /// <param name="operation">Sync operation.</param>
     /// <param name="rpcPropertyPath">Sync path in property tree.</param>
     /// <param name="rpcSyncPropertyType">RPC property sync type.</param>
+    /// <param name="isComponentsSyncMsg">Indicates whether this is a components sync message.</param>
+    /// <param name="componentName">Name of the component associated with the sync message.</param>
     public RpcPropertySyncMessage(
         MailBox mailbox,
         RpcPropertySyncOperation operation,
         string rpcPropertyPath,
-        RpcSyncPropertyType rpcSyncPropertyType)
+        RpcSyncPropertyType rpcSyncPropertyType,
+        bool isComponentsSyncMsg,
+        string componentName)
     {
         this.MailBox = mailbox;
         this.Operation = operation;
         this.RpcPropertyPath = rpcPropertyPath;
         this.RpcSyncPropertyType = rpcSyncPropertyType;
+        this.IsComponentsSyncMsg = isComponentsSyncMsg;
+        this.ComponentName = componentName;
     }
 
     /// <summary>

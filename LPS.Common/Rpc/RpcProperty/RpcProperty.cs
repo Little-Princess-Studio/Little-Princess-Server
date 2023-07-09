@@ -42,6 +42,7 @@ using Google.Protobuf.Collections;
 using Google.Protobuf.WellKnownTypes;
 using LPS.Common.Debug;
 using LPS.Common.Entity;
+using LPS.Common.Entity.Component;
 using LPS.Common.Rpc.RpcProperty.RpcContainer;
 using LPS.Common.Rpc.RpcPropertySync.RpcPropertySyncInfo;
 using LPS.Common.Rpc.RpcPropertySync.RpcPropertySyncMessage;
@@ -182,6 +183,16 @@ public abstract class RpcProperty
         this.SendSyncMsgImpl != null && !this.IsShadowProperty && this.ShouldSyncToShadow;
 
     /// <summary>
+    /// Gets or sets a value indicating whether this property is a component property.
+    /// </summary>
+    public bool IsComponentProperty { get; set; } = false;
+
+    /// <summary>
+    /// Gets or sets the which component this property belongs to.
+    /// </summary>
+    public ComponentBase? OwnerComponent { get; set; } = null;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="RpcProperty"/> class.
     /// </summary>
     /// <param name="value">Initial value of the property.</param>
@@ -275,13 +286,17 @@ public abstract class RpcProperty
                     this.Owner!.MailBox,
                     RpcPropertySyncOperation.SetValue,
                     fullPath,
-                    newVal);
+                    newVal,
+                    this.IsComponentProperty,
+                    this.OwnerComponent?.Name ?? string.Empty);
                 break;
             case RpcSyncPropertyType.Dict:
                 var syncDictMsg = new RpcDictPropertySyncMessage(
                     this.Owner!.MailBox,
                     RpcPropertySyncOperation.SetValue,
-                    fullPath);
+                    fullPath,
+                    this.IsComponentProperty,
+                    this.OwnerComponent?.Name ?? string.Empty);
                 syncDictMsg.Action!(newVal);
                 syncMsg = syncDictMsg;
                 break;
@@ -289,7 +304,9 @@ public abstract class RpcProperty
                 var syncListMsg = new RpcListPropertySyncMessage(
                     this.Owner!.MailBox,
                     RpcPropertySyncOperation.SetValue,
-                    fullPath);
+                    fullPath,
+                    this.IsComponentProperty,
+                    this.OwnerComponent?.Name ?? string.Empty);
                 syncListMsg.Action!(newVal);
                 syncMsg = syncListMsg;
                 break;
@@ -311,7 +328,9 @@ public abstract class RpcProperty
         var syncMsg = new RpcDictPropertySyncMessage(
             this.Owner!.MailBox,
             RpcPropertySyncOperation.UpdatePair,
-            fullPath);
+            fullPath,
+            this.IsComponentProperty,
+            this.OwnerComponent?.Name ?? string.Empty);
         syncMsg.Action!(key, newVal);
         this.SendSyncMsgImpl!.SendSyncMsg(false, 0, syncMsg!);
     }
@@ -324,7 +343,9 @@ public abstract class RpcProperty
         var syncMsg = new RpcListPropertySyncMessage(
             this.Owner!.MailBox,
             RpcPropertySyncOperation.AddListElem,
-            fullPath);
+            fullPath,
+            this.IsComponentProperty,
+            this.OwnerComponent?.Name ?? string.Empty);
         syncMsg.Action!(idx, newVal);
         this.SendSyncMsgImpl!.SendSyncMsg(false, 0, syncMsg!);
     }
@@ -343,7 +364,9 @@ public abstract class RpcProperty
                 var syncMsgList = new RpcListPropertySyncMessage(
                     this.Owner!.MailBox,
                     RpcPropertySyncOperation.RemoveElem,
-                    fullPath);
+                    fullPath,
+                    this.IsComponentProperty,
+                    this.OwnerComponent?.Name ?? string.Empty);
                 syncMsgList.Action!(Convert.ToInt32(key));
                 syncMsg = syncMsgList;
                 break;
@@ -351,7 +374,9 @@ public abstract class RpcProperty
                 var syncMsgDict = new RpcDictPropertySyncMessage(
                     this.Owner!.MailBox,
                     RpcPropertySyncOperation.RemoveElem,
-                    fullPath);
+                    fullPath,
+                    this.IsComponentProperty,
+                    this.OwnerComponent?.Name ?? string.Empty);
                 syncMsgDict.Action!(key);
                 syncMsg = syncMsgDict;
                 break;
@@ -372,11 +397,15 @@ public abstract class RpcProperty
             RpcSyncPropertyType.List => new RpcListPropertySyncMessage(
                 this.Owner!.MailBox,
                 RpcPropertySyncOperation.Clear,
-                fullPath),
+                fullPath,
+                this.IsComponentProperty,
+                this.OwnerComponent?.Name ?? string.Empty),
             RpcSyncPropertyType.Dict => new RpcDictPropertySyncMessage(
                 this.Owner!.MailBox,
                 RpcPropertySyncOperation.Clear,
-                fullPath),
+                fullPath,
+                this.IsComponentProperty,
+                this.OwnerComponent?.Name ?? string.Empty),
             _ => throw new ArgumentOutOfRangeException(nameof(propertyType), propertyType, null),
         };
         this.SendSyncMsgImpl!.SendSyncMsg(false, 0, syncMsg);
@@ -390,7 +419,9 @@ public abstract class RpcProperty
         var syncMsg = new RpcListPropertySyncMessage(
             this.Owner!.MailBox,
             RpcPropertySyncOperation.InsertElem,
-            fullPath);
+            fullPath,
+            this.IsComponentProperty,
+            this.OwnerComponent?.Name ?? string.Empty);
         syncMsg.Action!(idx, newVal);
         this.SendSyncMsgImpl!.SendSyncMsg(false, 0, syncMsg!);
     }

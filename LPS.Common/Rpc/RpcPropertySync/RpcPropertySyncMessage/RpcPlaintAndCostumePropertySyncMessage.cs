@@ -28,12 +28,22 @@ public class RpcPlaintAndCostumePropertySyncMessage : RpcPropertySyncMessage
     /// <param name="operation">Sync operation.</param>
     /// <param name="rpcPropertyPath">Property path in the property tree.</param>
     /// <param name="val">Value to sync.</param>
+    /// <param name="isComponentsSyncMsg">Indicates whether the sync message is for components.</param>
+    /// <param name="componentName">Name of the component associated with the sync message.</param>
     public RpcPlaintAndCostumePropertySyncMessage(
         MailBox mailbox,
         RpcPropertySyncOperation operation,
         string rpcPropertyPath,
-        RpcPropertyContainer val)
-        : base(mailbox, operation, rpcPropertyPath, RpcSyncPropertyType.PlaintAndCostume)
+        RpcPropertyContainer val,
+        bool isComponentsSyncMsg,
+        string componentName)
+        : base(
+            mailbox,
+            operation,
+            rpcPropertyPath,
+            RpcSyncPropertyType.PlaintAndCostume,
+            isComponentsSyncMsg,
+            componentName)
     {
         this.Val = val;
     }

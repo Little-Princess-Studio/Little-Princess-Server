@@ -16,8 +16,10 @@ public class RpcPlaintAndCostumePropertySyncInfo : RpcPropertySyncInfo
     /// <summary>
     /// Initializes a new instance of the <see cref="RpcPlaintAndCostumePropertySyncInfo"/> class.
     /// </summary>
-    public RpcPlaintAndCostumePropertySyncInfo()
-        : base(RpcSyncPropertyType.PlaintAndCostume)
+    /// <param name="isComponentSyncMsg">Whether the sync message is for a component.</param>
+    /// <param name="componentName">The name of the component associated with this sync message.</param>
+    public RpcPlaintAndCostumePropertySyncInfo(bool isComponentSyncMsg, string componentName)
+        : base(RpcSyncPropertyType.PlaintAndCostume, isComponentSyncMsg, componentName)
     {
     }
 

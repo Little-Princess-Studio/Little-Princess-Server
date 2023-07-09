@@ -13,9 +13,11 @@ using System.Runtime.CompilerServices;
 using Google.Protobuf;
 using LPS.Common.Debug;
 using LPS.Common.Entity;
+using LPS.Common.Entity.Component;
 using LPS.Common.Ipc;
 using LPS.Common.Rpc.Attribute;
 using LPS.Common.Rpc.InnerMessages;
+using LPS.Common.Rpc.RpcProperty;
 using LPS.Common.Rpc.RpcProperty.RpcContainer;
 using Newtonsoft.Json;
 
@@ -272,6 +274,44 @@ public static class RpcHelper
     public static TK KeyCast<TK>(string key)
     {
         return KeyCastSpecializeHelper.KeyCast<TK>(key);
+    }
+
+    /// <summary>
+    /// Builds the property tree for a BaseEntity object.
+    /// </summary>
+    /// <param name="entity">The BaseEntity object to build the property tree for.</param>
+    /// <param name="allowedRpcPropertyGenTypes">The set of allowed generic types for RPC properties.</param>
+    public static void BuildPropertyTree(BaseEntity entity, HashSet<Type> allowedRpcPropertyGenTypes)
+    {
+        var type = entity.GetType();
+        Dictionary<string, Common.Rpc.RpcProperty.RpcProperty> tree = BuildPropertyTreeInternal(entity, type, allowedRpcPropertyGenTypes);
+
+        foreach (var (_, prop) in tree)
+        {
+            prop.Owner = entity;
+        }
+
+        entity.SetPropertyTree(propertyTree: tree);
+    }
+
+    /// <summary>
+    /// Builds the property tree for a ComponentBase object.
+    /// </summary>
+    /// <param name="component">The ComponentBase object to build the property tree for.</param>
+    /// <param name="allowedRpcPropertyGenTypes">The set of allowed generic types for RPC properties.</param>
+    public static void BuildPropertyTree(ComponentBase component, HashSet<Type> allowedRpcPropertyGenTypes)
+    {
+        var type = component.GetType();
+        var tree = BuildPropertyTreeInternal(component, type, allowedRpcPropertyGenTypes);
+
+        foreach (var (_, prop) in tree)
+        {
+            prop.Owner = component.Owner;
+            prop.IsComponentProperty = true;
+            prop.OwnerComponent = component;
+        }
+
+        component.SetPropertyTree(tree);
     }
 
     #region Rpc container to protobuf any
@@ -1085,6 +1125,42 @@ public static class RpcHelper
     }
 
     #endregion
+
+    private static Dictionary<string, RpcProperty.RpcProperty> BuildPropertyTreeInternal(object obj, Type type, HashSet<Type> allowedRpcPropertyGenTypes)
+    {
+        var tree = type.GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
+            .Where(field =>
+            {
+                var fieldType = field.FieldType;
+
+                var attr = field.GetCustomAttribute<RpcPropertyAttribute>();
+                if (attr == null)
+                {
+                    return false;
+                }
+
+                if (!fieldType.IsGenericType)
+                {
+                    return false;
+                }
+
+                var genType = fieldType.GetGenericTypeDefinition();
+
+                if (!allowedRpcPropertyGenTypes.Contains(type))
+                {
+                    return false;
+                }
+
+                var rpcProperty = field.GetValue(obj) as RpcProperty.RpcProperty;
+
+                rpcProperty!.Init(attr.Name ?? fieldType.Name, attr.Setting);
+
+                return true;
+            }).ToDictionary(
+                field => (field.GetValue(obj) as RpcProperty.RpcProperty)!.Name,
+                field => (field.GetValue(obj) as RpcProperty.RpcProperty)!);
+        return tree;
+    }
 
     private static MethodInfo GetRpcMethodArgTypes(Type type, string rpcMethodName)
     {
