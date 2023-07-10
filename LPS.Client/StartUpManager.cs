@@ -97,16 +97,20 @@ public static class StartUpManager
             $"Client create entity: {clientCreateEntity.EntityClassName} " +
             $"{clientCreateEntity.ServerClientMailBox}");
 
-        var shadowEntity = RpcClientHelper.CreateClientEntity(clientCreateEntity.EntityClassName);
-        shadowEntity.OnSend = rpc => { Client.Instance.Send(rpc); };
-        shadowEntity.MailBox = RpcHelper.PbMailBoxToRpcMailBox(clientCreateEntity.ServerClientMailBox);
-        shadowEntity.BindServerMailBox();
+        var shadowEntityTask = RpcClientHelper.CreateClientEntity(clientCreateEntity.EntityClassName);
+        shadowEntityTask.ContinueWith(t =>
+        {
+            var shadowEntity = t.Result;
+            shadowEntity.OnSend = rpc => { Client.Instance.Send(rpc); };
+            shadowEntity.MailBox = RpcHelper.PbMailBoxToRpcMailBox(clientCreateEntity.ServerClientMailBox);
+            shadowEntity.BindServerMailBox();
 
-        createShadowEntityCallBack(shadowEntity);
+            createShadowEntityCallBack(shadowEntity);
 
-        Logger.Info($"{shadowEntity} created success.");
+            Logger.Info($"{shadowEntity} created success.");
 
-        RpcClientHelper.RequirePropertyFullSync(shadowEntity.MailBox.Id);
+            RpcClientHelper.RequirePropertyFullSync(shadowEntity.MailBox.Id);
+        });
     }
 
     private static void HandlePropertyFullSync((IMessage Message, Connection Connection, uint RpcId) arg)

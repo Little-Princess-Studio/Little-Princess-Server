@@ -280,9 +280,9 @@ public abstract class DistributeEntity : BaseEntity, ISendPropertySyncMessage
     }
 
     /// <inheritdoc/>
-    protected override async Task OnComponentsLoaded(IEnumerable<ComponentBase> loadedComponents)
+    protected override async Task LoadNonLazyComponents(IEnumerable<ComponentBase> nonLazyComponents)
     {
-        var componentsAny = await this.BatchLoadComponentsFromDatabase(loadedComponents);
+        var componentsAny = await this.BatchLoadComponentsFromDatabase(nonLazyComponents);
         var componentsDict = componentsAny
             .Unpack<DictWithStringKeyArg>()
             .PayLoad
@@ -290,7 +290,7 @@ public abstract class DistributeEntity : BaseEntity, ISendPropertySyncMessage
                 pair => pair.Key,
                 pair => pair.Value);
 
-        foreach (var comp in loadedComponents)
+        foreach (var comp in nonLazyComponents)
         {
             if (componentsDict.ContainsKey(comp.Name))
             {

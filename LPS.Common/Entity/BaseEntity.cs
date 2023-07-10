@@ -73,11 +73,11 @@ public abstract class BaseEntity
     /// Initializes all components of the entity.
     /// </summary>
     /// <returns>A task that represents the asynchronous initialization operation.</returns>
-    public async Task InitComponents()
+    public virtual async Task InitComponents()
     {
-        var componentAttr = this.GetType().GetCustomAttributes<ComponentAttribute>();
+        var componentAttrs = this.GetType().GetCustomAttributes<ComponentAttribute>();
         var componentsToLoad = new List<ComponentBase>();
-        foreach (var attr in componentAttr)
+        foreach (var attr in componentAttrs)
         {
             var componentType = attr.ComponentType;
             var component = (ComponentBase)Activator.CreateInstance(componentType)!;
@@ -101,7 +101,7 @@ public abstract class BaseEntity
             this.componentNameToComponentTypeId.Add(componentName, componentTypeId);
         }
 
-        await this.OnComponentsLoaded(componentsToLoad);
+        await this.LoadNonLazyComponents(componentsToLoad);
 
         componentsToLoad.ForEach(comp => comp.OnInit());
     }
@@ -439,11 +439,11 @@ public abstract class BaseEntity
     }
 
     /// <summary>
-    /// This method is called after components are loaded from the database.
+    /// This method is called after non-lazy components are initialized.
     /// </summary>
-    /// <param name="loadedComponents">The list of loaded components.</param>
+    /// <param name="nonLazyComponents">The list of loaded components.</param>
     /// <returns>A task that represents the asynchronous operation.</returns>
-    protected virtual Task OnComponentsLoaded(IEnumerable<ComponentBase> loadedComponents)
+    protected virtual Task LoadNonLazyComponents(IEnumerable<ComponentBase> nonLazyComponents)
     {
         return Task.CompletedTask;
     }

@@ -284,7 +284,7 @@ public static class RpcHelper
     public static void BuildPropertyTree(BaseEntity entity, HashSet<Type> allowedRpcPropertyGenTypes)
     {
         var type = entity.GetType();
-        Dictionary<string, Common.Rpc.RpcProperty.RpcProperty> tree = BuildPropertyTreeInternal(entity, type, allowedRpcPropertyGenTypes);
+        var tree = BuildPropertyTreeInternal(entity, type, allowedRpcPropertyGenTypes);
 
         foreach (var (_, prop) in tree)
         {
