@@ -4,8 +4,9 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
-namespace LPS.Common.Entity.Component;
+namespace LPS.Server.Entity.Component;
 
+using LPS.Common.Entity.Component;
 using LPS.Common.Rpc.RpcProperty;
 using LPS.Server.Rpc.RpcProperty;
 

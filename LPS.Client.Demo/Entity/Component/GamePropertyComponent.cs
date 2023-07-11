@@ -4,10 +4,11 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
-namespace LPS.Common.Entity.Component;
+namespace LPS.Client.Demo.Entity.Component;
 
 using LPS.Common.Rpc.RpcProperty;
 using LPS.Client.Rpc.RpcProperty;
+using LPS.Common.Entity.Component;
 
 /// <summary>
 /// Represents a component that manages game properties of the <see cref="Player"/> entity.

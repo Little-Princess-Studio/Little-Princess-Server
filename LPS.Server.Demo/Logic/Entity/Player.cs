@@ -8,19 +8,19 @@ namespace LPS.Server.Demo.Logic.Entity;
 
 using Common.Debug;
 using Common.Rpc.Attribute;
-using LPS.Common.Entity.Component;
 using LPS.Common.Rpc;
 using LPS.Common.Rpc.RpcProperty;
 using LPS.Server.Database;
 using LPS.Server.Entity;
+using LPS.Server.Entity.Component;
 using LPS.Server.Rpc.RpcProperty;
 
 /// <summary>
 /// Player is the real entity between server and client after login process.
 /// </summary>
 [EntityClass(DbCollectionName = "player", IsDatabaseEntity = true)]
-[Component(typeof(GamePropertyComponent), PropertyName = "GameProperty")]
-[Component(typeof(BagComponent), PropertyName = "Bag")]
+[ServerComponent(typeof(GamePropertyComponent), PropertyName = "GameProperty")]
+[ServerComponent(typeof(BagComponent), PropertyName = "Bag")]
 public class Player : ServerClientEntity
 {
     /// <summary>

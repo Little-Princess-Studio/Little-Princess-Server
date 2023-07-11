@@ -19,7 +19,9 @@ using LPS.Common.Rpc.Attribute;
 using LPS.Common.Rpc.InnerMessages;
 using LPS.Common.Rpc.RpcProperty;
 using LPS.Common.Rpc.RpcPropertySync.RpcPropertySyncMessage;
+using LPS.Common.Util;
 using LPS.Server.Database;
+using LPS.Server.Entity.Component;
 using MailBox = LPS.Common.Rpc.MailBox;
 
 /// <summary>
@@ -280,7 +282,48 @@ public abstract class DistributeEntity : BaseEntity, ISendPropertySyncMessage
     }
 
     /// <inheritdoc/>
-    protected override async Task LoadNonLazyComponents(IEnumerable<ComponentBase> nonLazyComponents)
+    public override async Task InitComponents()
+    {
+        var componentAttrs = this.GetType().GetCustomAttributes<ServerComponentAttribute>();
+        var componentsToLoad = new List<ComponentBase>();
+        foreach (var attr in componentAttrs)
+        {
+            var componentType = attr.ComponentType;
+            var component = (ComponentBase)Activator.CreateInstance(componentType)!;
+            var componentName = string.IsNullOrEmpty(componentType.Name) ? attr.ComponentType.Name : componentType.Name;
+
+            component.InitComponent(this, componentName);
+            var componentTypeId = TypeIdHelper.GetId(componentType);
+
+            if (this.Components.ContainsKey(componentTypeId))
+            {
+                Logger.Warn($"Component {componentType.Name} is already added to entity {this.GetType().Name}.");
+                continue;
+            }
+
+            if (!attr.LazyLoad)
+            {
+                componentsToLoad.Add(component);
+            }
+
+            this.Components.Add(componentTypeId, component);
+            this.ComponentNameToComponentTypeId.Add(componentName, componentTypeId);
+        }
+
+        await this.LoadNonLazyComponents(componentsToLoad);
+
+        foreach (var comp in componentsToLoad)
+        {
+            comp.OnInit();
+        }
+    }
+
+    /// <summary>
+    /// Loads non-lazy components from the database.
+    /// </summary>
+    /// <param name="nonLazyComponents">The list of non-lazy components to load.</param>
+    /// <returns>Task.</returns>
+    protected async Task LoadNonLazyComponents(IEnumerable<ComponentBase> nonLazyComponents)
     {
         var componentsAny = await this.BatchLoadComponentsFromDatabase(nonLazyComponents);
         var componentsDict = componentsAny

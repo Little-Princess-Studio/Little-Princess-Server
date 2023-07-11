@@ -1,16 +1,18 @@
 // -----------------------------------------------------------------------
-// <copyright file="ComponentAttribute.cs" company="Little Princess Studio">
+// <copyright file="ServerComponentAttribute.cs" company="Little Princess Studio">
 // Copyright (c) Little Princess Studio. All rights reserved.
 // </copyright>
 // -----------------------------------------------------------------------
 
-namespace LPS.Common.Entity.Component;
+namespace LPS.Server.Entity.Component;
+
+using System;
 
 /// <summary>
 /// Represents an attribute that is used to mark a class as a component.
 /// </summary>
 [AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
-public class ComponentAttribute : Attribute
+public class ServerComponentAttribute : Attribute
 {
     /// <summary>
     /// The type of the component.
@@ -23,10 +25,15 @@ public class ComponentAttribute : Attribute
     public string PropertyName { get; set; } = string.Empty;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="ComponentAttribute"/> class.
+    /// Gets or sets a value indicating whether the component should be lazily loaded.
+    /// </summary>
+    public bool LazyLoad { get; set; } = true;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ServerComponentAttribute"/> class.
     /// </summary>
     /// <param name="componentType">The type of the component.</param>
-    public ComponentAttribute(Type componentType)
+    public ServerComponentAttribute(Type componentType)
     {
         this.ComponentType = componentType;
     }

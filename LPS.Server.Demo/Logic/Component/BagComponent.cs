@@ -4,9 +4,10 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
-namespace LPS.Common.Entity.Component;
+namespace LPS.Server.Entity.Component;
 
 using Google.Protobuf.WellKnownTypes;
+using LPS.Common.Entity.Component;
 using LPS.Common.Rpc.RpcProperty;
 using LPS.Common.Rpc.RpcProperty.RpcContainer;
 using LPS.Server.Rpc.RpcProperty;

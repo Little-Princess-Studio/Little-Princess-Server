@@ -1,16 +1,16 @@
 // -----------------------------------------------------------------------
-// <copyright file="ComponentAttribute.cs" company="Little Princess Studio">
+// <copyright file="ClientComponentAttribute.cs" company="Little Princess Studio">
 // Copyright (c) Little Princess Studio. All rights reserved.
 // </copyright>
 // -----------------------------------------------------------------------
 
-namespace LPS.Common.Entity.Component;
+namespace LPS.Client.Entity.Component;
 
 /// <summary>
 /// Represents an attribute that is used to mark a class as a component.
 /// </summary>
 [AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
-public class ComponentAttribute : Attribute
+public class ClientComponentAttribute : Attribute
 {
     /// <summary>
     /// The type of the component.
@@ -23,10 +23,10 @@ public class ComponentAttribute : Attribute
     public string PropertyName { get; set; } = string.Empty;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="ComponentAttribute"/> class.
+    /// Initializes a new instance of the <see cref="ClientComponentAttribute"/> class.
     /// </summary>
     /// <param name="componentType">The type of the component.</param>
-    public ComponentAttribute(Type componentType)
+    public ClientComponentAttribute(Type componentType)
     {
         this.ComponentType = componentType;
     }

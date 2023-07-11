@@ -44,11 +44,11 @@ public class Untrusted : ShadowClientEntity
 
     /// <inheritdoc/>
     [RpcMethod(Authority.ClientOnly)]
-    public override ValueTask OnMigrated(MailBox targetMailBox, string migrateInfo, string targetEntityClassName)
+    public override async ValueTask OnMigrated(MailBox targetMailBox, string migrateInfo, string targetEntityClassName)
     {
         Logger.Debug(
             $"[OnMigrated] migrate from {ClientGlobal.ShadowClientEntity.MailBox} to {targetMailBox}, class name: {targetEntityClassName}");
-        var shadowEntity = RpcClientHelper.CreateClientEntity(targetEntityClassName);
+        var shadowEntity = await RpcClientHelper.CreateClientEntity(targetEntityClassName);
         shadowEntity.OnSend = rpc => { Client.Instance.Send(rpc); };
         shadowEntity.MailBox = targetMailBox;
         shadowEntity.BindServerMailBox();
@@ -56,6 +56,6 @@ public class Untrusted : ShadowClientEntity
         // give up Untrusted to Player.
         ClientGlobal.ShadowClientEntity = shadowEntity;
 
-        return base.OnMigrated(targetMailBox, migrateInfo, targetEntityClassName);
+        await base.OnMigrated(targetMailBox, migrateInfo, targetEntityClassName);
     }
 }

@@ -11,14 +11,15 @@ using Common.Rpc.RpcProperty;
 using Common.Rpc.Attribute;
 using LPS.Client.Entity;
 using LPS.Client.Rpc.RpcProperty;
-using LPS.Common.Entity.Component;
+using LPS.Client.Entity.Component;
+using LPS.Client.Demo.Entity.Component;
 
 /// <summary>
 /// Player class, from Untrusted.
 /// </summary>
 [EntityClass]
-[Component(typeof(GamePropertyComponent))]
-[Component(typeof(BagComponent))]
+[ClientComponent(typeof(GamePropertyComponent))]
+[ClientComponent(typeof(BagComponent))]
 public class Player : ShadowClientEntity
 {
     /// <summary>

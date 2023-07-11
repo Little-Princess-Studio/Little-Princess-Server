@@ -6,10 +6,14 @@
 
 namespace LPS.Client.Entity;
 
+using System.Reflection;
+using LPS.Client.Entity.Component;
 using LPS.Common.Debug;
 using LPS.Common.Entity;
+using LPS.Common.Entity.Component;
 using LPS.Common.Rpc.Attribute;
 using LPS.Common.Rpc.InnerMessages;
+using LPS.Common.Util;
 using MailBox = LPS.Common.Rpc.MailBox;
 
 /// <summary>
@@ -59,6 +63,32 @@ public class ShadowClientEntity : ShadowEntity
     {
         RpcClientHelper.RequirePropertyFullSync(targetMailBox.Id);
         return ValueTask.CompletedTask;
+    }
+
+    /// <inheritdoc/>
+    public override Task InitComponents()
+    {
+        var componentAttrs = this.GetType().GetCustomAttributes<ClientComponentAttribute>();
+        foreach (var attr in componentAttrs)
+        {
+            var componentType = attr.ComponentType;
+            var component = (ComponentBase)Activator.CreateInstance(componentType)!;
+            var componentName = string.IsNullOrEmpty(componentType.Name) ? attr.ComponentType.Name : componentType.Name;
+
+            component.InitComponent(this, componentName);
+            var componentTypeId = TypeIdHelper.GetId(componentType);
+
+            if (this.Components.ContainsKey(componentTypeId))
+            {
+                Logger.Warn($"Component {componentType.Name} is already added to entity {this.GetType().Name}.");
+                continue;
+            }
+
+            this.Components.Add(componentTypeId, component);
+            this.ComponentNameToComponentTypeId.Add(componentName, componentTypeId);
+        }
+
+        return Task.CompletedTask;
     }
 
     /// <summary>

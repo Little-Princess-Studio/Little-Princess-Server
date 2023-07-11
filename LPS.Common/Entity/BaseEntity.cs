@@ -6,7 +6,6 @@
 
 namespace LPS.Common.Entity;
 
-using System.Linq;
 using System.Reflection;
 using Google.Protobuf.WellKnownTypes;
 using LPS.Common.Debug;
@@ -33,6 +32,19 @@ public abstract class BaseEntity
     /// Gets the property tree of the entity.
     /// </summary>
     protected Dictionary<string, RpcProperty>? PropertyTree => this.propertyTree;
+
+    /// <summary>
+    /// Gets the dictionary of components associated with this entity.
+    /// </summary>
+    protected Dictionary<uint, ComponentBase> Components => this.components;
+
+    /// <summary>
+    /// Gets the dictionary that maps component names to their corresponding component type IDs.
+    /// </summary>
+    /// <remarks>
+    /// The component type ID is a unique identifier for each component type.
+    /// </remarks>
+    protected Dictionary<string, uint> ComponentNameToComponentTypeId => this.componentNameToComponentTypeId;
 
     private readonly AsyncTaskGenerator<object> rpcBlankAsyncTaskGenerator;
     private readonly AsyncTaskGenerator<object, System.Type> rpcAsyncTaskGenerator;
@@ -73,10 +85,9 @@ public abstract class BaseEntity
     /// Initializes all components of the entity.
     /// </summary>
     /// <returns>A task that represents the asynchronous initialization operation.</returns>
-    public virtual async Task InitComponents()
+    public virtual Task InitComponents()
     {
         var componentAttrs = this.GetType().GetCustomAttributes<ComponentAttribute>();
-        var componentsToLoad = new List<ComponentBase>();
         foreach (var attr in componentAttrs)
         {
             var componentType = attr.ComponentType;
@@ -92,18 +103,16 @@ public abstract class BaseEntity
                 continue;
             }
 
-            if (!attr.LazyLoad)
-            {
-                componentsToLoad.Add(component);
-            }
-
             this.components.Add(componentTypeId, component);
             this.componentNameToComponentTypeId.Add(componentName, componentTypeId);
         }
 
-        await this.LoadNonLazyComponents(componentsToLoad);
+        foreach (var comp in this.Components.Values)
+        {
+            comp.OnInit();
+        }
 
-        componentsToLoad.ForEach(comp => comp.OnInit());
+        return Task.CompletedTask;
     }
 
     /// <summary>
@@ -436,16 +445,6 @@ public abstract class BaseEntity
 
         var rpcId = entityRpc.RpcID;
         this.RpcAsyncCallBack(rpcId, entityRpc);
-    }
-
-    /// <summary>
-    /// This method is called after non-lazy components are initialized.
-    /// </summary>
-    /// <param name="nonLazyComponents">The list of loaded components.</param>
-    /// <returns>A task that represents the asynchronous operation.</returns>
-    protected virtual Task LoadNonLazyComponents(IEnumerable<ComponentBase> nonLazyComponents)
-    {
-        return Task.CompletedTask;
     }
 
     private void RpcAsyncCallBack(uint rpcId, EntityRpc entityRpc)
