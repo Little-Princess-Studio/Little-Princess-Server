@@ -23,9 +23,12 @@ using LPS.Server.Rpc.RpcProperty;
 /// </summary>
 public static class RpcServerHelper
 {
-    private static Dictionary<string, Type> EntityClassMap => RpcHelper.EntityClassMap;
+    /// <summary>
+    /// A set of allowed generic types for RPC properties.
+    /// </summary>
+    public static readonly HashSet<Type> AllowedRpcPropertyGenTypes = new() { typeof(RpcPlaintProperty<>), typeof(RpcComplexProperty<>) };
 
-    private static readonly HashSet<Type> AllowedRpcPropertyGenTypes = new() { typeof(RpcPlaintProperty<>), typeof(RpcComplexProperty<>) };
+    private static Dictionary<string, Type> EntityClassMap => RpcHelper.EntityClassMap;
 
     /// <summary>
     /// Create a local entity.

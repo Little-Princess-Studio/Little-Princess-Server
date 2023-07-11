@@ -17,9 +17,12 @@ using LPS.Common.Rpc.InnerMessages;
 /// </summary>
 public static class RpcClientHelper
 {
-    private static readonly Dictionary<string, Type> EntityClassMap = RpcHelper.EntityClassMap;
+    /// <summary>
+    /// A set of allowed generic types for RPC properties.
+    /// </summary>
+    public static readonly HashSet<Type> AllowedRpcPropertyGenTyeps = new() { typeof(RpcShadowComplexProperty<>), typeof(RpcShadowPlaintProperty<>) };
 
-    private static readonly HashSet<Type> AllowedRpcPropertyGenTyeps = new() { typeof(RpcShadowComplexProperty<>), typeof(RpcShadowPlaintProperty<>) };
+    private static readonly Dictionary<string, Type> EntityClassMap = RpcHelper.EntityClassMap;
 
     /// <summary>
     /// Create client entity.

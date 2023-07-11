@@ -87,13 +87,17 @@ public class TimeCircleUnitTest
             mailbox1,
             RpcPropertySyncOperation.SetValue,
             "testpath",
-            new RpcPropertyContainer<string>("1111"));
+            new RpcPropertyContainer<string>("1111"),
+            false,
+            string.Empty);
 
         var plainMsg2 = new RpcPlaintAndCostumePropertySyncMessage(
             mailbox1,
             RpcPropertySyncOperation.SetValue,
             "testpath",
-            new RpcPropertyContainer<string>("2222"));
+            new RpcPropertyContainer<string>("2222"),
+            false,
+            string.Empty);
 
         timeCircle.AddPropertySyncMessage(
             plainMsg1,
@@ -151,7 +155,9 @@ public class TimeCircleUnitTest
             var listMsg = new RpcListPropertySyncMessage(
                 mailbox1,
                 RpcPropertySyncOperation.AddListElem,
-                "testpath2");
+                "testpath2",
+                false,
+                string.Empty);
             listMsg.Action!(new RpcPropertyContainer<int>(i));
             timeCircle.AddPropertySyncMessage(
                 listMsg,
@@ -163,7 +169,9 @@ public class TimeCircleUnitTest
                 var listMsg2 = new RpcListPropertySyncMessage(
                     mailbox1,
                     RpcPropertySyncOperation.RemoveElem,
-                    "testpath2");
+                    "testpath2",
+                    false,
+                    string.Empty);
                 listMsg2.Action!(j);
                 timeCircle.AddPropertySyncMessage(
                     listMsg2,
@@ -250,7 +258,9 @@ public class TimeCircleUnitTest
             var dictMsg = new RpcDictPropertySyncMessage(
                 mailbox3,
                 RpcPropertySyncOperation.UpdatePair,
-                "testpath3");
+                "testpath3",
+                false,
+                string.Empty);
             dictMsg.Action!($"{i}", new RpcPropertyContainer<string>($"{i}"));
             timeCircle.AddPropertySyncMessage(
                 dictMsg,
@@ -262,7 +272,9 @@ public class TimeCircleUnitTest
                 var dictMsg2 = new RpcDictPropertySyncMessage(
                     mailbox3,
                     RpcPropertySyncOperation.RemoveElem,
-                    "testpath3");
+                    "testpath3",
+                    false,
+                    string.Empty);
                 dictMsg2.Action!($"{j}");
                 timeCircle.AddPropertySyncMessage(
                     dictMsg2,

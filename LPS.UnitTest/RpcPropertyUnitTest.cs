@@ -211,8 +211,8 @@ public class RpcPropertyUnitTest
     {
         var entity = new TestEntity();
         var shadowEntity = new TestShadowEntity();
-        RpcServerHelper.BuildPropertyTree(entity);
-        RpcClientHelper.BuildPropertyTree(shadowEntity);
+        RpcHelper.BuildPropertyTree(entity, RpcServerHelper.AllowedRpcPropertyGenTypes);
+        RpcHelper.BuildPropertyTree(shadowEntity, RpcClientHelper.AllowedRpcPropertyGenTyeps);
 
         entity.TestRpcProp.Val.Add("1");
         entity.TestRpcProp.Val.Add("2");

@@ -12,6 +12,7 @@ using System.Threading.Tasks;
 using LPS.Common.Rpc;
 using LPS.Server.Database;
 using LPS.Server.Entity;
+using LPS.Server.Rpc;
 using LPS.Server.Rpc.RpcProperty;
 
 /// <summary>
@@ -19,8 +20,6 @@ using LPS.Server.Rpc.RpcProperty;
 /// </summary>
 public class ServerComponent : ComponentBase
 {
-    private static readonly HashSet<Type> AllowedRpcPropertyGenTypes = new() { typeof(RpcPlaintProperty<>), typeof(RpcComplexProperty<>) };
-
     /// <inheritdoc/>
     public override void OnDestory()
     {
@@ -70,6 +69,6 @@ public class ServerComponent : ComponentBase
     /// <inheritdoc/>
     protected override void InitPropertyTree()
     {
-        RpcHelper.BuildPropertyTree(this, AllowedRpcPropertyGenTypes);
+        RpcHelper.BuildPropertyTree(this, RpcServerHelper.AllowedRpcPropertyGenTypes);
     }
 }
