@@ -200,113 +200,20 @@ public class RpcDictionary<TK, TV> : RpcPropertyContainer, IDictionary<TK, TV>,
     public TV this[TK key]
     {
         get => (TV)this.RawValue[key].GetRawValue();
-        set
-        {
-            ArgumentNullException.ThrowIfNull(value);
-            RpcPropertyContainer? old = null;
-
-            if (this.RawValue.ContainsKey(key))
-            {
-                old = this.RawValue[key];
-            }
-
-            if (value is RpcPropertyContainer container)
-            {
-                if (old != null)
-                {
-                    old.RemoveFromPropTree();
-                }
-
-                container.InsertToPropTree(this, $"{key}", this.TopOwner);
-
-                this.RawValue[key] = container;
-                this.Children![container.Name!] = container;
-                this.NotifyChange(
-                    RpcPropertySyncOperation.UpdatePair,
-                    container.Name!,
-                    container,
-                    RpcSyncPropertyType.Dict);
-                this.OnUpdatePair?.Invoke(key, old != null ? (TV)old.GetRawValue() : default(TV), value);
-            }
-            else
-            {
-                if (old == null)
-                {
-                    var newContainer = new RpcPropertyContainer<TV>(value)
-                    {
-                        Parent = this,
-                        Name = $"{key}",
-                        IsReferred = true,
-                    };
-                    newContainer.UpdateTopOwner(this.TopOwner);
-
-                    this.RawValue[key] = newContainer;
-                    this.Children![newContainer.Name] = newContainer;
-                    this.NotifyChange(
-                        RpcPropertySyncOperation.UpdatePair,
-                        newContainer.Name!,
-                        newContainer,
-                        RpcSyncPropertyType.Dict);
-                    this.OnUpdatePair?.Invoke(key, old != null ? (TV)old.GetRawValue() : default(TV), value);
-                }
-
-                // reuse old
-                else
-                {
-                    var oldWithType = (RpcPropertyContainer<TV>)old;
-                    oldWithType.Value = value;
-                    this.NotifyChange(
-                        RpcPropertySyncOperation.UpdatePair,
-                        old.Name!,
-                        oldWithType,
-                        RpcSyncPropertyType.Dict);
-                    this.OnUpdatePair?.Invoke(key, (TV)oldWithType.GetRawValue(), value);
-                }
-            }
-        }
+        set => this.IndexSetInternal(key, value, true);
     }
 
     /// <summary>
     /// Clear the dict.
     /// </summary>
-    public void Clear()
-    {
-        this.AssertNotShadowPropertyChange();
-
-        foreach (var (_, value) in this.RawValue)
-        {
-            value.RemoveFromPropTree();
-        }
-
-        this.RawValue.Clear();
-        this.Children!.Clear();
-
-        this.NotifyChange(RpcPropertySyncOperation.Clear, this.Name!, null, RpcSyncPropertyType.Dict);
-        this.OnClear?.Invoke();
-    }
+    public void Clear() => this.ClearInternal(true);
 
     /// <summary>
     /// Assign this dict with another RpcDictionary.
     /// </summary>
     /// <param name="target">Another RpcDictionary.</param>
     /// <exception cref="ArgumentNullException">ArgumentNullException.</exception>
-    public void Assign(RpcDictionary<TK, TV> target)
-    {
-        if (target == null)
-        {
-            throw new ArgumentNullException(nameof(target));
-        }
-
-        if (target == this)
-        {
-            return;
-        }
-
-        this.OnSetValue?.Invoke(this.ToCopy(), target.ToCopy());
-        this.NotifyChange(RpcPropertySyncOperation.SetValue, this.Name!, target, RpcSyncPropertyType.List);
-
-        this.AssignInternal(target);
-    }
+    public void Assign(RpcDictionary<TK, TV> target) => this.AssignInternal(target, true);
 
     /// <summary>
     /// Generate a copied dict with the dict's raw values.
@@ -354,7 +261,7 @@ public class RpcDictionary<TK, TV> : RpcPropertyContainer, IDictionary<TK, TV>,
     {
         if (this.ContainsKey(key))
         {
-            this.RemoveInternal(key);
+            this.RemoveInternal(key, true);
             return true;
         }
 
@@ -385,7 +292,7 @@ public class RpcDictionary<TK, TV> : RpcPropertyContainer, IDictionary<TK, TV>,
     {
         if (this.Contains(item))
         {
-            this.RemoveInternal(item.Key);
+            this.RemoveInternal(item.Key, true);
             return true;
         }
 
@@ -444,7 +351,7 @@ public class RpcDictionary<TK, TV> : RpcPropertyContainer, IDictionary<TK, TV>,
             typeof(RpcDictionary<TK, TV>),
             value) as RpcDictionary<TK, TV>;
 
-        this.Assign(realValue!);
+        this.AssignInternal(realValue!, false);
     }
 
     /// <inheritdoc/>
@@ -470,7 +377,7 @@ public class RpcDictionary<TK, TV> : RpcPropertyContainer, IDictionary<TK, TV>,
                 value);
 
             // TODO: set rpc container
-            this[realKey] = (TV)realValue.GetRawValue();
+            this.IndexSetInternal(realKey, (TV)realValue.GetRawValue(), false);
         }
     }
 
@@ -486,12 +393,12 @@ public class RpcDictionary<TK, TV> : RpcPropertyContainer, IDictionary<TK, TV>,
 
             var key = RpcHelper.GetString(any);
             var realKey = RpcHelper.KeyCast<TK>(key);
-            this.Remove(realKey);
+            this.RemoveInternal(realKey, false);
         }
     }
 
     /// <inheritdoc/>
-    void ISyncOpActionClear.Apply() => this.Clear();
+    void ISyncOpActionClear.Apply() => this.ClearInternal(false);
 
     private void SetValueInternal(Dictionary<TK, RpcPropertyContainer> value, bool withNotify, bool bySync)
     {
@@ -552,7 +459,84 @@ public class RpcDictionary<TK, TV> : RpcPropertyContainer, IDictionary<TK, TV>,
         }
     }
 
-    private void RemoveInternal(TK key)
+    private void IndexSetInternal(TK key, TV value, bool notifyChange)
+    {
+        ArgumentNullException.ThrowIfNull(value);
+        RpcPropertyContainer? old = null;
+
+        if (this.RawValue.ContainsKey(key))
+        {
+            old = this.RawValue[key];
+        }
+
+        if (value is RpcPropertyContainer container)
+        {
+            old?.RemoveFromPropTree();
+
+            container.InsertToPropTree(this, $"{key}", this.TopOwner);
+
+            this.RawValue[key] = container;
+            this.Children![container.Name!] = container;
+
+            if (notifyChange)
+            {
+                this.NotifyChange(
+                    RpcPropertySyncOperation.UpdatePair,
+                    container.Name!,
+                    container,
+                    RpcSyncPropertyType.Dict);
+            }
+
+            this.OnUpdatePair?.Invoke(key, old != null ? (TV)old.GetRawValue() : default, value);
+        }
+        else
+        {
+            if (old == null)
+            {
+                var newContainer = new RpcPropertyContainer<TV>(value)
+                {
+                    Parent = this,
+                    Name = $"{key}",
+                    IsReferred = true,
+                };
+                newContainer.UpdateTopOwner(this.TopOwner);
+
+                this.RawValue[key] = newContainer;
+                this.Children![newContainer.Name] = newContainer;
+
+                if (notifyChange)
+                {
+                    this.NotifyChange(
+                        RpcPropertySyncOperation.UpdatePair,
+                        newContainer.Name!,
+                        newContainer,
+                        RpcSyncPropertyType.Dict);
+                }
+
+                this.OnUpdatePair?.Invoke(key, oldVal: old != null ? (TV)old.GetRawValue() : default, value);
+            }
+
+            // reuse old
+            else
+            {
+                var oldWithType = (RpcPropertyContainer<TV>)old;
+                oldWithType.Value = value;
+
+                if (notifyChange)
+                {
+                    this.NotifyChange(
+                        RpcPropertySyncOperation.UpdatePair,
+                        old.Name!,
+                        oldWithType,
+                        RpcSyncPropertyType.Dict);
+                }
+
+                this.OnUpdatePair?.Invoke(key, (TV)oldWithType.GetRawValue(), value);
+            }
+        }
+    }
+
+    private void RemoveInternal(TK key, bool notifyChange)
     {
         this.AssertNotShadowPropertyChange();
         var elem = this.RawValue[key];
@@ -560,7 +544,54 @@ public class RpcDictionary<TK, TV> : RpcPropertyContainer, IDictionary<TK, TV>,
 
         this.RawValue.Remove(key);
         this.Children!.Remove($"{key}");
-        this.NotifyChange(RpcPropertySyncOperation.RemoveElem, elem.Name!, null, RpcSyncPropertyType.Dict);
+
+        if (notifyChange)
+        {
+            this.NotifyChange(RpcPropertySyncOperation.RemoveElem, elem.Name!, null, RpcSyncPropertyType.Dict);
+        }
+
         this.OnRemoveElem?.Invoke(key, (TV)elem.GetRawValue());
+    }
+
+    private void ClearInternal(bool notifyChange)
+    {
+        this.AssertNotShadowPropertyChange();
+
+        foreach (var (_, value) in this.RawValue)
+        {
+            value.RemoveFromPropTree();
+        }
+
+        this.RawValue.Clear();
+        this.Children!.Clear();
+
+        if (notifyChange)
+        {
+            this.NotifyChange(RpcPropertySyncOperation.Clear, this.Name!, null, RpcSyncPropertyType.Dict);
+        }
+
+        this.OnClear?.Invoke();
+    }
+
+    private void AssignInternal(RpcDictionary<TK, TV> target, bool notifyChange)
+    {
+        if (target == null)
+        {
+            throw new ArgumentNullException(nameof(target));
+        }
+
+        if (target == this)
+        {
+            return;
+        }
+
+        this.OnSetValue?.Invoke(this.ToCopy(), target.ToCopy());
+
+        if (notifyChange)
+        {
+            this.NotifyChange(RpcPropertySyncOperation.SetValue, this.Name!, target, RpcSyncPropertyType.List);
+        }
+
+        this.AssignInternal(target);
     }
 }

@@ -312,21 +312,22 @@ public class RpcPropertyContainer<T> : RpcPropertyContainer, ISyncOpActionSetVal
             return;
         }
 
+        var old = this.value;
         if (withNotify)
         {
-            var old = this.value;
             this.value = value;
             this.NotifyChange(
                 RpcPropertySyncOperation.SetValue,
                 this.Name!,
                 this,
                 RpcSyncPropertyType.PlaintAndCostume);
-            this.OnSetValue?.Invoke(old, value);
         }
         else
         {
             this.value = value;
         }
+
+        this.OnSetValue?.Invoke(old, value);
     }
 
     /// <summary>
@@ -380,6 +381,6 @@ public class RpcPropertyContainer<T> : RpcPropertyContainer, ISyncOpActionSetVal
     void ISyncOpActionSetValue.Apply(RepeatedField<Any> args)
     {
         var value = RpcHelper.CreateRpcPropertyContainerByType(typeof(RpcPropertyContainer<T>), args[0]);
-        this.Assign(value);
+        this.Set((value as RpcPropertyContainer<T>)!.value, false, true);
     }
 }

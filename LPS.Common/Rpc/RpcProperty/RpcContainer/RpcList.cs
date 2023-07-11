@@ -210,64 +210,19 @@ public class RpcList<TElem> : RpcPropertyContainer, IList<TElem>, ISyncOpActionS
     /// Add elem to list.
     /// </summary>
     /// <param name="elem">Raw value of the elem.</param>
-    public void Add(TElem elem)
-    {
-        this.AssertNotShadowPropertyChange();
-
-        ArgumentNullException.ThrowIfNull(elem);
-        var newContainer = this.HandleValue(elem, this.RawValue.Count);
-        newContainer.UpdateTopOwner(this.TopOwner);
-
-        this.RawValue.Add(newContainer);
-        this.Children!.Add(newContainer.Name!, newContainer);
-        this.NotifyChange(
-            RpcPropertySyncOperation.AddListElem,
-            newContainer.Name!,
-            newContainer,
-            RpcSyncPropertyType.List);
-        this.OnAddElem?.Invoke(elem);
-    }
+    public void Add(TElem elem) => this.AddInternal(elem, true);
 
     /// <summary>
     /// Insert a elem to list.
     /// </summary>
     /// <param name="index">Index to insert.</param>
     /// <param name="elem">Raw value of the elem.</param>
-    public void Insert(int index, TElem elem)
-    {
-        this.AssertNotShadowPropertyChange();
-
-        ArgumentNullException.ThrowIfNull(elem);
-        var newContainer = this.HandleValue(elem, index);
-        newContainer.UpdateTopOwner(this.TopOwner);
-
-        this.RawValue.Insert(index, newContainer);
-        this.Children!.Add(newContainer.Name!, newContainer);
-        this.NotifyChange(
-            RpcPropertySyncOperation.InsertElem,
-            newContainer.Name!,
-            newContainer,
-            RpcSyncPropertyType.List);
-        this.OnInsertItem?.Invoke(index, elem);
-    }
+    public void Insert(int index, TElem elem) => this.InsertInternal(index, elem, true);
 
     /// <summary>
     /// Clear the list.
     /// </summary>
-    public void Clear()
-    {
-        this.AssertNotShadowPropertyChange();
-
-        foreach (var (_, container) in this.Children!)
-        {
-            container.RemoveFromPropTree();
-        }
-
-        this.RawValue.Clear();
-        this.Children!.Clear();
-        this.NotifyChange(RpcPropertySyncOperation.Clear, this.Name!, null, RpcSyncPropertyType.List);
-        this.OnClear?.Invoke();
-    }
+    public void Clear() => this.ClearInternal(true);
 
     /// <summary>
     /// Gets the count of the list.
@@ -281,39 +236,7 @@ public class RpcList<TElem> : RpcPropertyContainer, IList<TElem>, ISyncOpActionS
     public TElem this[int index]
     {
         get => (TElem)this.RawValue[index].GetRawValue();
-        set
-        {
-            this.AssertNotShadowPropertyChange();
-            ArgumentNullException.ThrowIfNull(value);
-            var old = this.RawValue[index];
-            var oldName = old.Name!;
-
-            if (value is RpcPropertyContainer container)
-            {
-                old.RemoveFromPropTree();
-                container.InsertToPropTree(this, oldName, this.TopOwner);
-
-                this.rawValue[index] = container;
-                this.NotifyChange(
-                    RpcPropertySyncOperation.UpdatePair,
-                    this.RawValue[index].Name!,
-                    container,
-                    RpcSyncPropertyType.List);
-                this.OnUpdatePair?.Invoke(index, (TElem)old.GetRawValue(), value);
-            }
-            else
-            {
-                var oldWithContainer = (RpcPropertyContainer<TElem>)old;
-                var oldVal = oldWithContainer.Value;
-                oldWithContainer.Set(value, false, false);
-                this.NotifyChange(
-                    RpcPropertySyncOperation.UpdatePair,
-                    this.RawValue[index].Name!,
-                    oldWithContainer,
-                    RpcSyncPropertyType.List);
-                this.OnUpdatePair?.Invoke(index, oldVal, value);
-            }
-        }
+        set => this.IndexSetInternal(value, index, true);
     }
 
     /// <summary>
@@ -327,23 +250,7 @@ public class RpcList<TElem> : RpcPropertyContainer, IList<TElem>, ISyncOpActionS
     /// </summary>
     /// <param name="target">Another RpcList.</param>
     /// <exception cref="ArgumentNullException">ArgumentNullException.</exception>
-    public void Assign(RpcList<TElem> target)
-    {
-        if (target == null)
-        {
-            throw new ArgumentNullException(nameof(target));
-        }
-
-        if (target == this)
-        {
-            return;
-        }
-
-        this.OnSetValue?.Invoke(this.ToCopy(), target.ToCopy());
-        this.NotifyChange(RpcPropertySyncOperation.SetValue, this.Name!, target, RpcSyncPropertyType.List);
-
-        this.AssignInternal(target);
-    }
+    public void Assign(RpcList<TElem> target) => this.AssignInternal(target, true);
 
     /// <inheritdoc/>
     void ISyncOpActionSetValue.Apply(RepeatedField<Any> args)
@@ -353,7 +260,7 @@ public class RpcList<TElem> : RpcPropertyContainer, IList<TElem>, ISyncOpActionS
             typeof(RpcList<TElem>),
             value) as RpcList<TElem>;
 
-        this.Assign(realValue!);
+        this.AssignInternal(realValue!, false);
     }
 
     /// <inheritdoc/>
@@ -366,15 +273,22 @@ public class RpcList<TElem> : RpcPropertyContainer, IList<TElem>, ISyncOpActionS
             var realValue = RpcHelper.CreateRpcPropertyContainerByType(valueType, any);
 
             // TODO: set rpc container
-            this.Add((TElem)realValue.GetRawValue());
+            this.AddInternal((TElem)realValue.GetRawValue(), false);
         }
     }
 
     /// <inheritdoc/>
-    void ISyncOpActionRemoveElem.Apply(RepeatedField<Any> args) => this.RemoveAt(0);
+    void ISyncOpActionRemoveElem.Apply(RepeatedField<Any> args)
+    {
+        foreach (var anyIndex in args)
+        {
+            var removeIdx = RpcHelper.GetInt(anyIndex);
+            this.RemoveInternal(removeIdx, false);
+        }
+    }
 
     /// <inheritdoc/>
-    void ISyncOpActionClear.Apply() => this.Clear();
+    void ISyncOpActionClear.Apply() => this.ClearInternal(false);
 
     /// <inheritdoc/>
     void ISyncOpActionInsertElem.Apply(RepeatedField<Any> args)
@@ -390,7 +304,7 @@ public class RpcList<TElem> : RpcPropertyContainer, IList<TElem>, ISyncOpActionS
                 var value = RpcHelper.CreateRpcPropertyContainerByType(valueType, pair.Value);
 
                 // TODO: set rpc container
-                this.Insert(index, (TElem)value.GetRawValue());
+                this.InsertInternal(index, (TElem)value.GetRawValue(), false);
             }
             else
             {
@@ -422,7 +336,7 @@ public class RpcList<TElem> : RpcPropertyContainer, IList<TElem>, ISyncOpActionS
                 value);
 
             // TODO: set rpc container
-            this[realKey] = (TElem)realValue.GetRawValue();
+            this.IndexSetInternal((TElem)realValue.GetRawValue(), realKey, false);
         }
     }
 
@@ -444,7 +358,7 @@ public class RpcList<TElem> : RpcPropertyContainer, IList<TElem>, ISyncOpActionS
     }
 
     /// <inheritdoc/>
-    public void RemoveAt(int index) => this.RemoveInternal(index);
+    public void RemoveAt(int index) => this.RemoveInternal(index, true);
 
     /// <inheritdoc/>
     public bool Contains(TElem item) => this.IndexOf(item) != -1;
@@ -509,7 +423,7 @@ public class RpcList<TElem> : RpcPropertyContainer, IList<TElem>, ISyncOpActionS
         public void Dispose() => this.enumerator.Dispose();
     }
 
-    private void RemoveInternal(int index)
+    private void RemoveInternal(int index, bool notifyChange)
     {
         this.AssertNotShadowPropertyChange();
 
@@ -518,7 +432,11 @@ public class RpcList<TElem> : RpcPropertyContainer, IList<TElem>, ISyncOpActionS
 
         this.RawValue.RemoveAt(index);
         this.Children!.Remove($"{index}");
-        this.NotifyChange(RpcPropertySyncOperation.RemoveElem, elem.Name!, null, RpcSyncPropertyType.List);
+
+        if (notifyChange)
+        {
+            this.NotifyChange(RpcPropertySyncOperation.RemoveElem, elem.Name!, null, RpcSyncPropertyType.List);
+        }
 
         // TODO: set rpc container
         this.OnRemoveElem?.Invoke(index, (TElem)elem.GetRawValue());
@@ -605,5 +523,141 @@ public class RpcList<TElem> : RpcPropertyContainer, IList<TElem>, ISyncOpActionS
         }
 
         return newContainer;
+    }
+
+    private void AssignInternal(RpcList<TElem> target, bool notifyChange)
+    {
+        if (target == null)
+        {
+            throw new ArgumentNullException(nameof(target));
+        }
+
+        if (target == this)
+        {
+            return;
+        }
+
+        this.OnSetValue?.Invoke(this.ToCopy(), target.ToCopy());
+
+        if (notifyChange)
+        {
+            this.NotifyChange(
+                RpcPropertySyncOperation.SetValue,
+                this.Name!,
+                target,
+                RpcSyncPropertyType.List);
+        }
+
+        this.AssignInternal(target);
+    }
+
+    private void AddInternal(TElem elem, bool notifyChange)
+    {
+        this.AssertNotShadowPropertyChange();
+
+        ArgumentNullException.ThrowIfNull(elem);
+        var newContainer = this.HandleValue(elem, this.RawValue.Count);
+        newContainer.UpdateTopOwner(this.TopOwner);
+
+        this.RawValue.Add(newContainer);
+        this.Children!.Add(newContainer.Name!, newContainer);
+
+        if (notifyChange)
+        {
+            this.NotifyChange(
+                RpcPropertySyncOperation.AddListElem,
+                newContainer.Name!,
+                newContainer,
+                RpcSyncPropertyType.List);
+        }
+
+        this.OnAddElem?.Invoke(elem);
+    }
+
+    private void ClearInternal(bool notifyChange)
+    {
+        this.AssertNotShadowPropertyChange();
+
+        foreach (var (_, container) in this.Children!)
+        {
+            container.RemoveFromPropTree();
+        }
+
+        this.RawValue.Clear();
+        this.Children!.Clear();
+
+        if (notifyChange)
+        {
+            this.NotifyChange(RpcPropertySyncOperation.Clear, this.Name!, null, RpcSyncPropertyType.List);
+        }
+
+        this.OnClear?.Invoke();
+    }
+
+    private void InsertInternal(int index, TElem elem, bool notifyChange)
+    {
+        this.AssertNotShadowPropertyChange();
+
+        ArgumentNullException.ThrowIfNull(elem);
+        var newContainer = this.HandleValue(elem, index);
+        newContainer.UpdateTopOwner(this.TopOwner);
+
+        this.RawValue.Insert(index, newContainer);
+        this.Children!.Add(newContainer.Name!, newContainer);
+
+        if (notifyChange)
+        {
+            this.NotifyChange(
+                RpcPropertySyncOperation.InsertElem,
+                newContainer.Name!,
+                newContainer,
+                RpcSyncPropertyType.List);
+        }
+
+        this.OnInsertItem?.Invoke(index, elem);
+    }
+
+    private void IndexSetInternal(TElem value, int index, bool notifyChange)
+    {
+        this.AssertNotShadowPropertyChange();
+        ArgumentNullException.ThrowIfNull(value);
+        var old = this.RawValue[index];
+        var oldName = old.Name!;
+
+        if (value is RpcPropertyContainer container)
+        {
+            old.RemoveFromPropTree();
+            container.InsertToPropTree(this, oldName, this.TopOwner);
+
+            this.rawValue[index] = container;
+
+            if (notifyChange)
+            {
+                this.NotifyChange(
+                    RpcPropertySyncOperation.UpdatePair,
+                    this.RawValue[index].Name!,
+                    container,
+                    RpcSyncPropertyType.List);
+            }
+
+            this.OnUpdatePair?.Invoke(index, (TElem)old.GetRawValue(), value);
+        }
+        else
+        {
+            var oldWithContainer = (RpcPropertyContainer<TElem>)old;
+            var oldVal = oldWithContainer.Value;
+            oldWithContainer.Set(value, false, false);
+
+            if (notifyChange)
+            {
+                this.NotifyChange(
+                    RpcPropertySyncOperation.UpdatePair,
+                    this.RawValue[index].Name!,
+                    oldWithContainer,
+                    RpcSyncPropertyType.List);
+            }
+
+            this.OnUpdatePair?.Invoke(index, oldVal, value);
+        }
     }
 }

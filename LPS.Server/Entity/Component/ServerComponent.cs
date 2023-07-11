@@ -63,6 +63,8 @@ public class ServerComponent : ComponentBase
             RpcHelper.GetRpcAny(compName));
 
         this.Deserialize(compData);
+
+        this.IsLoaded = true;
     }
 
     /// <inheritdoc/>

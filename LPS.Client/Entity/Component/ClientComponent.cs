@@ -8,6 +8,7 @@ namespace LPS.Common.Entity.Component;
 
 using System;
 using System.Collections.Generic;
+using LPS.Client;
 using LPS.Client.Rpc.RpcProperty;
 using LPS.Common.Rpc;
 
@@ -26,6 +27,15 @@ public class ClientComponent : ComponentBase
     /// <inheritdoc/>
     public override void OnInit()
     {
+    }
+
+    /// <inheritdoc/>
+    public override Task OnLoadComponentData()
+    {
+        RpcClientHelper.RequireComponentSync(this.Owner.MailBox.Id, this.Name);
+
+        this.IsLoaded = true;
+        return Task.CompletedTask;
     }
 
     /// <inheritdoc/>

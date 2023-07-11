@@ -126,34 +126,6 @@ public class ShadowClientEntity : ShadowEntity
         return component;
     }
 
-    /// <summary>
-    /// Loads non-lazy components from the database.
-    /// </summary>
-    /// <param name="nonLazyComponents">The list of non-lazy components to load.</param>
-    /// <returns>Task.</returns>
-    protected async Task LoadNonLazyComponents(IEnumerable<ComponentBase> nonLazyComponents)
-    {
-        var componentsAny = await this.BatchLoadComponentsFromDatabase(nonLazyComponents);
-        var componentsDict = componentsAny
-            .Unpack<DictWithStringKeyArg>()
-            .PayLoad
-            .ToDictionary(
-                pair => pair.Key,
-                pair => pair.Value);
-
-        foreach (var comp in nonLazyComponents)
-        {
-            if (componentsDict.ContainsKey(comp.Name))
-            {
-                comp.Deserialize(componentsDict[comp.Name]);
-            }
-            else
-            {
-                Logger.Warn($"Component {comp.Name} not found in database.");
-            }
-        }
-    }
-
     private async ValueTask<ComponentBase> GetComponentInternal(uint typeId)
     {
         if (!this.Components.ContainsKey(typeId))
@@ -167,7 +139,7 @@ public class ShadowClientEntity : ShadowEntity
 
         if (!component.IsLoaded)
         {
-            await component.LoadFromDatabase();
+            await component.OnLoadComponentData();
         }
 
         return component;

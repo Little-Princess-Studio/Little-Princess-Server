@@ -6,14 +6,11 @@
 
 namespace LPS.Client;
 
-using System.Reflection;
 using LPS.Client.Entity;
 using LPS.Client.Rpc.RpcProperty;
 using LPS.Common.Debug;
-using LPS.Common.Entity;
 using LPS.Common.Rpc;
 using LPS.Common.Rpc.InnerMessages;
-using LPS.Common.Rpc.RpcProperty;
 
 /// <summary>
 /// Client RPC helper class.
@@ -63,5 +60,15 @@ public static class RpcClientHelper
 
         Client.Instance.Send(requireFullSync);
         Logger.Info($"require full property sync");
+    }
+
+    /// <summary>
+    /// Require component sync to this client's shadow entity.
+    /// </summary>
+    /// <param name="entityId">Shadow entity ID.</param>
+    /// <param name="componentName">Name of the component to sync.</param>
+    public static void RequireComponentSync(string entityId, string componentName)
+    {
+        // Implementation goes here
     }
 }

@@ -116,22 +116,7 @@ public abstract class RpcPropertyCostumeContainer<TSub> : RpcPropertyCostumeCont
     /// </summary>
     /// <param name="target">Value.</param>
     /// <exception cref="ArgumentNullException">ArgumentNullException.</exception>
-    public void Assign(TSub target)
-    {
-        if (target == null)
-        {
-            throw new ArgumentNullException(nameof(target));
-        }
-
-        this.NotifyChange(
-            RpcPropertySyncOperation.SetValue,
-            this.Name!,
-            target,
-            RpcSyncPropertyType.PlaintAndCostume);
-        this.OnSetValue?.Invoke((this as TSub)!, (target as TSub)!);
-
-        this.AssignInternal(target);
-    }
+    public void Assign(TSub target) => this.AssignInternal(target, true);
 
     /// <inheritdoc/>
     public override void AssignInternal(RpcPropertyContainer target)
@@ -167,7 +152,28 @@ public abstract class RpcPropertyCostumeContainer<TSub> : RpcPropertyCostumeCont
     void ISyncOpActionSetValue.Apply(RepeatedField<Any> args)
     {
         var value = RpcHelper.CreateRpcPropertyContainerByType(this.GetType(), args[0]);
-        this.Assign((TSub)value);
+        this.AssignInternal((TSub)value, false);
+    }
+
+    private void AssignInternal(TSub target, bool notifyChange)
+    {
+        if (target == null)
+        {
+            throw new ArgumentNullException(nameof(target));
+        }
+
+        if (notifyChange)
+        {
+            this.NotifyChange(
+                RpcPropertySyncOperation.SetValue,
+                this.Name!,
+                target,
+                RpcSyncPropertyType.PlaintAndCostume);
+        }
+
+        this.OnSetValue?.Invoke((this as TSub)!, (target as TSub)!);
+
+        this.AssignInternal(target);
     }
 }
 #pragma warning restore SA1402

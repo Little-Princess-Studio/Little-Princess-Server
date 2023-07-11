@@ -27,9 +27,9 @@ public abstract class ComponentBase
     public string Name { get; private set; } = string.Empty;
 
     /// <summary>
-    /// Gets a value indicating whether this component's data has been loaded.
+    /// Gets or sets a value indicating whether this component's data has been loaded.
     /// </summary>
-    public bool IsLoaded { get; private set; } = false;
+    public bool IsLoaded { get; protected set; } = false;
 
     private Dictionary<string, RpcProperty>? propertyTree;
 
@@ -106,6 +106,7 @@ public abstract class ComponentBase
         }
 
         this.IsLoaded = true;
+
         return Task.CompletedTask;
     }
 
