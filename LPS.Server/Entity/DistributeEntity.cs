@@ -15,6 +15,7 @@ using Google.Protobuf.WellKnownTypes;
 using LPS.Common.Debug;
 using LPS.Common.Entity;
 using LPS.Common.Entity.Component;
+using LPS.Common.Rpc;
 using LPS.Common.Rpc.Attribute;
 using LPS.Common.Rpc.InnerMessages;
 using LPS.Common.Rpc.RpcProperty;
@@ -281,7 +282,11 @@ public abstract class DistributeEntity : BaseEntity, ISendPropertySyncMessage
     {
     }
 
-    /// <inheritdoc/>
+    /// <summary>
+    /// Initializes all components of the distribute entity.
+    /// Only the components that are tagged as non-lazy will be initialized.
+    /// </summary>
+    /// <returns>A task that represents the asynchronous initialization operation.</returns>
     public override async Task InitComponents()
     {
         var componentAttrs = this.GetType().GetCustomAttributes<ServerComponentAttribute>();
@@ -316,6 +321,71 @@ public abstract class DistributeEntity : BaseEntity, ISendPropertySyncMessage
         {
             comp.OnInit();
         }
+    }
+
+    /// <summary>
+    /// Gets the component of type T from the entity.
+    /// </summary>
+    /// <typeparam name="T">The type of component to get.</typeparam>
+    /// <returns>The component of type T. If the component is marked as `LazyLoad`, it will be loaded this time.</returns>
+    public override async ValueTask<T> GetComponent<T>()
+    {
+        var typeId = TypeIdHelper.GetId<T>();
+        var component = await this.GetComponentInternal(typeId);
+        return (T)component;
+    }
+
+    /// <summary>
+    /// Gets the component of the specified type from the entity.
+    /// </summary>
+    /// <param name="componentType">The type of component to get. If the component is marked as `LazyLoad`, it will be loaded this time.</param>
+    /// <returns>The component of the specified type.</returns>
+    public override async ValueTask<ComponentBase> GetComponent(System.Type componentType)
+    {
+        var typeId = TypeIdHelper.GetId(componentType);
+        var component = await this.GetComponentInternal(typeId);
+        return component;
+    }
+
+    /// <summary>
+    /// Gets the component with the specified name from the entity.
+    /// </summary>
+    /// <param name="componentName">The name of the component to get. If the component is marked as `LazyLoad`, it will be loaded this time.</param>
+    /// <returns>The component with the specified name.</returns>
+    public override async ValueTask<ComponentBase> GetComponent(string componentName)
+    {
+        if (!this.ComponentNameToComponentTypeId.ContainsKey(componentName))
+        {
+            var e = new Exception($"Component {componentName} not found.");
+            Logger.Error(e);
+            throw e;
+        }
+
+        var typeId = this.ComponentNameToComponentTypeId[componentName];
+        var component = await this.GetComponentInternal(typeId);
+        return component;
+    }
+
+    /// <summary>
+    /// Gets a value indicating whether this entity is a database entity.
+    /// </summary>
+    public bool IsDatabaseEntity =>
+        this.GetType().GetCustomAttribute<EntityClassAttribute>()?.IsDatabaseEntity ?? false;
+
+    /// <summary>
+    /// Gets the name of the database collection for this entity.
+    /// </summary>
+    /// <returns>The name of the database collection for this entity.</returns>
+    public string? GetCollectionName()
+    {
+        if (!this.IsDatabaseEntity)
+        {
+            throw new Exception("This entity is not a database entity.");
+        }
+
+        var attr = this.GetType().GetCustomAttribute<EntityClassAttribute>()!;
+        var collName = attr?.DbCollectionName ?? attr?.Name;
+        return collName;
     }
 
     /// <summary>
@@ -366,13 +436,13 @@ public abstract class DistributeEntity : BaseEntity, ISendPropertySyncMessage
 
         foreach (var comp in componentList)
         {
-            components.PayLoad.Add(Any.Pack(new StringArg { PayLoad = comp.Name }));
+            components.PayLoad.Add(RpcHelper.GetRpcAny(comp.Name));
         }
 
         var res = await DbHelper.CallDbInnerApi(
             "BatchLoadComponents",
-            Any.Pack(new StringArg { PayLoad = collName }),
-            Any.Pack(new StringArg { PayLoad = this.DbId }),
+            RpcHelper.GetRpcAny(collName),
+            RpcHelper.GetRpcAny(this.DbId),
             Any.Pack(components));
 
         if (res.Is(NullArg.Descriptor))
@@ -409,8 +479,8 @@ public abstract class DistributeEntity : BaseEntity, ISendPropertySyncMessage
 
         var res = await DbHelper.CallDbInnerApi(
             "BatchSaveComponents",
-            Any.Pack(new StringArg { PayLoad = collName }),
-            Any.Pack(new StringArg { PayLoad = this.DbId }),
+            RpcHelper.GetRpcAny(collName),
+            RpcHelper.GetRpcAny(this.DbId),
             Any.Pack(components));
 
         return res.Unpack<BoolArg>().PayLoad;
@@ -463,9 +533,9 @@ public abstract class DistributeEntity : BaseEntity, ISendPropertySyncMessage
     {
         var entityData = await DbHelper.CallDbInnerApi(
             "LoadEntity",
-            Any.Pack(new StringArg() { PayLoad = collectionName }),
-            Any.Pack(new StringArg() { PayLoad = queryInfo["key"] }),
-            Any.Pack(new StringArg() { PayLoad = queryInfo["value"] }));
+            RpcHelper.GetRpcAny(collectionName),
+            RpcHelper.GetRpcAny(queryInfo["key"]),
+            RpcHelper.GetRpcAny(queryInfo["value"]));
 
         if (entityData.Is(NullArg.Descriptor))
         {
@@ -489,7 +559,7 @@ public abstract class DistributeEntity : BaseEntity, ISendPropertySyncMessage
         var serialContent = this.ToAny();
         var res = await DbHelper.CallDbInnerApi(
             "SaveEntity",
-            Any.Pack(new StringArg() { PayLoad = queryInfo["id"] }),
+            RpcHelper.GetRpcAny(queryInfo["id"]),
             serialContent);
         if (res.Is(BoolArg.Descriptor))
         {
@@ -525,14 +595,24 @@ public abstract class DistributeEntity : BaseEntity, ISendPropertySyncMessage
         return Task.CompletedTask;
     }
 
-    /// <summary>
-    /// Gets the name of the database collection for this entity.
-    /// </summary>
-    /// <returns>The name of the database collection for this entity.</returns>
-    protected string? GetCollectionName()
+    private async ValueTask<ComponentBase> GetComponentInternal(uint typeId)
     {
-        var attr = this.GetType().GetCustomAttribute<EntityClassAttribute>();
-        var collName = attr?.DbCollectionName ?? attr?.Name;
-        return collName;
+        if (!this.Components.ContainsKey(typeId))
+        {
+            var e = new Exception($"Component not found.");
+            Logger.Error(e);
+            throw e;
+        }
+
+        var component = this.Components[typeId];
+
+        if (!component.IsLoaded)
+        {
+            await component.OnLoadComponentData();
+        }
+
+        component.OnInit();
+
+        return component;
     }
 }

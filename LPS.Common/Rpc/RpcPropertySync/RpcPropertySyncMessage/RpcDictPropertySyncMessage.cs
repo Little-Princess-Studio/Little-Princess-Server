@@ -384,10 +384,7 @@ public class RpcDictPropertySyncMessage : RpcPropertySyncMessage
 
             foreach (var key in this.removeDictInfo)
             {
-                cmd.Args.Add(Any.Pack(new StringArg()
-                {
-                    PayLoad = key,
-                }));
+                RpcHelper.GetRpcAny(key);
             }
 
             return cmd;

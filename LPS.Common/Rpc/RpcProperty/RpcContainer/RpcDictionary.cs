@@ -484,7 +484,7 @@ public class RpcDictionary<TK, TV> : RpcPropertyContainer, IDictionary<TK, TV>,
                 throw new Exception("Invalid dict remove key type");
             }
 
-            var key = any.Unpack<StringArg>().PayLoad;
+            var key = RpcHelper.GetString(any);
             var realKey = RpcHelper.KeyCast<TK>(key);
             this.Remove(realKey);
         }

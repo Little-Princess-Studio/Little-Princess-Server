@@ -65,7 +65,11 @@ public class ShadowClientEntity : ShadowEntity
         return ValueTask.CompletedTask;
     }
 
-    /// <inheritdoc/>
+    /// <summary>
+    /// Initializes all components of the client entity.
+    /// All the components of the client entity are lazy-loaded, so `OnInit` will not be invoked here.
+    /// </summary>
+    /// <returns>A task that represents the asynchronous initialization operation.</returns>
     public override Task InitComponents()
     {
         var componentAttrs = this.GetType().GetCustomAttributes<ClientComponentAttribute>();
@@ -89,6 +93,84 @@ public class ShadowClientEntity : ShadowEntity
         }
 
         return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Gets the component of the specified type from the entity.
+    /// </summary>
+    /// <param name="componentType">The type of component to get. If the component is marked as `LazyLoad`, it will be loaded this time.</param>
+    /// <returns>The component of the specified type.</returns>
+    public override async ValueTask<ComponentBase> GetComponent(System.Type componentType)
+    {
+        var typeId = TypeIdHelper.GetId(componentType);
+        var component = await this.GetComponentInternal(typeId);
+        return component;
+    }
+
+    /// <summary>
+    /// Gets the component with the specified name from the entity.
+    /// </summary>
+    /// <param name="componentName">The name of the component to get. If the component is marked as `LazyLoad`, it will be loaded this time.</param>
+    /// <returns>The component with the specified name.</returns>
+    public override async ValueTask<ComponentBase> GetComponent(string componentName)
+    {
+        if (!this.ComponentNameToComponentTypeId.ContainsKey(componentName))
+        {
+            var e = new Exception($"Component {componentName} not found.");
+            Logger.Error(e);
+            throw e;
+        }
+
+        var typeId = this.ComponentNameToComponentTypeId[componentName];
+        var component = await this.GetComponentInternal(typeId);
+        return component;
+    }
+
+    /// <summary>
+    /// Loads non-lazy components from the database.
+    /// </summary>
+    /// <param name="nonLazyComponents">The list of non-lazy components to load.</param>
+    /// <returns>Task.</returns>
+    protected async Task LoadNonLazyComponents(IEnumerable<ComponentBase> nonLazyComponents)
+    {
+        var componentsAny = await this.BatchLoadComponentsFromDatabase(nonLazyComponents);
+        var componentsDict = componentsAny
+            .Unpack<DictWithStringKeyArg>()
+            .PayLoad
+            .ToDictionary(
+                pair => pair.Key,
+                pair => pair.Value);
+
+        foreach (var comp in nonLazyComponents)
+        {
+            if (componentsDict.ContainsKey(comp.Name))
+            {
+                comp.Deserialize(componentsDict[comp.Name]);
+            }
+            else
+            {
+                Logger.Warn($"Component {comp.Name} not found in database.");
+            }
+        }
+    }
+
+    private async ValueTask<ComponentBase> GetComponentInternal(uint typeId)
+    {
+        if (!this.Components.ContainsKey(typeId))
+        {
+            var e = new Exception($"Component not found.");
+            Logger.Error(e);
+            throw e;
+        }
+
+        var component = this.Components[typeId];
+
+        if (!component.IsLoaded)
+        {
+            await component.LoadFromDatabase();
+        }
+
+        return component;
     }
 
     /// <summary>

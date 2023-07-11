@@ -11,6 +11,7 @@ using System.Net.Sockets;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using Google.Protobuf;
+using Google.Protobuf.WellKnownTypes;
 using LPS.Common.Debug;
 using LPS.Common.Entity;
 using LPS.Common.Entity.Component;
@@ -20,6 +21,8 @@ using LPS.Common.Rpc.InnerMessages;
 using LPS.Common.Rpc.RpcProperty;
 using LPS.Common.Rpc.RpcProperty.RpcContainer;
 using Newtonsoft.Json;
+
+using Type = System.Type;
 
 /// <summary>
 /// Helper class for LPS Rpc.
@@ -330,8 +333,7 @@ public static class RpcHelper
 
         var msg = new ListArg();
         list.RawValue.ForEach(e => msg.PayLoad.Add(
-            Google.Protobuf.WellKnownTypes.Any.Pack(new StringArg
-            { PayLoad = ((RpcPropertyContainer<string>)e).Value })));
+            Any.Pack(GetRpcAny(((RpcPropertyContainer<string>)e).Value))));
 
         return msg;
     }
@@ -350,8 +352,7 @@ public static class RpcHelper
 
         var msg = new ListArg();
         list.RawValue.ForEach(e => msg.PayLoad.Add(
-            Google.Protobuf.WellKnownTypes.Any.Pack(
-                new FloatArg { PayLoad = ((RpcPropertyContainer<float>)e).Value })));
+            GetRpcAny(((RpcPropertyContainer<float>)e).Value)));
 
         return msg;
     }
@@ -370,8 +371,7 @@ public static class RpcHelper
 
         var msg = new ListArg();
         list.RawValue.ForEach(e => msg.PayLoad.Add(
-            Google.Protobuf.WellKnownTypes.Any.Pack(
-                new BoolArg { PayLoad = ((RpcPropertyContainer<bool>)e).Value })));
+            GetRpcAny(((RpcPropertyContainer<bool>)e).Value)));
 
         return msg;
     }
@@ -390,8 +390,7 @@ public static class RpcHelper
 
         var msg = new ListArg();
         list.RawValue.ForEach(e => msg.PayLoad.Add(
-            Google.Protobuf.WellKnownTypes.Any.Pack(new MailBoxArg()
-            { PayLoad = RpcMailBoxToPbMailBox((RpcPropertyContainer<MailBox>)e) })));
+            GetRpcAny(RpcMailBoxToPbMailBox((RpcPropertyContainer<MailBox>)e))));
 
         return msg;
     }
@@ -410,8 +409,7 @@ public static class RpcHelper
 
         var msg = new ListArg();
         list.RawValue.ForEach(e => msg.PayLoad.Add(
-            Google.Protobuf.WellKnownTypes.Any.Pack(
-                new IntArg { PayLoad = ((RpcPropertyContainer<int>)e).Value })));
+            GetRpcAny(((RpcPropertyContainer<int>)e).Value)));
 
         return msg;
     }
@@ -518,6 +516,96 @@ public static class RpcHelper
         }
 
         return msg;
+    }
+
+    /// <summary>
+    /// Converts a string value to a protobuf Any object.
+    /// </summary>
+    /// <param name="str">The string value to convert.</param>
+    /// <returns>A protobuf Any object.</returns>
+    public static Any GetRpcAny(string str) => Any.Pack(new StringArg() { PayLoad = str });
+
+    /// <summary>
+    /// Converts an integer value to a protobuf Any object.
+    /// </summary>
+    /// <param name="value">The integer value to convert.</param>
+    /// <returns>A protobuf Any object.</returns>
+    public static Any GetRpcAny(int value) => Any.Pack(new IntArg() { PayLoad = value });
+
+    /// <summary>
+    /// Converts a float value to a protobuf Any object.
+    /// </summary>
+    /// <param name="value">The float value to convert.</param>
+    /// <returns>A protobuf Any object.</returns>
+    public static Any GetRpcAny(float value) => Any.Pack(new FloatArg() { PayLoad = value });
+
+    /// <summary>
+    /// Converts a <see cref="Mailbox"/> value to a protobuf Any object.
+    /// </summary>
+    /// <param name="value">The <see cref="Mailbox"/> value to convert.</param>
+    /// <returns>A protobuf Any object.</returns>
+    public static Any GetRpcAny(in InnerMessages.MailBox value) => Any.Pack(new MailBoxArg() { PayLoad = value });
+
+    /// <summary>
+    /// Converts a boolean value to a protobuf Any object.
+    /// </summary>
+    /// <param name="value">The boolean value to convert.</param>
+    /// <returns>A protobuf Any object.</returns>
+    public static Any GetRpcAny(bool value) => Any.Pack(new BoolArg() { PayLoad = value });
+
+    /// <summary>
+    /// Extracts a string value from a protobuf Any object.
+    /// </summary>
+    /// <param name="any">The protobuf Any object to extract the string value from.</param>
+    /// <returns>The extracted string value.</returns>
+    public static string GetString(Any any)
+    {
+        var str = any.Unpack<StringArg>();
+        return str.PayLoad;
+    }
+
+    /// <summary>
+    /// Extracts an integer value from a protobuf Any object.
+    /// </summary>
+    /// <param name="any">The protobuf Any object to extract the integer value from.</param>
+    /// <returns>The extracted integer value.</returns>
+    public static int GetInt(Any any)
+    {
+        var str = any.Unpack<IntArg>();
+        return str.PayLoad;
+    }
+
+    /// <summary>
+    /// Extracts a float value from a protobuf Any object.
+    /// </summary>
+    /// <param name="any">The protobuf Any object to extract the float value from.</param>
+    /// <returns>The extracted float value.</returns>
+    public static float GetFloat(Any any)
+    {
+        var str = any.Unpack<FloatArg>();
+        return str.PayLoad;
+    }
+
+    /// <summary>
+    /// Extracts a boolean value from a protobuf Any object.
+    /// </summary>
+    /// <param name="any">The protobuf Any object to extract the boolean value from.</param>
+    /// <returns>The extracted boolean value.</returns>
+    public static bool GetBool(Any any)
+    {
+        var str = any.Unpack<BoolArg>();
+        return str.PayLoad;
+    }
+
+    /// <summary>
+    /// Extracts a <see cref="Mailbox"/> value from a protobuf Any object.
+    /// </summary>
+    /// <param name="any">The protobuf Any object to extract the <see cref="Mailbox"/> value from.</param>
+    /// <returns>The extracted <see cref="Mailbox"/> value.</returns>
+    public static InnerMessages.MailBox GetMailBox(Any any)
+    {
+        var str = any.Unpack<MailBoxArg>();
+        return str.PayLoad;
     }
 
     #endregion
@@ -701,16 +789,16 @@ public static class RpcHelper
     /// <param name="argType">Type to convert.</param>
     /// <returns>Real object.</returns>
     /// <exception cref="Exception">Throw exception if failed to convert.</exception>
-    public static object? ProtoBufAnyToRpcArg(Google.Protobuf.WellKnownTypes.Any arg, Type argType)
+    public static object? ProtoBufAnyToRpcArg(Any arg, Type argType)
     {
         object? obj = arg switch
         {
             _ when arg.Is(NullArg.Descriptor) => null,
-            _ when arg.Is(BoolArg.Descriptor) => arg.Unpack<BoolArg>().PayLoad,
-            _ when arg.Is(IntArg.Descriptor) => arg.Unpack<IntArg>().PayLoad,
-            _ when arg.Is(FloatArg.Descriptor) => arg.Unpack<FloatArg>().PayLoad,
-            _ when arg.Is(StringArg.Descriptor) => arg.Unpack<StringArg>().PayLoad,
-            _ when arg.Is(MailBoxArg.Descriptor) => PbMailBoxToRpcMailBox(arg.Unpack<MailBoxArg>().PayLoad),
+            _ when arg.Is(BoolArg.Descriptor) => GetBool(arg),
+            _ when arg.Is(IntArg.Descriptor) => GetInt(arg),
+            _ when arg.Is(FloatArg.Descriptor) => GetFloat(arg),
+            _ when arg.Is(StringArg.Descriptor) => GetString(arg),
+            _ when arg.Is(MailBoxArg.Descriptor) => PbMailBoxToRpcMailBox(GetMailBox(arg)),
             _ when arg.Is(JsonArg.Descriptor) => JsonConvert.DeserializeObject(
                 arg.Unpack<JsonArg>().PayLoad,
                 argType),
@@ -748,11 +836,11 @@ public static class RpcHelper
         var type = obj.GetType();
         return obj switch
         {
-            bool b => new BoolArg { PayLoad = b },
-            int i => new IntArg { PayLoad = i },
-            float f => new FloatArg { PayLoad = f },
-            string s => new StringArg { PayLoad = s },
-            MailBox m => new MailBoxArg { PayLoad = RpcMailBoxToPbMailBox(m) },
+            bool b => GetRpcAny(b),
+            int i => GetRpcAny(i),
+            float f => GetRpcAny(f),
+            string s => GetRpcAny(s),
+            MailBox m => GetRpcAny(RpcMailBoxToPbMailBox(m)),
             _ when type.IsDefined(typeof(RpcJsonTypeAttribute)) => new JsonArg
             { PayLoad = JsonConvert.SerializeObject(obj) },
             _ when type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Dictionary<,>) =>

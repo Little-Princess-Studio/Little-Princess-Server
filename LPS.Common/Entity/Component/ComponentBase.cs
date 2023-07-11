@@ -56,28 +56,6 @@ public abstract class ComponentBase
     }
 
     /// <summary>
-    /// Loads the component's data from the database.
-    /// </summary>
-    /// <returns>A task that represents the asynchronous operation.</returns>
-    public Task LoadFromDatabase()
-    {
-        if (this.IsLoaded)
-        {
-            return Task.CompletedTask;
-        }
-
-        if (this.Owner is null)
-        {
-            throw new Exception("Cannot load a component without an owner.");
-        }
-
-        this.OnInit();
-
-        this.IsLoaded = true;
-        return Task.CompletedTask;
-    }
-
-    /// <summary>
     /// Serializes the component's data to an Any message.
     /// </summary>
     /// <returns>An Any message containing the serialized data.</returns>
@@ -109,6 +87,26 @@ public abstract class ComponentBase
                 }
             }
         }
+    }
+
+    /// <summary>
+    /// Loads the component's data from the database.
+    /// </summary>
+    /// <returns>A task that represents the asynchronous operation.</returns>
+    public virtual Task OnLoadComponentData()
+    {
+        if (this.IsLoaded)
+        {
+            return Task.CompletedTask;
+        }
+
+        if (this.Owner is null)
+        {
+            throw new Exception("Cannot load a component without an owner.");
+        }
+
+        this.IsLoaded = true;
+        return Task.CompletedTask;
     }
 
     /// <summary>

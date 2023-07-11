@@ -12,6 +12,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Google.Protobuf.WellKnownTypes;
 using LPS.Common.Debug;
+using LPS.Common.Rpc;
 using LPS.Common.Rpc.InnerMessages;
 using MongoDB.Bson;
 using MongoDB.Driver;
@@ -234,23 +235,23 @@ public class MongoDbWrapper : IDatabase
             var value = elem.Value;
             if (value.Is(BoolArg.Descriptor))
             {
-                bsonDoc.Add(fieldName, new BsonBoolean(value.Unpack<BoolArg>().PayLoad));
+                bsonDoc.Add(fieldName, new BsonBoolean(RpcHelper.GetBool(value)));
             }
             else if (value.Is(StringArg.Descriptor))
             {
-                bsonDoc.Add(fieldName, new BsonString(value.Unpack<StringArg>().PayLoad));
+                bsonDoc.Add(fieldName, new BsonString(RpcHelper.GetString(value)));
             }
             else if (value.Is(FloatArg.Descriptor))
             {
-                bsonDoc.Add(fieldName, new BsonDouble(value.Unpack<FloatArg>().PayLoad));
+                bsonDoc.Add(fieldName, new BsonDouble(RpcHelper.GetFloat(value)));
             }
             else if (value.Is(IntArg.Descriptor))
             {
-                bsonDoc.Add(fieldName, new BsonInt32(value.Unpack<IntArg>().PayLoad));
+                bsonDoc.Add(fieldName, new BsonInt32(RpcHelper.GetInt(value)));
             }
             else if (value.Is(MailBoxArg.Descriptor))
             {
-                var mbox = value.Unpack<MailBoxArg>().PayLoad;
+                var mbox = RpcHelper.GetMailBox(value);
                 bsonDoc.Add(fieldName, PbMailBoxToBsonDocument(mbox));
             }
             else if (value.Is(ListArg.Descriptor))
@@ -306,7 +307,7 @@ public class MongoDbWrapper : IDatabase
         });
     }
 
-    private static MailBox StringToPbMailBox(string mailboxString)
+    private static Common.Rpc.InnerMessages.MailBox StringToPbMailBox(string mailboxString)
     {
         var split = mailboxString.Split(':');
         if (split.Length != 4)
@@ -314,7 +315,7 @@ public class MongoDbWrapper : IDatabase
             throw new Exception($"Invalid mailbox string: {mailboxString}");
         }
 
-        return new MailBox
+        return new Common.Rpc.InnerMessages.MailBox
         {
             IP = split[0],
             Port = Convert.ToUInt32(split[1]),
@@ -323,12 +324,12 @@ public class MongoDbWrapper : IDatabase
         };
     }
 
-    private static string PbMailBoxToString(in MailBox mbox)
+    private static string PbMailBoxToString(in Common.Rpc.InnerMessages.MailBox mbox)
     {
         return $"{mbox.IP}:{mbox.Port}:{mbox.HostNum}:{mbox.ID}";
     }
 
-    private static BsonDocument PbMailBoxToBsonDocument(in MailBox mbox)
+    private static BsonDocument PbMailBoxToBsonDocument(in Common.Rpc.InnerMessages.MailBox mbox)
     {
         var bsonValue = new BsonDocument
         {
@@ -366,23 +367,23 @@ public class MongoDbWrapper : IDatabase
         Any? anyValue = null;
         if (value.IsInt32)
         {
-            anyValue = Any.Pack(new IntArg { PayLoad = value.AsInt32 });
+            anyValue = RpcHelper.GetRpcAny(value.AsInt32);
         }
         else if (value.IsObjectId)
         {
-            anyValue = Any.Pack(new StringArg { PayLoad = value.AsObjectId.ToString() });
+            anyValue = RpcHelper.GetRpcAny(value.AsObjectId.ToString());
         }
         else if (value.IsString)
         {
-            anyValue = Any.Pack(new StringArg { PayLoad = value.AsString });
+            anyValue = RpcHelper.GetRpcAny(value.AsString);
         }
         else if (value.IsBoolean)
         {
-            anyValue = Any.Pack(new BoolArg { PayLoad = value.AsBoolean });
+            anyValue = RpcHelper.GetRpcAny(value.AsBoolean);
         }
         else if (value.IsDouble)
         {
-            anyValue = Any.Pack(new FloatArg { PayLoad = (float)value.AsDouble });
+            anyValue = RpcHelper.GetRpcAny((float)value.AsDouble);
         }
         else if (value.IsBsonDocument)
         {
@@ -416,7 +417,7 @@ public class MongoDbWrapper : IDatabase
 
             anyValue = Any.Pack(new MailBoxArg
             {
-                PayLoad = new MailBox
+                PayLoad = new Common.Rpc.InnerMessages.MailBox
                 {
                     ID = id,
                     IP = ip,

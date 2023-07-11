@@ -119,13 +119,19 @@ public abstract class BaseEntity
     /// Gets the component of type T from the entity.
     /// </summary>
     /// <typeparam name="T">The type of component to get.</typeparam>
-    /// <returns>The component of type T. If the component is marked as `LazyLoad`, it will be loaded this time.</returns>
-    public async ValueTask<T> GetComponent<T>()
+    /// <returns>The component of type T.</returns>
+    public virtual ValueTask<T> GetComponent<T>()
         where T : ComponentBase
     {
         var typeId = TypeIdHelper.GetId<T>();
-        var component = await this.GetComponentInternal(typeId);
-        return (T)component;
+        if (!this.components.ContainsKey(typeId))
+        {
+            var e = new Exception("Component not found.");
+            Logger.Error(e, $"Component {typeof(T).Name} not found in entity {this.GetType().Name}.");
+            throw e;
+        }
+
+        return ValueTask.FromResult((T)this.components[typeId]);
     }
 
     /// <summary>
@@ -133,11 +139,17 @@ public abstract class BaseEntity
     /// </summary>
     /// <param name="componentType">The type of component to get.</param>
     /// <returns>The component of the specified type.</returns>
-    public async ValueTask<ComponentBase> GetComponent(System.Type componentType)
+    public virtual ValueTask<ComponentBase> GetComponent(System.Type componentType)
     {
         var typeId = TypeIdHelper.GetId(componentType);
-        var component = await this.GetComponentInternal(typeId);
-        return component;
+        if (!this.components.ContainsKey(typeId))
+        {
+            var e = new Exception("Component not found.");
+            Logger.Error(e, $"Component {componentType.Name} not found in entity {this.GetType().Name}.");
+            throw e;
+        }
+
+        return ValueTask.FromResult(this.components[typeId]);
     }
 
     /// <summary>
@@ -145,11 +157,17 @@ public abstract class BaseEntity
     /// </summary>
     /// <param name="componentName">The name of the component to get.</param>
     /// <returns>The component with the specified name.</returns>
-    public async ValueTask<ComponentBase> GetComponent(string componentName)
+    public virtual ValueTask<ComponentBase> GetComponent(string componentName)
     {
         var typeId = this.componentNameToComponentTypeId[componentName];
-        var component = await this.GetComponentInternal(typeId);
-        return component;
+        if (!this.components.ContainsKey(typeId))
+        {
+            var e = new Exception("Component not found.");
+            Logger.Error(e, $"Component {componentName} not found in entity {this.GetType().Name}.");
+            throw e;
+        }
+
+        return ValueTask.FromResult(this.components[typeId]);
     }
 
     /// <summary>
@@ -183,7 +201,7 @@ public abstract class BaseEntity
             {
                 if (key == "_id")
                 {
-                    databaseId = value.Unpack<StringArg>().PayLoad;
+                    databaseId = RpcHelper.GetString(value);
                     continue;
                 }
 
@@ -459,25 +477,6 @@ public abstract class BaseEntity
         {
             this.rpcBlankAsyncTaskGenerator.ResolveAsyncTask(rpcId, null!);
         }
-    }
-
-    private async ValueTask<ComponentBase> GetComponentInternal(uint typeId)
-    {
-        if (!this.components.ContainsKey(typeId))
-        {
-            var e = new Exception($"Component not found.");
-            Logger.Error(e);
-            throw e;
-        }
-
-        var component = this.components[typeId];
-
-        if (!component.IsLoaded)
-        {
-            await component.LoadFromDatabase();
-        }
-
-        return component;
     }
 
     private uint IncreaseRpcIdCnt() => this.rpcIdCnt++;

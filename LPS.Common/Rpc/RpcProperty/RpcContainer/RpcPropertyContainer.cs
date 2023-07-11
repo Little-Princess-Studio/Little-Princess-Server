@@ -243,28 +243,28 @@ public class RpcPropertyContainer<T> : RpcPropertyContainer, ISyncOpActionSetVal
 
         if (content.Is(IntArg.Descriptor) && typeof(T) == typeof(int))
         {
-            container = new RpcPropertyContainer<int>(content.Unpack<IntArg>().PayLoad);
+            container = new RpcPropertyContainer<int>(RpcHelper.GetInt(content));
         }
 
         if (content.Is(FloatArg.Descriptor) && typeof(T) == typeof(float))
         {
-            container = new RpcPropertyContainer<float>(content.Unpack<FloatArg>().PayLoad);
+            container = new RpcPropertyContainer<float>(RpcHelper.GetFloat(content));
         }
 
         if (content.Is(StringArg.Descriptor) && typeof(T) == typeof(string))
         {
-            container = new RpcPropertyContainer<string>(content.Unpack<StringArg>().PayLoad);
+            container = new RpcPropertyContainer<string>(RpcHelper.GetString(content));
         }
 
         if (content.Is(BoolArg.Descriptor) && typeof(T) == typeof(bool))
         {
-            container = new RpcPropertyContainer<bool>(content.Unpack<BoolArg>().PayLoad);
+            container = new RpcPropertyContainer<bool>(RpcHelper.GetBool(content));
         }
 
         if (content.Is(MailBoxArg.Descriptor) && typeof(T) == typeof(MailBox))
         {
             container = new RpcPropertyContainer<MailBox>(
-                RpcHelper.PbMailBoxToRpcMailBox(content.Unpack<MailBoxArg>().PayLoad));
+                RpcHelper.PbMailBoxToRpcMailBox(RpcHelper.GetMailBox(content)));
         }
 
         if (container == null)
