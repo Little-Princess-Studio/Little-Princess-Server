@@ -49,3 +49,19 @@ message PropertyFullSyncAck {
 message PropertySyncAck {
     string EntityId = 1;
 }
+
+message RequireComponentSync {
+    string EntityId = 1;
+    string ComponentName = 2;
+}
+
+message ComponentSync {
+    string EntityId = 1;
+    string ComponentName = 2;
+    google.protobuf.Any PropertyTree = 3;
+}
+
+message ComponentSyncAck {
+    string EntityId = 1;
+    string ComponentName = 2;
+}

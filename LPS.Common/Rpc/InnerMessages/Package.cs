@@ -158,5 +158,8 @@ public enum PackageType
     HostCommand = 13,
     CreateDistributeEntity = 14,
     CreateDistributeEntityRes = 15,
+    RequireComponentSync = 16,
+    ComponentSync = 17,
+    ComponentSyncAck = 18,
 #pragma warning restore SA1602
 }

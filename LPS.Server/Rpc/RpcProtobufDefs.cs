@@ -43,6 +43,9 @@ public static class RpcProtobufDefs
         RegisterProtobufDef<HostCommand>(PackageType.HostCommand);
         RegisterProtobufDef<CreateDistributeEntity>(PackageType.CreateDistributeEntity);
         RegisterProtobufDef<CreateDistributeEntityRes>(PackageType.CreateDistributeEntityRes);
+        RegisterProtobufDef<RequireComponentSync>(type: PackageType.RequireComponentSync);
+        RegisterProtobufDef<ComponentSync>(PackageType.ComponentSync);
+        RegisterProtobufDef<ComponentSyncAck>(PackageType.ComponentSyncAck);
 
         #endregion
 

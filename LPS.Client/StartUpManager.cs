@@ -53,6 +53,7 @@ public static class StartUpManager
         Client.Instance.RegisterMessageHandler(PackageType.EntityRpc, HandleEntityRpc);
         Client.Instance.RegisterMessageHandler(PackageType.PropertyFullSync, HandlePropertyFullSync);
         Client.Instance.RegisterMessageHandler(PackageType.PropertySyncCommandList, HandlePropertySyncCommandList);
+        Client.Instance.RegisterMessageHandler(PackageType.ComponentSync, HandleComponentSync);
     }
 
     /// <summary>
@@ -76,7 +77,10 @@ public static class StartUpManager
 
         Logger.Debug($"[HandlePropertySyncCommandList] {msg}");
 
-        getShadowEntityCallBack().ApplySyncCommandList(syncCommandList);
+        getShadowEntityCallBack().ApplySyncCommandList(
+            syncCommandList,
+            syncCommandList.IsComponentSyncMsg,
+            syncCommandList.ComponentName);
     }
 
     private static void HandleEntityRpc((IMessage Message, Connection Connection, uint RpcId) arg)
@@ -128,11 +132,30 @@ public static class StartUpManager
 
         Logger.Info("On Full Sync Msg");
         shadowEntity.FromSyncContent(propertyFullSyncMsg.PropertyTree);
+        shadowEntity.OnLoaded();
 
         var ack = new PropertyFullSyncAck
         {
             EntityId = shadowEntity.MailBox.Id,
         };
         Client.Instance.Send(ack);
+    }
+
+    private static void HandleComponentSync((IMessage Message, Connection Connection, uint RpcId) arg)
+    {
+        var (msg, _, _) = arg;
+        var componentSyncMsg = (ComponentSync)msg;
+
+        var shadowEntity = getShadowEntityCallBack();
+
+        if (componentSyncMsg.EntityId != shadowEntity.MailBox.Id)
+        {
+            throw new Exception(
+                $"Invalid property full sync {componentSyncMsg.EntityId} {shadowEntity.MailBox.Id}");
+        }
+
+        Logger.Info($"On Component {componentSyncMsg.ComponentName} Sync Msg");
+        shadowEntity.SyncComponent(componentSyncMsg.ComponentName, componentSyncMsg.PropertyTree);
+        RpcClientHelper.ResolveComponetnSyncTask(componentSyncMsg.EntityId, componentSyncMsg.ComponentName);
     }
 }

@@ -8,6 +8,7 @@ namespace LPS.Common.Ipc;
 
 using System.Collections.Concurrent;
 
+#pragma warning disable SA1402
 /// <summary>
 /// RpcAsyncGenerator is a helper class for generate async task.
 /// </summary>
@@ -50,6 +51,21 @@ public class AsyncTaskGenerator<TResult>
         var source = new TaskCompletionSource<TResult>();
         this.dictionary[taskId] = source;
         return (source.Task, taskId);
+    }
+
+    /// <summary>
+    /// Gets the task associated with the specified ID, if it exists.
+    /// </summary>
+    /// <param name="id">The ID of the task to retrieve.</param>
+    /// <returns>The task associated with the specified ID, or null if no such task exists.</returns>
+    public Task<TResult>? GetTaskById(uint id)
+    {
+        if (this.dictionary.TryGetValue(id, out var task))
+        {
+            return task.Task;
+        }
+
+        return null;
     }
 
     /// <summary>
@@ -110,11 +126,124 @@ public class AsyncTaskGenerator<TResult>
 }
 
 /// <summary>
+/// RpcAsyncGenerator is a helper class for generate async task.
+/// </summary>
+public class AsyncTaskGenerator
+{
+    /// <summary>
+    /// Gets the costume async id generator.
+    /// </summary>
+    public Func<uint>? OnGenerateAsyncId { private get; init; }
+
+    private readonly ConcurrentDictionary<uint, TaskCompletionSource> dictionary =
+        new();
+
+    private uint asyncId;
+
+    /// <summary>
+    /// Check if async task id is recorded.
+    /// </summary>
+    /// <param name="asyncTaskId">Async task id.</param>
+    /// <returns>If async task id exists.</returns>
+    public bool ContainsAsyncId(uint asyncTaskId) => this.dictionary.ContainsKey(asyncTaskId);
+
+    /// <summary>
+    /// Generate a async task with unique token id.
+    /// </summary>
+    /// <returns>(AsyncTask, Token id) pair.</returns>
+    public (Task AsyncTaskTarget, uint TokenId) GenerateAsyncTask()
+    {
+        uint taskId = 0;
+        if (this.OnGenerateAsyncId != null)
+        {
+            taskId = this.OnGenerateAsyncId.Invoke();
+        }
+        else
+        {
+            taskId = Interlocked.Increment(ref this.asyncId);
+        }
+
+        var source = new TaskCompletionSource();
+        this.dictionary[taskId] = source;
+        return (source.Task, taskId);
+    }
+
+    /// <summary>
+    /// Gets the task associated with the specified ID, if it exists.
+    /// </summary>
+    /// <param name="id">The ID of the task to retrieve.</param>
+    /// <returns>The task associated with the specified ID, or null if no such task exists.</returns>
+    public Task? GetTaskById(uint id)
+    {
+        if (this.dictionary.TryGetValue(id, out var task))
+        {
+            return task.Task;
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Generate a async task with unique token id, with timeout handler.
+    /// </summary>
+    /// <param name="timeoutMilliseconds">Max milliseconds to wait.</param>
+    /// <param name="timeOutHandler">What exception to throw. </param>
+    /// <returns>(AsyncTask, Token id) pair.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="timeOutHandler"/> should not be null.</exception>
+    public (Task AsyncTaskTarget, uint TokenId) GenerateAsyncTask(
+        int timeoutMilliseconds,
+        Func<uint, Exception> timeOutHandler)
+    {
+        if (timeOutHandler == null)
+        {
+            throw new ArgumentNullException(nameof(timeOutHandler));
+        }
+
+        var cancellationTokenSource = new CancellationTokenSource(timeoutMilliseconds);
+        var source = new TaskCompletionSource();
+        var taskId = Interlocked.Increment(ref this.asyncId);
+
+        cancellationTokenSource.Token.Register(() =>
+        {
+            var res = this.dictionary.TryRemove(taskId, out _);
+            while (!res)
+            {
+                res = this.dictionary.TryRemove(taskId, out _);
+            }
+
+            source.TrySetException(timeOutHandler.Invoke(taskId));
+        });
+
+        this.dictionary[taskId] = source;
+        return (source.Task, taskId);
+    }
+
+    /// <summary>
+    /// Resolve a task by token id.
+    /// </summary>
+    /// <param name="asyncId">Async task token id.</param>
+    public void ResolveAsyncTask(uint asyncId)
+    {
+        if (!this.dictionary.ContainsKey(asyncId))
+        {
+            return;
+        }
+
+        var res = this.dictionary.TryRemove(asyncId, out var source);
+        while (!res)
+        {
+            res = this.dictionary.TryRemove(asyncId, out source);
+        }
+
+        source !.TrySetResult();
+    }
+}
+
+/// <summary>
 /// RpcAsyncGenerator is a helper class for generate async task, with related data.
 /// </summary>
 /// <typeparam name="TResult">Async result.</typeparam>
 /// <typeparam name="TData">Related data type.</typeparam>
-#pragma warning disable SA1402
 public class AsyncTaskGenerator<TResult, TData>
 #pragma warning restore SA1402
 {
@@ -134,6 +263,21 @@ public class AsyncTaskGenerator<TResult, TData>
     /// <param name="asyncTaskId">Async task id.</param>
     /// <returns>If async task id exists.</returns>
     public bool ContainsAsyncId(uint asyncTaskId) => this.dictionary.ContainsKey(asyncTaskId);
+
+    /// <summary>
+    /// Gets the task associated with the specified ID, if it exists.
+    /// </summary>
+    /// <param name="id">The ID of the task to retrieve.</param>
+    /// <returns>The task associated with the specified ID, or null if no such task exists.</returns>
+    public Task<TResult>? GetTaskById(uint id)
+    {
+        if (this.dictionary.TryGetValue(id, out var task))
+        {
+            return task.Result.Task;
+        }
+
+        return null;
+    }
 
     /// <summary>
     /// Generate a async task with unique token id, with related data.

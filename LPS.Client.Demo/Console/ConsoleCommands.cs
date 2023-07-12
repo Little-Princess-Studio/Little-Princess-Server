@@ -100,6 +100,16 @@ public static class ConsoleCommands
     }
 
     /// <summary>
+    /// Prints the components of the player entity to the console.
+    /// </summary>
+    [ConsoleCommand("local.print_player_components")]
+    public static void PrintPlayerComponents()
+    {
+        var player = (ClientGlobal.ShadowClientEntity as Player) !;
+        player.PrintComponents().AsTask().Wait();
+    }
+
+    /// <summary>
     /// Send property change require RPC.
     /// </summary>
     /// <param name="prop">Content to change.</param>

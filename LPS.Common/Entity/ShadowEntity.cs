@@ -20,6 +20,13 @@ using LPS.Common.Rpc.RpcProperty.RpcContainer;
 public class ShadowEntity : BaseEntity
 {
     /// <summary>
+    /// This method is called after the properties of the entity have been loaded.
+    /// </summary>
+    public virtual void OnLoaded()
+    {
+    }
+
+    /// <summary>
     /// Build shadow entity from protobuf.
     /// </summary>
     /// <param name="syncBody">Protobuf data.</param>
@@ -30,19 +37,25 @@ public class ShadowEntity : BaseEntity
     /// Apply sync command list to this entity.
     /// </summary>
     /// <param name="syncCmdList">Sync command list.</param>
+    /// <param name="isComponentProperty">True if the property is a component property.</param>
+    /// <param name="componentName">The name of the component.</param>
     /// <exception cref="Exception">Throw exception if failed to apply.</exception>
     /// <exception cref="ArgumentOutOfRangeException">ArgumentOutOfRangeException.</exception>
-    public void ApplySyncCommandList(PropertySyncCommandList syncCmdList)
+    public void ApplySyncCommandList(PropertySyncCommandList syncCmdList, bool isComponentProperty, string componentName)
     {
         var path = syncCmdList.Path.Split('.');
-        var propType = syncCmdList.PropType;
+
+        // var propType = syncCmdList.PropType;
         var entityId = syncCmdList.EntityId!;
         if (entityId != this.MailBox.Id)
         {
             throw new Exception($"Not the same entity id {entityId} of {this.MailBox.Id}");
         }
 
-        var container = this.FindContainerByPath(path);
+        var container = isComponentProperty ?
+            this.FindContainerByPath(path) :
+            this.FindContainerByPathInComponent(componentName, path);
+
         foreach (var syncCmd in syncCmdList.SyncArg)
         {
             var op = syncCmd.Operation;
@@ -67,12 +80,29 @@ public class ShadowEntity : BaseEntity
                     HandleInsertElem(container, syncCmd.Args);
                     break;
                 default:
-                    throw new ArgumentOutOfRangeException();
+                    throw new ArgumentOutOfRangeException("Invalid sync operation.", nameof(op));
             }
         }
     }
 
-    // let it throw null reference exception if failed casting.
+    /// <summary>
+    /// Synchronizes the component with the specified name by deserializing the provided content.
+    /// </summary>
+    /// <param name="componentName">The name of the component to synchronize.</param>
+    /// <param name="propertyTree">The serialized content of the component.</param>
+    public void SyncComponent(string componentName, Any propertyTree)
+    {
+        if (!this.ComponentNameToComponentTypeId.TryGetValue(componentName, out var componentTypeId))
+        {
+            throw new Exception($"Component {componentName} not found.");
+        }
+
+        var component = this.Components[componentTypeId];
+
+        component.Deserialize(propertyTree);
+    }
+
+    // let it throw null reference exception if failed to cast.
     private static void HandleInsertElem(RpcPropertyContainer container, RepeatedField<Any> syncArg) =>
         (container as ISyncOpActionInsertElem)!.Apply(syncArg);
 
@@ -91,16 +121,16 @@ public class ShadowEntity : BaseEntity
     private static void HandleSetValue(RpcPropertyContainer container, RepeatedField<Any> syncArg) =>
         (container as ISyncOpActionSetValue)!.Apply(syncArg);
 
-    private RpcPropertyContainer FindContainerByPath(string[] path)
+    private static RpcPropertyContainer FindContainerInPropertyTreeByPath(string[] path, Dictionary<string, RpcProperty>? propertyTree)
     {
         var rootName = path[0];
 
-        if (!this.PropertyTree!.ContainsKey(rootName))
+        if (!propertyTree!.ContainsKey(rootName))
         {
             throw new Exception($"Invalid root path name {rootName}");
         }
 
-        var container = this.PropertyTree[rootName].Value;
+        var container = propertyTree[rootName].Value;
 
         for (int i = 1; i < path.Length; ++i)
         {
@@ -116,5 +146,25 @@ public class ShadowEntity : BaseEntity
         }
 
         return container;
+    }
+
+    private RpcPropertyContainer FindContainerByPath(string[] path)
+    {
+        var propertyTree = this.PropertyTree;
+
+        return FindContainerInPropertyTreeByPath(path, propertyTree);
+    }
+
+    private RpcPropertyContainer FindContainerByPathInComponent(string componentName, string[] path)
+    {
+        if (!this.ComponentNameToComponentTypeId.TryGetValue(componentName, out var componentTypeId))
+        {
+            throw new Exception($"Component {componentName} not found.");
+        }
+
+        var component = this.Components[componentTypeId];
+        var propertyTree = component.PropertyTree;
+
+        return FindContainerInPropertyTreeByPath(path, propertyTree);
     }
 }

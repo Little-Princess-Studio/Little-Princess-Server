@@ -7,6 +7,7 @@
 namespace LPS.Client.Entity;
 
 using System.Reflection;
+using Google.Protobuf.WellKnownTypes;
 using LPS.Client.Entity.Component;
 using LPS.Common.Debug;
 using LPS.Common.Entity;

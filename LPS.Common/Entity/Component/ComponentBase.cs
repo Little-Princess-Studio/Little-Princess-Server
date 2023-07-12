@@ -31,6 +31,11 @@ public abstract class ComponentBase
     /// </summary>
     public bool IsLoaded { get; protected set; } = false;
 
+    /// <summary>
+    /// Gets the property tree for this component.
+    /// </summary>
+    public Dictionary<string, RpcProperty>? PropertyTree => this.propertyTree;
+
     private Dictionary<string, RpcProperty>? propertyTree;
 
     /// <summary>
@@ -52,7 +57,7 @@ public abstract class ComponentBase
         this.Owner = owner;
         this.Name = name;
 
-        this.InitPropertyTree();
+        this.OnInitPropertyTree();
     }
 
     /// <summary>
@@ -121,7 +126,7 @@ public abstract class ComponentBase
     public abstract void OnDestory();
 
     /// <summary>
-    /// Initializes the property tree for this component.
+    /// Called when initializing the property tree for this component.
     /// </summary>
-    protected abstract void InitPropertyTree();
+    protected abstract void OnInitPropertyTree();
 }

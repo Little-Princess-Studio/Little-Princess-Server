@@ -67,7 +67,7 @@ public class ServerComponent : ComponentBase
     }
 
     /// <inheritdoc/>
-    protected override void InitPropertyTree()
+    protected override void OnInitPropertyTree()
     {
         RpcHelper.BuildPropertyTree(this, RpcServerHelper.AllowedRpcPropertyGenTypes);
     }

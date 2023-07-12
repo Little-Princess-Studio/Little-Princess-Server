@@ -46,4 +46,25 @@ public class Player : ShadowClientEntity
         var res = await this.Server.Call<string>("Ping", content);
         Logger.Debug($"[Ping]: {res}");
     }
+
+    /// <summary>
+    /// Prints the components of the player, including the game property component and the bag component.
+    /// </summary>
+    /// <returns>A <see cref="ValueTask"/> representing the asynchronous operation.</returns>
+    public async ValueTask PrintComponents()
+    {
+        var gamePropertyComp = await this.GetComponent<GamePropertyComponent>();
+        var bagComp = await this.GetComponent<BagComponent>();
+
+        Logger.Debug($"[GamePropertyComponent] hp: {(int)gamePropertyComp.Hp}, sp: {(int)gamePropertyComp.Sp}");
+
+        var bagCnt = bagComp.Items.Val.Count;
+        Logger.Debug($"[BagComponent] cnt: {bagCnt}");
+
+        if (bagCnt > 0)
+        {
+            var item = bagComp.Items.Val[0];
+            Logger.Debug($"[BagComponent] item: {(int)item.ItemId}, {(string)item.ItemName}");
+        }
+    }
 }

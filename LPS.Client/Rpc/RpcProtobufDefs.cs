@@ -37,6 +37,9 @@ public static class RpcProtobufDefs
         RegisterProtobufDef<PropertySyncCommandList>(PackageType.PropertySyncCommandList);
         RegisterProtobufDef<PropertySyncAck>(PackageType.PropertySyncAck);
         RegisterProtobufDef<PropertyFullSyncAck>(PackageType.PropertyFullSyncAck);
+        RegisterProtobufDef<RequireComponentSync>(type: PackageType.RequireComponentSync);
+        RegisterProtobufDef<ComponentSync>(PackageType.ComponentSync);
+        RegisterProtobufDef<ComponentSyncAck>(PackageType.ComponentSyncAck);
 
         #endregion
 

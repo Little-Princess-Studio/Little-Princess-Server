@@ -30,17 +30,13 @@ public class ClientComponent : ComponentBase
     }
 
     /// <inheritdoc/>
-    public override Task OnLoadComponentData()
+    public override async Task OnLoadComponentData()
     {
-        RpcClientHelper.RequireComponentSync(this.Owner.MailBox.Id, this.Name);
-
+        await RpcClientHelper.RequireComponentSync(this.Owner.MailBox.Id, this.Name);
         this.IsLoaded = true;
-        return Task.CompletedTask;
     }
 
     /// <inheritdoc/>
-    protected override void InitPropertyTree()
-    {
+    protected override void OnInitPropertyTree() =>
         RpcHelper.BuildPropertyTree(this, AllowedRpcPropertyGenTypes);
-    }
 }
