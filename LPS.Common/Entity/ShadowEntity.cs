@@ -20,10 +20,21 @@ using LPS.Common.Rpc.RpcProperty.RpcContainer;
 public class ShadowEntity : BaseEntity
 {
     /// <summary>
+    /// Initializes a new instance of the <see cref="ShadowEntity"/> class.
+    /// </summary>
+    public ShadowEntity()
+    {
+        this.IsFrozen = true;
+    }
+
+    /// <summary>
     /// This method is called after the properties of the entity have been loaded.
     /// </summary>
-    public virtual void OnLoaded()
+    /// <returns>A <see cref="ValueTask"/> representing the asynchronous operation.</returns>
+    public virtual Task OnLoaded()
     {
+        this.IsFrozen = false;
+        return Task.CompletedTask;
     }
 
     /// <summary>

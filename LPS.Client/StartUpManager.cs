@@ -132,7 +132,7 @@ public static class StartUpManager
 
         Logger.Info("On Full Sync Msg");
         shadowEntity.FromSyncContent(propertyFullSyncMsg.PropertyTree);
-        shadowEntity.OnLoaded();
+        shadowEntity.OnLoaded().Wait();
 
         var ack = new PropertyFullSyncAck
         {

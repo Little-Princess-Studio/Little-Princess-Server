@@ -36,6 +36,13 @@ public class Player : ShadowClientEntity
     [RpcProperty(nameof(Player.Id))]
     public RpcShadowPlaintProperty<string> Id = new ();
 
+    /// <inheritdoc/>
+    public override Task OnLoaded()
+    {
+        Logger.Debug($"[Player] {(string)this.Name} loaded.");
+        return base.OnLoaded();
+    }
+
     /// <summary>
     /// Test ping.
     /// </summary>
