@@ -6,6 +6,7 @@
 
 namespace LPS.Common.Entity;
 
+using System.Collections.ObjectModel;
 using System.Reflection;
 using Google.Protobuf.WellKnownTypes;
 using LPS.Common.Debug;
@@ -34,23 +35,20 @@ public abstract class BaseEntity
     protected Dictionary<string, RpcProperty>? PropertyTree => this.propertyTree;
 
     /// <summary>
-    /// Gets the dictionary of components associated with this entity.
+    /// Gets or sets the dictionary of components associated with this entity.
     /// </summary>
-    protected Dictionary<uint, ComponentBase> Components => this.components;
+    protected ReadOnlyDictionary<uint, ComponentBase> Components { get; set; } = null!;
 
     /// <summary>
-    /// Gets the dictionary that maps component names to their corresponding component type IDs.
+    /// Gets or sets the dictionary that maps component names to their corresponding component type IDs.
     /// </summary>
     /// <remarks>
     /// The component type ID is a unique identifier for each component type.
     /// </remarks>
-    protected Dictionary<string, uint> ComponentNameToComponentTypeId => this.componentNameToComponentTypeId;
+    protected ReadOnlyDictionary<string, uint> ComponentNameToComponentTypeId { get; set; } = null!;
 
     private readonly AsyncTaskGenerator<object> rpcBlankAsyncTaskGenerator;
     private readonly AsyncTaskGenerator<object, System.Type> rpcAsyncTaskGenerator;
-
-    private readonly Dictionary<uint, ComponentBase> components = new();
-    private readonly Dictionary<string, uint> componentNameToComponentTypeId = new();
 
     private Dictionary<string, RpcProperty>? propertyTree;
 
@@ -87,6 +85,9 @@ public abstract class BaseEntity
     /// <returns>A task that represents the asynchronous initialization operation.</returns>
     public virtual Task InitComponents()
     {
+        var components = new Dictionary<uint, ComponentBase>();
+        var componentNameToComponentTypeId = new Dictionary<string, uint>();
+
         var componentAttrs = this.GetType().GetCustomAttributes<ComponentAttribute>();
         foreach (var attr in componentAttrs)
         {
@@ -97,15 +98,18 @@ public abstract class BaseEntity
             component.InitComponent(this, componentName);
             var componentTypeId = TypeIdHelper.GetId(componentType);
 
-            if (this.components.ContainsKey(componentTypeId))
+            if (components.ContainsKey(componentTypeId))
             {
                 Logger.Warn($"Component {componentType.Name} is already added to entity {this.GetType().Name}.");
                 continue;
             }
 
-            this.components.Add(componentTypeId, component);
-            this.componentNameToComponentTypeId.Add(componentName, componentTypeId);
+            components.Add(componentTypeId, component);
+            componentNameToComponentTypeId.Add(componentName, componentTypeId);
         }
+
+        this.Components = new ReadOnlyDictionary<uint, ComponentBase>(components);
+        this.ComponentNameToComponentTypeId = new ReadOnlyDictionary<string, uint>(componentNameToComponentTypeId);
 
         foreach (var comp in this.Components.Values)
         {
@@ -124,14 +128,14 @@ public abstract class BaseEntity
         where T : ComponentBase
     {
         var typeId = TypeIdHelper.GetId<T>();
-        if (!this.components.ContainsKey(typeId))
+        if (!this.Components.ContainsKey(typeId))
         {
             var e = new Exception("Component not found.");
             Logger.Error(e, $"Component {typeof(T).Name} not found in entity {this.GetType().Name}.");
             throw e;
         }
 
-        return ValueTask.FromResult((T)this.components[typeId]);
+        return ValueTask.FromResult((T)this.Components[typeId]);
     }
 
     /// <summary>
@@ -142,14 +146,14 @@ public abstract class BaseEntity
     public virtual ValueTask<ComponentBase> GetComponent(System.Type componentType)
     {
         var typeId = TypeIdHelper.GetId(componentType);
-        if (!this.components.ContainsKey(typeId))
+        if (!this.Components.ContainsKey(typeId))
         {
             var e = new Exception("Component not found.");
             Logger.Error(e, $"Component {componentType.Name} not found in entity {this.GetType().Name}.");
             throw e;
         }
 
-        return ValueTask.FromResult(this.components[typeId]);
+        return ValueTask.FromResult(this.Components[typeId]);
     }
 
     /// <summary>
@@ -159,15 +163,15 @@ public abstract class BaseEntity
     /// <returns>The component with the specified name.</returns>
     public virtual ValueTask<ComponentBase> GetComponent(string componentName)
     {
-        var typeId = this.componentNameToComponentTypeId[componentName];
-        if (!this.components.ContainsKey(typeId))
+        var typeId = this.ComponentNameToComponentTypeId[componentName];
+        if (!this.Components.ContainsKey(typeId))
         {
             var e = new Exception("Component not found.");
             Logger.Error(e, $"Component {componentName} not found in entity {this.GetType().Name}.");
             throw e;
         }
 
-        return ValueTask.FromResult(this.components[typeId]);
+        return ValueTask.FromResult(this.Components[typeId]);
     }
 
     /// <summary>

@@ -6,6 +6,7 @@
 
 namespace LPS.Client.Entity;
 
+using System.Collections.ObjectModel;
 using System.Reflection;
 using Google.Protobuf.WellKnownTypes;
 using LPS.Client.Entity.Component;
@@ -73,6 +74,9 @@ public class ShadowClientEntity : ShadowEntity
     /// <returns>A task that represents the asynchronous initialization operation.</returns>
     public override Task InitComponents()
     {
+        var components = new Dictionary<uint, ComponentBase>();
+        var componentNameToComponentTypeId = new Dictionary<string, uint>();
+
         var componentAttrs = this.GetType().GetCustomAttributes<ClientComponentAttribute>();
         foreach (var attr in componentAttrs)
         {
@@ -89,9 +93,12 @@ public class ShadowClientEntity : ShadowEntity
                 continue;
             }
 
-            this.Components.Add(componentTypeId, component);
-            this.ComponentNameToComponentTypeId.Add(componentName, componentTypeId);
+            components.Add(componentTypeId, component);
+            componentNameToComponentTypeId.Add(componentName, componentTypeId);
         }
+
+        this.Components = new ReadOnlyDictionary<uint, ComponentBase>(components);
+        this.ComponentNameToComponentTypeId = new ReadOnlyDictionary<string, uint>(componentNameToComponentTypeId);
 
         return Task.CompletedTask;
     }

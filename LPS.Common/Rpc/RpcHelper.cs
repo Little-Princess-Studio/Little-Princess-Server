@@ -298,6 +298,26 @@ public static class RpcHelper
     }
 
     /// <summary>
+    /// Serializes the property tree to a protobuf Any object.
+    /// </summary>
+    /// <param name="propTree">The property tree to serialize.</param>
+    /// <returns>The serialized property tree as a protobuf Any object.</returns>
+    public static Any SerializePropertyTree(Dictionary<string, RpcProperty.RpcProperty> propTree)
+    {
+        DictWithStringKeyArg? treeDict = new();
+
+        foreach (var (key, value) in propTree)
+        {
+            if (value.CanSyncToClient)
+            {
+                treeDict.PayLoad.Add(key, value.ToProtobuf());
+            }
+        }
+
+        return Any.Pack(treeDict);
+    }
+
+    /// <summary>
     /// Builds the property tree for a ComponentBase object.
     /// </summary>
     /// <param name="component">The ComponentBase object to build the property tree for.</param>

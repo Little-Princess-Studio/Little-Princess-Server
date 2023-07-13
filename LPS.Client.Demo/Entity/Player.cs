@@ -13,6 +13,7 @@ using LPS.Client.Entity;
 using LPS.Client.Rpc.RpcProperty;
 using LPS.Client.Entity.Component;
 using LPS.Client.Demo.Entity.Component;
+using Google.Protobuf.WellKnownTypes;
 
 /// <summary>
 /// Player class, from Untrusted.
@@ -36,11 +37,18 @@ public class Player : ShadowClientEntity
     [RpcProperty(nameof(Player.Id))]
     public RpcShadowPlaintProperty<string> Id = new ();
 
+    private GamePropertyComponent gameProperty = null!;
+    private BagComponent bag = null!;
+
     /// <inheritdoc/>
-    public override Task OnLoaded()
+    public override async Task OnLoaded()
     {
         Logger.Debug($"[Player] {(string)this.Name} loaded.");
-        return base.OnLoaded();
+
+        // cache components
+        this.gameProperty = await this.GetComponent<GamePropertyComponent>();
+        this.bag = await this.GetComponent<BagComponent>();
+        await base.OnLoaded();
     }
 
     /// <summary>
@@ -58,20 +66,19 @@ public class Player : ShadowClientEntity
     /// Prints the components of the player, including the game property component and the bag component.
     /// </summary>
     /// <returns>A <see cref="ValueTask"/> representing the asynchronous operation.</returns>
-    public async ValueTask PrintComponents()
+    public ValueTask PrintComponents()
     {
-        var gamePropertyComp = await this.GetComponent<GamePropertyComponent>();
-        var bagComp = await this.GetComponent<BagComponent>();
+        Logger.Debug($"[GamePropertyComponent] hp: {(int)this.gameProperty.Hp}, sp: {(int)this.gameProperty.Sp}");
 
-        Logger.Debug($"[GamePropertyComponent] hp: {(int)gamePropertyComp.Hp}, sp: {(int)gamePropertyComp.Sp}");
-
-        var bagCnt = bagComp.Items.Val.Count;
+        var bagCnt = this.bag.Items.Val.Count;
         Logger.Debug($"[BagComponent] cnt: {bagCnt}");
 
         if (bagCnt > 0)
         {
-            var item = bagComp.Items.Val[0];
+            var item = this.bag.Items.Val[0];
             Logger.Debug($"[BagComponent] item: {(int)item.ItemId}, {(string)item.ItemName}");
         }
+
+        return ValueTask.CompletedTask;
     }
 }

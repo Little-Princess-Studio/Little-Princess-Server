@@ -8,6 +8,7 @@ namespace LPS.Server.Entity;
 
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
@@ -115,6 +116,25 @@ public abstract class DistributeEntity : BaseEntity, ISendPropertySyncMessage
         onSyncContentReady.Invoke(this.MailBox.Id, treeDict);
 
         this.IsFrozen = false;
+    }
+
+    /// <summary>
+    /// Do full properties sync for a specific component.
+    /// </summary>
+    /// <param name="componentName">The name of the component to sync.</param>
+    /// <param name="onSyncContentReady">Callback when sync is ready.</param>
+    public void ComponentSync(string componentName, Action<string, Any> onSyncContentReady)
+    {
+        this.GetComponent(componentName)
+            .AsTask()
+            .ContinueWith(t =>
+        {
+            var comp = t.Result;
+            var treeDict = comp.Serialize();
+
+            onSyncContentReady.Invoke(this.MailBox.Id, treeDict);
+            this.IsFrozen = false;
+        });
     }
 
     /// <summary>
@@ -282,6 +302,9 @@ public abstract class DistributeEntity : BaseEntity, ISendPropertySyncMessage
     /// <returns>A task that represents the asynchronous initialization operation.</returns>
     public override async Task InitComponents()
     {
+        var components = new Dictionary<uint, ComponentBase>();
+        var componentNameToComponentTypeId = new Dictionary<string, uint>();
+
         var componentAttrs = this.GetType().GetCustomAttributes<ServerComponentAttribute>();
         var componentsToLoad = new List<ComponentBase>();
         foreach (var attr in componentAttrs)
@@ -304,9 +327,12 @@ public abstract class DistributeEntity : BaseEntity, ISendPropertySyncMessage
                 componentsToLoad.Add(component);
             }
 
-            this.Components.Add(componentTypeId, component);
-            this.ComponentNameToComponentTypeId.Add(componentName, componentTypeId);
+            components.Add(componentTypeId, component);
+            componentNameToComponentTypeId.Add(componentName, componentTypeId);
         }
+
+        this.Components = new ReadOnlyDictionary<uint, ComponentBase>(components);
+        this.ComponentNameToComponentTypeId = new ReadOnlyDictionary<string, uint>(componentNameToComponentTypeId);
 
         await this.LoadNonLazyComponents(componentsToLoad);
 
@@ -483,20 +509,7 @@ public abstract class DistributeEntity : BaseEntity, ISendPropertySyncMessage
     /// Converts the entity's property tree to a protobuf Any object.
     /// </summary>
     /// <returns>The protobuf Any object containing the entity's property tree.</returns>
-    protected Any ToAny()
-    {
-        var treeDict = new DictWithStringKeyArg();
-
-        foreach (var (key, value) in this.PropertyTree!)
-        {
-            if (value.CanSyncToClient)
-            {
-                treeDict.PayLoad.Add(key, value.ToProtobuf());
-            }
-        }
-
-        return Any.Pack(treeDict);
-    }
+    protected Any ToAny() => RpcHelper.SerializePropertyTree(this.PropertyTree!);
 
     /// <summary>
     /// Loads the entity data from the database. For customizing loading, overwrite <see cref="LoadFromDatabase"/> to customize the loading behavior.

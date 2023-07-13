@@ -51,17 +51,16 @@ public class Server : IInstance
     /// <inheritdoc/>
     public InstanceType InstanceType => InstanceType.Server;
 
-    private readonly Dictionary<string, DistributeEntity> localEntityDict = new Dictionary<string, DistributeEntity>();
-    private readonly Dictionary<string, CellEntity> cells = new Dictionary<string, CellEntity>();
+    private readonly Dictionary<string, DistributeEntity> localEntityDict = new();
+    private readonly Dictionary<string, CellEntity> cells = new();
 
-    private readonly ConcurrentQueue<(bool, uint, RpcPropertySyncMessage)> timeCircleQueue =
-        new ConcurrentQueue<(bool, uint, RpcPropertySyncMessage)>();
+    private readonly ConcurrentQueue<(bool, uint, RpcPropertySyncMessage)> timeCircleQueue = new();
 
     private readonly AsyncTaskGenerator<MailBox> asyncTaskGeneratorForMailBox;
 
     // todo: use constant value to init time circle
-    private readonly TimeCircle timeCircle = new TimeCircle(50, 1000);
-    private readonly Random random = new Random();
+    private readonly TimeCircle timeCircle = new(50, 1000);
+    private readonly Random random = new();
 
     private readonly TcpServer tcpServer;
 
@@ -376,6 +375,7 @@ public class Server : IInstance
     {
         this.tcpServer.RegisterMessageHandler(PackageType.EntityRpc, this.HandleEntityRpc);
         this.tcpServer.RegisterMessageHandler(PackageType.RequirePropertyFullSync, this.HandleRequirePropertyFullSync);
+        this.tcpServer.RegisterMessageHandler(PackageType.RequireComponentSync, this.HandleRequireComponentSync);
         this.tcpServer.RegisterMessageHandler(PackageType.Control, this.HandleControl);
     }
 
@@ -385,6 +385,9 @@ public class Server : IInstance
         this.tcpServer.UnregisterMessageHandler(
             PackageType.RequirePropertyFullSync,
             this.HandleRequirePropertyFullSync);
+        this.tcpServer.UnregisterMessageHandler(
+            PackageType.RequireComponentSync,
+            this.HandleRequireComponentSync);
         this.tcpServer.UnregisterMessageHandler(PackageType.Control, this.HandleControl);
     }
 
@@ -600,7 +603,7 @@ public class Server : IInstance
 
     private void HandleRequirePropertyFullSync((IMessage Message, Connection Connection, uint RpcId) arg)
     {
-        Logger.Debug("HandleRequirePropertyFullSync");
+        Logger.Debug("[Server] HandleRequirePropertyFullSync");
         var (msg, conn, id) = arg;
         var requirePropertyFullSyncMsg = (msg as RequirePropertyFullSync)!;
         var entityId = requirePropertyFullSyncMsg.EntityId;
@@ -608,7 +611,7 @@ public class Server : IInstance
         if (this.localEntityDict.ContainsKey(entityId))
         {
             Logger.Debug("Prepare for full sync");
-            var entity = this.localEntityDict[entityId];
+            DistributeEntity? entity = this.localEntityDict[entityId];
             entity.FullSync((_, content) =>
             {
                 Logger.Debug("Full sync send back");
@@ -619,6 +622,38 @@ public class Server : IInstance
                     PropertyTree = content,
                 };
                 var pkg = PackageHelper.FromProtoBuf(fullSync, id);
+                conn.Socket.Send(pkg.ToBytes());
+            });
+        }
+        else
+        {
+            throw new Exception($"Entity not exist: {entityId}");
+        }
+    }
+
+    private void HandleRequireComponentSync((IMessage Message, Connection Connection, uint RpcId) arg)
+    {
+        Logger.Debug("[Server] HandleRequireComponentSync");
+        var (msg, conn, id) = arg;
+        var requireComponentSyncMsg = (msg as RequireComponentSync)!;
+        var entityId = requireComponentSyncMsg.EntityId;
+        var componentName = requireComponentSyncMsg.ComponentName;
+
+        if (this.localEntityDict.ContainsKey(entityId))
+        {
+            Logger.Debug("Prepare for component sync");
+            DistributeEntity? entity = this.localEntityDict[entityId];
+            entity.ComponentSync(componentName, (_, content) =>
+            {
+                Logger.Debug("Component sync send back");
+
+                var compSync = new ComponentSync
+                {
+                    EntityId = entityId,
+                    ComponentName = componentName,
+                    PropertyTree = content,
+                };
+                var pkg = PackageHelper.FromProtoBuf(compSync, id);
                 conn.Socket.Send(pkg.ToBytes());
             });
         }

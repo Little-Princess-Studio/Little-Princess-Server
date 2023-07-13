@@ -260,6 +260,9 @@ public class Gate : IInstance
         this.tcpGateServer.RegisterMessageHandler(
             PackageType.RequirePropertyFullSync,
             this.HandleRequireFullSyncFromClient);
+        this.tcpGateServer.RegisterMessageHandler(
+            PackageType.RequireComponentSync,
+            this.HandleRequireComponentSyncFromClient);
     }
 
     private void UnregisterMessageFromServerAndOtherGateHandlers()
@@ -273,6 +276,9 @@ public class Gate : IInstance
         this.tcpGateServer.UnregisterMessageHandler(
             PackageType.RequirePropertyFullSync,
             this.HandleRequireFullSyncFromClient);
+        this.tcpGateServer.UnregisterMessageHandler(
+            PackageType.RequireComponentSync,
+            this.HandleRequireComponentSyncFromClient);
     }
 
     private void HandleHostCommandFromHost(IMessage msg)
@@ -432,11 +438,20 @@ public class Gate : IInstance
 
     private void HandleRequireFullSyncFromClient((IMessage Message, Connection Connection, uint RpcId) arg)
     {
-        Logger.Info("HandleRequireFullSyncFromClient");
+        Logger.Info("[Gate] HandleRequireFullSyncFromClient");
         var (msg, conn, _) = arg;
         var requirePropertyFullSyncMsg = (msg as RequirePropertyFullSync)!;
 
         this.RedirectMsgToEntityOnServer(requirePropertyFullSyncMsg.EntityId, msg);
+    }
+
+    private void HandleRequireComponentSyncFromClient((IMessage Message, Connection Connection, uint RpcId) arg)
+    {
+        Logger.Info("[Gate] HandleRequireComponentSyncFromClient");
+        var (msg, conn, _) = arg;
+        var requireComponentSyncMsg = (msg as RequireComponentSync)!;
+
+        this.RedirectMsgToEntityOnServer(requireComponentSyncMsg.EntityId, msg);
     }
 
     #endregion

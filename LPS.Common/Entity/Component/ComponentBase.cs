@@ -7,6 +7,7 @@
 namespace LPS.Common.Entity.Component;
 
 using Google.Protobuf.WellKnownTypes;
+using LPS.Common.Rpc;
 using LPS.Common.Rpc.InnerMessages;
 using LPS.Common.Rpc.RpcProperty;
 
@@ -64,10 +65,7 @@ public abstract class ComponentBase
     /// Serializes the component's data to an Any message.
     /// </summary>
     /// <returns>An Any message containing the serialized data.</returns>
-    public Any Serialize()
-    {
-        throw new NotImplementedException();
-    }
+    public Any Serialize() => RpcHelper.SerializePropertyTree(this.PropertyTree!);
 
     /// <summary>
     /// Deserializes the component's data from an Any message.
