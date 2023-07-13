@@ -1,7 +1,7 @@
 {
     "dbtype": "redis",
     "dbconfig": {
-        "ip": "192.168.2.3",
+        "ip": "127.0.0.1",
         "port": 6379,
         "defaultdb": "demo",
         "password": ""

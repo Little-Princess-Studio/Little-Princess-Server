@@ -260,9 +260,6 @@ public class Gate : IInstance
         this.tcpGateServer.RegisterMessageHandler(
             PackageType.RequirePropertyFullSync,
             this.HandleRequireFullSyncFromClient);
-        this.tcpGateServer.RegisterMessageHandler(
-            PackageType.PropertyFullSyncAck,
-            this.HandlePropertyFullSyncAckFromClient);
     }
 
     private void UnregisterMessageFromServerAndOtherGateHandlers()
@@ -276,9 +273,6 @@ public class Gate : IInstance
         this.tcpGateServer.UnregisterMessageHandler(
             PackageType.RequirePropertyFullSync,
             this.HandleRequireFullSyncFromClient);
-        this.tcpGateServer.UnregisterMessageHandler(
-            PackageType.PropertyFullSyncAck,
-            this.HandlePropertyFullSyncAckFromClient);
     }
 
     private void HandleHostCommandFromHost(IMessage msg)
@@ -443,15 +437,6 @@ public class Gate : IInstance
         var requirePropertyFullSyncMsg = (msg as RequirePropertyFullSync)!;
 
         this.RedirectMsgToEntityOnServer(requirePropertyFullSyncMsg.EntityId, msg);
-    }
-
-    private void HandlePropertyFullSyncAckFromClient((IMessage Message, Connection Connection, uint RpcId) arg)
-    {
-        Logger.Info("HandlePropertyFullSyncAck");
-        var (msg, conn, _) = arg;
-        var propertyFullSyncAck = (msg as PropertyFullSyncAck)!;
-
-        this.RedirectMsgToEntityOnServer(propertyFullSyncAck.EntityId, msg);
     }
 
     #endregion

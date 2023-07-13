@@ -9,6 +9,7 @@ namespace LPS.Common.Ipc;
 using System.Collections.Concurrent;
 
 #pragma warning disable SA1402
+
 /// <summary>
 /// RpcAsyncGenerator is a helper class for generate async task.
 /// </summary>

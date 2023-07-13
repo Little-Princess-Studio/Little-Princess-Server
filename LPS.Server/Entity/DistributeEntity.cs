@@ -113,14 +113,7 @@ public abstract class DistributeEntity : BaseEntity, ISendPropertySyncMessage
         var treeDict = this.ToAny();
 
         onSyncContentReady.Invoke(this.MailBox.Id, treeDict);
-    }
 
-    /// <summary>
-    /// Ack method of sync request.
-    /// </summary>
-    public void FullSyncAck()
-    {
-        // todo: timeout of sync
         this.IsFrozen = false;
     }
 

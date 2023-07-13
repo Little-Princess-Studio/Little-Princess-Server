@@ -133,12 +133,6 @@ public static class StartUpManager
         Logger.Info("On Full Sync Msg");
         shadowEntity.FromSyncContent(propertyFullSyncMsg.PropertyTree);
         shadowEntity.OnLoaded().Wait();
-
-        var ack = new PropertyFullSyncAck
-        {
-            EntityId = shadowEntity.MailBox.Id,
-        };
-        Client.Instance.Send(ack);
     }
 
     private static void HandleComponentSync((IMessage Message, Connection Connection, uint RpcId) arg)

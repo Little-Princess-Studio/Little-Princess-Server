@@ -376,7 +376,6 @@ public class Server : IInstance
     {
         this.tcpServer.RegisterMessageHandler(PackageType.EntityRpc, this.HandleEntityRpc);
         this.tcpServer.RegisterMessageHandler(PackageType.RequirePropertyFullSync, this.HandleRequirePropertyFullSync);
-        this.tcpServer.RegisterMessageHandler(PackageType.PropertyFullSyncAck, this.HandlePropertyFullSyncAck);
         this.tcpServer.RegisterMessageHandler(PackageType.Control, this.HandleControl);
     }
 
@@ -386,7 +385,6 @@ public class Server : IInstance
         this.tcpServer.UnregisterMessageHandler(
             PackageType.RequirePropertyFullSync,
             this.HandleRequirePropertyFullSync);
-        this.tcpServer.UnregisterMessageHandler(PackageType.PropertyFullSyncAck, this.HandlePropertyFullSyncAck);
         this.tcpServer.UnregisterMessageHandler(PackageType.Control, this.HandleControl);
     }
 
@@ -623,24 +621,6 @@ public class Server : IInstance
                 var pkg = PackageHelper.FromProtoBuf(fullSync, id);
                 conn.Socket.Send(pkg.ToBytes());
             });
-        }
-        else
-        {
-            throw new Exception($"Entity not exist: {entityId}");
-        }
-    }
-
-    private void HandlePropertyFullSyncAck((IMessage Message, Connection Connection, uint RpcId) arg)
-    {
-        var (msg, _, _) = arg;
-        var propertyFullSyncAckMsg = (msg as PropertyFullSyncAck)!;
-        var entityId = propertyFullSyncAckMsg.EntityId;
-
-        if (this.localEntityDict.ContainsKey(entityId))
-        {
-            var entity = this.localEntityDict[entityId];
-            entity.FullSyncAck();
-            Logger.Info("Full sync ack succ");
         }
         else
         {

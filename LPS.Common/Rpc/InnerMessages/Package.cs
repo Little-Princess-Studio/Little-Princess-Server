@@ -153,13 +153,10 @@ public enum PackageType
     RequirePropertyFullSync = 8,
     PropertyFullSync = 9,
     PropertySyncCommandList = 10,
-    PropertyFullSyncAck = 11,
-    PropertySyncAck = 12,
-    HostCommand = 13,
-    CreateDistributeEntity = 14,
-    CreateDistributeEntityRes = 15,
-    RequireComponentSync = 16,
-    ComponentSync = 17,
-    ComponentSyncAck = 18,
+    HostCommand = 11,
+    CreateDistributeEntity = 12,
+    CreateDistributeEntityRes = 13,
+    RequireComponentSync = 14,
+    ComponentSync = 15,
 #pragma warning restore SA1602
 }
