@@ -17,7 +17,7 @@ using LPS.Common.Rpc.RpcProperty.RpcContainer;
 /// Shadow entity is the readonly entity related to another entity, and automatically do properties sync with that entity.
 /// </summary>
 [EntityClass]
-public class ShadowEntity : BaseEntity
+public abstract class ShadowEntity : BaseEntity
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="ShadowEntity"/> class.

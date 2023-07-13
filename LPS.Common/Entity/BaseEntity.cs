@@ -47,6 +47,14 @@ public abstract class BaseEntity
     /// </remarks>
     protected ReadOnlyDictionary<string, uint> ComponentNameToComponentTypeId { get; set; } = null!;
 
+    /// <summary>
+    /// Gets or sets the dictionary that maps component type IDs to their corresponding RPC stubs.
+    /// </summary>
+    /// <remarks>
+    /// The RPC stub is a client-side proxy for a remote procedure call to a component on the server.
+    /// </remarks>
+    protected ReadOnlyDictionary<uint, IRpcStub> RpcStubMap { get; set; } = null!;
+
     private readonly AsyncTaskGenerator<object> rpcBlankAsyncTaskGenerator;
     private readonly AsyncTaskGenerator<object, System.Type> rpcAsyncTaskGenerator;
 
@@ -172,6 +180,35 @@ public abstract class BaseEntity
         }
 
         return ValueTask.FromResult(this.Components[typeId]);
+    }
+
+    /// <summary>
+    /// Gets a stub for the specified RPC interface.
+    /// </summary>
+    /// <typeparam name="T">The type of the RPC interface.</typeparam>
+    /// <returns>A stub for the specified RPC interface.</returns>
+    /// <exception cref="Exception">Thrown when the specified type is not an interface.</exception>
+    protected virtual T GetRpcStub<T>()
+        where T : IRpcStub
+    {
+        if (!typeof(T).IsInterface)
+        {
+            var e = new Exception("Rpc stub must be an interface.");
+            Logger.Error(e);
+            throw e;
+        }
+
+        var typeId = TypeIdHelper.GetId<T>();
+        if (!this.RpcStubMap.ContainsKey(typeId))
+        {
+            var e = new Exception($"Rpc stub {typeof(T).Name} not found.");
+            Logger.Error(e);
+            throw e;
+        }
+
+        var stub = this.RpcStubMap[key: typeId];
+
+        return (T)stub;
     }
 
     /// <summary>

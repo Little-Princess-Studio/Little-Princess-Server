@@ -6,9 +6,10 @@
 
 namespace LPS.Client.Demo.Entity;
 
-using Common.Debug;
-using Common.Rpc;
-using Common.Rpc.RpcProperty;
+using LPS.Common.Debug;
+using LPS.Common.Rpc;
+using LPS.Common.Rpc.RpcProperty;
+using LPS.Common.Demo.Rpc;
 using LPS.Client.Entity;
 using LPS.Client.Rpc.RpcProperty;
 using LPS.Common.Rpc.Attribute;

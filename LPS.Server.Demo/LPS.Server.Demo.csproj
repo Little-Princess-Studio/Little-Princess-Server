@@ -20,6 +20,7 @@
     <ItemGroup>
       <ProjectReference Include="..\LPS.Common\LPS.Common.csproj" />
       <ProjectReference Include="..\LPS.Server\LPS.Server.csproj" />
+      <ProjectReference Include="..\LPS.Common.Demo\LPS.Common.Demo.csproj" />
     </ItemGroup>
 
 </Project>

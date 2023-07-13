@@ -11,6 +11,7 @@
     <ItemGroup>
       <ProjectReference Include="..\LPS.Client\LPS.Client.csproj" />
       <ProjectReference Include="..\LPS.Common\LPS.Common.csproj" />
+      <ProjectReference Include="..\LPS.Common.Demo\LPS.Common.Demo.csproj" />
     </ItemGroup>
 
     <ItemGroup>

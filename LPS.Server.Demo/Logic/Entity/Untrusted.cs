@@ -11,6 +11,7 @@ using Common.Debug;
 using Common.Rpc.Attribute;
 using Common.Rpc.RpcProperty;
 using Common.Rpc.RpcProperty.RpcContainer;
+using LPS.Common.Demo.Rpc;
 using LPS.Server.Database;
 using LPS.Server.Entity;
 using LPS.Server.Rpc;
@@ -20,7 +21,7 @@ using LPS.Server.Rpc.RpcProperty;
 /// Untrusted class is the first created entity between client and server.
 /// </summary>
 [EntityClass]
-public class Untrusted : ServerClientEntity
+public class Untrusted : ServerClientEntity, IServerUntrusted
 {
     /// <summary>
     /// TestRpcProp.
@@ -46,10 +47,7 @@ public class Untrusted : ServerClientEntity
         Logger.Debug($"Untrusted created, desc : {desc}");
     }
 
-    /// <summary>
-    /// Test change property.
-    /// </summary>
-    /// <returns>Async value task.</returns>
+    /// <inheritdoc/>
     [RpcMethod(Authority.ClientOnly)]
     public ValueTask TestChange()
     {
@@ -58,11 +56,7 @@ public class Untrusted : ServerClientEntity
         return ValueTask.CompletedTask;
     }
 
-    /// <summary>
-    /// Test change prop.
-    /// </summary>
-    /// <param name="prop">Value to change.</param>
-    /// <returns>Async value task.</returns>
+    /// <inheritdoc/>
     [RpcMethod(Authority.ClientOnly)]
     public ValueTask ChangeProp(string prop)
     {
