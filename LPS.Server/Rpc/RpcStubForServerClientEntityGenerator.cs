@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-// <copyright file="RpcClientStubForServerClientEntityGenerator.cs" company="Little Princess Studio">
+// <copyright file="RpcStubForServerClientEntityGenerator.cs" company="Little Princess Studio">
 // Copyright (c) Little Princess Studio. All rights reserved.
 // </copyright>
 // -----------------------------------------------------------------------
@@ -16,7 +16,7 @@ using LPS.Server.Entity;
 /// <summary>
 /// Provides methods for generating server-side implementations of RPC interfaces marked with RpcServerStubAttribute.
 /// </summary>
-public class RpcClientStubForServerClientEntityGenerator : RpcStubGenerator
+public class RpcStubForServerClientEntityGenerator : RpcStubGenerator
 {
     /// <inheritdoc/>
     protected override Type EntityType => typeof(ServerClientEntity);

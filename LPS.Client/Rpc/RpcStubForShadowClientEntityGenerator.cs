@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-// <copyright file="RpcServerStubForShadowClientEntityGenerator.cs" company="Little Princess Studio">
+// <copyright file="RpcStubForShadowClientEntityGenerator.cs" company="Little Princess Studio">
 // Copyright (c) Little Princess Studio. All rights reserved.
 // </copyright>
 // -----------------------------------------------------------------------
@@ -14,7 +14,7 @@ using LPS.Common.Rpc.RpcStub;
 /// <summary>
 /// Provides methods for generating server-side implementations of RPC interfaces marked with RpcServerStubAttribute.
 /// </summary>
-public class RpcServerStubForShadowClientEntityGenerator : RpcStubGenerator
+public class RpcStubForShadowClientEntityGenerator : RpcStubGenerator
 {
     /// <inheritdoc/>
     protected override Type EntityType => typeof(ShadowClientEntity);
