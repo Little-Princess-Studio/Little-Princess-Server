@@ -294,7 +294,24 @@ public class RpcStubGenerator
     /// <returns>True if the signature is valid, false otherwise.</returns>
     protected virtual bool ValidateRpcMethodSignature(MethodInfo methodInfo, bool notifyOnly)
     {
-        // TODO: validate attributes
-        return RpcHelper.ValidateMethodSignature(methodInfo, 0);
+        if (notifyOnly)
+        {
+            var returnType = methodInfo.ReturnType;
+            if (returnType != typeof(void))
+            {
+                Logger.Warn($"RPC method {methodInfo.Name} on {methodInfo.Name} does not return void.");
+                return false;
+            }
+        }
+
+        var firstParameter = methodInfo.GetParameters().FirstOrDefault();
+
+        if (firstParameter is null || firstParameter.ParameterType != typeof(MailBox))
+        {
+            Logger.Warn($"RPC method {methodInfo.Name} on {methodInfo.Name} does not have a MailBox parameter.");
+            return false;
+        }
+
+        return RpcHelper.ValidateMethodSignature(methodInfo, 1, true);
     }
 }

@@ -667,7 +667,7 @@ public static class RpcHelper
                     .Select(method => method)
                     .ToDictionary(method => method.Name);
 
-                var rpcArgValidation = rpcMethods.Values.All(m => ValidateMethodSignature(m, 0));
+                var rpcArgValidation = rpcMethods.Values.All(m => ValidateMethodSignature(m, 0, false));
 
                 if (!rpcArgValidation)
                 {
@@ -690,8 +690,9 @@ public static class RpcHelper
     /// </summary>
     /// <param name="methodInfo">The <see cref="MethodInfo"/> object representing the RPC method.</param>
     /// <param name="startArgIdx">Starting index in the parameter list to check the parameter.</param>
+    /// <param name="ignoreReturnType">Whether to ignore the return type of the method when validating the signature.</param>
     /// <returns><c>true</c> if the signature is valid; otherwise, <c>false</c>.</returns>
-    public static bool ValidateMethodSignature(MethodInfo methodInfo, int startArgIdx)
+    public static bool ValidateMethodSignature(MethodInfo methodInfo, int startArgIdx, bool ignoreReturnType)
     {
         var valid = false;
         if (methodInfo.Name == "OnResult")
@@ -713,27 +714,30 @@ public static class RpcHelper
 
         var returnType = methodInfo.ReturnType;
 
-        if (returnType == typeof(Task)
-            || returnType == typeof(ValueTask))
+        if (!ignoreReturnType)
         {
-            valid = valid && true;
-        }
-        else if (returnType.IsGenericType &&
-                 (returnType.GetGenericTypeDefinition() == typeof(Task<>)
-                  || returnType.GetGenericTypeDefinition() == typeof(ValueTask<>)))
-        {
-            var taskReturnType = returnType.GetGenericArguments()[0];
-            valid = valid && ValidateRpcType(taskReturnType);
-        }
-        else
-        {
-            if (methodInfo.Name != "OnResult")
+            if (returnType == typeof(Task)
+                || returnType == typeof(ValueTask))
             {
-                valid = ValidateRpcType(returnType);
+                valid = valid && true;
+            }
+            else if (returnType.IsGenericType &&
+                     (returnType.GetGenericTypeDefinition() == typeof(Task<>)
+                      || returnType.GetGenericTypeDefinition() == typeof(ValueTask<>)))
+            {
+                var taskReturnType = returnType.GetGenericArguments()[0];
+                valid = valid && ValidateRpcType(taskReturnType);
             }
             else
             {
-                Logger.Debug("BaseEntity::OnResult will not be checked");
+                if (methodInfo.Name != "OnResult")
+                {
+                    valid = ValidateRpcType(returnType);
+                }
+                else
+                {
+                    Logger.Debug("BaseEntity::OnResult will not be checked");
+                }
             }
         }
 

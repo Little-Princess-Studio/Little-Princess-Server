@@ -10,6 +10,8 @@ using System;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
+using LPS.Common.Debug;
+using LPS.Common.Rpc;
 using LPS.Common.Rpc.RpcStub;
 using LPS.Server.Entity;
 
@@ -81,5 +83,26 @@ public class RpcStubForServerClientEntityGenerator : RpcStubGenerator
 
         ilgenerator.Emit(OpCodes.Callvirt, callMethod);
         ilgenerator.Emit(OpCodes.Ret);
+    }
+
+    /// <summary>
+    /// Validates the signature of an RPC method.
+    /// </summary>
+    /// <param name="methodInfo">The <see cref="MethodInfo"/> of the RPC method to validate.</param>
+    /// <param name="notifyOnly">If generate notify-only RPC call.</param>
+    /// <returns>True if the signature is valid, false otherwise.</returns>
+    protected override bool ValidateRpcMethodSignature(MethodInfo methodInfo, bool notifyOnly)
+    {
+        if (notifyOnly)
+        {
+            var returnType = methodInfo.ReturnType;
+            if (returnType != typeof(void))
+            {
+                Logger.Warn($"RPC method {methodInfo.Name} on {methodInfo.Name} does not return void.");
+                return false;
+            }
+        }
+
+        return RpcHelper.ValidateMethodSignature(methodInfo, 0, false);
     }
 }

@@ -78,7 +78,7 @@ public static class DbManagerHelper
         var methods = provider.GetMethods()
             .Where(method => method.GetCustomAttribute<DbApiAttribute>() != null);
 
-        var validated = methods.All(method => RpcHelper.ValidateMethodSignature(method, 1))
+        var validated = methods.All(method => RpcHelper.ValidateMethodSignature(method, 1, false))
                     && methods.All(ValidateFirstArg);
 
         if (!validated)
