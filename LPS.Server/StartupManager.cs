@@ -13,6 +13,7 @@ using System.IO;
 using System.Linq;
 using LPS.Common.Debug;
 using LPS.Common.Rpc;
+using LPS.Common.Rpc.RpcStub;
 using LPS.Server.Database;
 using LPS.Server.Instance;
 using LPS.Server.MessageQueue;
@@ -351,10 +352,12 @@ public static class StartupManager
         var json = GetJson(confFilePath);
         var entityNamespace = json["entity_namespace"]!.ToString();
         var rpcPropertyNamespace = json["rpc_property_namespace"]!.ToString();
+        var rpcStubNamespace = json["rpc_stub_namespace"]!.ToString();
 
         RpcHelper.ScanRpcMethods("LPS.Server.Entity");
         RpcHelper.ScanRpcMethods(entityNamespace);
         RpcHelper.ScanRpcPropertyContainer(rpcPropertyNamespace);
+        RpcStubGeneratorManager.ScanAndBuildGenerator(rpcStubNamespace);
 
         var messageQueueConf = GetJson(json["mq_conf"]!.ToString()).ToObject<MessageQueueClient.MqConfig>()!;
         MessageQueueClient.InitConnectionFactory(messageQueueConf);

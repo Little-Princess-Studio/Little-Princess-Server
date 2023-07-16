@@ -3,6 +3,7 @@
 
     "entity_namespace": "LPS.Server.Demo.Logic.Entity",
     "rpc_property_namespace": "LPS.Server.Demo.Logic.RpcProperty",
+    "rpc_stub_namespace": "LPS.Server.Demo.Logic.RpcStub",
 
     "servers": {
         "server0" : {

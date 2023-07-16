@@ -4,7 +4,7 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
-namespace LPS.Common.Rpc.Attribute;
+namespace LPS.Common.Rpc.RpcStub;
 
 /// <summary>
 /// Tag a method as RPC method.

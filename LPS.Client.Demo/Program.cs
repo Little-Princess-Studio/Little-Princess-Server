@@ -28,6 +28,7 @@ public static class Program
             11001,
             "LPS.Client.Demo.Entity",
             "LPS.Client.Demo.Entity.RpcProperty",
+            "LPS.Client.Demo.Entity.RpcStub",
             () => ClientGlobal.ShadowClientEntity,
             entity => ClientGlobal.ShadowClientEntity = entity);
 

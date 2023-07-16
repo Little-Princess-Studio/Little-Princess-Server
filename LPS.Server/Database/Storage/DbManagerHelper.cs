@@ -16,6 +16,7 @@ using Google.Protobuf.WellKnownTypes;
 using LPS.Common.Debug;
 using LPS.Common.Rpc;
 using LPS.Common.Rpc.InnerMessages;
+using LPS.Common.Util;
 using LPS.Server.Database.Storage;
 using LPS.Server.Database.Storage.Attribute;
 using Newtonsoft.Json.Linq;
@@ -56,19 +57,10 @@ public static class DbManagerHelper
     public static void ScanDbApis(string @namespace)
     {
         // scan all the types inside the namespace and has attribute of DbApiProvider
-        var typesEntry = Assembly.GetEntryAssembly()!.GetTypes()
-            .Where(
-                type => type.IsClass
-                        && type.Namespace == @namespace
-                        && type.GetCustomAttribute<DbApiProviderAttribute>()?.DbType == currentDatabase.GetType());
-
-        var types = Assembly.GetCallingAssembly().GetTypes()
-            .Where(
-                type => type.IsClass
-                        && type.Namespace == @namespace
-                        && type.GetCustomAttribute<DbApiProviderAttribute>()?.DbType == currentDatabase.GetType())
-            .Concat(typesEntry)
-            .Distinct();
+        var types = AttributeHelper.ScanTypeWithNamespace(
+            @namespace,
+            type => type.IsClass
+                && type.GetCustomAttribute<DbApiProviderAttribute>()?.DbType == currentDatabase.GetType());
 
         if (types == null)
         {
@@ -113,20 +105,10 @@ public static class DbManagerHelper
     /// <param name="namespace">The namespace to scan.</param>
     public static void ScanInnerDbApis(string @namespace)
     {
-        // scan all the types inside the namespace and has attribute of DbApiProvider
-        var typesEntry = Assembly.GetEntryAssembly()!.GetTypes()
-            .Where(
-                type => type.IsClass
-                        && type.Namespace == @namespace
-                        && type.GetCustomAttribute<DbInnerApiProviderAttribute>()?.DbType == currentDatabase.GetType());
-
-        var types = Assembly.GetCallingAssembly().GetTypes()
-            .Where(
-                type => type.IsClass
-                        && type.Namespace == @namespace
-                        && type.GetCustomAttribute<DbInnerApiProviderAttribute>()?.DbType == currentDatabase.GetType())
-            .Concat(typesEntry)
-            .Distinct();
+        var types = AttributeHelper.ScanTypeWithNamespace(
+            @namespace,
+            type => type.IsClass
+                && type.GetCustomAttribute<DbInnerApiProviderAttribute>()?.DbType == currentDatabase.GetType());
 
         if (types == null)
         {

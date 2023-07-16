@@ -7,10 +7,11 @@
 namespace LPS.Server.Demo.Logic.Entity;
 
 using Common.Debug;
-using Common.Rpc.Attribute;
+using Common.Rpc.RpcStub;
 using LPS.Common.Rpc;
 using LPS.Common.Rpc.RpcProperty;
 using LPS.Server.Database;
+using LPS.Server.Demo.Logic.RpcStub;
 using LPS.Server.Entity;
 using LPS.Server.Entity.Component;
 using LPS.Server.Rpc.RpcProperty;
@@ -37,6 +38,8 @@ public class Player : ServerClientEntity
     [RpcProperty(nameof(Player.AccountId), RpcPropertySetting.Permanent | RpcPropertySetting.ServerToShadow)]
     public RpcPlaintProperty<string> AccountId = new (string.Empty);
 
+    private readonly IPlayerStub playerStub = null!;
+
     /// <summary>
     /// Initializes a new instance of the <see cref="Player"/> class.
     /// </summary>
@@ -44,6 +47,8 @@ public class Player : ServerClientEntity
     public Player(string desc)
         : base(desc)
     {
+        // cache the stub
+        this.playerStub = this.GetRpcStub<IPlayerStub>();
     }
 
     /// <summary>
@@ -71,6 +76,7 @@ public class Player : ServerClientEntity
         props.Hp.Val = hp;
         props.Sp.Val = sp;
         Logger.Info($"[Player] UpdateGameProperty, hp -> {hp}, sp -> {sp}");
+        this.playerStub.NotifyPrintMessageFromServer("Notification from server, player properties updated.");
     }
 
     /// <inheritdoc/>

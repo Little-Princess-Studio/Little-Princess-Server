@@ -7,7 +7,7 @@
 namespace LPS.Server.Entity;
 
 using LPS.Common.Entity;
-using LPS.Common.Rpc.Attribute;
+using LPS.Common.Rpc.RpcStub;
 
 /// <summary>
 /// Unique entity should have only 1 instance host-wide.

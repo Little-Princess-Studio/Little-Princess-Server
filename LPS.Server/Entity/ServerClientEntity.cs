@@ -9,10 +9,11 @@ namespace LPS.Server.Entity;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using LPS.Client.Rpc;
 using LPS.Common.Debug;
 using LPS.Common.Rpc;
-using LPS.Common.Rpc.Attribute;
 using LPS.Common.Rpc.InnerMessages;
+using LPS.Common.Rpc.RpcStub;
 using MailBox = LPS.Common.Rpc.MailBox;
 
 /// <summary>
@@ -20,6 +21,7 @@ using MailBox = LPS.Common.Rpc.MailBox;
 /// has communication where they can call each other and sync properties.
 /// </summary>
 [EntityClass]
+[RpcStubGenerator(typeof(RpcClientStubForServerClientEntityGenerator))]
 public class ServerClientEntity : DistributeEntity
 {
     /// <summary>
@@ -68,10 +70,7 @@ public class ServerClientEntity : DistributeEntity
 
             this.IsFrozen = true;
 
-            // this.Client.Notify("OnTransfer", mailbox);
             this.Cell.OnEntityLeave(this);
-
-            // Logger.Debug($"transfer success, new mailbox {mailbox}");
         }
         catch (Exception e)
         {

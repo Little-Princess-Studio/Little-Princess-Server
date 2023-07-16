@@ -12,6 +12,7 @@ using LPS.Client.Rpc;
 using LPS.Common.Debug;
 using LPS.Common.Rpc;
 using LPS.Common.Rpc.InnerMessages;
+using LPS.Common.Rpc.RpcStub;
 
 /// <summary>
 /// Start up manager for client.
@@ -22,12 +23,13 @@ public static class StartUpManager
     private static Func<ShadowClientEntity> getShadowEntityCallBack = null!;
 
     /// <summary>
-    /// Init client enviroment.
+    /// Init client environment.
     /// </summary>
     /// <param name="ip">Server ip to connect.</param>
     /// <param name="port">Port to connect.</param>
     /// <param name="entityNamespace">Costume entity class namespace to scan.</param>
     /// <param name="rpcPropertyNamespace">Costume rpc property class namespace to scan.</param>
+    /// <param name="rpcStubNamespace">Costume rpc server stub interface namespace to scan.</param>
     /// <param name="getShadowEntity">Function to get current client shadow entity.</param>
     /// <param name="onCreateShadowEntity">Callback when shadow entity created.</param>
     public static void Init(
@@ -35,6 +37,7 @@ public static class StartUpManager
         int port,
         string entityNamespace,
         string rpcPropertyNamespace,
+        string rpcStubNamespace,
         Func<ShadowClientEntity> getShadowEntity,
         Action<ShadowClientEntity> onCreateShadowEntity)
     {
@@ -47,6 +50,7 @@ public static class StartUpManager
         RpcHelper.ScanRpcMethods(entityNamespace);
         RpcHelper.ScanRpcPropertyContainer(rpcPropertyNamespace);
 
+        RpcStubGeneratorManager.ScanAndBuildGenerator(rpcStubNamespace);
         Client.Instance.Init(ip, port);
 
         Client.Instance.RegisterMessageHandler(PackageType.ClientCreateEntity, HandleClientCreateEntity);

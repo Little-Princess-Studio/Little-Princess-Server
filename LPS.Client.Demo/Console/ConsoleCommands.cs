@@ -11,6 +11,7 @@ using System.Text;
 using LPS.Client.Console;
 using LPS.Client.Demo.Entity;
 using LPS.Common.Debug;
+using LPS.Common.Demo.Rpc;
 using LPS.Common.Rpc.InnerMessages;
 using Client = LPS.Client.Client;
 using MailBox = LPS.Common.Rpc.MailBox;
@@ -116,7 +117,8 @@ public static class ConsoleCommands
     [ConsoleCommand("send.change_prop")]
     public static async void ChangeProp(string prop)
     {
-        await ClientGlobal.ShadowClientEntity.Server.Call("ChangeProp", prop);
+        var untrusted = (ClientGlobal.ShadowClientEntity as Untrusted) !;
+        await untrusted.ChangeProp(prop);
         Logger.Debug($"Call to change prop");
     }
 

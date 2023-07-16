@@ -4,7 +4,7 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
-namespace LPS.Common.Rpc.Attribute;
+namespace LPS.Common.Rpc.RpcStub;
 
 /// <summary>
 /// Tag a type is RPC Json type, this type will be automatically serialized/deserialized as json object.

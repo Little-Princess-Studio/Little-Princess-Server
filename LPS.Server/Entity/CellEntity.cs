@@ -11,7 +11,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using LPS.Common.Debug;
 using LPS.Common.Rpc;
-using LPS.Common.Rpc.Attribute;
+using LPS.Common.Rpc.RpcStub;
 using LPS.Server.Rpc;
 
 /// <summary>

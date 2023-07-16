@@ -16,12 +16,12 @@ using LPS.Common.Debug;
 using LPS.Common.Entity;
 using LPS.Common.Entity.Component;
 using LPS.Common.Ipc;
-using LPS.Common.Rpc.Attribute;
 using LPS.Common.Rpc.InnerMessages;
 using LPS.Common.Rpc.RpcProperty;
 using LPS.Common.Rpc.RpcProperty.RpcContainer;
+using LPS.Common.Rpc.RpcStub;
+using LPS.Common.Util;
 using Newtonsoft.Json;
-
 using Type = System.Type;
 
 /// <summary>
@@ -116,20 +116,11 @@ public static class RpcHelper
     /// <param name="namespaceName">Namespace to scan.</param>
     public static void ScanRpcPropertyContainer(string namespaceName)
     {
-        var typesEntry = Assembly.GetEntryAssembly()!.GetTypes()
-            .Where(
-                type => type.IsClass
-                        && type.Namespace == namespaceName
-                        && System.Attribute.IsDefined(type, typeof(RpcPropertyContainerAttribute)));
-
-        var types = Assembly.GetCallingAssembly().GetTypes()
-            .Where(
-                type => type.IsClass
-                        && type.Namespace == namespaceName
-                        && System.Attribute.IsDefined(type, typeof(RpcPropertyContainerAttribute)))
-            .Concat(typesEntry)
-            .Distinct()
-            .ToList();
+        var types = AttributeHelper.ScanTypeWithNamespaceAndAttribute(
+            namespaceName,
+            typeof(RpcPropertyContainerAttribute),
+            false,
+            type => type.IsClass);
 
         Logger.Info(
             $"ScanRpcPropertyContainer in {namespaceName} types: {string.Join(',', types.Select(type => type.Name).ToArray())}");
@@ -639,19 +630,12 @@ public static class RpcHelper
     /// <exception cref="Exception">Throw exception if failed to scan.</exception>
     public static void ScanRpcMethods(string namespaceName)
     {
-        var typesEntry = Assembly.GetEntryAssembly()!.GetTypes()
-            .Where(
-                type => type.IsClass
-                        && type.Namespace == namespaceName
-                        && System.Attribute.IsDefined(type, typeof(EntityClassAttribute)));
-
-        var types = Assembly.GetCallingAssembly().GetTypes()
-            .Where(
-                type => type.IsClass
-                        && type.Namespace == namespaceName
-                        && System.Attribute.IsDefined(type, typeof(EntityClassAttribute)))
-            .Concat(typesEntry)
-            .Distinct()
+        var types =
+            AttributeHelper.ScanTypeWithNamespaceAndAttribute(
+                namespaceName,
+                typeof(EntityClassAttribute),
+                false,
+                type => type.IsClass)
             .ToList();
 
         Logger.Info(

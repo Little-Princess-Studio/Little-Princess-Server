@@ -10,11 +10,12 @@ using System.Collections.ObjectModel;
 using System.Reflection;
 using Google.Protobuf.WellKnownTypes;
 using LPS.Client.Entity.Component;
+using LPS.Client.Rpc;
 using LPS.Common.Debug;
 using LPS.Common.Entity;
 using LPS.Common.Entity.Component;
-using LPS.Common.Rpc.Attribute;
 using LPS.Common.Rpc.InnerMessages;
+using LPS.Common.Rpc.RpcStub;
 using LPS.Common.Util;
 using MailBox = LPS.Common.Rpc.MailBox;
 
@@ -23,6 +24,7 @@ using MailBox = LPS.Common.Rpc.MailBox;
 /// has communication where they can call each other and sync properties.
 /// </summary>
 [EntityClass]
+[RpcStubGenerator(typeof(RpcServerStubForShadowClientEntityGenerator))]
 public class ShadowClientEntity : ShadowEntity
 {
     /// <summary>

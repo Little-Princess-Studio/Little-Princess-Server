@@ -4,7 +4,7 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
-namespace LPS.Common.Rpc;
+namespace LPS.Common.Rpc.RpcStub;
 
 /// <summary>
 /// Represents a stub for a remote procedure call (RPC) service.

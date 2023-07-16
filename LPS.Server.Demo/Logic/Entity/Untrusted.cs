@@ -8,7 +8,7 @@ namespace LPS.Server.Demo.Logic.Entity;
 
 using System.Threading.Tasks;
 using Common.Debug;
-using Common.Rpc.Attribute;
+using Common.Rpc.RpcStub;
 using Common.Rpc.RpcProperty;
 using Common.Rpc.RpcProperty.RpcContainer;
 using LPS.Common.Demo.Rpc;
@@ -21,7 +21,7 @@ using LPS.Server.Rpc.RpcProperty;
 /// Untrusted class is the first created entity between client and server.
 /// </summary>
 [EntityClass]
-public class Untrusted : ServerClientEntity, IServerUntrusted
+public class Untrusted : ServerClientEntity, IServerUntrustedStub
 {
     /// <summary>
     /// TestRpcProp.
@@ -76,12 +76,7 @@ public class Untrusted : ServerClientEntity, IServerUntrusted
         return ValueTask.FromResult("echo:" + msg);
     }
 
-    /// <summary>
-    /// Login Rpc invoked from client to login.
-    /// </summary>
-    /// <param name="name">User name.</param>
-    /// <param name="password">Password.</param>
-    /// <returns>Async value task.</returns>
+    /// <inheritdoc/>
     [RpcMethod(Authority.ClientOnly)]
     public async Task<bool> LogIn(string name, string password)
     {

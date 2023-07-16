@@ -8,10 +8,10 @@ namespace LPS.Common.Entity;
 
 using Google.Protobuf.Collections;
 using Google.Protobuf.WellKnownTypes;
-using LPS.Common.Rpc.Attribute;
 using LPS.Common.Rpc.InnerMessages;
 using LPS.Common.Rpc.RpcProperty;
 using LPS.Common.Rpc.RpcProperty.RpcContainer;
+using LPS.Common.Rpc.RpcStub;
 
 /// <summary>
 /// Shadow entity is the readonly entity related to another entity, and automatically do properties sync with that entity.

@@ -9,11 +9,11 @@ namespace LPS.Client.Demo.Entity;
 using LPS.Common.Debug;
 using LPS.Common.Rpc;
 using LPS.Common.Rpc.RpcProperty;
-using LPS.Common.Demo.Rpc;
 using LPS.Client.Entity;
 using LPS.Client.Rpc.RpcProperty;
-using LPS.Common.Rpc.Attribute;
+using LPS.Common.Rpc.RpcStub;
 using LPS.Common.Rpc.RpcProperty.RpcContainer;
+using LPS.Client.Demo.Entity.RpcStub;
 
 /// <summary>
 /// Untrusted class, entry of the connection between server and client.
@@ -33,13 +33,24 @@ public class Untrusted : ShadowClientEntity
     [RpcProperty(nameof(TestRpcPlaintPropStr))]
     public readonly RpcShadowPlaintProperty<string> TestRpcPlaintPropStr = new ();
 
+    private readonly IUntrustedStub serverUntrustedRpc;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Untrusted"/> class.
+    /// </summary>
+    public Untrusted()
+    {
+        // cache rpc stub object
+        this.serverUntrustedRpc = this.GetRpcStub<IUntrustedStub>();
+    }
+
     /// <summary>
     /// Try to login.
     /// </summary>
     /// <returns>If succeed to login.</returns>
     public Task Login()
     {
-        this.Server.Notify("LogIn", "demo", "123456");
+        this.serverUntrustedRpc.NotifyLogIn("demo", "123456");
         return Task.FromResult(true);
     }
 
@@ -59,4 +70,19 @@ public class Untrusted : ShadowClientEntity
 
         await base.OnMigrated(targetMailBox, migrateInfo, targetEntityClassName);
     }
+
+    /// <summary>
+    /// Test change property.
+    /// </summary>
+    /// <returns>Async value task.</returns>
+    public ValueTask TestChange() =>
+        this.serverUntrustedRpc.TestChange();
+
+    /// <summary>
+    /// Test change prop.
+    /// </summary>
+    /// <param name="prop">Value to change.</param>
+    /// <returns>Async value task.</returns>
+    public ValueTask ChangeProp(string prop) =>
+        this.serverUntrustedRpc.ChangeProp(prop);
 }

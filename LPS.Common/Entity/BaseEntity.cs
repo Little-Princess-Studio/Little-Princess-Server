@@ -13,15 +13,16 @@ using LPS.Common.Debug;
 using LPS.Common.Entity.Component;
 using LPS.Common.Ipc;
 using LPS.Common.Rpc;
-using LPS.Common.Rpc.Attribute;
 using LPS.Common.Rpc.InnerMessages;
 using LPS.Common.Rpc.RpcProperty;
+using LPS.Common.Rpc.RpcStub;
 using LPS.Common.Util;
 using MailBox = LPS.Common.Rpc.MailBox;
 
 /// <summary>
 /// BaseEntity class.
 /// </summary>
+[RpcStubGenerator(typeof(RpcStubGenerator))]
 public abstract class BaseEntity
 {
     /// <summary>
@@ -46,14 +47,6 @@ public abstract class BaseEntity
     /// The component type ID is a unique identifier for each component type.
     /// </remarks>
     protected ReadOnlyDictionary<string, uint> ComponentNameToComponentTypeId { get; set; } = null!;
-
-    /// <summary>
-    /// Gets or sets the dictionary that maps component type IDs to their corresponding RPC stubs.
-    /// </summary>
-    /// <remarks>
-    /// The RPC stub is a client-side proxy for a remote procedure call to a component on the server.
-    /// </remarks>
-    protected ReadOnlyDictionary<uint, IRpcStub> RpcStubMap { get; set; } = null!;
 
     private readonly AsyncTaskGenerator<object> rpcBlankAsyncTaskGenerator;
     private readonly AsyncTaskGenerator<object, System.Type> rpcAsyncTaskGenerator;
@@ -189,26 +182,10 @@ public abstract class BaseEntity
     /// <returns>A stub for the specified RPC interface.</returns>
     /// <exception cref="Exception">Thrown when the specified type is not an interface.</exception>
     protected virtual T GetRpcStub<T>()
-        where T : IRpcStub
+        where T : class, IRpcStub
     {
-        if (!typeof(T).IsInterface)
-        {
-            var e = new Exception("Rpc stub must be an interface.");
-            Logger.Error(e);
-            throw e;
-        }
-
-        var typeId = TypeIdHelper.GetId<T>();
-        if (!this.RpcStubMap.ContainsKey(typeId))
-        {
-            var e = new Exception($"Rpc stub {typeof(T).Name} not found.");
-            Logger.Error(e);
-            throw e;
-        }
-
-        var stub = this.RpcStubMap[key: typeId];
-
-        return (T)stub;
+        var generator = RpcStubGeneratorManager.GetRpcStubGenerator(this.GetType());
+        return generator.GetRpcStubImpl<T>(this);
     }
 
     /// <summary>

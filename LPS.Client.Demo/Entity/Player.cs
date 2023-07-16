@@ -8,12 +8,13 @@ namespace LPS.Client.Demo.Entity;
 
 using Common.Debug;
 using Common.Rpc.RpcProperty;
-using Common.Rpc.Attribute;
+using Common.Rpc.RpcStub;
 using LPS.Client.Entity;
 using LPS.Client.Rpc.RpcProperty;
 using LPS.Client.Entity.Component;
 using LPS.Client.Demo.Entity.Component;
 using Google.Protobuf.WellKnownTypes;
+using LPS.Common.Demo.Rpc;
 
 /// <summary>
 /// Player class, from Untrusted.
@@ -21,7 +22,7 @@ using Google.Protobuf.WellKnownTypes;
 [EntityClass]
 [ClientComponent(typeof(GamePropertyComponent))]
 [ClientComponent(typeof(BagComponent))]
-public class Player : ShadowClientEntity
+public class Player : ShadowClientEntity, IClientPlayerStub
 {
     /// <summary>
     /// Player name.
@@ -79,6 +80,13 @@ public class Player : ShadowClientEntity
             Logger.Debug($"[BagComponent] item: {(int)item.ItemId}, {(string)item.ItemName}");
         }
 
+        return ValueTask.CompletedTask;
+    }
+
+    /// <inheritdoc/>
+    public ValueTask PrintMessageFromServer(string msg)
+    {
+        Logger.Info($"[Player] notification from server: {msg}");
         return ValueTask.CompletedTask;
     }
 }

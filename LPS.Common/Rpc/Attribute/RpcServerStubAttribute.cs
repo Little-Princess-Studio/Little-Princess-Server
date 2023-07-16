@@ -4,7 +4,7 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
-namespace LPS.Common.Rpc.Attribute;
+namespace LPS.Common.Rpc.RpcStub;
 
 /// <summary>
 /// Represents an attribute that is used to mark an interface as a stub for a remote procedure call (RPC) method.
