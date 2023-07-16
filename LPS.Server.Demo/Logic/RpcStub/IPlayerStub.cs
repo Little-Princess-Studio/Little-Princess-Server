@@ -12,12 +12,13 @@ using LPS.Common.Rpc.RpcStub;
 /// <summary>
 /// Represents a stub for a player client.
 /// </summary>
+[RpcClientStub]
 public interface IPlayerStub : IClientPlayerStub
 {
     /// <summary>
     /// Notifies the client that a message has been received from the server.
     /// </summary>
     /// <param name="msg">The message to print.</param>
-    [RpcStubNotifyOnly("PrintMessageFromServer")]
+    [RpcStubNotifyOnly(nameof(IClientPlayerStub.PrintMessageFromServer))]
     void NotifyPrintMessageFromServer(string msg);
 }

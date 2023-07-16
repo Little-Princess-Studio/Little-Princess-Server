@@ -5,6 +5,8 @@
 // -----------------------------------------------------------------------
 
 namespace LPS.Client.Demo.Entity.RpcStub;
+
+using LPS.Common.Demo.Rpc;
 using LPS.Common.Rpc.RpcStub;
 
 /// <summary>
@@ -12,13 +14,13 @@ using LPS.Common.Rpc.RpcStub;
 /// </summary>
 ///
 [RpcServerStub]
-public interface IUntrustedStub : LPS.Common.Demo.Rpc.IServerUntrustedStub
+public interface IUntrustedStub : IServerUntrustedStub
 {
     /// <summary>
     /// Notifies the server that a user has logged in.
     /// </summary>
     /// <param name="userName">User name.</param>
     /// <param name="passWord">Password.</param>
-    [RpcStubNotifyOnly("LogIn")]
+    [RpcStubNotifyOnly(nameof(IServerUntrustedStub.LogIn))]
     void NotifyLogIn(string userName, string passWord);
 }
