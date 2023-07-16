@@ -101,6 +101,6 @@ public class RpcStubForShadowClientEntityGenerator : RpcStubGenerator
             }
         }
 
-        return RpcHelper.ValidateMethodSignature(methodInfo, 0, false);
+        return RpcHelper.ValidateMethodSignature(methodInfo, 0, notifyOnly);
     }
 }

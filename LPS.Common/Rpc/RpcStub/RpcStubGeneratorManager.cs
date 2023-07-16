@@ -62,19 +62,19 @@ public static class RpcStubGeneratorManager
     /// <summary>
     /// Gets the RPC stub generator for the specified entity class type.
     /// </summary>
-    /// <param name="entityClassName">The type of the entity class for which to get the RPC stub generator.</param>
+    /// <param name="entityClassType">The type of the entity class for which to get the RPC stub generator.</param>
     /// <returns>The RPC stub generator for the specified entity class type.</returns>
     /// <exception cref="Exception">Thrown when the RPC stub generator for the specified entity class type cannot be found.</exception>
-    public static RpcStubGenerator GetRpcStubGenerator(Type entityClassName)
+    public static RpcStubGenerator GetRpcStubGenerator(Type entityClassType)
     {
-        var id = TypeIdHelper.GetId(entityClassName);
+        var id = TypeIdHelper.GetId(entityClassType);
         if (generatorMap.TryGetValue(id, out var generator))
         {
             return generator;
         }
         else
         {
-            throw new Exception($"Failed to find stub generator for {entityClassName.FullName}");
+            throw new Exception($"Failed to find stub generator for {entityClassType.FullName}");
         }
     }
 
@@ -86,5 +86,15 @@ public static class RpcStubGeneratorManager
     /// <exception cref="Exception">Thrown when the RPC stub generator for the specified type cannot be found.</exception>
     public static RpcStubGenerator GetRpcStubGenerator<T>()
         where T : BaseEntity
-        => GetRpcStubGenerator(typeof(T));
+    {
+        var id = TypeIdHelper.GetId<T>();
+        if (generatorMap.TryGetValue(id, out var generator))
+        {
+            return generator;
+        }
+        else
+        {
+            throw new Exception($"Failed to find stub generator for {typeof(T).FullName}");
+        }
+    }
 }

@@ -312,6 +312,6 @@ public class RpcStubGenerator
             return false;
         }
 
-        return RpcHelper.ValidateMethodSignature(methodInfo, 1, true);
+        return RpcHelper.ValidateMethodSignature(methodInfo, 1, notifyOnly);
     }
 }
