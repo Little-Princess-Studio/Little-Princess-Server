@@ -113,27 +113,27 @@ public enum RpcPropertySetting
     /// <summary>
     /// ServerOnly prop will not sync with client-side, but will be serialized/deserialized when entity transferred.
     /// </summary>
-    ServerOnly = 0x00000010,
+    ServerOnly = 0x00000002,
 
     /// <summary>
     /// ServerClient is same as ServerOnly prop, but also for sync to shadow entities.
     /// </summary>
-    ServerToShadow = 0x00000100,
+    ServerToShadow = 0x00000004,
 
     /// <summary>
     /// FastSync will sync as fast as possiable to shadow, ignoring prop change order.
     /// </summary>
-    FastSync = 0x00001000,
+    FastSync = 0x00000008,
 
     /// <summary>
     /// KeepSendOrder will sync props with keeping prop change order.
     /// </summary>
-    KeepSendOrder = 0x00010000,
+    KeepSendOrder = 0x00000010,
 
     /// <summary>
     /// Shadow is for shadow entities.
     /// </summary>
-    Shadow = 0x00100000,
+    Shadow = 0x00000020,
 }
 
 /// <summary>

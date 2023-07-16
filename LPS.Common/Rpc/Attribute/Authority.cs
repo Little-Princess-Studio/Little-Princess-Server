@@ -19,12 +19,12 @@ public enum Authority
     /// <summary>
     /// RPC method can only be called from client to server.
     /// </summary>
-    ClientOnly = 0x00000010,
+    ClientOnly = 0x00000002,
 
     /// <summary>
     /// RPC method can only be called from server to client.
     /// </summary>
-    ClientStub = 0x00000100,
+    ClientStub = 0x00000004,
 
     /// <summary>
     /// RPC method can be called both from server to client or server to server.
