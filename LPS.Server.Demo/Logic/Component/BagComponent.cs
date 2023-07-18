@@ -4,7 +4,7 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
-namespace LPS.Server.Entity.Component;
+namespace LPS.Server.Demo.Entity.Component;
 
 using Google.Protobuf.WellKnownTypes;
 using LPS.Common.Entity.Component;

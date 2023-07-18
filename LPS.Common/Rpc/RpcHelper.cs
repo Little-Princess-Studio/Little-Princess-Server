@@ -639,7 +639,7 @@ public static class RpcHelper
             .ToList();
 
         Logger.Info(
-            $"ScanRpcMethods in {namespaceName} types: {string.Join(',', types.Select(type => type.Name).ToArray())}");
+            $"ScanRpcMethods in {namespaceName} types: {string.Join(',', types.Select(type => type.FullName).ToArray())}");
 
         types.ForEach(type =>
         {

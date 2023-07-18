@@ -11,6 +11,7 @@ using Common.Rpc.RpcStub;
 using LPS.Common.Rpc;
 using LPS.Common.Rpc.RpcProperty;
 using LPS.Server.Database;
+using LPS.Server.Demo.Entity.Component;
 using LPS.Server.Demo.Logic.RpcStub;
 using LPS.Server.Entity;
 using LPS.Server.Entity.Component;
