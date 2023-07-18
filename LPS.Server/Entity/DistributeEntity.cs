@@ -316,7 +316,7 @@ public abstract class DistributeEntity : BaseEntity, ISendPropertySyncMessage
             component.InitComponent(this, componentName);
             var componentTypeId = TypeIdHelper.GetId(componentType);
 
-            if (this.Components.ContainsKey(componentTypeId))
+            if (components.ContainsKey(componentTypeId))
             {
                 Logger.Warn($"Component {componentType.Name} is already added to entity {this.GetType().Name}.");
                 continue;
