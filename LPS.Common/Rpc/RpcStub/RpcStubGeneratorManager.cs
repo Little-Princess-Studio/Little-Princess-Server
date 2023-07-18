@@ -22,39 +22,50 @@ public static class RpcStubGeneratorManager
     /// <summary>
     /// Scans the specified namespace for types decorated with the <see cref="RpcStubGeneratorAttribute"/> attribute and builds a generator for each type found.
     /// </summary>
-    /// <param name="namespace">The namespace to scan for types.</param>
+    /// <param name="entityClassNamespaces">The namespaces to scan for entity class types.</param>
+    /// <param name="rpcStubInterfaceNamespaces">The namespaces to scan rpc stub interfaces.</param>
     /// <param name="extraAssemblies">Optional extra assemblies to include in the scan.</param>
-    public static void ScanAndBuildGenerator(string @namespace, Assembly[]? extraAssemblies = null)
+    public static void ScanAndBuildGenerator(
+        string[] entityClassNamespaces,
+        string[] rpcStubInterfaceNamespaces,
+        Assembly[]? extraAssemblies = null)
     {
         var dict = new Dictionary<uint, RpcStubGenerator>();
 
-        var stubGeneratorAttrs = AttributeHelper.ScanTypeWithNamespaceAndAttribute(
-            @namespace,
-            typeof(RpcStubGeneratorAttribute),
-            true,
-            type => type.IsClass,
-            extraAssemblies);
-
-        foreach (var entityClassType in stubGeneratorAttrs)
+        foreach (var @namespace in entityClassNamespaces)
         {
-            var attr = entityClassType.GetCustomAttribute<RpcStubGeneratorAttribute>()!;
-            var generatorType = attr.GeneratorType;
-            if (generatorType == typeof(RpcStubGenerator) || generatorType.IsSubclassOf(typeof(RpcStubGenerator)))
+            Logger.Info($"Scanning {@namespace} for stub generators...");
+
+            var stubGeneratorAttrs = AttributeHelper.ScanTypeWithNamespaceAndAttribute(
+                @namespace,
+                typeof(RpcStubGeneratorAttribute),
+                true,
+                type => type.IsClass,
+                extraAssemblies);
+
+            foreach (var entityClassType in stubGeneratorAttrs)
             {
-                var generator = Activator.CreateInstance(generatorType) as RpcStubGenerator;
-                if (generator is not null)
+                var attr = entityClassType.GetCustomAttribute<RpcStubGeneratorAttribute>()!;
+                var generatorType = attr.GeneratorType;
+                if (generatorType == typeof(RpcStubGenerator) || generatorType.IsSubclassOf(typeof(RpcStubGenerator)))
                 {
-                    dict.Add(TypeIdHelper.GetId(entityClassType), generator);
-                    Logger.Info($"Generated stub generator {generatorType.FullName} for {entityClassType.FullName}");
+                    var generator = Activator.CreateInstance(generatorType) as RpcStubGenerator;
+                    if (generator is not null)
+                    {
+                        generator.ScanRpcServerStubInterfacesAndGenerateStubType(rpcStubInterfaceNamespaces, extraAssemblies);
+                        dict.Add(TypeIdHelper.GetId(entityClassType), generator);
+
+                        Logger.Info($"Generated stub generator {generatorType.FullName} for {entityClassType.FullName}");
+                    }
+                    else
+                    {
+                        throw new Exception($"Failed to create stub generator with {generatorType.FullName} for {entityClassType.FullName}");
+                    }
                 }
                 else
                 {
-                    throw new Exception($"Failed to create stub generator with {generatorType.FullName} for {entityClassType.FullName}");
+                    throw new Exception($"The specified generator type {generatorType.FullName} must be a subclass of RpcStubGenerator");
                 }
-            }
-            else
-            {
-                throw new Exception($"The specified generator type {generatorType.FullName} must be a subclass of RpcStubGenerator");
             }
         }
 

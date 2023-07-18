@@ -57,31 +57,35 @@ public class RpcStubGenerator
     /// <summary>
     /// Scans the assembly for RPC interfaces marked with RpcServerStubAttribute in the specified namespace and generates server-side implementations for them.
     /// </summary>
-    /// <param name="namespace">The namespace to scan for RPC interfaces.</param>
+    /// <param name="namespaces">The namespaces to scan for RPC interfaces.</param>
     /// <param name="extraAssemblies">Optional extra assemblies to include in the scan.</param>
     /// <exception cref="InvalidOperationException">Thrown when there are duplicate interface IDs.</exception>
-    public virtual void ScanRpcServerStubInterfacesAndGenerateStubType(string @namespace, Assembly[]? extraAssemblies = null)
+    public virtual void ScanRpcServerStubInterfacesAndGenerateStubType(string[] namespaces, Assembly[]? extraAssemblies = null)
     {
         var rpcStubInterfaceIdToStubTypeBuilder = new Dictionary<uint, Type>();
-        var allInterfaces = AttributeHelper.ScanTypeWithNamespaceAndAttribute(
-            @namespace,
-            this.AttributeType,
-            true,
-            type => type.IsInterface,
-            extraAssemblies);
 
-        foreach (var type in allInterfaces)
+        foreach (var @namespace in namespaces)
         {
-            var interfaceId = TypeIdHelper.GetId(type);
-            if (rpcStubInterfaceIdToStubTypeBuilder.ContainsKey(interfaceId))
+            var allInterfaces = AttributeHelper.ScanTypeWithNamespaceAndAttribute(
+                @namespace,
+                this.AttributeType,
+                true,
+                type => type.IsInterface,
+                extraAssemblies);
+
+            foreach (var type in allInterfaces)
             {
-                throw new InvalidOperationException($"Duplicate interface ID {interfaceId}.");
+                var interfaceId = TypeIdHelper.GetId(type);
+                if (rpcStubInterfaceIdToStubTypeBuilder.ContainsKey(interfaceId))
+                {
+                    throw new InvalidOperationException($"Duplicate interface ID {interfaceId}.");
+                }
+
+                var stubType = this.Generate(type);
+                rpcStubInterfaceIdToStubTypeBuilder.Add(interfaceId, stubType);
+
+                Logger.Info($"[RpcStubGenerator] Generated {stubType} for {type}.");
             }
-
-            var stubType = this.Generate(type);
-            rpcStubInterfaceIdToStubTypeBuilder.Add(interfaceId, stubType);
-
-            Logger.Info($"[RpcStubGenerator] Generated {stubType} for {type}.");
         }
 
         this.RpcStubInterfaceIdToStubType = new ReadOnlyDictionary<uint, Type>(rpcStubInterfaceIdToStubTypeBuilder);
@@ -132,8 +136,10 @@ public class RpcStubGenerator
         this.GenerateConstructor(typeBuilder, entityField);
 
         // implement methods
-        foreach (var method in interfaceType.GetMethods())
+        var allInterfaceMethods = GetAllInterfaceMethods(interfaceType);
+        foreach (var method in allInterfaceMethods)
         {
+            Logger.Debug($"Implementing method {method.Name} for {interfaceType.Name + "ImplAssembly"}");
             var notifyOnly = method.IsDefined(typeof(RpcStubNotifyOnlyAttribute));
             if (!this.ValidateRpcMethodSignature(method, notifyOnly))
             {
@@ -164,7 +170,7 @@ public class RpcStubGenerator
     {
         var methodBuilder = typeBuilder.DefineMethod(
                         method.Name,
-                        MethodAttributes.Public,
+                        MethodAttributes.Public | MethodAttributes.Virtual,
                         method.ReturnType,
                         method.GetParameters()
                         .Select(p => p.ParameterType).ToArray());
@@ -225,8 +231,9 @@ public class RpcStubGenerator
         var methodName = method.Name;
         var parameterTypes = method.GetParameters().Select(p => p.ParameterType).ToArray();
         var callMethod = this.EntityType
-            .GetMethod("Call")!
-            .MakeGenericMethod(returnType);
+            .GetMethods()
+            .Where(method => method.IsGenericMethod && method.Name.Split("`")[0] == "Call")
+            .First()!;
 
         this.GenerateRpcCall(entityField, ilgenerator, methodName, parameterTypes, callMethod);
     }
@@ -260,7 +267,9 @@ public class RpcStubGenerator
         var methodName = method.Name;
         var parameterTypes = method.GetParameters().Select(p => p.ParameterType).ToArray();
         var callMethod = this.EntityType
-            .GetMethod("Call")!;
+            .GetMethods()
+            .Where(method => !method.IsGenericMethod && method.Name.Split("`")[0] == "Call")
+            .First()!;
 
         this.GenerateRpcCall(entityField, ilgenerator, methodName, parameterTypes, callMethod);
     }
@@ -317,5 +326,16 @@ public class RpcStubGenerator
         }
 
         return RpcHelper.ValidateMethodSignature(methodInfo, 1, notifyOnly);
+    }
+
+    private static IEnumerable<MethodInfo> GetAllInterfaceMethods(Type interfaceType)
+    {
+        var methods = interfaceType.GetMethods().AsEnumerable();
+        foreach (var parentInterface in interfaceType.GetInterfaces())
+        {
+            methods = methods.Concat(GetAllInterfaceMethods(parentInterface)).ToArray();
+        }
+
+        return methods;
     }
 }

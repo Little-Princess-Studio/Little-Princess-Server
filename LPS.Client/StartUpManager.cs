@@ -29,7 +29,7 @@ public static class StartUpManager
     /// <param name="port">Port to connect.</param>
     /// <param name="entityNamespace">Costume entity class namespace to scan.</param>
     /// <param name="rpcPropertyNamespace">Costume rpc property class namespace to scan.</param>
-    /// <param name="rpcStubNamespace">Costume rpc server stub interface namespace to scan.</param>
+    /// <param name="rpcStubInterfaceNamespace">The namespaces to scan rpc stub interfaces.</param>
     /// <param name="getShadowEntity">Function to get current client shadow entity.</param>
     /// <param name="onCreateShadowEntity">Callback when shadow entity created.</param>
     public static void Init(
@@ -37,7 +37,7 @@ public static class StartUpManager
         int port,
         string entityNamespace,
         string rpcPropertyNamespace,
-        string rpcStubNamespace,
+        string rpcStubInterfaceNamespace,
         Func<ShadowClientEntity> getShadowEntity,
         Action<ShadowClientEntity> onCreateShadowEntity)
     {
@@ -47,9 +47,12 @@ public static class StartUpManager
         Logger.Init("client");
         RpcProtobufDefs.Init();
         var extraAssemblies = new System.Reflection.Assembly[] { typeof(StartUpManager).Assembly };
-        RpcHelper.ScanRpcMethods(new[] { "LPS.Client.Entity", entityNamespace }, extraAssemblies);
+        RpcHelper.ScanRpcMethods(new[] { "LPS.Common.Entity", "LPS.Client.Entity", entityNamespace }, extraAssemblies);
         RpcHelper.ScanRpcPropertyContainer(rpcPropertyNamespace, extraAssemblies);
-        RpcStubGeneratorManager.ScanAndBuildGenerator(rpcStubNamespace, extraAssemblies);
+        RpcStubGeneratorManager.ScanAndBuildGenerator(
+            new[] { "LPS.Common.Entity", "LPS.Client.Entity", entityNamespace },
+            new[] { rpcStubInterfaceNamespace },
+            extraAssemblies);
 
         Client.Instance.Init(ip, port);
 

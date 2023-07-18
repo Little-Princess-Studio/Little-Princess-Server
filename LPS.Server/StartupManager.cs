@@ -353,12 +353,15 @@ public static class StartupManager
         var json = GetJson(confFilePath);
         var entityNamespace = json["entity_namespace"]!.ToString();
         var rpcPropertyNamespace = json["rpc_property_namespace"]!.ToString();
-        var rpcStubNamespace = json["rpc_stub_namespace"]!.ToString();
+        var rpcStubInterfaceNamespace = json["rpc_stub_interface_namespace"]!.ToString();
 
         var extraAssemblies = new System.Reflection.Assembly[] { typeof(StartupManager).Assembly };
         RpcHelper.ScanRpcMethods(new[] { "LPS.Server.Entity", entityNamespace }, extraAssemblies);
         RpcHelper.ScanRpcPropertyContainer(rpcPropertyNamespace, extraAssemblies);
-        RpcStubGeneratorManager.ScanAndBuildGenerator(rpcStubNamespace, extraAssemblies);
+        RpcStubGeneratorManager.ScanAndBuildGenerator(
+            new[] { "LPS.Common.Entity", "LPS.Server.Entity", entityNamespace },
+            new[] { rpcStubInterfaceNamespace },
+            extraAssemblies);
 
         var messageQueueConf = GetJson(json["mq_conf"]!.ToString()).ToObject<MessageQueueClient.MqConfig>()!;
         MessageQueueClient.InitConnectionFactory(messageQueueConf);
