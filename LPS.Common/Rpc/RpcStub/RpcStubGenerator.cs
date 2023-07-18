@@ -58,15 +58,17 @@ public class RpcStubGenerator
     /// Scans the assembly for RPC interfaces marked with RpcServerStubAttribute in the specified namespace and generates server-side implementations for them.
     /// </summary>
     /// <param name="namespace">The namespace to scan for RPC interfaces.</param>
+    /// <param name="extraAssemblies">Optional extra assemblies to include in the scan.</param>
     /// <exception cref="InvalidOperationException">Thrown when there are duplicate interface IDs.</exception>
-    public virtual void ScanRpcServerStubInterfacesAndGenerateStubType(string @namespace)
+    public virtual void ScanRpcServerStubInterfacesAndGenerateStubType(string @namespace, Assembly[]? extraAssemblies = null)
     {
         var rpcStubInterfaceIdToStubTypeBuilder = new Dictionary<uint, Type>();
         var allInterfaces = AttributeHelper.ScanTypeWithNamespaceAndAttribute(
             @namespace,
             this.AttributeType,
             true,
-            type => type.IsInterface);
+            type => type.IsInterface,
+            extraAssemblies);
 
         foreach (var type in allInterfaces)
         {
@@ -78,6 +80,8 @@ public class RpcStubGenerator
 
             var stubType = this.Generate(type);
             rpcStubInterfaceIdToStubTypeBuilder.Add(interfaceId, stubType);
+
+            Logger.Info($"[RpcStubGenerator] Generated {stubType} for {type}.");
         }
 
         this.RpcStubInterfaceIdToStubType = new ReadOnlyDictionary<uint, Type>(rpcStubInterfaceIdToStubTypeBuilder);

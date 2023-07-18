@@ -197,6 +197,7 @@ public abstract class BaseEntity : ITypeIdSupport
     protected BaseEntity()
     {
         this.TypeId = TypeIdHelper.GetId(this.GetType());
+        Logger.Debug($"[LPS Type] type: {this.GetType().FullName}, id: {this.TypeId}");
         this.rpcBlankAsyncTaskGenerator = new AsyncTaskGenerator<object>
         {
             OnGenerateAsyncId = this.IncreaseRpcIdCnt,

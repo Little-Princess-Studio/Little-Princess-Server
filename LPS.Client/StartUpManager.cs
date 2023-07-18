@@ -46,11 +46,11 @@ public static class StartUpManager
 
         Logger.Init("client");
         RpcProtobufDefs.Init();
-        RpcHelper.ScanRpcMethods("LPS.Client.Entity");
-        RpcHelper.ScanRpcMethods(entityNamespace);
-        RpcHelper.ScanRpcPropertyContainer(rpcPropertyNamespace);
+        var extraAssemblies = new System.Reflection.Assembly[] { typeof(StartUpManager).Assembly };
+        RpcHelper.ScanRpcMethods(new[] { "LPS.Client.Entity", entityNamespace }, extraAssemblies);
+        RpcHelper.ScanRpcPropertyContainer(rpcPropertyNamespace, extraAssemblies);
+        RpcStubGeneratorManager.ScanAndBuildGenerator(rpcStubNamespace, extraAssemblies);
 
-        RpcStubGeneratorManager.ScanAndBuildGenerator(rpcStubNamespace);
         Client.Instance.Init(ip, port);
 
         Client.Instance.RegisterMessageHandler(PackageType.ClientCreateEntity, HandleClientCreateEntity);

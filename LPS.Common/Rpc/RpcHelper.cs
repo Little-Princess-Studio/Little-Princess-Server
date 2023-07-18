@@ -114,13 +114,15 @@ public static class RpcHelper
     /// Scan all the RPC Property Container tagged by <see cref="RpcPropertyContainerAttribute"/>.
     /// </summary>
     /// <param name="namespaceName">Namespace to scan.</param>
-    public static void ScanRpcPropertyContainer(string namespaceName)
+    /// <param name="assemblies">Optional array of assemblies to scan. If null, the calling assembly is used.</param>
+    public static void ScanRpcPropertyContainer(string namespaceName, Assembly[]? assemblies = null)
     {
         var types = AttributeHelper.ScanTypeWithNamespaceAndAttribute(
             namespaceName,
             typeof(RpcPropertyContainerAttribute),
             false,
-            type => type.IsClass);
+            type => type.IsClass,
+            assemblies);
 
         Logger.Info(
             $"ScanRpcPropertyContainer in {namespaceName} types: {string.Join(',', types.Select(type => type.Name).ToArray())}");
@@ -624,67 +626,74 @@ public static class RpcHelper
     #region Rpc method registration, validation, converter between ProtoBuf Any and LPS Rpc type.
 
     /// <summary>
-    /// Scan all the RPC method and register them.
+    /// Scans all the RPC methods in the specified namespace and registers them.
     /// </summary>
-    /// <param name="namespaceName">Namespace where scanning will be applied.</param>
-    /// <exception cref="Exception">Throw exception if failed to scan.</exception>
-    public static void ScanRpcMethods(string namespaceName)
+    /// <param name="namespaceNames">The namespaces to scan for RPC methods.</param>
+    /// <param name="extraAssemblies">Optional extra assemblies to include in the scan.</param>
+    /// <exception cref="Exception">Thrown if there is an error while scanning or registering the RPC methods.</exception>
+    public static void ScanRpcMethods(string[] namespaceNames, Assembly[]? extraAssemblies = null)
     {
-        var types =
-            AttributeHelper.ScanTypeWithNamespaceAndAttribute(
-                namespaceName,
-                typeof(EntityClassAttribute),
-                false,
-                type => type.IsClass)
-            .ToList();
-
-        Logger.Info(
-            $"ScanRpcMethods in {namespaceName} types: {string.Join(',', types.Select(type => type.FullName).ToArray())}");
-
-        types.ForEach(type =>
-        {
-            if (!type.IsSubclassOf(typeof(BaseEntity)))
-            {
-                throw new Exception(
-                    $"Invalid entity class {type}, entity class must inherit from BaseEntity class.");
-            }
-
-            var attrName = type.GetCustomAttribute<EntityClassAttribute>()!.Name;
-            var regName = attrName != string.Empty ? attrName : type.Name;
-            EntityClassMap[regName] = type;
-            Logger.Info($"Register entity pair : {regName} {type}");
-        });
-
-        Logger.Info(
-            "Init Rpc Types: ",
-            string.Join(',', types.Select(type => type.Name).ToList()));
-
         var tempRpcMethodInfo = new Dictionary<uint, ReadOnlyDictionary<string, MethodInfo>>();
-        types.ForEach(
-            type =>
+
+        foreach (var namespaceName in namespaceNames)
+        {
+            var types =
+                AttributeHelper.ScanTypeWithNamespaceAndAttribute(
+                    namespaceName,
+                    typeof(EntityClassAttribute),
+                    false,
+                    type => type.IsClass,
+                    extraAssemblies)
+                .ToList();
+
+            Logger.Info(
+                $"ScanRpcMethods in {namespaceName} types: {string.Join(',', types.Select(type => type.FullName).ToArray())}");
+
+            types.ForEach(type =>
             {
-                var rpcMethods = type.GetMethods()
-                    .Where(method => method.IsDefined(typeof(RpcMethodAttribute)))
-                    .Select(method => method)
-                    .ToDictionary(method => method.Name);
-                var dict = new ReadOnlyDictionary<string, MethodInfo>(rpcMethods);
-
-                var rpcArgValidation = rpcMethods.Values.All(m => ValidateMethodSignature(m, 0, false));
-
-                if (!rpcArgValidation)
+                if (!type.IsSubclassOf(typeof(BaseEntity)))
                 {
-                    var e = new Exception("Error when registering rpc methods.");
-                    Logger.Fatal(e, string.Empty);
-
-                    throw e;
+                    throw new Exception(
+                        $"Invalid entity class {type}, entity class must inherit from BaseEntity class.");
                 }
 
-                if (rpcMethods.Count > 0)
-                {
-                    Logger.Info($"{type.Name} register {string.Join(',', rpcMethods.Select(m => m.Key).ToList())}");
-                    tempRpcMethodInfo[TypeIdHelper.GetId(type)] = dict;
-                }
+                var attrName = type.GetCustomAttribute<EntityClassAttribute>()!.Name;
+                var regName = attrName != string.Empty ? attrName : type.Name;
+                EntityClassMap[regName] = type;
+                Logger.Info($"Register entity pair : {regName} {type}");
             });
+
+            Logger.Info(
+                "Init Rpc Types: ",
+                string.Join(',', types.Select(type => type.Name).ToList()));
+
+            types.ForEach(
+                type =>
+                {
+                    var rpcMethods = type.GetMethods()
+                        .Where(method => method.IsDefined(typeof(RpcMethodAttribute)))
+                        .Select(method => method)
+                        .ToDictionary(method => method.Name);
+                    var dict = new ReadOnlyDictionary<string, MethodInfo>(rpcMethods);
+
+                    var rpcArgValidation = rpcMethods.Values.All(m => ValidateMethodSignature(m, 0, false));
+
+                    if (!rpcArgValidation)
+                    {
+                        var e = new Exception("Error when registering rpc methods.");
+                        Logger.Fatal(e, string.Empty);
+
+                        throw e;
+                    }
+
+                    if (rpcMethods.Count > 0)
+                    {
+                        var typeId = TypeIdHelper.GetId(type);
+                        Logger.Info($"{type.Name} {typeId} register {string.Join(',', rpcMethods.Select(m => m.Key).ToList())}");
+                        tempRpcMethodInfo[typeId] = dict;
+                    }
+                });
+        }
 
         rpcMethodInfo = new(tempRpcMethodInfo);
     }
@@ -848,11 +857,11 @@ public static class RpcHelper
         var type = obj.GetType();
         return obj switch
         {
-            bool b => GetRpcAny(b),
-            int i => GetRpcAny(i),
-            float f => GetRpcAny(f),
-            string s => GetRpcAny(s),
-            MailBox m => GetRpcAny(RpcMailBoxToPbMailBox(m)),
+            bool b => new BoolArg { PayLoad = b },
+            int i => new IntArg { PayLoad = i },
+            float f => new FloatArg { PayLoad = f },
+            string s => new StringArg { PayLoad = s },
+            MailBox m => new MailBoxArg { PayLoad = RpcMailBoxToPbMailBox(m) },
             _ when type.IsDefined(typeof(RpcJsonTypeAttribute)) => new JsonArg
             { PayLoad = JsonConvert.SerializeObject(obj) },
             _ when type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Dictionary<,>) =>

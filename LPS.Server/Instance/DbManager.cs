@@ -93,8 +93,10 @@ public class DbManager : IInstance
 
             Logger.Info("[DbManager] Init mongodb with connection string: ", connString);
             DbManagerHelper.SetDatabase(new MongoDbWrapper(databaseInfo.DbConfig.DefaultDb), connString);
-            DbManagerHelper.ScanDbApis(databaseApiProviderNamespace);
-            DbManagerHelper.ScanInnerDbApis("LPS.Server.Database.Storage.MongoDb");
+
+            var extraAssemblies = new System.Reflection.Assembly[] { typeof(DbManager).Assembly };
+            DbManagerHelper.ScanDbApis(databaseApiProviderNamespace, extraAssemblies);
+            DbManagerHelper.ScanInnerDbApis("LPS.Server.Database.Storage.MongoDb", extraAssemblies);
         }
         else
         {

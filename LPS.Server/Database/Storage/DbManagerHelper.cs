@@ -54,13 +54,15 @@ public static class DbManagerHelper
     /// Scans the specified namespace for types that have the <see cref="DbApiProviderAttribute"/> attribute and registers them in the <see cref="DatabaseApiStore"/>.
     /// </summary>
     /// <param name="namespace">The namespace to scan.</param>
-    public static void ScanDbApis(string @namespace)
+    /// <param name="extraAssemblies">Optional extra assemblies to include in the scan.</param>
+    public static void ScanDbApis(string @namespace, Assembly[]? extraAssemblies = null)
     {
         // scan all the types inside the namespace and has attribute of DbApiProvider
         var types = AttributeHelper.ScanTypeWithNamespace(
             @namespace,
             type => type.IsClass
-                && type.GetCustomAttribute<DbApiProviderAttribute>()?.DbType == currentDatabase.GetType());
+                && type.GetCustomAttribute<DbApiProviderAttribute>()?.DbType == currentDatabase.GetType(),
+            extraAssemblies);
 
         if (types == null)
         {
@@ -103,12 +105,14 @@ public static class DbManagerHelper
     /// Scans the specified namespace for types that have the <see cref="DbInnerApiProviderAttribute"/> attribute and registers them in the <see cref="DatabaseInnerApiStore"/>.
     /// </summary>
     /// <param name="namespace">The namespace to scan.</param>
-    public static void ScanInnerDbApis(string @namespace)
+    /// <param name="extraAssemblies">Optional extra assemblies to include in the scan.</param>
+    public static void ScanInnerDbApis(string @namespace, Assembly[]? extraAssemblies = null)
     {
         var types = AttributeHelper.ScanTypeWithNamespace(
             @namespace,
             type => type.IsClass
-                && type.GetCustomAttribute<DbInnerApiProviderAttribute>()?.DbType == currentDatabase.GetType());
+                && type.GetCustomAttribute<DbInnerApiProviderAttribute>()?.DbType == currentDatabase.GetType(),
+            extraAssemblies);
 
         if (types == null)
         {

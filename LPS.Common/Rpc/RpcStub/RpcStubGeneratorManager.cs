@@ -23,7 +23,8 @@ public static class RpcStubGeneratorManager
     /// Scans the specified namespace for types decorated with the <see cref="RpcStubGeneratorAttribute"/> attribute and builds a generator for each type found.
     /// </summary>
     /// <param name="namespace">The namespace to scan for types.</param>
-    public static void ScanAndBuildGenerator(string @namespace)
+    /// <param name="extraAssemblies">Optional extra assemblies to include in the scan.</param>
+    public static void ScanAndBuildGenerator(string @namespace, Assembly[]? extraAssemblies = null)
     {
         var dict = new Dictionary<uint, RpcStubGenerator>();
 
@@ -31,7 +32,8 @@ public static class RpcStubGeneratorManager
             @namespace,
             typeof(RpcStubGeneratorAttribute),
             true,
-            type => type.IsClass);
+            type => type.IsClass,
+            extraAssemblies);
 
         foreach (var entityClassType in stubGeneratorAttrs)
         {
