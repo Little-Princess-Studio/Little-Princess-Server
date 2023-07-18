@@ -6,7 +6,9 @@
 
 namespace LPS.Common.Rpc.InnerMessages;
 
+using System.Collections.ObjectModel;
 using Google.Protobuf;
+using LPS.Common.Util;
 
 /// <summary>
 /// Package helper class.
@@ -20,8 +22,8 @@ public static class PackageHelper
     /// <returns>Created protobuf message.</returns>
     public delegate IMessage CreateIMessage(in Package pkg);
 
-    private static Dictionary<PackageType, CreateIMessage> type2Protobuf = null!;
-    private static Dictionary<Type, PackageType> type2Enum = null!;
+    private static ReadOnlyDictionary<PackageType, CreateIMessage> type2Protobuf = null!;
+    private static ReadOnlyDictionary<Type, PackageType> type2Enum = null!;
 
     /// <summary>
     /// Set the mapping dict of PackageType -> Message Create Handler.
@@ -29,7 +31,7 @@ public static class PackageHelper
     /// <param name="type2Protobuf">Dict of PackageType -> Message Create Handler.</param>
     public static void SetType2Protobuf(Dictionary<PackageType, CreateIMessage> type2Protobuf)
     {
-        PackageHelper.type2Protobuf = type2Protobuf;
+        PackageHelper.type2Protobuf = new(type2Protobuf);
     }
 
     /// <summary>
@@ -38,14 +40,25 @@ public static class PackageHelper
     /// <param name="type2Enum">Dict of Package type -> Package enum type.</param>
     public static void SetType2Enum(Dictionary<Type, PackageType> type2Enum)
     {
-        PackageHelper.type2Enum = type2Enum;
+        PackageHelper.type2Enum = new(type2Enum);
     }
 
-    private static class MessageParserWrapper<T>
+    /// <summary>
+    /// A wrapper class for the Google.Protobuf.MessageParser class that provides a static method to get the parser for a given protobuf message type.
+    /// </summary>
+    /// <typeparam name="T">The type of the protobuf message.</typeparam>
+    public static class MessageParserWrapper<T>
         where T : IMessage<T>, new()
     {
+        /// <summary>
+        /// The parser for the protobuf message type T.
+        /// </summary>
         private static readonly MessageParser<T> Parser = new(() => new T());
 
+        /// <summary>
+        /// Gets the parser for the protobuf message type T.
+        /// </summary>
+        /// <returns>The parser for the protobuf message type T.</returns>
         public static MessageParser<T> Get() => Parser;
     }
 

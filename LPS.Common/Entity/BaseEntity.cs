@@ -23,7 +23,7 @@ using MailBox = LPS.Common.Rpc.MailBox;
 /// BaseEntity class.
 /// </summary>
 [RpcStubGenerator(typeof(RpcStubGenerator))]
-public abstract class BaseEntity
+public abstract class BaseEntity : ITypeIdSupport
 {
     /// <summary>
     /// Gets or sets the mailbox of the entity.
@@ -68,6 +68,9 @@ public abstract class BaseEntity
     /// Sets the RPC send handler.
     /// </summary>
     public Action<EntityRpc> OnSend { private get; set; } = null!;
+
+    /// <inheritdoc/>
+    public uint TypeId { get; private set; }
 
     private uint rpcIdCnt;
 
@@ -193,6 +196,7 @@ public abstract class BaseEntity
     /// </summary>
     protected BaseEntity()
     {
+        this.TypeId = TypeIdHelper.GetId(this.GetType());
         this.rpcBlankAsyncTaskGenerator = new AsyncTaskGenerator<object>
         {
             OnGenerateAsyncId = this.IncreaseRpcIdCnt,

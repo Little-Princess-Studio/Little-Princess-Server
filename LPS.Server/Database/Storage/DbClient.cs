@@ -21,6 +21,7 @@ using LPS.Server.MessageQueue;
 using LPS.Server.Rpc.InnerMessages;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using static LPS.Common.Rpc.InnerMessages.PackageHelper;
 
 /// <summary>
 /// Represents a client for interacting with a database.
@@ -155,8 +156,7 @@ public class DbClient
     {
         try
         {
-            // todo: cache MessageParser
-            var res = new MessageParser<DatabaseManagerRpcRes>(() => new DatabaseManagerRpcRes());
+            var res = MessageParserWrapper<DatabaseManagerRpcRes>.Get();
             var databaseRpcRes = res.ParseFrom(msg.ToArray());
 
             var id = databaseRpcRes.RpcId;
@@ -180,8 +180,7 @@ public class DbClient
     {
         try
         {
-            // todo: cache MessageParser
-            var res = new MessageParser<DatabaseManagerInnerRpcRes>(() => new DatabaseManagerInnerRpcRes());
+            var res = MessageParserWrapper<DatabaseManagerInnerRpcRes>.Get();
             var databaseRpcRes = res.ParseFrom(msg.ToArray());
 
             var id = databaseRpcRes.RpcId;

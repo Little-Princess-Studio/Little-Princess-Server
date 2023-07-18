@@ -23,6 +23,7 @@ using LPS.Server.Rpc;
 using LPS.Server.Rpc.InnerMessages;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using static LPS.Common.Rpc.InnerMessages.PackageHelper;
 
 /// <summary>
 /// Database Manager.
@@ -168,7 +169,7 @@ public class DbManager : IInstance
     {
         try
         {
-            var resMsg = new MessageParser<DatabaseManagerRpc>(() => new DatabaseManagerRpc());
+            var resMsg = MessageParserWrapper<DatabaseManagerRpc>.Get();
             var databaseRpc = resMsg.ParseFrom(msg.ToArray());
 
             var id = databaseRpc.RpcId;
@@ -198,7 +199,7 @@ public class DbManager : IInstance
     {
         try
         {
-            var resMsg = new MessageParser<DatabaseManagerInnerRpc>(() => new DatabaseManagerInnerRpc());
+            var resMsg = MessageParserWrapper<DatabaseManagerInnerRpc>.Get();
             var databaseRpc = resMsg.ParseFrom(msg.ToArray());
 
             var id = databaseRpc.RpcId;

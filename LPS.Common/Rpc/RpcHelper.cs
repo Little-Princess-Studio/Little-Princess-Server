@@ -7,6 +7,7 @@
 namespace LPS.Common.Rpc;
 
 using System.Collections;
+using System.Collections.ObjectModel;
 using System.Net.Sockets;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -39,13 +40,12 @@ public static class RpcHelper
     /// </summary>
     public static readonly object?[] EmptyRes = { null };
 
-    private static readonly Dictionary<Type, Dictionary<string, MethodInfo>> RpcMethodInfo = new();
+    private static ReadOnlyDictionary<uint, ReadOnlyDictionary<string, MethodInfo>> rpcMethodInfo = null!;
 
-    private delegate RpcPropertyContainer RpcPropertyContainerDeserializeEntry(
-        Google.Protobuf.WellKnownTypes.Any content);
+    private delegate RpcPropertyContainer RpcPropertyContainerDeserializeEntry(Any content);
 
     private static readonly Dictionary<Type, RpcPropertyContainerDeserializeEntry>
-        RpcPropertyContainerDeserializeFactory = new();
+        RpcPropertyContainerDeserializeFactory = new(Util.TypeExtensions.GetTypeEqualityComparer());
 
     /// <summary>
     /// Register a Type as rpc container type.
@@ -659,6 +659,7 @@ public static class RpcHelper
             "Init Rpc Types: ",
             string.Join(',', types.Select(type => type.Name).ToList()));
 
+        var tempRpcMethodInfo = new Dictionary<uint, ReadOnlyDictionary<string, MethodInfo>>();
         types.ForEach(
             type =>
             {
@@ -666,6 +667,7 @@ public static class RpcHelper
                     .Where(method => method.IsDefined(typeof(RpcMethodAttribute)))
                     .Select(method => method)
                     .ToDictionary(method => method.Name);
+                var dict = new ReadOnlyDictionary<string, MethodInfo>(rpcMethods);
 
                 var rpcArgValidation = rpcMethods.Values.All(m => ValidateMethodSignature(m, 0, false));
 
@@ -680,9 +682,11 @@ public static class RpcHelper
                 if (rpcMethods.Count > 0)
                 {
                     Logger.Info($"{type.Name} register {string.Join(',', rpcMethods.Select(m => m.Key).ToList())}");
-                    RpcMethodInfo[type] = rpcMethods;
+                    tempRpcMethodInfo[TypeIdHelper.GetId(type)] = dict;
                 }
             });
+
+        rpcMethodInfo = new(tempRpcMethodInfo);
     }
 
     /// <summary>
@@ -859,7 +863,7 @@ public static class RpcHelper
                 RpcValueTupleArgToProtoBuf(obj),
             _ when IsTuple(type) =>
                 RpcTupleArgToProtoBuf(obj),
-            _ => throw new Exception($"Invalid Rpc arg type: {type.Name}"),
+            _ => throw new Exception($"Invalid Rpc arg type: {type.FullName}"),
         };
     }
 
@@ -871,7 +875,7 @@ public static class RpcHelper
     public static void CallLocalEntity(BaseEntity entity, EntityRpc entityRpc)
     {
         // todo: impl jit to compile methodInfo.invoke to expression.invoke to improve perf.
-        var methodInfo = GetRpcMethodArgTypes(entity.GetType(), entityRpc.MethodName);
+        var methodInfo = GetRpcMethodArgTypes(entity.TypeId, entityRpc.MethodName);
 
         // OnResult is a special rpc method.
         if (entityRpc.MethodName == "OnResult")
@@ -1258,9 +1262,9 @@ public static class RpcHelper
         return tree;
     }
 
-    private static MethodInfo GetRpcMethodArgTypes(Type type, string rpcMethodName)
+    private static MethodInfo GetRpcMethodArgTypes(uint typeId, string rpcMethodName)
     {
-        return RpcMethodInfo[type][rpcMethodName];
+        return rpcMethodInfo[typeId][rpcMethodName];
     }
 
     private static void SendValueTaskResult(

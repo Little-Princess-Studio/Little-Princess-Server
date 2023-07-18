@@ -12,6 +12,7 @@ using Google.Protobuf.WellKnownTypes;
 using LPS.Common.Rpc.InnerMessages;
 using LPS.Common.Rpc.RpcPropertySync.RpcPropertySyncInfo;
 using LPS.Common.Rpc.RpcPropertySync.RpcPropertySyncMessage;
+using LPS.Common.Util;
 using MailBox = LPS.Common.Rpc.MailBox;
 
 /// <summary>

@@ -8,6 +8,7 @@ namespace LPS.Client.Rpc;
 
 using Google.Protobuf;
 using LPS.Common.Rpc.InnerMessages;
+using LPS.Common.Util;
 
 /// <summary>
 /// Rpc protobuf related definitions, used to initialize the Rpc type registration.
@@ -15,11 +16,10 @@ using LPS.Common.Rpc.InnerMessages;
 public static class RpcProtobufDefs
 {
     private static readonly Dictionary<PackageType, PackageHelper.CreateIMessage> Type2ProBuf = new();
-    private static readonly Dictionary<Type, PackageType> Type2Enum;
+    private static readonly Dictionary<Type, PackageType> Type2Enum = new(TypeExtensions.GetTypeEqualityComparer());
 
     static RpcProtobufDefs()
     {
-        Type2Enum = new Dictionary<Type, PackageType>();
     }
 
     /// <summary>

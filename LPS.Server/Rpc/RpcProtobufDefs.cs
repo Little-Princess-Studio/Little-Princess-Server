@@ -10,6 +10,7 @@ using System;
 using System.Collections.Generic;
 using Google.Protobuf;
 using LPS.Common.Rpc.InnerMessages;
+using LPS.Common.Util;
 using LPS.Server.Rpc.InnerMessages;
 
 /// <summary>
@@ -18,7 +19,7 @@ using LPS.Server.Rpc.InnerMessages;
 public static class RpcProtobufDefs
 {
     private static readonly Dictionary<PackageType, PackageHelper.CreateIMessage> Type2ProBuf = new();
-    private static readonly Dictionary<Type, PackageType> Type2Enum = new();
+    private static readonly Dictionary<Type, PackageType> Type2Enum = new(TypeExtensions.GetTypeEqualityComparer());
 
     /// <summary>
     /// Initialize the protobuf related type registration.
