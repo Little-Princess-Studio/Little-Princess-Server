@@ -153,7 +153,7 @@ public class RpcStubGenerator
 
         var generatedType = typeBuilder.CreateType()!;
 
-        Logger.Init($"[RpcStubGenerator] Generated interface {interfaceType.FullName} with type {generatedType.FullName}");
+        Logger.Info($"[RpcStubGenerator] Generated interface {interfaceType.FullName} with type {generatedType.FullName}");
 
         return generatedType;
     }
@@ -165,8 +165,7 @@ public class RpcStubGenerator
     /// <param name="entityField">The <see cref="FieldBuilder"/> for the BaseEntity field.</param>
     /// <param name="method">The <see cref="MethodInfo"/> for the RPC method to implement.</param>
     /// <param name="notifyOnly">If generate notify-only RPC call.</param>
-    /// <returns>The <see cref="ILGenerator"/> for the implemented method.</returns>
-    protected virtual ILGenerator ImplementMethods(TypeBuilder typeBuilder, FieldBuilder entityField, MethodInfo method, bool notifyOnly)
+    protected virtual void ImplementMethods(TypeBuilder typeBuilder, FieldBuilder entityField, MethodInfo method, bool notifyOnly)
     {
         var methodBuilder = typeBuilder.DefineMethod(
                         method.Name,
@@ -195,7 +194,6 @@ public class RpcStubGenerator
         }
 
         typeBuilder.DefineMethodOverride(methodBuilder, method);
-        return ilgenerator;
     }
 
     /// <summary>
@@ -247,7 +245,7 @@ public class RpcStubGenerator
     protected virtual void ImplementRpcCallWithNotifyOnly(FieldBuilder entityField, ILGenerator ilgenerator, MethodInfo method)
     {
         var attr = method.GetCustomAttribute<RpcStubNotifyOnlyAttribute>();
-        var methodName = string.IsNullOrEmpty(attr?.RpcMethodName) ? attr!.RpcMethodName : method.Name;
+        var methodName = string.IsNullOrEmpty(attr?.RpcMethodName) ? method.Name : attr!.RpcMethodName;
         var parameterTypes = method.GetParameters().Select(p => p.ParameterType).ToArray();
         var callMethod = this.EntityType
             .GetMethod("Notify")!;
@@ -284,16 +282,31 @@ public class RpcStubGenerator
     /// <param name="callMethod">The <see cref="MethodInfo"/> for the BaseEntity.Call method to use for the RPC call.</param>
     protected virtual void GenerateRpcCall(FieldBuilder entityField, ILGenerator ilgenerator, string methodName, Type[] parameterTypes, MethodInfo callMethod)
     {
-        // var [proxy] = this.entity
+        // var [proxy] = this.entity.Client
+        ilgenerator.DeclareLocal(typeof(object[]));
+
         ilgenerator.Emit(OpCodes.Ldarg_0);
         ilgenerator.Emit(OpCodes.Ldfld, entityField);
+        ilgenerator.Emit(
+            OpCodes.Callvirt,
+            this.EntityType.GetProperty("Client")!.GetGetMethod()!);
 
         // return proxy.Call<T>(methodName, arg0, arg1, arg2, ...);
         ilgenerator.Emit(OpCodes.Ldstr, methodName);
+
+        ilgenerator.Emit(OpCodes.Ldc_I4, parameterTypes.Length);
+        ilgenerator.Emit(OpCodes.Newarr, typeof(object));
+
         for (int i = 0; i < parameterTypes.Length; i++)
         {
+            ilgenerator.Emit(OpCodes.Dup);
+            ilgenerator.Emit(OpCodes.Ldc_I4, i);
             ilgenerator.Emit(OpCodes.Ldarg, i + 1);
+            ilgenerator.Emit(OpCodes.Stelem_Ref);
         }
+
+        ilgenerator.Emit(OpCodes.Stloc_0);
+        ilgenerator.Emit(OpCodes.Ldloc_0);
 
         ilgenerator.Emit(OpCodes.Callvirt, callMethod);
         ilgenerator.Emit(OpCodes.Ret);

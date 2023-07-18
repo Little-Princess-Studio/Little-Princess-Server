@@ -58,7 +58,7 @@ public class RpcStubForServerClientEntityGenerator : RpcStubGenerator
     protected override void ImplementRpcCallWithNotifyOnly(FieldBuilder entityField, ILGenerator ilgenerator, MethodInfo method)
     {
         var attr = method.GetCustomAttribute<RpcStubNotifyOnlyAttribute>();
-        var methodName = string.IsNullOrEmpty(attr?.RpcMethodName) ? attr!.RpcMethodName : method.Name;
+        var methodName = string.IsNullOrEmpty(attr?.RpcMethodName) ? method.Name : attr!.RpcMethodName;
         var parameterTypes = method.GetParameters().Select(p => p.ParameterType).ToArray();
         var callMethod = this.EntityType
             .GetMethods()

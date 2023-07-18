@@ -32,6 +32,5 @@ public interface IServerUntrustedStub : IRpcStub
     /// <param name="name">User name.</param>
     /// <param name="password">Password.</param>
     /// <returns>Async value task.</returns>
-    [RpcMethod(Authority.ClientOnly)]
-    public Task<bool> LogIn(string name, string password);
+    Task<bool> LogIn(string name, string password);
 }

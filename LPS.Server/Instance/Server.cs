@@ -341,9 +341,9 @@ public class Server : IInstance
 
     private async Task OnCreateEntity(Connection? gateConn, string entityClassName, string jsonDesc, MailBox mailBox)
     {
-        var entity = await RpcServerHelper.CreateEntityLocally(entityClassName, jsonDesc);
+        Logger.Info($"[OnCreateEntity] Server create a new entity with mailbox {mailBox}");
 
-        Logger.Info($"Server create a new entity with mailbox {mailBox}");
+        var entity = await RpcServerHelper.CreateEntityLocally(entityClassName, jsonDesc);
 
         entity.SendSyncMessageHandler = (keepOrder, delayTime, syncMsg) =>
         {
@@ -366,6 +366,7 @@ public class Server : IInstance
         entity.OnSend = entityRpc => this.SendEntityRpc(entity, entityRpc);
         entity.MailBox = mailBox;
 
+        Logger.Debug($"[OnCreateEntity] record local entity: {mailBox.Id}");
         this.localEntityDict[mailBox.Id] = entity;
 
         this.defaultCell!.ManuallyAdd(entity);
@@ -441,8 +442,14 @@ public class Server : IInstance
             task = this.OnCreateEntity(null!, entityClassName, jsonDesc, entityMailBox);
         }
 
-        task?.ContinueWith(_ =>
+        task?.ContinueWith(t =>
             {
+                if (t.Exception != null)
+                {
+                    Logger.Error(t.Exception);
+                    throw t.Exception;
+                }
+
                 var createEntityRes = new CreateDistributeEntityRes
                 {
                     Mailbox = RpcHelper.RpcMailBoxToPbMailBox(entityMailBox),

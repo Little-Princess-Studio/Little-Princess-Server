@@ -57,10 +57,12 @@ public class RpcStubForShadowClientEntityGenerator : RpcStubGenerator
     protected override void ImplementRpcCallWithNotifyOnly(FieldBuilder entityField, ILGenerator ilgenerator, MethodInfo method)
     {
         var attr = method.GetCustomAttribute<RpcStubNotifyOnlyAttribute>();
-        var methodName = string.IsNullOrEmpty(attr?.RpcMethodName) ? attr!.RpcMethodName : method.Name;
+        var methodName = string.IsNullOrEmpty(attr?.RpcMethodName) ? method.Name : attr!.RpcMethodName;
         var parameterTypes = method.GetParameters().Select(p => p.ParameterType).ToArray();
         var callMethod = typeof(ShadowClientEntity.ServerProxy)
             .GetMethod("Notify")!;
+
+        Logger.Debug($"[ImplementRpcCallWithNotifyOnly] {method.Name} {methodName}");
 
         this.GenerateRpcCall(entityField, ilgenerator, methodName, parameterTypes, callMethod);
     }
@@ -69,6 +71,8 @@ public class RpcStubForShadowClientEntityGenerator : RpcStubGenerator
     protected override void GenerateRpcCall(FieldBuilder entityField, ILGenerator ilgenerator, string methodName, Type[] parameterTypes, MethodInfo callMethod)
     {
         // var [proxy] = this.entity.Server
+        ilgenerator.DeclareLocal(typeof(object[]));
+
         ilgenerator.Emit(OpCodes.Ldarg_0);
         ilgenerator.Emit(OpCodes.Ldfld, entityField);
         ilgenerator.Emit(
@@ -77,10 +81,20 @@ public class RpcStubForShadowClientEntityGenerator : RpcStubGenerator
 
         // return proxy.Call<T>(methodName, arg0, arg1, arg2, ...);
         ilgenerator.Emit(OpCodes.Ldstr, methodName);
+
+        ilgenerator.Emit(OpCodes.Ldc_I4, parameterTypes.Length);
+        ilgenerator.Emit(OpCodes.Newarr, typeof(object));
+
         for (int i = 0; i < parameterTypes.Length; i++)
         {
+            ilgenerator.Emit(OpCodes.Dup);
+            ilgenerator.Emit(OpCodes.Ldc_I4, i);
             ilgenerator.Emit(OpCodes.Ldarg, i + 1);
+            ilgenerator.Emit(OpCodes.Stelem_Ref);
         }
+
+        ilgenerator.Emit(OpCodes.Stloc_0);
+        ilgenerator.Emit(OpCodes.Ldloc_0);
 
         ilgenerator.Emit(OpCodes.Callvirt, callMethod);
         ilgenerator.Emit(OpCodes.Ret);

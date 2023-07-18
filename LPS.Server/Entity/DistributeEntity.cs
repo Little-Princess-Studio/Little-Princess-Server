@@ -334,7 +334,10 @@ public abstract class DistributeEntity : BaseEntity, ISendPropertySyncMessage
         this.Components = new ReadOnlyDictionary<uint, ComponentBase>(components);
         this.ComponentNameToComponentTypeId = new ReadOnlyDictionary<string, uint>(componentNameToComponentTypeId);
 
-        await this.LoadNonLazyComponents(componentsToLoad);
+        if (this.IsDatabaseEntity)
+        {
+            await this.LoadNonLazyComponents(componentsToLoad);
+        }
 
         foreach (var comp in componentsToLoad)
         {
@@ -399,7 +402,7 @@ public abstract class DistributeEntity : BaseEntity, ISendPropertySyncMessage
     {
         if (!this.IsDatabaseEntity)
         {
-            throw new Exception("This entity is not a database entity.");
+            throw new Exception($"This entity of {this.GetType().FullName} is not a database entity.");
         }
 
         var attr = this.GetType().GetCustomAttribute<EntityClassAttribute>()!;
@@ -427,6 +430,7 @@ public abstract class DistributeEntity : BaseEntity, ISendPropertySyncMessage
             if (componentsDict.ContainsKey(comp.Name))
             {
                 comp.Deserialize(componentsDict[comp.Name]);
+                await comp.OnLoadComponentData();
             }
             else
             {
@@ -612,7 +616,7 @@ public abstract class DistributeEntity : BaseEntity, ISendPropertySyncMessage
 
         var component = this.Components[typeId];
 
-        if (!component.IsLoaded)
+        if (this.IsDatabaseEntity && !component.IsLoaded)
         {
             await component.OnLoadComponentData();
         }
