@@ -33,6 +33,11 @@ public abstract class ComponentBase
     public bool IsLoaded { get; protected set; } = false;
 
     /// <summary>
+    /// Gets or sets a value indicating whether this component's data should be lazily loaded.
+    /// </summary>
+    public bool ShouldLazyLoad { get; set; } = false;
+
+    /// <summary>
     /// Gets the property tree for this component.
     /// </summary>
     public Dictionary<string, RpcProperty>? PropertyTree => this.propertyTree;

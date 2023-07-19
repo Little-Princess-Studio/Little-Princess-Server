@@ -300,7 +300,7 @@ public abstract class DistributeEntity : BaseEntity, ISendPropertySyncMessage
     /// Only the components that are tagged as non-lazy will be initialized.
     /// </summary>
     /// <returns>A task that represents the asynchronous initialization operation.</returns>
-    public override async Task InitComponents()
+    public override Task InitComponents()
     {
         var components = new Dictionary<uint, ComponentBase>();
         var componentNameToComponentTypeId = new Dictionary<string, uint>();
@@ -322,7 +322,9 @@ public abstract class DistributeEntity : BaseEntity, ISendPropertySyncMessage
                 continue;
             }
 
-            if (!attr.LazyLoad)
+            component.ShouldLazyLoad = attr.LazyLoad;
+
+            if (!component.ShouldLazyLoad)
             {
                 componentsToLoad.Add(component);
             }
@@ -334,15 +336,12 @@ public abstract class DistributeEntity : BaseEntity, ISendPropertySyncMessage
         this.Components = new ReadOnlyDictionary<uint, ComponentBase>(components);
         this.ComponentNameToComponentTypeId = new ReadOnlyDictionary<string, uint>(componentNameToComponentTypeId);
 
-        if (this.IsDatabaseEntity)
-        {
-            await this.LoadNonLazyComponents(componentsToLoad);
-        }
-
         foreach (var comp in componentsToLoad)
         {
             comp.OnInit();
         }
+
+        return Task.CompletedTask;
     }
 
     /// <summary>
@@ -522,6 +521,11 @@ public abstract class DistributeEntity : BaseEntity, ISendPropertySyncMessage
     /// <returns>A task that represents the asynchronous operation.</returns>
     protected async Task LinkToDatabase(Dictionary<string, string> queryInfo)
     {
+        if (!this.IsDatabaseEntity)
+        {
+            throw new Exception($"This entity of {this.GetType().FullName} is not a database entity.");
+        }
+
         string? collName = this.GetCollectionName();
         if (string.IsNullOrEmpty(collName))
         {
@@ -530,7 +534,12 @@ public abstract class DistributeEntity : BaseEntity, ISendPropertySyncMessage
             throw e;
         }
 
+        // load entity first
         await this.LoadFromDatabase(collName, queryInfo);
+
+        // then load non-lazy components
+        var componentsToLoad = this.Components.Values.Where(comp => !comp.ShouldLazyLoad);
+        await this.LoadNonLazyComponents(componentsToLoad);
     }
 
     /// <summary>

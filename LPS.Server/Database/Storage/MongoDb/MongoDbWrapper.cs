@@ -149,6 +149,8 @@ public class MongoDbWrapper : IDatabase
     /// <inheritdoc/>
     public async Task<Any> BatchLoadComponents(string collectionName, string entityDbId, string[] componentNames)
     {
+        Logger.Debug($"[BatchLoadComponents] collectionName: {collectionName} entityDbId: {entityDbId} componentNames: {string.Join(",", componentNames)}");
+
         var coll = this.GetCollection(databaseName: this.defaultDatabaseName, collectionName);
         var filter = Builders<BsonDocument>.Filter.Eq("_id", new BsonObjectId(new ObjectId(entityDbId)));
         var projection = Builders<BsonDocument>.Projection;
