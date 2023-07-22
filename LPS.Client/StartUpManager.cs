@@ -139,7 +139,14 @@ public static class StartUpManager
 
         Logger.Info("On Full Sync Msg");
         shadowEntity.FromSyncContent(propertyFullSyncMsg.PropertyTree);
-        shadowEntity.OnLoaded().Wait();
+        shadowEntity.OnLoaded().ContinueWith((t) =>
+        {
+            if (t.Exception != null)
+            {
+                Logger.Error(t.Exception);
+                return;
+            }
+        });
     }
 
     private static void HandleComponentSync((IMessage Message, Connection Connection, uint RpcId) arg)

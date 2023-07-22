@@ -229,7 +229,15 @@ internal class TcpServer
             this.connections[conn] = task;
 
             task.ContinueWith(
-                _ => { Logger.Debug("Client Io Handler Exist"); },
+                (t) =>
+                {
+                    if (t.Exception != null)
+                    {
+                        Logger.Warn(t.Exception);
+                    }
+
+                    Logger.Debug("Client Io Handler Exist");
+                },
                 cancelTokenSource.Token);
         }
 
@@ -316,9 +324,9 @@ internal class TcpServer
         }
     }
 
-    private async Task HandleMessage(Connection conn)
+    private Task HandleMessage(Connection conn)
     {
-        await RpcHelper.HandleMessage(
+        return RpcHelper.HandleMessage(
             conn,
             () => this.stopFlag,
             (msg) => this.bus.AppendMessage(msg),

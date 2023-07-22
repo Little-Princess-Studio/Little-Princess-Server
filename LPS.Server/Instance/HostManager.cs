@@ -435,6 +435,12 @@ public class HostManager : IInstance
     {
         DbHelper.GenerateNewGlobalId().ContinueWith(task =>
         {
+            if (task.Exception != null)
+            {
+                Logger.Error(task.Exception, "GenerateNewGlobalId failed.");
+                return;
+            }
+
             var newId = task.Result;
             var entityMailBox = new RequireCreateEntityRes
             {
@@ -468,6 +474,12 @@ public class HostManager : IInstance
     {
         DbHelper.GenerateNewGlobalId().ContinueWith(task =>
         {
+            if (task.Exception != null)
+            {
+                Logger.Error(task.Exception, "GenerateNewGlobalId failed.");
+                return;
+            }
+
             var newId = task.Result;
             Logger.Debug("Randomly select a server");
             var serverMailBox = this.serversMailBoxes[this.random.Next(0, this.serversMailBoxes.Count)];
