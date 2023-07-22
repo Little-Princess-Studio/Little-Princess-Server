@@ -30,12 +30,10 @@ public class GamePropertyComponent : ServerComponent
     /// <inheritdoc/>
     public override void OnInit()
     {
-        throw new NotImplementedException();
     }
 
     /// <inheritdoc/>
     public override void OnDestory()
     {
-        throw new NotImplementedException();
     }
 }

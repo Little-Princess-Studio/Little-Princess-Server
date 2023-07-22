@@ -30,12 +30,10 @@ public class GamePropertyComponent : ClientComponent
     /// <inheritdoc/>
     public override void OnInit()
     {
-        throw new NotImplementedException();
     }
 
     /// <inheritdoc/>
     public override void OnDestory()
     {
-        throw new NotImplementedException();
     }
 }

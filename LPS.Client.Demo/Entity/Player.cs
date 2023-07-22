@@ -31,13 +31,6 @@ public class Player : ShadowClientEntity, IClientPlayerStub
     [RpcProperty(nameof(Player.Name))]
     public RpcShadowPlaintProperty<string> Name = new ();
 
-    /// <summary>
-    /// Id of the player.
-    /// </summary>
-    /// <returns>Id of the player in database.</returns>
-    [RpcProperty(nameof(Player.Id))]
-    public RpcShadowPlaintProperty<string> Id = new ();
-
     private GamePropertyComponent gameProperty = null!;
     private BagComponent bag = null!;
 

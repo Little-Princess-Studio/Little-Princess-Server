@@ -97,7 +97,6 @@ public static class ConsoleCommands
     {
         var player = (ClientGlobal.ShadowClientEntity as Player) !;
         Logger.Debug($"Name: {player.Name.Val}");
-        Logger.Debug($"Id: {player.Id.Val}");
     }
 
     /// <summary>

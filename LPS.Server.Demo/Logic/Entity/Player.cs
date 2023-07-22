@@ -36,7 +36,7 @@ public class Player : ServerClientEntity
     /// Id of the player.
     /// </summary>
     /// <returns>Account id of the player in database.</returns>
-    [RpcProperty(nameof(Player.AccountId), RpcPropertySetting.Permanent | RpcPropertySetting.ServerToShadow)]
+    [RpcProperty(nameof(Player.AccountId), RpcPropertySetting.Permanent)]
     public RpcPlaintProperty<string> AccountId = new (string.Empty);
 
     private readonly IPlayerStub playerStub = null!;
