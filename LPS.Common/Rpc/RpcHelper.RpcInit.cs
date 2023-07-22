@@ -36,7 +36,7 @@ public static partial class RpcHelper
     /// </summary>
     public static readonly object?[] EmptyRes = { null };
 
-    private static ReadOnlyDictionary<uint, ReadOnlyDictionary<string, MethodInfo>> rpcMethodInfo = null!;
+    private static ReadOnlyDictionary<uint, ReadOnlyDictionary<string, RpcMethodDescriptor>> rpcMethodInfo = null!;
 
     private delegate RpcPropertyContainer RpcPropertyContainerDeserializeEntry(Any content);
 
@@ -404,7 +404,7 @@ public static partial class RpcHelper
     /// <exception cref="Exception">Thrown if there is an error while scanning or registering the RPC methods.</exception>
     public static void ScanRpcMethods(string[] namespaceNames, Assembly[]? extraAssemblies = null)
     {
-        var tempRpcMethodInfo = new Dictionary<uint, ReadOnlyDictionary<string, MethodInfo>>();
+        var tempRpcMethodInfo = new Dictionary<uint, ReadOnlyDictionary<string, RpcMethodDescriptor>>();
 
         foreach (var namespaceName in namespaceNames)
         {
@@ -443,11 +443,11 @@ public static partial class RpcHelper
                 {
                     var rpcMethods = type.GetMethods()
                         .Where(method => method.IsDefined(typeof(RpcMethodAttribute)))
-                        .Select(method => method)
-                        .ToDictionary(method => method.Name);
-                    var dict = new ReadOnlyDictionary<string, MethodInfo>(rpcMethods);
+                        .Select(method => new RpcMethodDescriptor(method, method.GetCustomAttribute<RpcMethodAttribute>()!.Authority))
+                        .ToDictionary(method => method.MethodName);
+                    var dict = new ReadOnlyDictionary<string, RpcMethodDescriptor>(rpcMethods);
 
-                    var rpcArgValidation = rpcMethods.Values.All(m => ValidateMethodSignature(m, 0, false));
+                    var rpcArgValidation = rpcMethods.Values.All(m => ValidateMethodSignature(m.Method, 0, false));
 
                     if (!rpcArgValidation)
                     {
@@ -573,7 +573,7 @@ public static partial class RpcHelper
         return tree;
     }
 
-    private static MethodInfo GetRpcMethodArgTypes(uint typeId, string rpcMethodName)
+    private static RpcMethodDescriptor GetRpcMethodArgTypes(uint typeId, string rpcMethodName)
     {
         return rpcMethodInfo[typeId][rpcMethodName];
     }
@@ -611,6 +611,21 @@ public static partial class RpcHelper
             }
 
             return Impl<TK>.Func(key);
+        }
+    }
+
+    private readonly struct RpcMethodDescriptor
+    {
+        public readonly MethodInfo Method;
+
+        public readonly Authority Authority;
+
+        public string MethodName => this.Method.Name;
+
+        public RpcMethodDescriptor(MethodInfo methodInfo, Authority authority)
+        {
+            this.Method = methodInfo;
+            this.Authority = authority;
         }
     }
 }

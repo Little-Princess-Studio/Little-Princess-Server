@@ -24,7 +24,38 @@ public static partial class RpcHelper
     public static void CallLocalEntity(BaseEntity entity, EntityRpc entityRpc)
     {
         // todo: impl jit to compile methodInfo.invoke to expression.invoke to improve perf.
-        var methodInfo = GetRpcMethodArgTypes(entity.TypeId, entityRpc.MethodName);
+        var descriptor = GetRpcMethodArgTypes(entity.TypeId, entityRpc.MethodName);
+        var authority = descriptor.Authority;
+        var methodInfo = descriptor.Method;
+        var rpcType = entityRpc.RpcType;
+
+        if (authority != RpcStub.Authority.All)
+        {
+            if (rpcType == RpcType.ServerInside)
+            {
+                if (!authority.HasFlag(RpcStub.Authority.ServerOnly))
+                {
+                    Logger.Warn($"Rpc method {entityRpc.MethodName} can only be called inside server.");
+                    return;
+                }
+            }
+            else if (rpcType == RpcType.ServerToClient)
+            {
+                if (!authority.HasFlag(RpcStub.Authority.ClientStub))
+                {
+                    Logger.Warn($"Rpc method {entityRpc.MethodName} can only be called from server to client.");
+                    return;
+                }
+            }
+            else if (rpcType == RpcType.ClientToServer)
+            {
+                if (!authority.HasFlag(RpcStub.Authority.ClientOnly))
+                {
+                    Logger.Warn($"Rpc method {entityRpc.MethodName} can only be called from client to server.");
+                    return;
+                }
+            }
+        }
 
         // OnResult is a special rpc method.
         if (entityRpc.MethodName == "OnResult")
