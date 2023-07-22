@@ -92,20 +92,6 @@ public class ServerClientEntity : DistributeEntity
         this.Client = new ClientProxy(gateConnection, this);
     }
 
-    /// <inheritdoc/>
-    public override Task<bool> MigrateTo(
-        MailBox targetMailBox,
-        string migrateInfo,
-        Dictionary<string, string>? extraInfo)
-    {
-        if (extraInfo == null || !extraInfo.ContainsKey("targetEntityClassName"))
-        {
-            throw new Exception("Invalid migrate info.");
-        }
-
-        return base.MigrateTo(targetMailBox, migrateInfo, extraInfo);
-    }
-
     /// <summary>
     /// Migrate to another ServerClientEntity.
     /// </summary>
@@ -115,10 +101,12 @@ public class ServerClientEntity : DistributeEntity
     /// <returns>If the migration success.</returns>
     public async Task<bool> MigrateTo(MailBox targetMailBox, string migrateInfo, string targetEntityClassName)
     {
-        var res1 = await this.MigrateTo(targetMailBox, migrateInfo, new Dictionary<string, string>
+        var extraInfo = new Dictionary<string, string>()
         {
-            { "targetEntityClassName", targetEntityClassName },
-        });
+            ["destroyType"] = "manually",
+        };
+
+        var res1 = await this.MigrateTo(targetMailBox, migrateInfo, extraInfo);
 
         var server = ServerGlobal.Server;
         var res2 = await server.NotifyGateUpdateServerClientEntityRegistration(
@@ -126,17 +114,15 @@ public class ServerClientEntity : DistributeEntity
             this.MailBox,
             targetMailBox);
 
-        return res1 && res2;
-    }
+        // this.Client.Notify("OnMigrated", targetMailBox, string.Empty, targetEntityClassName);
+        // do not use this.Client.Notify since the mailbox registered in the gate has already been changed.
+        this.Notify(targetMailBox, "OnMigrated", RpcType.ServerToClient, targetMailBox, string.Empty, targetEntityClassName);
 
-    /// <inheritdoc/>
-    protected override Task OnMigratedOut(
-        MailBox targetMailBox,
-        string migrateInfo,
-        Dictionary<string, string>? extraInfo)
-    {
-        this.Client.Notify("OnMigrated", targetMailBox, string.Empty, extraInfo!["targetEntityClassName"]);
-        return Task.CompletedTask;
+        // manually destroy self
+        this.Cell.OnEntityLeave(this);
+        this.Destroy();
+
+        return res1 && res2;
     }
 
     /// <summary>

@@ -91,6 +91,11 @@ public class AsyncTaskGenerator<TResult>
 
         cancellationTokenSource.Token.Register(() =>
         {
+            if (!this.dictionary.ContainsKey(taskId))
+            {
+                return;
+            }
+
             var res = this.dictionary.TryRemove(taskId, out _);
             while (!res)
             {
@@ -122,7 +127,7 @@ public class AsyncTaskGenerator<TResult>
             res = this.dictionary.TryRemove(asyncId, out source);
         }
 
-        source !.TrySetResult(result);
+        source!.TrySetResult(result);
     }
 }
 
@@ -206,6 +211,11 @@ public class AsyncTaskGenerator
 
         cancellationTokenSource.Token.Register(() =>
         {
+            if (!this.dictionary.ContainsKey(taskId))
+            {
+                return;
+            }
+
             var res = this.dictionary.TryRemove(taskId, out _);
             while (!res)
             {
@@ -236,7 +246,7 @@ public class AsyncTaskGenerator
             res = this.dictionary.TryRemove(asyncId, out source);
         }
 
-        source !.TrySetResult();
+        source!.TrySetResult();
     }
 }
 
@@ -327,6 +337,11 @@ public class AsyncTaskGenerator<TResult, TData>
         cancellationTokenSource.Token.Register(
             () =>
             {
+                if (!this.dictionary.ContainsKey(taskId))
+                {
+                    return;
+                }
+
                 var res = this.dictionary.TryRemove(taskId, out _);
                 while (!res)
                 {
@@ -391,6 +406,6 @@ public class AsyncTaskGenerator<TResult, TData>
             res = this.dictionary.TryRemove(asyncId, out source);
         }
 
-        source.Result !.TrySetResult(result);
+        source.Result!.TrySetResult(result);
     }
 }

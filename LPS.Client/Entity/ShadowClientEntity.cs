@@ -64,6 +64,7 @@ public class ShadowClientEntity : ShadowEntity
     [RpcMethod(Authority.ClientStub)]
     public virtual ValueTask OnMigrated(MailBox targetMailBox, string migrateInfo, string targetEntityClassName)
     {
+        Logger.Debug($"[ShadowClientEntity] on entity migrated: {targetMailBox} {migrateInfo} {targetEntityClassName}");
         RpcClientHelper.RequirePropertyFullSync(targetMailBox.Id);
         return ValueTask.CompletedTask;
     }
@@ -81,27 +82,47 @@ public class ShadowClientEntity : ShadowEntity
         var componentAttrs = this.GetType().GetCustomAttributes<ClientComponentAttribute>();
         foreach (var attr in componentAttrs)
         {
-            var componentType = attr.ComponentType;
-            var component = (ComponentBase)Activator.CreateInstance(componentType)!;
-            var componentName = string.IsNullOrEmpty(componentType.Name) ? attr.ComponentType.Name : componentType.Name;
-
-            component.InitComponent(this, componentName);
-            var componentTypeId = TypeIdHelper.GetId(componentType);
-
-            if (this.Components.ContainsKey(componentTypeId))
+            try
             {
-                Logger.Warn($"Component {componentType.Name} is already added to entity {this.GetType().Name}.");
-                continue;
-            }
+                var componentType = attr.ComponentType;
+                var component = (ComponentBase)Activator.CreateInstance(componentType)!;
+                var componentName = string.IsNullOrEmpty(componentType.Name) ? attr.ComponentType.Name : componentType.Name;
 
-            components.Add(componentTypeId, component);
-            componentNameToComponentTypeId.Add(componentName, componentTypeId);
+                component.InitComponent(this, componentName);
+                var componentTypeId = TypeIdHelper.GetId(componentType);
+
+                if (components.ContainsKey(componentTypeId))
+                {
+                    Logger.Warn($"Component {componentType.Name} is already added to entity {this.GetType().Name}.");
+                    continue;
+                }
+
+                components.Add(componentTypeId, component);
+                componentNameToComponentTypeId.Add(componentName, componentTypeId);
+            }
+            catch (Exception e)
+            {
+                Logger.Error(e);
+                throw;
+            }
         }
 
         this.Components = new ReadOnlyDictionary<uint, ComponentBase>(components);
         this.ComponentNameToComponentTypeId = new ReadOnlyDictionary<string, uint>(componentNameToComponentTypeId);
 
         return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Gets the component of the specified type from the entity.
+    /// </summary>
+    /// <typeparam name="T">The type of component to get. If the component is marked as `LazyLoad`, it will be loaded this time.</typeparam>
+    /// <returns>The component of the specified type.</returns>
+    public override async ValueTask<T> GetComponent<T>()
+    {
+        var typeId = TypeIdHelper.GetId<T>();
+        var component = await this.GetComponentInternal(typeId);
+        return (component as T)!;
     }
 
     /// <summary>

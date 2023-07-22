@@ -129,6 +129,12 @@ public abstract class DistributeEntity : BaseEntity, ISendPropertySyncMessage
             .AsTask()
             .ContinueWith(t =>
         {
+            if (t.Exception != null)
+            {
+                Logger.Error(t.Exception, $"Failed to get component {componentName}.");
+                return;
+            }
+
             var comp = t.Result;
             var treeDict = comp.Serialize();
 
@@ -184,9 +190,16 @@ public abstract class DistributeEntity : BaseEntity, ISendPropertySyncMessage
 
             await this.OnMigratedOut(targetMailBox, migrateInfo, extraInfo);
 
+            Logger.Info("[Migrate] step 4.");
+
             // destroy self
-            this.Cell.OnEntityLeave(this);
-            this.Destroy();
+            if (extraInfo is null
+                || (extraInfo.TryGetValue("destroyType", out var destroyType)
+                    && destroyType != "manually"))
+            {
+                this.Cell.OnEntityLeave(this);
+                this.Destroy();
+            }
 
             return true;
         }
@@ -339,6 +352,7 @@ public abstract class DistributeEntity : BaseEntity, ISendPropertySyncMessage
         foreach (var comp in componentsToLoad)
         {
             comp.OnInit();
+            comp.SetPropertyTreeSendSyncMsgImpl(this);
         }
 
         return Task.CompletedTask;
@@ -417,6 +431,13 @@ public abstract class DistributeEntity : BaseEntity, ISendPropertySyncMessage
     protected async Task LoadNonLazyComponents(IEnumerable<ComponentBase> nonLazyComponents)
     {
         var componentsAny = await this.BatchLoadComponentsFromDatabase(nonLazyComponents);
+
+        if (componentsAny is null)
+        {
+            Logger.Warn("[BatchLoadComponents] nothing to load components from database.");
+            return;
+        }
+
         var componentsDict = componentsAny
             .Unpack<DictWithStringKeyArg>()
             .PayLoad
@@ -444,7 +465,7 @@ public abstract class DistributeEntity : BaseEntity, ISendPropertySyncMessage
     /// <param name="componentList">The list of components to load.</param>
     /// <returns>The protobuf Any object containing the loaded components.</returns>
     /// <exception cref="Exception">Thrown when failed to load components from the database.</exception>
-    protected async Task<Any> BatchLoadComponentsFromDatabase(IEnumerable<ComponentBase> componentList)
+    protected async Task<Any?> BatchLoadComponentsFromDatabase(IEnumerable<ComponentBase> componentList)
     {
         string? collName = this.GetCollectionName();
         if (string.IsNullOrEmpty(collName))
@@ -469,9 +490,7 @@ public abstract class DistributeEntity : BaseEntity, ISendPropertySyncMessage
 
         if (res.Is(NullArg.Descriptor))
         {
-            var e = new Exception("Failed to load components from database");
-            Logger.Error(e);
-            throw e;
+            return null;
         }
 
         return res;
@@ -631,6 +650,7 @@ public abstract class DistributeEntity : BaseEntity, ISendPropertySyncMessage
         }
 
         component.OnInit();
+        component.SetPropertyTreeSendSyncMsgImpl(this);
 
         return component;
     }

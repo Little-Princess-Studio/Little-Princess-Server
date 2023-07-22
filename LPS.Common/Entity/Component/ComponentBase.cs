@@ -54,6 +54,18 @@ public abstract class ComponentBase
     }
 
     /// <summary>
+    /// Sets the implementation for sending property synchronization messages for all properties in the property tree.
+    /// </summary>
+    /// <param name="sendImpl">The implementation for sending property synchronization messages.</param>
+    public void SetPropertyTreeSendSyncMsgImpl(ISendPropertySyncMessage sendImpl)
+    {
+        foreach (var prop in this.propertyTree!.Values)
+        {
+            prop.SendSyncMsgImpl = sendImpl;
+        }
+    }
+
+    /// <summary>
     /// Initializes the component with the specified owner and name.
     /// </summary>
     /// <param name="owner">The entity that owns this component.</param>

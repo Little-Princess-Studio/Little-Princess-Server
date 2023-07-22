@@ -75,6 +75,7 @@ public class DbApi
             var insertData = new BsonDocument()
             {
                 ["AccountId"] = accountIdAsObjectId,
+                ["Name"] = "Unkown",
             };
             await coll.InsertOneAsync(insertData);
             var playerStrId = insertData["_id"].AsObjectId.ToString();

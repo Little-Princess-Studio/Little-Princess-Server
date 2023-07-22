@@ -462,21 +462,26 @@ public class Gate : IInstance
     {
         var client = this.tcpClientsToServer![serverIdx];
 
-        var entityRpcHandler = ((IMessage Message, Connection Connection, uint RpcId) arg) =>
+        void EntityRpcHandler((IMessage Message, Connection Connection, uint RpcId) arg) =>
             this.HandleEntityRpcFromServer(client, arg);
-        this.tcpClientsActions[(serverIdx, PackageType.EntityRpc)] = entityRpcHandler;
+        this.tcpClientsActions[(serverIdx, PackageType.EntityRpc)] = EntityRpcHandler;
 
-        var propertyFullSync = ((IMessage Message, Connection Connection, uint RpcId) arg) =>
+        void PropertyFullSync((IMessage Message, Connection Connection, uint RpcId) arg) =>
             this.HandlePropertyFullSyncFromServer(client, arg);
-        this.tcpClientsActions[(serverIdx, PackageType.PropertyFullSync)] = propertyFullSync;
+        this.tcpClientsActions[(serverIdx, PackageType.PropertyFullSync)] = PropertyFullSync;
 
-        var propSyncCommandList = ((IMessage Message, Connection Connection, uint RpcId) arg) =>
+        void PropSyncCommandList((IMessage Message, Connection Connection, uint RpcId) arg) =>
             this.HandlePropertySyncCommandListFromServer(client, arg);
-        this.tcpClientsActions[(serverIdx, PackageType.PropertySyncCommandList)] = propSyncCommandList;
+        this.tcpClientsActions[(serverIdx, PackageType.PropertySyncCommandList)] = PropSyncCommandList;
 
-        client.RegisterMessageHandler(PackageType.EntityRpc, entityRpcHandler);
-        client.RegisterMessageHandler(PackageType.PropertyFullSync, propertyFullSync);
-        client.RegisterMessageHandler(PackageType.PropertySyncCommandList, propSyncCommandList);
+        void ComponentSync((IMessage Message, Connection Connection, uint RpcId) arg) =>
+            this.HandleComponentSyncFromServer(client, arg);
+        this.tcpClientsActions[(serverIdx, PackageType.ComponentSync)] = ComponentSync;
+
+        client.RegisterMessageHandler(PackageType.EntityRpc, EntityRpcHandler);
+        client.RegisterMessageHandler(PackageType.PropertyFullSync, PropertyFullSync);
+        client.RegisterMessageHandler(PackageType.PropertySyncCommandList, PropSyncCommandList);
+        client.RegisterMessageHandler(PackageType.ComponentSync, ComponentSync);
 
         Logger.Info($"client {serverIdx} registered msg");
     }
@@ -496,6 +501,10 @@ public class Gate : IInstance
         client.UnregisterMessageHandler(
             PackageType.PropertySyncCommandList,
             this.tcpClientsActions[(idx, PackageType.PropertySyncCommandList)]);
+
+        client.UnregisterMessageHandler(
+            PackageType.ComponentSync,
+            this.tcpClientsActions[(idx, PackageType.ComponentSync)]);
     }
 
     private void HandlePropertySyncCommandListFromServer(
@@ -511,6 +520,17 @@ public class Gate : IInstance
 
         // TODO: Redirect to shadow entity on server
         this.RedirectMsgToEntityOnClient(propertySyncCommandList.EntityId, propertySyncCommandList);
+    }
+
+    private void HandleComponentSyncFromServer(TcpClient client, (IMessage Message, Connection Connection, uint RpcId) arg)
+    {
+        Logger.Info("HandleComponentSyncFromServer");
+
+        var (msg, _, _) = ((IMessage, Connection, uint))arg;
+        var componentSync = (msg as ComponentSync)!;
+
+        Logger.Info("send componentSync to client");
+        this.RedirectMsgToEntityOnClient(componentSync.EntityId, msg);
     }
 
     private void HandleRequireCreateEntityResFromHost(IMessage msg)
@@ -532,7 +552,7 @@ public class Gate : IInstance
                     var clientToServer = this.FindServerOfEntity(targetMailBox);
                     if (clientToServer != null)
                     {
-                        Logger.Debug($"Rpc Call, send entityRpc ot {targetMailBox}");
+                        Logger.Debug($"Rpc Call, send entityRpc to {targetMailBox}");
                         clientToServer.Send(entityRpc);
                     }
                     else
