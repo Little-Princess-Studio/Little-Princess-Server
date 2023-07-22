@@ -20,11 +20,11 @@ using MongoDB.Driver;
 public class DbApi
 {
     /// <summary>
-    /// Queries the database for an account with the specified username.
+    /// Queries the account collection in the database for an account with the specified username.
     /// </summary>
-    /// <param name="database">The database instance to query.</param>
+    /// <param name="database">The database instance to use.</param>
     /// <param name="userName">The username to search for.</param>
-    /// <returns>An <see cref="IDbDataSet"/> object representing the account data, or null if no account was found.</returns>
+    /// <returns>A tuple containing the password and account ID of the account with the specified username, or empty strings if no such account exists.</returns>
     [DbApi]
     public async Task<(string Password, string AccountId)> QueryAccountByUserName(MongoDbWrapper database, string userName)
     {

@@ -81,10 +81,16 @@ public class Untrusted : ServerClientEntity, IServerUntrustedStub
     public async Task<bool> LogIn(string name, string password)
     {
         Logger.Debug($"[LogIn] {name} {password}");
+        if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(password))
+        {
+            Logger.Warn("[LogIn] Invalid name or password");
+            return false;
+        }
+
         var (success, accountId) = await this.CheckPassword(name, password);
         if (!success)
         {
-            Logger.Warn("Failed to login");
+            Logger.Warn("[LogIn] Failed to login");
             return false;
         }
 
