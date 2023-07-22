@@ -22,6 +22,10 @@ using MongoDB.Driver;
 /// </summary>
 public class MongoDbWrapper : IDatabase
 {
+    private const string ComponentsFieldName = "__components__";
+    private const string ComplexFieldName = "__complex_type__";
+    private const string KeyTypeFieldname = "__key_type__";
+
     private enum ComplexKeyType
     {
         String = 0,
@@ -75,7 +79,7 @@ public class MongoDbWrapper : IDatabase
 
         var coll = this.GetCollection(this.defaultDatabaseName, collectionName);
         var filter = Builders<BsonDocument>.Filter.Eq(keyName, new BsonObjectId(new ObjectId(value)));
-        var projection = Builders<BsonDocument>.Projection.Exclude("$_components");
+        var projection = Builders<BsonDocument>.Projection.Exclude(ComponentsFieldName);
         var findOption = new FindOptions<BsonDocument, BsonDocument>
         {
             Projection = projection,
@@ -116,7 +120,7 @@ public class MongoDbWrapper : IDatabase
         var coll = this.GetCollection(databaseName: this.defaultDatabaseName, collectionName);
         var filter = Builders<BsonDocument>.Filter.Eq("_id", new BsonObjectId(new ObjectId(entityDbId)));
         var projection =
-            Builders<BsonDocument>.Projection.Include($"$_components.{componentName}");
+            Builders<BsonDocument>.Projection.Include($"{ComponentsFieldName}.{componentName}");
 
         var findOption = new FindOptions<BsonDocument, BsonDocument>
         {
@@ -126,7 +130,10 @@ public class MongoDbWrapper : IDatabase
         if (queryRes.Any())
         {
             var first = queryRes.First();
-            return BsonDocumentToAny(first["$_components"][componentName].AsBsonDocument);
+            if (first.Contains(ComponentsFieldName))
+            {
+                return BsonDocumentToAny(first[ComponentsFieldName][componentName].AsBsonDocument);
+            }
         }
 
         return Any.Pack(new NullArg());
@@ -139,7 +146,7 @@ public class MongoDbWrapper : IDatabase
 
         var coll = this.GetCollection(this.defaultDatabaseName, collectionName);
         var filter = Builders<BsonDocument>.Filter.Eq("_id", new BsonObjectId(new ObjectId(entityDbId)));
-        var update = Builders<BsonDocument>.Update.Set($"$_components.{componentName}", componentDoc);
+        var update = Builders<BsonDocument>.Update.Set($"{ComponentsFieldName}.{componentName}", componentDoc);
 
         var res = await coll.UpdateOneAsync(filter, update);
 
@@ -154,7 +161,7 @@ public class MongoDbWrapper : IDatabase
         var coll = this.GetCollection(databaseName: this.defaultDatabaseName, collectionName);
         var filter = Builders<BsonDocument>.Filter.Eq("_id", new BsonObjectId(new ObjectId(entityDbId)));
         var projection = Builders<BsonDocument>.Projection;
-        var batchProjectionColl = componentNames.Select(name => projection.Include($"$_components.{name}"));
+        var batchProjectionColl = componentNames.Select(name => projection.Include($"{ComponentsFieldName}.{name}"));
         var batchProjection = projection.Combine(batchProjectionColl);
 
         var findOption = new FindOptions<BsonDocument, BsonDocument>
@@ -166,7 +173,10 @@ public class MongoDbWrapper : IDatabase
         if (queryRes.Any())
         {
             var first = queryRes.First();
-            return BsonDocumentToAny(first["$_components"].AsBsonDocument);
+            if (first.Contains(ComponentsFieldName))
+            {
+                return BsonDocumentToAny(first[ComponentsFieldName].AsBsonDocument);
+            }
         }
 
         return Any.Pack(new NullArg());
@@ -180,7 +190,7 @@ public class MongoDbWrapper : IDatabase
 
         var updateBuilder = Builders<BsonDocument>.Update;
         var batchSet =
-            componentsDict.Select(pair => updateBuilder.Set($"$_components.{pair.Key}", AnyToBsonDocument(pair.Value)));
+            componentsDict.Select(pair => updateBuilder.Set($"{ComponentsFieldName}.{pair.Key}", AnyToBsonDocument(pair.Value)));
 
         var updateRes = await coll.UpdateOneAsync(filter, updateBuilder.Combine(batchSet));
 
@@ -262,7 +272,7 @@ public class MongoDbWrapper : IDatabase
                 var bsonArray = new BsonArray(anyList.Select(x => AnyToBsonDocument(x)));
                 var arrayDoc = new BsonDocument()
                 {
-                    ["$_complex_type"] = (int)ComplexValueType.List,
+                    [ComplexFieldName] = (int)ComplexValueType.List,
                     ["data"] = bsonArray,
                 };
                 bsonDoc.Add(fieldName, arrayDoc);
@@ -303,8 +313,8 @@ public class MongoDbWrapper : IDatabase
     {
         bsonDoc.Add(fieldName, new BsonDocument()
         {
-            ["$_complex_type"] = (int)ComplexValueType.Dict,
-            ["$_key_type"] = (int)valueType,
+            [ComplexFieldName] = (int)ComplexValueType.Dict,
+            [KeyTypeFieldname] = (int)valueType,
             ["data"] = bsonDict,
         });
     }
@@ -355,12 +365,12 @@ public class MongoDbWrapper : IDatabase
     /*
     For plaint type int/string/float/bool, save as plaint type
     For dict type dict<k, v>, save as stringfy(k): {
-        "$_complex_type": "dict",
-        "$_key_type": "key type",
+        "__complex_type__": "dict",
+        "__key_type__": "key type",
         data: { "k": v }
     }
-    For lsit type list<e>, save as {
-        "$_complex_type": "list",
+    For list type list<e>, save as {
+        "__complex_type__": "list",
         data: [e]
     }
     */
@@ -392,7 +402,7 @@ public class MongoDbWrapper : IDatabase
             var doc = value.AsBsonDocument;
 
             // specified structure dict
-            if (doc.TryGetElement("$_complex_type", out var type))
+            if (doc.TryGetElement(ComplexFieldName, out var type))
             {
                 anyValue = HandleComplexData(anyValue, doc, type);
             }
@@ -449,7 +459,7 @@ public class MongoDbWrapper : IDatabase
 
     private static Any? HandleComplexDict(Any? anyValue, BsonDocument doc)
     {
-        ComplexKeyType keyType = (ComplexKeyType)doc.GetValue("$_key_type").AsInt32;
+        ComplexKeyType keyType = (ComplexKeyType)doc.GetValue(KeyTypeFieldname).AsInt32;
         var data = doc.GetValue("data").AsBsonDocument;
         if (keyType == ComplexKeyType.MailBox)
         {

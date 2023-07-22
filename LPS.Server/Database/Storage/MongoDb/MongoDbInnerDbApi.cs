@@ -9,6 +9,7 @@ namespace LPS.Server.Database.Storage.MongoDb;
 using System.Linq;
 using System.Threading.Tasks;
 using Google.Protobuf.WellKnownTypes;
+using LPS.Common.Debug;
 using LPS.Common.Rpc;
 using LPS.Common.Rpc.InnerMessages;
 using LPS.Server.Database.Storage.Attribute;
@@ -61,7 +62,16 @@ public class MongoDbInnerDbApi : IDbInnerApi<MongoDbWrapper>
         var id = RpcHelper.GetString(args[1]);
         return mongoDb.SaveEntity(collName, id, args[2])
             .ContinueWith(
-                t => RpcHelper.GetRpcAny(value: t.Result));
+                t =>
+                {
+                    if (t.Exception != null)
+                    {
+                        Logger.Error(t.Exception);
+                        return RpcHelper.GetRpcAny(value: false);
+                    }
+
+                    return RpcHelper.GetRpcAny(value: t.Result);
+                });
     }
 
     /// <inheritdoc/>
