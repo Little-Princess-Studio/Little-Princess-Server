@@ -140,8 +140,7 @@ public static class DbHelper
     /// <returns>Global-unique id string.</returns>
     public static async Task<string> GenerateNewGlobalId()
     {
-        var key = "$_lps_sys_entity_id_counter";
-        var numId = await FastGlobalCache.Incr(key);
+        var numId = await FastGlobalCache.GenerateNewGlobalId();
         return BuildGlobalId(numId);
     }
 

@@ -17,7 +17,7 @@ using MailBox = LPS.Common.Rpc.MailBox;
 /// Server entity indicates entity only exists on server.
 /// </summary>
 [EntityClass]
-public class ServerEntity : UniqueEntity
+public class ServerEntity : DistributeEntity
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="ServerEntity"/> class.

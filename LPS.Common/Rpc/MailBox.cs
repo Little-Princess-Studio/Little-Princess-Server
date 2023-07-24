@@ -47,10 +47,23 @@ public readonly struct MailBox
         this.HostNum = hostNum;
     }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="MailBox"/> struct from a serialized string.
+    /// </summary>
+    /// <param name="serialization">The serialized string.</param>
+    public MailBox(string serialization)
+    {
+        var split = serialization.Split(';');
+        this.Id = split[0];
+        this.Ip = split[1];
+        this.Port = int.Parse(split[2]);
+        this.HostNum = int.Parse(split[3]);
+    }
+
     /// <inheritdoc/>
     public override readonly string ToString()
     {
-        return $"{this.Id} {this.Ip} {this.Port} {this.HostNum}";
+        return $"{this.Id};{this.Ip};{this.Port};{this.HostNum}";
     }
 
     /// <summary>

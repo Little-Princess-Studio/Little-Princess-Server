@@ -43,23 +43,16 @@ public class Redis : IGlobalCache
     }
 
     /// <inheritdoc/>
-    public Task Clear() => RedisHelper.ScriptFlushAsync();
+    public Task Clear() => RedisHelper.Instance.ScriptFlushAsync();
 
     /// <inheritdoc/>
-    public object GetNativeClient() => RedisHelper.Instance;
+    public T? GetNativeClient<T>()
+        where T : class => RedisHelper.Instance as T;
 
     /// <inheritdoc/>
-    public Task<long> Incr(string key) => RedisHelper.IncrByAsync(key);
-
-    /// <inheritdoc/>
-    public Task<bool> Set(string key, long val) => RedisHelper.SetAsync(key, val);
-
-    /// <inheritdoc/>
-    public Task<long> Get(string key) => RedisHelper.GetAsync<long>(key);
-
-    /// <inheritdoc/>
-    public Task<bool> Set(string key, string val) => RedisHelper.SetAsync(key, val);
-
-    /// <inheritdoc/>
-    Task<string> IGlobalCache<string>.Get(string key) => RedisHelper.GetAsync<string>(key);
+    public Task<long> GenerateNewGlobalId()
+    {
+        const string key = "$_lps_sys_entity_id_counter";
+        return RedisHelper.IncrByAsync(key);
+    }
 }

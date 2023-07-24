@@ -61,7 +61,7 @@ public class Untrusted : ShadowClientEntity
         Logger.Debug(
             $"[OnMigrated] migrate from {ClientGlobal.ShadowClientEntity.MailBox} to {targetMailBox}, class name: {targetEntityClassName}");
         var shadowEntity = await RpcClientHelper.CreateClientEntity(targetEntityClassName);
-        shadowEntity.OnSend = rpc => { Client.Instance.Send(rpc); };
+        shadowEntity.OnSend = Client.Instance.Send;
         shadowEntity.MailBox = targetMailBox;
         shadowEntity.BindServerMailBox();
 

@@ -6,34 +6,13 @@
 
 namespace LPS.Server.Database.GlobalCache;
 
+using System.Collections.Generic;
 using System.Threading.Tasks;
-
-/// <summary>
-/// Interface for global cache.
-/// </summary>
-/// <typeparam name="T">Type of the operation value.</typeparam>
-public interface IGlobalCache<T>
-{
-    /// <summary>
-    /// Sets the key-val.
-    /// </summary>
-    /// <param name="key">Key.</param>
-    /// <param name="val">Value.</param>
-    /// <returns>Result.</returns>
-    Task<bool> Set(string key, T val);
-
-    /// <summary>
-    /// Gets the value from key.
-    /// </summary>
-    /// <param name="key">Key.</param>
-    /// <returns>Value.</returns>
-    Task<T> Get(string key);
-}
 
 /// <summary>
 /// IGlobalCache interface.
 /// </summary>
-public interface IGlobalCache : IGlobalCache<long>, IGlobalCache<string>
+public interface IGlobalCache
 {
     /// <summary>
     /// Initialize global cache.
@@ -53,17 +32,18 @@ public interface IGlobalCache : IGlobalCache<long>, IGlobalCache<string>
     Task Clear();
 
     /// <summary>
-    /// Increase a value by 1.
+    /// Generate a runtime global-unique id in global cache.
     /// </summary>
-    /// <param name="key">Key name.</param>
-    /// <returns>Increase result.</returns>
-    Task<long> Incr(string key);
+    /// <returns>Global-unique id string.</returns>
+    Task<long> GenerateNewGlobalId();
 
     /// <summary>
     /// Gets the native client object (for example, RedisClient).
     /// GetNativeClient is a dangerous method which return the native db client object to user
     /// user should clearly know what the db client is and do costume operation on it.
     /// </summary>
-    /// <returns>Native client object.</returns>
-    object GetNativeClient();
+    /// <typeparam name="T">The type of the native client object.</typeparam>
+    /// <returns>The native client object.</returns>
+    T? GetNativeClient<T>()
+        where T : class;
 }

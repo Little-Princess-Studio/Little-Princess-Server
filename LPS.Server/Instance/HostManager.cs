@@ -109,21 +109,21 @@ public class HostManager : IInstance
     private readonly List<Common.Rpc.MailBox> serversMailBoxes = new();
     private readonly List<Common.Rpc.MailBox> gatesMailBoxes = new();
     private readonly TcpServer tcpServer;
-    private readonly Random random = new Random();
+    private readonly Random random = new();
 
     private readonly Dictionary<uint, (uint ConnId, Action<byte[]>)>
-        createDistEntityAsyncRecord = new Dictionary<uint, (uint ConnId, Action<byte[]> Send)>();
+        createDistEntityAsyncRecord = new();
 
     private readonly MessageQueueClient messageQueueClientToWebMgr;
     private readonly MessageQueueClient messageQueueClientToServer;
 
-    private readonly Dictionary<string, Connection> mailboxIdToConnection = new Dictionary<string, Connection>();
-    private readonly Dictionary<string, string> mailboxIdToIdentifier = new Dictionary<string, string>();
+    private readonly Dictionary<string, Connection> mailboxIdToConnection = new();
+    private readonly Dictionary<string, string> mailboxIdToIdentifier = new();
+
+    private readonly Dispatcher<(IMessage Mesage, string TargetIdentifier, InstanceType OriType)> dispatcher =
+        new();
 
     private uint createEntityCnt;
-
-    private Dispatcher<(IMessage Mesage, string TargetIdentifier, InstanceType OriType)> dispatcher =
-        new Dispatcher<(IMessage Mesage, string TargetIdentifier, InstanceType OriType)>();
 
     /// <summary>
     /// Initializes a new instance of the <see cref="HostManager"/> class.

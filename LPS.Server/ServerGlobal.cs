@@ -171,4 +171,14 @@ public enum InstanceType
     /// Database Manager.
     /// </summary>
     DbManager,
+
+    /// <summary>
+    /// Service.
+    /// </summary>
+    Service,
+
+    /// <summary>
+    /// Service router.
+    /// </summary>
+    ServiceRouter,
 }

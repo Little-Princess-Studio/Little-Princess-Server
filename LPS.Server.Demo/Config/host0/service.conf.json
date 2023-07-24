@@ -1,0 +1,20 @@
+{
+    "type": "service",
+
+    "services": {
+        "service0" : {
+            "ip": "127.0.0.1",
+            "port": 14001,
+            "use_mq_to_host": false
+        },
+        "service1": {
+            "ip": "127.0.0.1",
+            "port": 14011,
+            "use_mq_to_host": true
+        }
+    },
+
+    "hostmanager_conf": "Config/host0/hostmanager.conf.json",
+    "mq_conf": "Config/host0/mq.conf.json",
+    "globalcache_conf": "Config/host0/globalcache.conf.json"
+}
