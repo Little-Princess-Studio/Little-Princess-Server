@@ -1,5 +1,5 @@
 ﻿// -----------------------------------------------------------------------
-// <copyright file="IHostConnection.cs" company="Little Princess Studio">
+// <copyright file="IManagerConnection.cs" company="Little Princess Studio">
 // Copyright (c) Little Princess Studio. All rights reserved.
 // </copyright>
 // -----------------------------------------------------------------------
@@ -11,9 +11,9 @@ using Google.Protobuf;
 using LPS.Common.Rpc.InnerMessages;
 
 /// <summary>
-/// HostConnection interface, which is used to connect to host manager.
+/// HostConnection interface, which is used to connect to the manager instance (Host Manager & Service Manager).
 /// </summary>
-public interface IHostConnection
+public interface IManagerConnection
 {
     /// <summary>
     /// Start the connection.

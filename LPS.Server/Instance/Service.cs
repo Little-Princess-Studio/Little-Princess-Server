@@ -6,6 +6,7 @@
 
 namespace LPS.Service.Instance;
 
+using System;
 using LPS.Server;
 
 /// <summary>
@@ -15,6 +16,9 @@ public class Service : IInstance
 {
     /// <inheritdoc/>
     public InstanceType InstanceType => InstanceType.Service;
+
+    /// <inheritdoc/>
+    public string Name => throw new NotImplementedException();
 
     /// <inheritdoc/>
     public string Ip => throw new System.NotImplementedException();

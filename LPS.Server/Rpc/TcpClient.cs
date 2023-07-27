@@ -66,7 +66,8 @@ internal class TcpClient // : IClient
     private readonly Dispatcher<(IMessage Message, Connection Connection, uint RpcId)> msgDispatcher;
     private readonly string targetIp;
     private readonly int targetPort;
-    private readonly TokenSequence<uint> tokenSequence = new();
+
+    // private readonly TokenSequence<uint> tokenSequence = new();
     private readonly ConcurrentQueue<(TcpClient, IMessage, bool)> sendQueue;
     private readonly SandBox clientsSendQueueSandBox;
 

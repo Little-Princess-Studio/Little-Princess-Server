@@ -10,6 +10,7 @@ using CSRedis;
 using LPS.Common.Rpc;
 using LPS.Common.Rpc.RpcStub;
 using LPS.Server.Database;
+using LPS.Server.Rpc.Service;
 using LPS.Server.Service;
 
 /// <summary>
@@ -52,6 +53,8 @@ public class PlayerRosterService : ServiceBase
     /// </summary>
     /// <param name="playerId">The ID of the player to check.</param>
     /// <returns>A task that represents the asynchronous operation. The task result contains a value indicating whether the player exists in the player roster.</returns>
+    [RpcMethod(Authority.ServerOnly)]
+    [HttpRpcMethod("checkPlayerExist", HttpRpcRequestType.Get)]
     public Task<bool> CheckPlayerExist(string playerId) => this.redisClient.HExistsAsync(RosterKeyName, playerId);
 
     /// <summary>

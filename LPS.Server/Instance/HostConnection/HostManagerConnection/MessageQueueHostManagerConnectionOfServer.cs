@@ -1,10 +1,10 @@
 ﻿// -----------------------------------------------------------------------
-// <copyright file="MessageQueueHostConnectionOfServer.cs" company="Little Princess Studio">
+// <copyright file="MessageQueueHostManagerConnectionOfServer.cs" company="Little Princess Studio">
 // Copyright (c) Little Princess Studio. All rights reserved.
 // </copyright>
 // -----------------------------------------------------------------------
 
-namespace LPS.Server.Instance.HostConnection;
+namespace LPS.Server.Instance.HostConnection.HostManagerConnection;
 
 using System;
 using LPS.Common.Debug;
@@ -14,16 +14,16 @@ using LPS.Server.Rpc.InnerMessages;
 /// <summary>
 /// Message queue host connection of server.
 /// </summary>
-public class MessageQueueHostConnectionOfServer : MessageQueueHostConnectionBase
+public class MessageQueueHostManagerConnectionOfServer : MessageQueueHostManagerConnectionBase
 {
     private readonly Func<uint> onGenerateAsyncId;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="MessageQueueHostConnectionOfServer"/> class.
+    /// Initializes a new instance of the <see cref="MessageQueueHostManagerConnectionOfServer"/> class.
     /// </summary>
     /// <param name="name">Unique name.</param>
     /// <param name="onGenerateAsyncId">Callback to generate async id.</param>
-    public MessageQueueHostConnectionOfServer(string name, Func<uint> onGenerateAsyncId)
+    public MessageQueueHostManagerConnectionOfServer(string name, Func<uint> onGenerateAsyncId)
         : base(name)
     {
         this.onGenerateAsyncId = onGenerateAsyncId;

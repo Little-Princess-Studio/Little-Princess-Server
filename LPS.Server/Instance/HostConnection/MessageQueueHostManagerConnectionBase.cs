@@ -1,5 +1,5 @@
 ﻿// -----------------------------------------------------------------------
-// <copyright file="MessageQueueHostConnectionBase.cs" company="Little Princess Studio">
+// <copyright file="MessageQueueHostManagerConnectionBase.cs" company="Little Princess Studio">
 // Copyright (c) Little Princess Studio. All rights reserved.
 // </copyright>
 // -----------------------------------------------------------------------
@@ -16,7 +16,7 @@ using LPS.Server.MessageQueue;
 /// <summary>
 /// Use message queue to connect to host manager.
 /// </summary>
-public abstract class MessageQueueHostConnectionBase : IHostConnection
+public abstract class MessageQueueHostManagerConnectionBase : IManagerConnection
 {
     /// <summary>
     /// Name of the owner.
@@ -29,10 +29,10 @@ public abstract class MessageQueueHostConnectionBase : IHostConnection
     private uint rpcId;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="MessageQueueHostConnectionBase"/> class.
+    /// Initializes a new instance of the <see cref="MessageQueueHostManagerConnectionBase"/> class.
     /// </summary>
     /// <param name="name">Name of the connection, used to genereate message queue name.</param>
-    public MessageQueueHostConnectionBase(string name)
+    public MessageQueueHostManagerConnectionBase(string name)
     {
         this.Name = name;
         this.messageQueueClientToHostMgr = new MessageQueueClient();

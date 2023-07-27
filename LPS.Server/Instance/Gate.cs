@@ -22,6 +22,7 @@ using LPS.Common.Rpc;
 using LPS.Common.Rpc.InnerMessages;
 using LPS.Server.Entity;
 using LPS.Server.Instance.HostConnection;
+using LPS.Server.Instance.HostConnection.HostManagerConnection;
 using LPS.Server.Rpc;
 using LPS.Server.Rpc.InnerMessages;
 using MailBox = LPS.Common.Rpc.InnerMessages.MailBox;
@@ -36,9 +37,7 @@ using MailBox = LPS.Common.Rpc.InnerMessages.MailBox;
 /// </summary>
 public class Gate : IInstance
 {
-    /// <summary>
-    /// Gets the name of the gate.
-    /// </summary>
+    /// <inheritdoc/>
     public string Name { get; }
 
     /// <inheritdoc/>
@@ -75,7 +74,7 @@ public class Gate : IInstance
     private readonly SandBox clientsPumpMsgSandBox;
 
     private readonly TcpServer tcpGateServer;
-    private readonly IHostConnection hostConnection;
+    private readonly IManagerConnection hostConnection;
 
     private GateEntity? entity;
 
@@ -129,7 +128,7 @@ public class Gate : IInstance
 
         if (!useMqToHostMgr)
         {
-            this.hostConnection = new ImmediateHostConnectionOfGate(
+            this.hostConnection = new ImmediateHostManagerConnectionOfGate(
                 hostManagerIp,
                 hostManagerPort,
                 this.GenerateRpcId,
@@ -137,7 +136,7 @@ public class Gate : IInstance
         }
         else
         {
-            this.hostConnection = new MessageQueueHostConnectionOfGate(this.Name, this.GenerateRpcId);
+            this.hostConnection = new MessageQueueHostManagerConnectionOfGate(this.Name, this.GenerateRpcId);
         }
 
         this.hostConnection.RegisterMessageHandler(

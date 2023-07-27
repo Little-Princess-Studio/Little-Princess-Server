@@ -1,5 +1,5 @@
 ﻿// -----------------------------------------------------------------------
-// <copyright file="ImmediateHostConnectionBase.cs" company="Little Princess Studio">
+// <copyright file="ImmediateManagerConnectionBase.cs" company="Little Princess Studio">
 // Copyright (c) Little Princess Studio. All rights reserved.
 // </copyright>
 // -----------------------------------------------------------------------
@@ -7,7 +7,6 @@
 namespace LPS.Server.Instance.HostConnection;
 
 using System;
-using System.Collections.Concurrent;
 using System.Threading;
 using Google.Protobuf;
 using LPS.Common.Debug;
@@ -19,29 +18,34 @@ using LPS.Server.Rpc;
 /// <summary>
 /// Use socket to connect to host manager.
 /// </summary>
-internal abstract class ImmediateHostConnectionBase : IHostConnection
+internal abstract class ImmediateManagerConnectionBase : IManagerConnection
 {
     /// <summary>
     /// Gets tcp client to host manager.
     /// </summary>
-    protected TcpClient ClientToHostManager { get; private set; } = null!;
+    protected TcpClient ClientToManager { get; private set; } = null!;
 
     /// <summary>
     /// Dispatcher to dispatch message.
     /// </summary>
     protected readonly Dispatcher<IMessage> MsgDispatcher = new Dispatcher<IMessage>();
 
-    private readonly CountdownEvent hostManagerConnectedEvent;
+    /// <summary>
+    /// Countdown event to signal when the connection to the host manager is established.
+    /// </summary>
+    protected readonly CountdownEvent hostManagerConnectedEvent;
+
     private readonly SandBox clientsPumpMsgSandBox;
     private readonly Func<bool> checkServerStopped;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="ImmediateHostConnectionBase"/> class.
+    /// Initializes a new instance of the <see cref="ImmediateManagerConnectionBase"/> class.
     /// </summary>
     /// <param name="checkServerStopped">Check if server stopped.</param>
-    public ImmediateHostConnectionBase(Func<bool> checkServerStopped)
+    public ImmediateManagerConnectionBase(Func<bool> checkServerStopped)
     {
         this.checkServerStopped = checkServerStopped;
+
         this.hostManagerConnectedEvent = new CountdownEvent(1);
         this.clientsPumpMsgSandBox = SandBox.Create(this.PumpMessageHandler);
     }
@@ -49,8 +53,9 @@ internal abstract class ImmediateHostConnectionBase : IHostConnection
     /// <inheritdoc/>
     public void Run()
     {
-        this.ClientToHostManager = this.GetTcpClient();
-        this.ClientToHostManager.Run();
+        this.ClientToManager = this.GetTcpClient();
+        this.ClientToManager.Run();
+        this.hostManagerConnectedEvent.Wait();
         this.BeforeStartPumpMessage();
         this.clientsPumpMsgSandBox.Run();
     }
@@ -58,20 +63,20 @@ internal abstract class ImmediateHostConnectionBase : IHostConnection
     /// <inheritdoc/>
     public void ShutDown()
     {
-        this.ClientToHostManager.Stop();
+        this.ClientToManager.Stop();
     }
 
     /// <inheritdoc/>
     public void WaitForExit()
     {
         this.clientsPumpMsgSandBox.WaitForExit();
-        this.ClientToHostManager.WaitForExit();
+        this.ClientToManager.WaitForExit();
     }
 
     /// <inheritdoc/>
     public void Send(IMessage message)
     {
-        this.ClientToHostManager.Send(message);
+        this.ClientToManager.Send(message);
     }
 
     /// <inheritdoc/>
@@ -115,7 +120,7 @@ internal abstract class ImmediateHostConnectionBase : IHostConnection
         {
             while (!this.checkServerStopped.Invoke())
             {
-                this.ClientToHostManager.Pump();
+                this.ClientToManager.Pump();
                 Thread.Sleep(1);
             }
         }

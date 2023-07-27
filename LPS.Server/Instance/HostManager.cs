@@ -6,10 +6,10 @@
 
 /*
  *         HostMgr
- * |----------|----------|
- * Server0 Server1 Server2
- * |----------|----------|
- * Gate0             Gate1
+ * |----------|----------|-------------|
+ * Server0 Server1 Server2         ServiceMgr
+ * |----------|----------|     |-------|--------|
+ * Gate0             Gate1   Service0      Service1
  * |---------|         |
  * Client0 Client1   Client2
  */
@@ -77,10 +77,8 @@ public class HostManager : IInstance
     /// <inheritdoc/>
     public InstanceType InstanceType => InstanceType.HostManager;
 
-    /// <summary>
-    /// Name of the hostmanager.
-    /// </summary>
-    public readonly string Name;
+    /// <inheritdoc/>
+    public string Name { get; }
 
     /// <inheritdoc/>
     public int HostNum { get; }

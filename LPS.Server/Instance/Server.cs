@@ -22,6 +22,7 @@ using LPS.Common.Rpc.InnerMessages;
 using LPS.Common.Rpc.RpcPropertySync.RpcPropertySyncMessage;
 using LPS.Server.Entity;
 using LPS.Server.Instance.HostConnection;
+using LPS.Server.Instance.HostConnection.HostManagerConnection;
 using LPS.Server.MessageQueue;
 using LPS.Server.Rpc;
 using LPS.Server.Rpc.InnerMessages;
@@ -34,9 +35,7 @@ using MailBox = LPS.Common.Rpc.MailBox;
 /// </summary>
 public class Server : IInstance
 {
-    /// <summary>
-    /// Gets the name of the server.
-    /// </summary>
+    /// <inheritdoc/>
     public string Name { get; }
 
     /// <inheritdoc/>
@@ -67,7 +66,7 @@ public class Server : IInstance
     private readonly CountdownEvent localEntityGeneratedEvent;
     private readonly CountdownEvent waitForSyncGatesEvent;
 
-    private readonly IHostConnection hostConnection;
+    private readonly IManagerConnection hostConnection;
 
     private MessageQueueClient? messageQueueClientToWebMgr;
 
@@ -105,7 +104,7 @@ public class Server : IInstance
 
         if (!useMqToHostMgr)
         {
-            this.hostConnection = new ImmediateHostConnectionOfServer(
+            this.hostConnection = new ImmediateHostManagerConnectionOfServer(
                 hostManagerIp,
                 hostManagerPort,
                 this.GenerateConnectionId,
@@ -113,7 +112,7 @@ public class Server : IInstance
         }
         else
         {
-            this.hostConnection = new MessageQueueHostConnectionOfServer(this.Name, this.GenerateConnectionId);
+            this.hostConnection = new MessageQueueHostManagerConnectionOfServer(this.Name, this.GenerateConnectionId);
         }
 
         this.hostConnection.RegisterMessageHandler(

@@ -137,6 +137,11 @@ public interface IInstance
     public int HostNum { get; }
 
     /// <summary>
+    /// Gets the name of the instance.
+    /// </summary>
+    public string Name { get; }
+
+    /// <summary>
     /// Main loop of the instance process.
     /// </summary>
     void Loop();
@@ -180,5 +185,5 @@ public enum InstanceType
     /// <summary>
     /// Service router.
     /// </summary>
-    ServiceRouter,
+    ServiceManager,
 }
