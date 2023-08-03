@@ -28,12 +28,12 @@ internal abstract class ImmediateManagerConnectionBase : IManagerConnection
     /// <summary>
     /// Dispatcher to dispatch message.
     /// </summary>
-    protected readonly Dispatcher<IMessage> MsgDispatcher = new Dispatcher<IMessage>();
+    protected readonly Dispatcher<IMessage> MsgDispatcher = new();
 
     /// <summary>
     /// Countdown event to signal when the connection to the host manager is established.
     /// </summary>
-    protected readonly CountdownEvent hostManagerConnectedEvent;
+    protected readonly CountdownEvent managerConnectedEvent;
 
     private readonly SandBox clientsPumpMsgSandBox;
     private readonly Func<bool> checkServerStopped;
@@ -46,7 +46,7 @@ internal abstract class ImmediateManagerConnectionBase : IManagerConnection
     {
         this.checkServerStopped = checkServerStopped;
 
-        this.hostManagerConnectedEvent = new CountdownEvent(1);
+        this.managerConnectedEvent = new CountdownEvent(1);
         this.clientsPumpMsgSandBox = SandBox.Create(this.PumpMessageHandler);
     }
 
@@ -55,7 +55,7 @@ internal abstract class ImmediateManagerConnectionBase : IManagerConnection
     {
         this.ClientToManager = this.GetTcpClient();
         this.ClientToManager.Run();
-        this.hostManagerConnectedEvent.Wait();
+        this.managerConnectedEvent.Wait();
         this.BeforeStartPumpMessage();
         this.clientsPumpMsgSandBox.Run();
     }
@@ -107,7 +107,7 @@ internal abstract class ImmediateManagerConnectionBase : IManagerConnection
     /// </summary>
     /// <param name="arg">Message.</param>
     /// <typeparam name="TPackage">Protobuf package type.</typeparam>
-    protected void HandleMessageFromHost<TPackage>((IMessage Message, Connection Connection, uint RpcId) arg)
+    protected void HandleMessageFromManager<TPackage>((IMessage Message, Connection Connection, uint RpcId) arg)
         where TPackage : IMessage
     {
         var (msg, _, _) = arg;

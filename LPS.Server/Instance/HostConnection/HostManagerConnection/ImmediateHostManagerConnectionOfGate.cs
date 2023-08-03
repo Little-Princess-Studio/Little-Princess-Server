@@ -53,8 +53,8 @@ internal class ImmediateHostManagerConnectionOfGate : ImmediateManagerConnection
             {
                 self.RegisterMessageHandler(
                     PackageType.RequireCreateEntityRes,
-                    this.HandleMessageFromHost<RequireCreateEntityRes>);
-                self.RegisterMessageHandler(PackageType.HostCommand, this.HandleMessageFromHost<HostCommand>);
+                    this.HandleMessageFromManager<RequireCreateEntityRes>);
+                self.RegisterMessageHandler(PackageType.HostCommand, this.HandleMessageFromManager<HostCommand>);
             },
             OnConnected = self =>
             {
@@ -69,18 +69,18 @@ internal class ImmediateHostManagerConnectionOfGate : ImmediateManagerConnection
                     },
                     false);
 
-                this.hostManagerConnectedEvent.Signal();
+                this.managerConnectedEvent.Signal();
             },
             OnDispose = self =>
             {
                 self.UnregisterMessageHandler(
                     PackageType.RequireCreateEntityRes,
-                    this.HandleMessageFromHost<RequireCreateEntityRes>);
-                self.UnregisterMessageHandler(PackageType.HostCommand, this.HandleMessageFromHost<HostCommand>);
+                    this.HandleMessageFromManager<RequireCreateEntityRes>);
+                self.UnregisterMessageHandler(PackageType.HostCommand, this.HandleMessageFromManager<HostCommand>);
             },
         };
     }
 
     /// <inheritdoc/>
-    protected override void BeforeStartPumpMessage() => this.hostManagerConnectedEvent.Wait();
+    protected override void BeforeStartPumpMessage() => this.managerConnectedEvent.Wait();
 }

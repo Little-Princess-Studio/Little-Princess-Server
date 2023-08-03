@@ -14,7 +14,7 @@ using LPS.Server.Rpc.InnerMessages;
 /// <summary>
 /// Message queue host connection of server.
 /// </summary>
-public class MessageQueueHostManagerConnectionOfGate : MessageQueueHostManagerConnectionBase
+public class MessageQueueHostManagerConnectionOfGate : MessageQueueManagerConnectionBase
 {
     private readonly Func<uint> onGenerateAsyncId;
 

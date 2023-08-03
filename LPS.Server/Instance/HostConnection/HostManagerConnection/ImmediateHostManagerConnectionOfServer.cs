@@ -52,21 +52,21 @@ internal class ImmediateHostManagerConnectionOfServer : ImmediateManagerConnecti
             {
                 self.RegisterMessageHandler(
                     PackageType.RequireCreateEntityRes,
-                    this.HandleMessageFromHost<RequireCreateEntityRes>);
+                    this.HandleMessageFromManager<RequireCreateEntityRes>);
                 self.RegisterMessageHandler(
                     PackageType.CreateDistributeEntity,
-                    this.HandleMessageFromHost<CreateDistributeEntity>);
-                self.RegisterMessageHandler(PackageType.HostCommand, this.HandleMessageFromHost<HostCommand>);
+                    this.HandleMessageFromManager<CreateDistributeEntity>);
+                self.RegisterMessageHandler(PackageType.HostCommand, this.HandleMessageFromManager<HostCommand>);
             },
             OnDispose = self =>
             {
                 self.UnregisterMessageHandler(
                     PackageType.RequireCreateEntityRes,
-                    this.HandleMessageFromHost<RequireCreateEntityRes>);
+                    this.HandleMessageFromManager<RequireCreateEntityRes>);
                 self.UnregisterMessageHandler(
                     PackageType.CreateDistributeEntity,
-                    this.HandleMessageFromHost<CreateDistributeEntity>);
-                self.UnregisterMessageHandler(PackageType.HostCommand, this.HandleMessageFromHost<HostCommand>);
+                    this.HandleMessageFromManager<CreateDistributeEntity>);
+                self.UnregisterMessageHandler(PackageType.HostCommand, this.HandleMessageFromManager<HostCommand>);
                 this.MsgDispatcher.Clear();
             },
             OnConnected = self =>
@@ -89,10 +89,10 @@ internal class ImmediateHostManagerConnectionOfServer : ImmediateManagerConnecti
                     ConnectionID = this.onGenerateAsyncId.Invoke(),
                 });
 
-                this.hostManagerConnectedEvent.Signal();
+                this.managerConnectedEvent.Signal();
             },
         };
 
     /// <inheritdoc/>
-    protected override void BeforeStartPumpMessage() => this.hostManagerConnectedEvent.Wait();
+    protected override void BeforeStartPumpMessage() => this.managerConnectedEvent.Wait();
 }
