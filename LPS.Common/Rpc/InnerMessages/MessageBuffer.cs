@@ -44,11 +44,6 @@ public class MessageBuffer
         pos += 2;
         var pkgType = BitConverter.ToUInt16(bytes.Span[pos..]);
 
-        // pkg.Header.Length = pkgLen;
-        // pkg.Header.ID = pkgId;
-        // pkg.Header.Version = pkgVersion;
-        // pkg.Header.Type = pkgType;
-        // pkg.Body = bytes.Slice(HeaderLen).ToArray();
         var header = new PackageHeader(pkgLen, pkgId, pkgVersion, pkgType);
         var pkg = new Package(header, bytes[HeaderLen..].ToArray());
 
@@ -102,7 +97,6 @@ public class MessageBuffer
             {
                 Buffer.BlockCopy(this.buffer, this.head, this.buffer, 0, this.BodyLen);
 
-                // Logger.Debug($"move to head {head_} {BodyLen}");
                 this.tail = this.BodyLen;
                 this.head = 0;
             }
@@ -114,7 +108,6 @@ public class MessageBuffer
 
         if (this.BodyLen < HeaderLen)
         {
-            // Logger.Debug("bodylen < header len");
             pkg = default;
             return false;
         }
@@ -125,20 +118,17 @@ public class MessageBuffer
             // Logger.Debug($"bodylen={BodyLen}, pkglen={pkgLen}");
             if (this.BodyLen == pkgLen)
             {
-                // Logger.Debug("bodylen == pkgLen");
                 pkg = this.GetPackage();
                 this.head = this.tail = 0;
                 return true;
             }
             else if (this.BodyLen < pkgLen)
             {
-                // Logger.Debug("bodylen < pkgLen");
                 pkg = default;
                 return false;
             }
             else if (this.BodyLen > pkgLen)
             {
-                // Logger.Debug("bodylen > pkgLen");
                 pkg = this.GetPackage();
                 this.head += pkgLen;
                 return true;
@@ -160,13 +150,6 @@ public class MessageBuffer
         pos += 2;
         var pkgType = BitConverter.ToUInt16(this.buffer, pos);
 
-        // Logger.Debug($"get pkg len: {pkgLen}, id: {pkgID}, version: {pkgVersion}, type: {pkgType}");
-        // pkg.Header.Length = pkgLen;
-        // pkg.Header.ID = pkgId;
-        // pkg.Header.Version = pkgVersion;
-        // pkg.Header.Type = pkgType;
-        // pkg.Body = new byte[pkgLen - HeaderLen];
-        // Buffer.BlockCopy(this.buffer, this.head + HeaderLen, pkg.Body, 0, pkgLen - HeaderLen);
         var bodyLen = pkgLen - HeaderLen;
         var body = new byte[bodyLen];
         Buffer.BlockCopy(this.buffer, this.head + HeaderLen, body, 0, bodyLen);

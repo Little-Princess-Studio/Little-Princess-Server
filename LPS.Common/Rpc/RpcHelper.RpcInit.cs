@@ -184,7 +184,6 @@ public static partial class RpcHelper
                 if (messageBuf.TryReceiveFromRaw(buf, len, out var pkg))
                 {
                     var type = (PackageType)pkg.Header.Type;
-
                     var pb = PackageHelper.GetProtoBufObjectByType(type, pkg);
                     var arg = (pb, conn, pkg.Header.ID);
                     var msg = new Message(type, arg);
