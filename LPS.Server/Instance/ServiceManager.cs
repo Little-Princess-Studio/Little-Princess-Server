@@ -7,6 +7,9 @@
 namespace LPS.Service.Instance;
 
 using System;
+using Google.Protobuf;
+using LPS.Common.Rpc;
+using LPS.Common.Rpc.InnerMessages;
 using LPS.Server;
 using LPS.Server.Rpc;
 
@@ -36,18 +39,32 @@ public class ServiceManager : IInstance
     /// <summary>
     /// Initializes a new instance of the <see cref="ServiceManager"/> class.
     /// </summary>
-    /// <param name="name">The name of the service.</param>
-    /// <param name="hostNum">The host number of the service.</param>
-    /// <param name="ip">The IP address of the service.</param>
-    /// <param name="port">The port number of the service.</param>
-    public ServiceManager(string name, int hostNum, string ip, int port)
+    /// <param name="name">Name of the server.</param>
+    /// <param name="ip">Ip of the server.</param>
+    /// <param name="port">Port of the server.</param>
+    /// <param name="hostNum">Hostnum of the server.</param>
+    /// <param name="hostManagerIp">Ip of the hostmanager.</param>
+    /// <param name="hostManagerPort">Port of the hostmanager.</param>
+    /// <param name="useMqToHostMgr">If use message queue to build connection with host manager.</param>
+    public ServiceManager(
+        string name,
+        string ip,
+        int port,
+        int hostNum,
+        string hostManagerIp,
+        int hostManagerPort,
+        bool useMqToHostMgr)
     {
         this.Ip = ip;
         this.Port = port;
         this.HostNum = hostNum;
         this.Name = name;
 
-        this.tcpServer = new TcpServer(ip, port);
+        this.tcpServer = new TcpServer(ip, port)
+        {
+            OnInit = this.RegisterServerMessageHandlers,
+            OnDispose = this.UnregisterServerMessageHandlers,
+        };
     }
 
     /// <inheritdoc/>
@@ -61,5 +78,27 @@ public class ServiceManager : IInstance
     public void Stop()
     {
         this.tcpServer.Stop();
+    }
+
+    private void RegisterServerMessageHandlers()
+    {
+        this.tcpServer.RegisterMessageHandler(PackageType.ServiceRpc, this.HandleServiceRpc);
+        this.tcpServer.RegisterMessageHandler(PackageType.ServiceRpcCallBack, this.HandleServiceRpcCallBack);
+    }
+
+    private void UnregisterServerMessageHandlers()
+    {
+        this.tcpServer.UnregisterMessageHandler(PackageType.ServiceRpc, this.HandleServiceRpc);
+        this.tcpServer.UnregisterMessageHandler(PackageType.ServiceRpcCallBack, this.HandleServiceRpcCallBack);
+    }
+
+    private void HandleServiceRpc((IMessage Message, Connection Connection, uint RpcId) arg)
+    {
+        // var serviceRpc = arg.Message as ServiceRpc;
+    }
+
+    private void HandleServiceRpcCallBack((IMessage Message, Connection Connection, uint RpcId) arg)
+    {
+        // var serviceRpc = arg.Message as ServiceRpcCallBack;
     }
 }

@@ -63,7 +63,7 @@ public static class Startup
     /// <param name="args">Args.</param>
     public static void Main(string[] args)
     {
-        _ = Parser.Default.ParseArguments<StartUpOptions, ByDefaultOptions, SubProcOptions>(args)
+        Parser.Default.ParseArguments<StartUpOptions, ByDefaultOptions, SubProcOptions>(args)
             .MapResult(
                 (StartUpOptions opts) =>
                 {
@@ -116,5 +116,6 @@ public static class Startup
         StartupManager.FromConfig("Config/host0/gate.conf.json", hotreload);
         StartupManager.FromConfig("Config/host0/server.conf.json", hotreload);
         StartupManager.FromConfig("Config/host0/dbmanager.conf.json", hotreload);
+        StartupManager.FromConfig("Config/host0/service.conf.json", hotreload);
     }
 }

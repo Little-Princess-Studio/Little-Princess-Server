@@ -44,6 +44,8 @@ public static class RpcProtobufDefs
         RegisterProtobufDef<CreateDistributeEntityRes>(PackageType.CreateDistributeEntityRes);
         RegisterProtobufDef<RequireComponentSync>(type: PackageType.RequireComponentSync);
         RegisterProtobufDef<ComponentSync>(PackageType.ComponentSync);
+        RegisterProtobufDef<ServiceRpc>(PackageType.ServiceRpc);
+        RegisterProtobufDef<ServiceRpcCallBack>(PackageType.ServiceRpcCallBack);
 
         #endregion
 

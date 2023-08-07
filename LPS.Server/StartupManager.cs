@@ -18,6 +18,7 @@ using LPS.Server.Database;
 using LPS.Server.Instance;
 using LPS.Server.MessageQueue;
 using LPS.Server.Rpc;
+using LPS.Service.Instance;
 using Newtonsoft.Json.Linq;
 
 /// <summary>
@@ -52,6 +53,9 @@ public static class StartupManager
                 case "server":
                     HandleServerConf(type, path, json, hotreaload);
                     break;
+                case "service":
+                    HandleServiceConf(type, path, json, hotreaload);
+                    break;
                 default:
                     throw new Exception($"Wrong Config File {path}.");
             }
@@ -84,6 +88,9 @@ public static class StartupManager
                 break;
             case "server":
                 StartUpServer(name, confFilePath);
+                break;
+            case "servicemanager":
+                StartUpServiceManager(name, confFilePath);
                 break;
             default:
                 throw new Exception($"Wrong Config File {type} {name} {confFilePath}.");
@@ -144,6 +151,18 @@ public static class StartupManager
         {
             StartSubProcess(type, name, confFilePath, relativePath, hotreload);
         }
+    }
+
+    private static void HandleServiceConf(string type, string confFilePath, JObject json, bool hotreload)
+    {
+        Logger.Info("startup service manager");
+
+        var dict = json["service_manager"]!.ToObject<Dictionary<string, JToken>>();
+
+        var relativePath = GetBinPath();
+        var name = "servicemanager";
+
+        StartSubProcess(name, name, confFilePath, relativePath, hotreload);
     }
 
     private static void StartSubProcess(
@@ -350,7 +369,7 @@ public static class StartupManager
     {
         RpcProtobufDefs.Initialize();
 
-        var json = GetJson(confFilePath);
+        var json = GetJson(path: confFilePath);
         var entityNamespace = json["entity_namespace"]!.ToString();
         var rpcPropertyNamespace = json["rpc_property_namespace"]!.ToString();
         var rpcStubInterfaceNamespace = json["rpc_stub_interface_namespace"]!.ToString();
@@ -370,7 +389,7 @@ public static class StartupManager
             .ToObject<DbHelper.DbInfo>()!;
         DbHelper.Initialize(globalCacheConf, name).Wait();
 
-        var serverInfo = json["servers"]![name]!;
+        var serverInfo = json[propertyName: "servers"]![name]!;
         var ip = serverInfo["ip"]!.ToString();
         var port = Convert.ToInt32(serverInfo["port"]!.ToString());
         var useMqToHost = Convert.ToBoolean(serverInfo["use_mq_to_host"]!.ToString());
@@ -386,5 +405,34 @@ public static class StartupManager
         ServerGlobal.Init(server);
 
         server.Loop();
+    }
+
+    private static void StartUpServiceManager(string name, string confFilePath)
+    {
+        RpcProtobufDefs.Initialize();
+
+        var json = GetJson(path: confFilePath);
+
+        var serviceMgrInfo = json[propertyName: "service_manager"]!;
+        var ip = serviceMgrInfo["ip"]!.ToString();
+        var port = Convert.ToInt32(serviceMgrInfo["port"]!.ToString());
+        var useMqToHost = Convert.ToBoolean(serviceMgrInfo["use_mq_to_host"]!.ToString());
+
+        var hostMgrConf = GetJson(json["hostmanager_conf"]!.ToString())!;
+        var hostnum = Convert.ToInt32(hostMgrConf["hostnum"]!.ToString());
+        var hostManagerIp = hostMgrConf["ip"]!.ToString();
+        var hostManagerPort = Convert.ToInt32(hostMgrConf["port"]!.ToString());
+
+        Logger.Debug($"Startup Service Manager {name} at {ip}:{port}, use mq: {useMqToHost}");
+        var serviceMgr = new ServiceManager(
+            name,
+            ip,
+            port,
+            hostnum,
+            hostManagerIp,
+            hostManagerPort,
+            useMqToHost);
+
+        ServerGlobal.Init(serviceMgr);
     }
 }

@@ -158,5 +158,7 @@ public enum PackageType
     CreateDistributeEntityRes = 13,
     RequireComponentSync = 14,
     ComponentSync = 15,
+    ServiceRpc = 16,
+    ServiceRpcCallBack = 17,
 #pragma warning restore SA1602
 }

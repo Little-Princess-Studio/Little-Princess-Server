@@ -1,6 +1,12 @@
 {
     "type": "service",
 
+    "service_manager": {
+        "ip": "127.0.0.1",
+        "port": 14101,
+        "use_mq_to_host": true
+    },
+
     "services": {
         "service0" : {
             "ip": "127.0.0.1",
@@ -10,7 +16,7 @@
         "service1": {
             "ip": "127.0.0.1",
             "port": 14011,
-            "use_mq_to_host": false
+            "use_mq_to_host": true
         }
     },
 
