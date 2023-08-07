@@ -29,28 +29,6 @@ public class MessageBuffer
     private byte[] buffer = new byte[InitBufLength];
 
     /// <summary>
-    /// Get package from bytes.
-    /// </summary>
-    /// <param name="bytes">bytes array.</param>
-    /// <returns>Package obj.</returns>
-    public static Package GetPackageFromBytes(ReadOnlyMemory<byte> bytes)
-    {
-        var pos = 0;
-        var pkgLen = BitConverter.ToUInt16(bytes.Span);
-        pos += 2;
-        var pkgId = BitConverter.ToUInt32(bytes.Span[pos..]);
-        pos += 4;
-        var pkgVersion = BitConverter.ToUInt16(bytes.Span[pos..]);
-        pos += 2;
-        var pkgType = BitConverter.ToUInt16(bytes.Span[pos..]);
-
-        var header = new PackageHeader(pkgLen, pkgId, pkgVersion, pkgType);
-        var pkg = new Package(header, bytes[HeaderLen..].ToArray());
-
-        return pkg;
-    }
-
-    /// <summary>
     /// How to handle TCP stream raw data to Package:
     /// 1. if tail_+len-1 >= current len
     /// if bodylen + len >= current len
@@ -118,7 +96,7 @@ public class MessageBuffer
             // Logger.Debug($"bodylen={BodyLen}, pkglen={pkgLen}");
             if (this.BodyLen == pkgLen)
             {
-                pkg = this.GetPackage();
+                pkg = PackageHelper.GetPackage(this.head, this.buffer);
                 this.head = this.tail = 0;
                 return true;
             }
@@ -129,7 +107,7 @@ public class MessageBuffer
             }
             else if (this.BodyLen > pkgLen)
             {
-                pkg = this.GetPackage();
+                pkg = PackageHelper.GetPackage(this.head, this.buffer);
                 this.head += pkgLen;
                 return true;
             }
@@ -139,7 +117,7 @@ public class MessageBuffer
         return false;
     }
 
-    private Package GetPackage()
+/*
     {
         int pos = this.head;
         var pkgLen = BitConverter.ToUInt16(this.buffer, pos);
@@ -159,4 +137,5 @@ public class MessageBuffer
 
         return pkg;
     }
+*/
 }

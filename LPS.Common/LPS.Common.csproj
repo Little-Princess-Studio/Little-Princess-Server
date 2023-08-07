@@ -16,6 +16,7 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <AdditionalFiles Include="../stylecop.json" />
+    <PackageReference Include="System.IO.Pipelines" Version="7.0.0" />
   </ItemGroup>
 
 </Project>

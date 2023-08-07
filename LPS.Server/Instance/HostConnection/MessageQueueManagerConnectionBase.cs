@@ -122,7 +122,7 @@ public abstract class MessageQueueManagerConnectionBase : IManagerConnection
             routingKey == Consts.HostBroadCastMessagePackageToServer ||
             routingKey == Consts.HostBroadCastMessagePackageToGate)
         {
-            var pkg = MessageBuffer.GetPackageFromBytes(msg);
+            var pkg = PackageHelper.GetPackageFromBytes(msg);
             var type = (PackageType)pkg.Header.Type;
             var protobuf = PackageHelper.GetProtoBufObjectByType(type, pkg);
             this.dispatcher.Dispatch(type, protobuf);

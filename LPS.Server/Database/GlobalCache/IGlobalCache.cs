@@ -6,7 +6,6 @@
 
 namespace LPS.Server.Database.GlobalCache;
 
-using System.Collections.Generic;
 using System.Threading.Tasks;
 
 /// <summary>

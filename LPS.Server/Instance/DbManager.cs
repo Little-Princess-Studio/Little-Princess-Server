@@ -31,6 +31,9 @@ using static LPS.Common.Rpc.InnerMessages.PackageHelper;
 public class DbManager : IInstance
 {
     /// <inheritdoc/>
+    public string Name { get; }
+
+    /// <inheritdoc/>
     public string Ip { get; }
 
     /// <inheritdoc/>
@@ -71,6 +74,7 @@ public class DbManager : IInstance
         this.Ip = ip;
         this.Port = port;
         this.HostNum = hostNum;
+        this.Name = "hostmgr";
 
         this.messageQueueClientToOtherInstance = new MessageQueueClient();
         this.clientToHostManager = new TcpClient(

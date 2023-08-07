@@ -6,8 +6,10 @@
 
 namespace LPS.Common.Rpc.InnerMessages;
 
+using System.Buffers;
 using System.Collections.ObjectModel;
 using Google.Protobuf;
+using LPS.Common.Debug;
 using LPS.Common.Util;
 
 /// <summary>
@@ -21,6 +23,8 @@ public static class PackageHelper
     /// <param name="pkg">Package.</param>
     /// <returns>Created protobuf message.</returns>
     public delegate IMessage CreateIMessage(in Package pkg);
+
+    private static readonly int HeaderLen = PackageHeader.Size;
 
     private static ReadOnlyDictionary<PackageType, CreateIMessage> type2Protobuf = null!;
     private static ReadOnlyDictionary<Type, PackageType> type2Enum = null!;
@@ -139,4 +143,85 @@ public static class PackageHelper
     /// <param name="type">Protobuf package type.</param>
     /// <returns><see cref="PackageType"/>.</returns>
     public static PackageType GetPackageType(Type type) => type2Enum[type];
+
+        /// <summary>
+    /// Get package from bytes.
+    /// </summary>
+    /// <param name="bytes">bytes array.</param>
+    /// <returns>Package obj.</returns>
+    public static Package GetPackageFromBytes(ReadOnlyMemory<byte> bytes)
+    {
+        var pos = 0;
+        var pkgLen = BitConverter.ToUInt16(bytes.Span);
+        pos += 2;
+        var pkgId = BitConverter.ToUInt32(bytes.Span[pos..]);
+        pos += 4;
+        var pkgVersion = BitConverter.ToUInt16(bytes.Span[pos..]);
+        pos += 2;
+        var pkgType = BitConverter.ToUInt16(bytes.Span[pos..]);
+
+        var header = new PackageHeader(pkgLen, pkgId, pkgVersion, pkgType);
+        var pkg = new Package(header, bytes[HeaderLen..].ToArray());
+
+        return pkg;
+    }
+
+    /// <summary>
+    /// Get package from byte array starting at a specified position.
+    /// </summary>
+    /// <param name="startPosition">The starting position of the package in the byte array.</param>
+    /// <param name="buffer">The byte array containing the package.</param>
+    /// <returns>The package object.</returns>
+    public static Package GetPackage(int startPosition, byte[] buffer)
+    {
+        int pos = startPosition;
+        var pkgLen = BitConverter.ToUInt16(buffer, pos);
+        pos += 2;
+        var pkgId = BitConverter.ToUInt32(buffer, pos);
+        pos += 4;
+        var pkgVersion = BitConverter.ToUInt16(buffer, pos);
+        pos += 2;
+        var pkgType = BitConverter.ToUInt16(buffer, pos);
+
+        var bodyLen = pkgLen - HeaderLen;
+        var body = new byte[bodyLen];
+        Buffer.BlockCopy(buffer, startPosition + HeaderLen, body, 0, bodyLen);
+
+        var header = new PackageHeader(pkgLen, pkgId, pkgVersion, pkgType);
+        var pkg = new Package(header, body);
+
+        return pkg;
+    }
+
+    /// <summary>
+    /// Parses a sequence of bytes to create a new <see cref="Package"/> object.
+    /// </summary>
+    /// <param name="sequenceToParse">The sequence of bytes to parse.</param>
+    /// <returns>A new <see cref="Package"/> object.</returns>
+    public static Package GetPackage(ref ReadOnlySequence<byte> sequenceToParse)
+    {
+        int pos = 0;
+        var buffer = sequenceToParse.Slice(pos).FirstSpan;
+        var pkgLen = BitConverter.ToUInt16(buffer);
+
+        pos += 2;
+        buffer = sequenceToParse.Slice(pos).FirstSpan;
+        var pkgId = BitConverter.ToUInt32(buffer);
+
+        pos += 4;
+        buffer = sequenceToParse.Slice(pos).FirstSpan;
+        var pkgVersion = BitConverter.ToUInt16(buffer);
+
+        pos += 2;
+        buffer = sequenceToParse.Slice(pos).FirstSpan;
+        var pkgType = BitConverter.ToUInt16(buffer);
+
+        var bodyLen = pkgLen - HeaderLen;
+        var body = sequenceToParse.Slice(HeaderLen, bodyLen).ToArray();
+
+        var header = new PackageHeader(pkgLen, pkgId, pkgVersion, pkgType);
+        var pkg = new Package(header, body);
+
+        return pkg;
+    }
 }

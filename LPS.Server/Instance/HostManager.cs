@@ -271,7 +271,7 @@ public class HostManager : IInstance
                 switch (msgType)
                 {
                     case "serverMessagePackage":
-                        var pkg = MessageBuffer.GetPackageFromBytes(msg);
+                        var pkg = PackageHelper.GetPackageFromBytes(msg);
                         var type = (PackageType)pkg.Header.Type;
                         var protobuf = PackageHelper.GetProtoBufObjectByType(type, pkg);
                         Logger.Debug($"Message package type: {type}");
@@ -293,7 +293,7 @@ public class HostManager : IInstance
                 switch (msgType)
                 {
                     case "serverMessagePackage":
-                        var pkg = MessageBuffer.GetPackageFromBytes(msg);
+                        var pkg = PackageHelper.GetPackageFromBytes(msg);
                         var type = (PackageType)pkg.Header.Type;
                         var protobuf = PackageHelper.GetProtoBufObjectByType(type, pkg);
                         this.dispatcher.Dispatch(type, (protobuf, targetIdentifier, InstanceType.Gate));

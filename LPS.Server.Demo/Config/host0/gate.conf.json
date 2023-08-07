@@ -7,7 +7,7 @@
             "ip": "127.0.0.1",
             "innerip": "127.0.0.1",
             "port": 11001,
-            "use_mq_to_host": true
+            "use_mq_to_host": false
         },
         "gate1": {
             "ip": "127.0.0.1",

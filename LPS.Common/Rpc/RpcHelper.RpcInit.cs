@@ -3,10 +3,13 @@
 // Copyright (c) Little Princess Studio. All rights reserved.
 // </copyright>
 // -----------------------------------------------------------------------
+#define USE_PIPE
 
 namespace LPS.Common.Rpc;
 
+using System.Buffers;
 using System.Collections.ObjectModel;
+using System.IO.Pipelines;
 using System.Net.Sockets;
 using System.Reflection;
 using Google.Protobuf.WellKnownTypes;
@@ -165,6 +168,11 @@ public static partial class RpcHelper
         Action<Message> onGotMessage,
         Action? onExitLoop)
     {
+#if USE_PIPE
+        Logger.Debug("Use Pipe: true");
+        await HandleMessageWithPipe(conn, stopCondition, onGotMessage, onExitLoop);
+#else
+        Logger.Debug("Use Pipe: false");
         var buf = new byte[512];
         var messageBuf = new MessageBuffer();
         var socket = conn.Socket;
@@ -216,6 +224,7 @@ public static partial class RpcHelper
         {
             socket.Close();
         }
+#endif
     }
 
     /// <summary>
@@ -533,6 +542,150 @@ public static partial class RpcHelper
         }
 
         return valid;
+    }
+
+    /// <summary>
+    /// Handle messages from remote using a pipe.
+    /// </summary>
+    /// <param name="conn">Connection of remote.</param>
+    /// <param name="stopCondition">Stop checker.</param>
+    /// <param name="onGotMessage">Handler when receiving message.</param>
+    /// <param name="onExitLoop">Handler when exiting.</param>
+    /// <returns>Task.</returns>
+    private static async Task HandleMessageWithPipe(
+        Connection conn,
+        Func<bool> stopCondition,
+        Action<Message> onGotMessage,
+        Action? onExitLoop)
+    {
+        var socket = conn.Socket;
+
+        var pipe = new Pipe();
+        var writer = pipe.Writer;
+        var reader = pipe.Reader;
+
+        await Task.WhenAll(
+            FillPipeAsync(writer, conn, stopCondition),
+            ReadPipeAsync(reader, conn, onGotMessage, stopCondition)).ContinueWith((t) =>
+            {
+                if (t.Exception != null)
+                {
+                    Logger.Error(t.Exception, "HandleMessageWithPipe error");
+                }
+            });
+
+        Logger.Debug("Exit HandleMessageWithPipe");
+        onExitLoop?.Invoke();
+
+        try
+        {
+            socket.Shutdown(SocketShutdown.Both);
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Close socket failed");
+        }
+        finally
+        {
+            socket.Close();
+        }
+    }
+
+    private static async Task FillPipeAsync(PipeWriter writer, Connection conn, Func<bool> stopCondition)
+    {
+        const int minimumBufferSize = 512;
+
+        var socket = conn.Socket;
+        var cancelTokenSource = conn.TokenSource;
+
+        while (conn.Status == ConnectStatus.Connected && !stopCondition.Invoke())
+        {
+            var memory = writer.GetMemory(minimumBufferSize);
+            try
+            {
+                var bytesRead = await socket.ReceiveAsync(memory, SocketFlags.None, cancelTokenSource.Token);
+                Logger.Info($"Read {bytesRead} bytes from socket.");
+                if (bytesRead == 0)
+                {
+                    Logger.Info("Remote close the connection.");
+                    break;
+                }
+
+                writer.Advance(bytesRead);
+            }
+            catch (OperationCanceledException ex)
+            {
+                Logger.Error(ex, "IO Task canceled, socket will close.");
+                break;
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex, "Read socket data failed, socket will close.");
+                break;
+            }
+
+            // Make the data available to the PipeReader
+            _ = await writer.FlushAsync();
+
+            // if (result.IsCompleted)
+            // {
+            //     Logger.Debug("Reader no longger read data from writer.");
+            //     break;
+            // }
+        }
+
+        Logger.Debug("Writer complete.");
+        writer.Complete();
+    }
+
+    private static async Task ReadPipeAsync(PipeReader reader, Connection conn, Action<Message> onGotMessage, Func<bool> stopCondition)
+    {
+        while (conn.Status == ConnectStatus.Connected && !stopCondition.Invoke())
+        {
+            var result = await reader.ReadAsync();
+            var buffer = result.Buffer;
+
+            while (buffer.Length > PackageHeader.Size)
+            {
+                var pkgLen = GetPackageLength(ref buffer);
+
+                if (buffer.Length >= pkgLen)
+                {
+                    var bytesToParse = buffer.Slice(buffer.Start, pkgLen);
+
+                    var pkg = PackageHelper.GetPackage(
+                        ref bytesToParse);
+
+                    PackageType type = (PackageType)pkg.Header.Type;
+                    var pb = PackageHelper.GetProtoBufObjectByType(type, pkg);
+                    var arg = (pb, conn, pkg.Header.ID);
+                    var msg = new Message(type, arg);
+                    onGotMessage(msg);
+
+                    buffer = buffer.Slice(bytesToParse.End);
+                    reader.AdvanceTo(bytesToParse.End);
+                }
+                else
+                {
+                    break;
+                }
+            }
+
+            // if (result.IsCompleted)
+            // {
+            //     Logger.Debug("Writer no longger write data to reader.");
+            //     break;
+            // }
+        }
+
+        reader.Complete();
+
+        static ushort GetPackageLength(ref ReadOnlySequence<byte> buffer)
+        {
+            var bytesToParse = buffer.Slice(buffer.Start, 2).FirstSpan;
+            var pkgLen = BitConverter.ToUInt16(bytesToParse);
+            return pkgLen;
+        }
     }
 
     private static Dictionary<string, RpcProperty.RpcProperty> BuildPropertyTreeInternal(object obj, Type type, HashSet<Type> allowedRpcPropertyGenTypes)

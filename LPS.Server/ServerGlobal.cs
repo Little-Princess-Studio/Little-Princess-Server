@@ -124,22 +124,22 @@ public interface IInstance
     /// <summary>
     /// Gets the ip of the instance.
     /// </summary>
-    public string Ip { get; }
+    string Ip { get; }
 
     /// <summary>
     /// Gets the port of the instance.
     /// </summary>
-    public int Port { get; }
+    int Port { get; }
 
     /// <summary>
     /// Gets the hostnum of the instance.
     /// </summary>
-    public int HostNum { get; }
+    int HostNum { get; }
 
     /// <summary>
     /// Gets the name of the instance.
     /// </summary>
-    public string Name { get; }
+    string Name { get; }
 
     /// <summary>
     /// Main loop of the instance process.
