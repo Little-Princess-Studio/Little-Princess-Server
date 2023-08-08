@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-// <copyright file="ImmediateServiceManagerConnectionOfServer.cs" company="Little Princess Studio">
+// <copyright file="ImmediateServiceManagerConnectionOfService.cs" company="Little Princess Studio">
 // Copyright (c) Little Princess Studio. All rights reserved.
 // </copyright>
 // -----------------------------------------------------------------------
@@ -12,20 +12,20 @@ using LPS.Server.Rpc;
 /// <summary>
 /// Represents a connection to the immediate service manager of the server.
 /// </summary>
-internal class ImmediateServiceManagerConnectionOfServer : ImmediateManagerConnectionBase
+internal class ImmediateServiceManagerConnectionOfService : ImmediateManagerConnectionBase
 {
     private readonly string serviceManagerIp;
     private readonly int serviceManagerPort;
     private readonly Func<uint> onGenerateAsyncId;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="ImmediateServiceManagerConnectionOfServer"/> class.
+    /// Initializes a new instance of the <see cref="ImmediateServiceManagerConnectionOfService"/> class.
     /// </summary>
     /// <param name="serviceManagerIp">The IP address of the service manager.</param>
     /// <param name="serviceManagerPort">The port number of the service manager.</param>
     /// <param name="onGenerateAsyncId">A function that generates an asynchronous ID.</param>
     /// <param name="checkServerStopped">A function that returns a value indicating whether the server is stopped.</param>
-    public ImmediateServiceManagerConnectionOfServer(
+    public ImmediateServiceManagerConnectionOfService(
         string serviceManagerIp,
         int serviceManagerPort,
         Func<uint> onGenerateAsyncId,
