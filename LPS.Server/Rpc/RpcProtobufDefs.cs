@@ -46,6 +46,8 @@ public static class RpcProtobufDefs
         RegisterProtobufDef<ComponentSync>(PackageType.ComponentSync);
         RegisterProtobufDef<ServiceRpc>(PackageType.ServiceRpc);
         RegisterProtobufDef<ServiceRpcCallBack>(PackageType.ServiceRpcCallBack);
+        RegisterProtobufDef<ServiceControl>(PackageType.ServiceControl);
+        RegisterProtobufDef<ServiceManagerCommand>(PackageType.ServiceManagerCommand);
 
         #endregion
 

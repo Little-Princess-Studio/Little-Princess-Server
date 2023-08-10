@@ -20,6 +20,8 @@
         }
     },
 
+    "service_namespace": "LPS.Server.Demo.Logic.Service",
+
     "hostmanager_conf": "Config/host0/hostmanager.conf.json",
     "mq_conf": "Config/host0/mq.conf.json",
     "globalcache_conf": "Config/host0/globalcache.conf.json"

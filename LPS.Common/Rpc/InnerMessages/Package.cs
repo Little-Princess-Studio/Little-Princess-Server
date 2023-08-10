@@ -160,5 +160,7 @@ public enum PackageType
     ComponentSync = 15,
     ServiceRpc = 16,
     ServiceRpcCallBack = 17,
+    ServiceControl = 18,
+    ServiceManagerCommand = 19,
 #pragma warning restore SA1602
 }

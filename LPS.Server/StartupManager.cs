@@ -18,6 +18,7 @@ using LPS.Server.Database;
 using LPS.Server.Instance;
 using LPS.Server.MessageQueue;
 using LPS.Server.Rpc;
+using LPS.Server.Service;
 using LPS.Service.Instance;
 using Newtonsoft.Json.Linq;
 
@@ -92,6 +93,9 @@ public static class StartupManager
             case "servicemanager":
                 StartUpServiceManager(name, confFilePath);
                 break;
+            case "service":
+                StartUpService(name, confFilePath);
+                break;
             default:
                 throw new Exception($"Wrong Config File {type} {name} {confFilePath}.");
         }
@@ -157,12 +161,17 @@ public static class StartupManager
     {
         Logger.Info("startup service manager");
 
-        var dict = json["service_manager"]!.ToObject<Dictionary<string, JToken>>();
-
         var relativePath = GetBinPath();
         var name = "servicemanager";
 
-        StartSubProcess(name, name, confFilePath, relativePath, hotreload);
+        StartSubProcess("servicemanager", name, confFilePath, relativePath, hotreload);
+
+        var dict = json["service_manager"]!.ToObject<Dictionary<string, JToken>>()!;
+        var services = dict["services"]!.ToObject<Dictionary<string, JToken>>();
+        foreach (var serviceName in services!.Keys)
+        {
+            StartSubProcess("service", serviceName, confFilePath, relativePath, hotreload);
+        }
     }
 
     private static void StartSubProcess(
@@ -287,7 +296,7 @@ public static class StartupManager
         var ip = json["ip"]!.ToString();
         var port = json["port"]!.ToObject<int>();
 
-        var hostMgrConf = GetJson(json["hostmanager_conf"]!.ToString())!;
+        var hostMgrConf = GetJson(path: json["hostmanager_conf"]!.ToString())!;
         var hostnum = Convert.ToInt32(hostMgrConf["hostnum"]!.ToString());
         var hostManagerIp = hostMgrConf["ip"]!.ToString();
         var hostManagerPort = Convert.ToInt32(hostMgrConf["port"]!.ToString());
@@ -413,6 +422,10 @@ public static class StartupManager
 
         var json = GetJson(path: confFilePath);
 
+        var extraAssemblies = new System.Reflection.Assembly[] { typeof(StartupManager).Assembly };
+        var service_namespace = json["service_namespace"]!.ToString();
+        ServiceHelper.ScanServices(service_namespace, extraAssemblies);
+
         var serviceMgrInfo = json[propertyName: "service_manager"]!;
         var ip = serviceMgrInfo["ip"]!.ToString();
         var port = Convert.ToInt32(serviceMgrInfo["port"]!.ToString());
@@ -434,5 +447,44 @@ public static class StartupManager
             useMqToHost);
 
         ServerGlobal.Init(serviceMgr);
+
+        serviceMgr.Loop();
+    }
+
+    private static void StartUpService(string name, string confFilePath)
+    {
+        RpcProtobufDefs.Initialize();
+
+        var json = GetJson(path: confFilePath);
+
+        var extraAssemblies = new System.Reflection.Assembly[] { typeof(StartupManager).Assembly };
+        var service_namespace = json["service_namespace"]!.ToString();
+        ServiceHelper.ScanServices(service_namespace, extraAssemblies);
+
+        var serviceMgrInfo = json[propertyName: "service_manager"]!;
+        var serviceMgrIp = serviceMgrInfo["ip"]!.ToString();
+        var serviceMgrPort = Convert.ToInt32(serviceMgrInfo["port"]!.ToString());
+
+        var serviceConf = json["services"]![name]!;
+        var ip = serviceConf["ip"]!.ToString();
+        var port = Convert.ToInt32(serviceConf["port"]!.ToString());
+        var useMqToHost = Convert.ToBoolean(serviceConf["use_mq_to_host"]!.ToString());
+
+        var hostMgrConf = GetJson(path: json["hostmanager_conf"]!.ToString())!;
+        var hostnum = Convert.ToInt32(hostMgrConf["hostnum"]!.ToString());
+
+        Logger.Debug($"Start up Service {name} at {ip}:{port}, use mq: {useMqToHost}");
+
+        var service = new LPS.Service.Instance.Service(
+            serviceMgrIp,
+            serviceMgrPort,
+            name,
+            ip,
+            port,
+            hostnum);
+
+        ServerGlobal.Init(service);
+
+        service.Loop();
     }
 }

@@ -7,14 +7,60 @@
 namespace LPS.Server.Service;
 
 using System;
+using System.Collections.Concurrent;
+using System.Threading;
 using System.Threading.Tasks;
+using LPS.Common.Debug;
+using LPS.Common.Ipc;
 using LPS.Common.Rpc;
+using LPS.Common.Rpc.InnerMessages;
 
 /// <summary>
 /// Base class for all services in the LPS.
 /// </summary>
 public abstract class ServiceBase
 {
+    /// <summary>
+    /// Gets or sets the shard number for this service.
+    /// </summary>
+    public uint Shard { get; set; }
+
+    private readonly ConcurrentQueue<ServiceRpc> rpcQueue = new();
+
+    private bool stopFlag = false;
+
+    private SandBox sandBox = null!;
+
+    /// <summary>
+    /// Starts the service.
+    /// </summary>
+    public void Start()
+    {
+        this.sandBox = SandBox.Create(this.IoHandler);
+        this.sandBox.Run();
+        this.OnStart();
+    }
+
+    /// <summary>
+    /// Waits for the associated sandbox to exit.
+    /// </summary>
+    public void WaitForExit() => this.sandBox.WaitForExit();
+
+    /// <summary>
+    /// Stops the service.
+    /// </summary>
+    public void Stop()
+    {
+        this.stopFlag = true;
+        this.OnStop();
+    }
+
+    /// <summary>
+    /// Enqueues the specified ServiceRpc for processing.
+    /// </summary>
+    /// <param name="rpc">The ServiceRpc to enqueue.</param>
+    public void EnqueueRpc(ServiceRpc rpc) => this.rpcQueue.Enqueue(rpc);
+
     /// <summary>
     /// Called when the service is started.
     /// </summary>
@@ -44,7 +90,7 @@ public abstract class ServiceBase
     /// <param name="methodName">The name of the remote method to call.</param>
     /// <param name="args">The arguments to pass to the remote method.</param>
     /// <returns>A task that represents the asynchronous operation.</returns>
-    public Task<T> Call<T>(MailBox mailBox, string methodName, params object[] args)
+    public Task<T> Call<T>(Common.Rpc.MailBox mailBox, string methodName, params object[] args)
     {
         throw new NotImplementedException();
     }
@@ -56,7 +102,7 @@ public abstract class ServiceBase
     /// <param name="methodName">The name of the remote method to call.</param>
     /// <param name="args">The arguments to pass to the remote method.</param>
     /// <returns>A task that represents the asynchronous operation.</returns>
-    public Task Call(MailBox mailBox, string methodName, params object[] args)
+    public Task Call(Common.Rpc.MailBox mailBox, string methodName, params object[] args)
     {
         throw new NotImplementedException();
     }
@@ -67,7 +113,7 @@ public abstract class ServiceBase
     /// <param name="mailBox">The mailbox of the entity to notify.</param>
     /// <param name="methodName">The name of the remote method to invoke.</param>
     /// <param name="args">The arguments to pass to the remote method.</param>
-    public void Notify(MailBox mailBox, string methodName, params object[] args)
+    public void Notify(Common.Rpc.MailBox mailBox, string methodName, params object[] args)
     {
         throw new NotImplementedException();
     }
@@ -108,6 +154,35 @@ public abstract class ServiceBase
     /// <param name="args">The arguments to pass to the remote method.</param>
     /// <returns>A task that represents the asynchronous operation.</returns>
     public Task NotifyService(string serviceName, int shard, string methodName, params object[] args)
+    {
+        throw new NotImplementedException();
+    }
+
+    private void IoHandler()
+    {
+        while (!this.stopFlag)
+        {
+            if (this.rpcQueue.TryDequeue(out var rpc))
+            {
+                try
+                {
+                    this.HandleRpc(rpc);
+                }
+                catch (System.Exception e)
+                {
+                    Logger.Error(e, "Error while handling RPC.");
+                }
+            }
+            else
+            {
+                Thread.Sleep(1);
+            }
+        }
+
+        Logger.Info("Service stopped.");
+    }
+
+    private void HandleRpc(ServiceRpc rpc)
     {
         throw new NotImplementedException();
     }

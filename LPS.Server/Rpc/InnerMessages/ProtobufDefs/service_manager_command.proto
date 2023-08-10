@@ -1,0 +1,15 @@
+syntax = "proto3";
+import "google/protobuf/any.proto";
+package LPS.Server.Rpc.InnerMessages;
+
+enum ServiceManagerCommandType {
+    Start = 0;
+    Restart = 1;
+    Stop = 2;
+    CreateNewServices = 3;
+}
+
+message ServiceManagerCommand {
+    ServiceManagerCommandType Type = 1;
+    repeated google.protobuf.Any Args = 2;
+}

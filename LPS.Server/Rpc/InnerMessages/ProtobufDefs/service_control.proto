@@ -1,0 +1,19 @@
+syntax = "proto3";
+import "google/protobuf/any.proto";
+package LPS.Server.Rpc.InnerMessages;
+
+enum ServiceControlMessage {
+    Ready = 0;
+    Restarted = 1;
+    ShutDown = 2;
+}
+
+enum ServiceRemoteType {
+    Service = 0;
+}
+
+message ServiceControl {
+  ServiceRemoteType From = 1;
+  ServiceControlMessage Message = 2;
+  repeated google.protobuf.Any Args = 3;
+}

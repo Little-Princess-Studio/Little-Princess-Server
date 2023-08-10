@@ -73,7 +73,7 @@ public class Server : IInstance
     private ServerEntity? entity;
     private CellEntity? defaultCell;
 
-    private Common.Rpc.Connection[] GateConnections => this.tcpServer.AllConnections;
+    private Connection[] GateConnections => this.tcpServer.AllConnections;
 
     private uint createEntityCounter;
     private CountdownEvent? gatesMailBoxesRegisteredEvent;

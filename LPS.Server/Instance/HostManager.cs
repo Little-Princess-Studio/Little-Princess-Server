@@ -90,14 +90,14 @@ public class HostManager : IInstance
     public int Port { get; }
 
     /// <summary>
-    /// Server num of the host.
+    /// Server num of the server desired to be registered.
     /// </summary>
-    public readonly int ServerNum;
+    public readonly int DesiredServerNum;
 
     /// <summary>
-    /// Gate num of the host.
+    /// Gate num of the gates desired to be registered.
     /// </summary>
-    public readonly int GateNum;
+    public readonly int DesiredGateNum;
 
     /// <summary>
     /// Gets status of the hostmanager.
@@ -138,8 +138,8 @@ public class HostManager : IInstance
         this.HostNum = hostNum;
         this.Ip = ip;
         this.Port = port;
-        this.ServerNum = serverNum;
-        this.GateNum = gateNum;
+        this.DesiredServerNum = serverNum;
+        this.DesiredGateNum = gateNum;
 
         this.tcpServer = new TcpServer(ip, port)
         {
@@ -330,7 +330,7 @@ public class HostManager : IInstance
                         msgId,
                         new JObject
                         {
-                            ["serverCnt"] = this.ServerNum,
+                            ["serverCnt"] = this.DesiredServerNum,
                             ["serverMailBoxes"] = new JArray(this.serversMailBoxes.Select(conn => new JObject
                             {
                                 ["id"] = conn.Id,
@@ -605,7 +605,7 @@ public class HostManager : IInstance
                 throw new ArgumentOutOfRangeException(nameof(hostCmdFrom), hostCmdFrom, null);
         }
 
-        if (this.serversMailBoxes.Count != this.ServerNum || this.gatesMailBoxes.Count != this.GateNum)
+        if (this.serversMailBoxes.Count != this.DesiredServerNum || this.gatesMailBoxes.Count != this.DesiredGateNum)
         {
             return;
         }
@@ -646,7 +646,7 @@ public class HostManager : IInstance
             serverConn.Socket.Send(bytes);
         }
 
-        if (serverConns.Count != this.ServerNum)
+        if (serverConns.Count != this.DesiredServerNum)
         {
             this.messageQueueClientToServer.Publish(
                 bytes,
@@ -655,7 +655,7 @@ public class HostManager : IInstance
                 false);
         }
 
-        if (gateConns.Count != this.GateNum)
+        if (gateConns.Count != this.DesiredGateNum)
         {
             this.messageQueueClientToServer.Publish(
                 bytes,
@@ -687,7 +687,7 @@ public class HostManager : IInstance
             gateConn.Socket.Send(bytes);
         }
 
-        if (gateConns.Count != this.GateNum)
+        if (gateConns.Count != this.DesiredGateNum)
         {
             this.messageQueueClientToServer.Publish(
                 bytes,
