@@ -405,12 +405,15 @@ public static partial class RpcHelper
     }
 
     /// <summary>
-    /// Scans all the RPC methods in the specified namespace and registers them.
+    /// Scans the specified namespaces for classes that inherit from the specified class type and have methods decorated with the specified attribute type.
+    /// Registers the found classes and their RPC methods in a dictionary.
     /// </summary>
-    /// <param name="namespaceNames">The namespaces to scan for RPC methods.</param>
-    /// <param name="extraAssemblies">Optional extra assemblies to include in the scan.</param>
-    /// <exception cref="Exception">Thrown if there is an error while scanning or registering the RPC methods.</exception>
-    public static void ScanRpcMethods(string[] namespaceNames, Assembly[]? extraAssemblies = null)
+    /// <param name="namespaceNames">An array of namespace names to scan for classes.</param>
+    /// <param name="baseClassType">The base class type that the found classes must inherit from.</param>
+    /// <param name="attributeTypeToScan">The attribute type that the found methods must be decorated with.</param>
+    /// <param name="getKeyName">A function that returns a unique key name for each found class.</param>
+    /// <param name="extraAssemblies">An optional array of extra assemblies to scan for classes.</param>
+    public static void ScanRpcMethods(string[] namespaceNames, Type baseClassType, Type attributeTypeToScan, Func<Type, string?> getKeyName, Assembly[]? extraAssemblies = null)
     {
         var tempRpcMethodInfo = new Dictionary<uint, ReadOnlyDictionary<string, RpcMethodDescriptor>>();
 
@@ -419,7 +422,7 @@ public static partial class RpcHelper
             var types =
                 AttributeHelper.ScanTypeWithNamespaceAndAttribute(
                     namespaceName,
-                    typeof(EntityClassAttribute),
+                    attributeTypeToScan,
                     false,
                     type => type.IsClass,
                     extraAssemblies)
@@ -430,15 +433,15 @@ public static partial class RpcHelper
 
             types.ForEach(type =>
             {
-                if (!type.IsSubclassOf(typeof(BaseEntity)))
+                if (!type.IsSubclassOf(baseClassType))
                 {
                     throw new Exception(
-                        $"Invalid entity class {type}, entity class must inherit from BaseEntity class.");
+                        $"Invalid entity class {type}, entity class must inherit from {baseClassType} class.");
                 }
 
-                var attrName = type.GetCustomAttribute<EntityClassAttribute>()!.Name;
-                var regName = attrName != string.Empty ? attrName : type.Name;
-                EntityClassMap[regName] = type;
+                var attrName = getKeyName(type);
+                var regName = string.IsNullOrEmpty(attrName) ? attrName : type.Name;
+                EntityClassMap[regName!] = type;
                 Logger.Info($"Register entity pair : {regName} {type}");
             });
 
@@ -474,8 +477,21 @@ public static partial class RpcHelper
                 });
         }
 
-        rpcMethodInfo = new(tempRpcMethodInfo);
+        rpcMethodInfo = new ReadOnlyDictionary<uint, ReadOnlyDictionary<string, RpcMethodDescriptor>>(tempRpcMethodInfo);
     }
+
+    /// <summary>
+    /// Scans all the RPC methods in the specified namespace and registers them.
+    /// </summary>
+    /// <param name="namespaceNames">The namespaces to scan for RPC methods.</param>
+    /// <param name="extraAssemblies">Optional extra assemblies to include in the scan.</param>
+    /// <exception cref="Exception">Thrown if there is an error while scanning or registering the RPC methods.</exception>
+    public static void ScanRpcMethods(string[] namespaceNames, Assembly[]? extraAssemblies = null) => ScanRpcMethods(
+            namespaceNames,
+            typeof(BaseEntity),
+            typeof(EntityClassAttribute),
+            type => type.GetCustomAttribute<EntityClassAttribute>()!.Name,
+            extraAssemblies);
 
     /// <summary>
     /// Validates the signature of an RPC method.
@@ -604,7 +620,6 @@ public static partial class RpcHelper
             try
             {
                 var bytesRead = await socket.ReceiveAsync(memory, SocketFlags.None, cancelTokenSource.Token);
-                Logger.Info($"Read {bytesRead} bytes from socket.");
                 if (bytesRead == 0)
                 {
                     Logger.Info("Remote close the connection.");
@@ -626,12 +641,6 @@ public static partial class RpcHelper
 
             // Make the data available to the PipeReader
             _ = await writer.FlushAsync();
-
-            // if (result.IsCompleted)
-            // {
-            //     Logger.Debug("Reader no longger read data from writer.");
-            //     break;
-            // }
         }
 
         Logger.Debug("Writer complete.");
@@ -670,12 +679,6 @@ public static partial class RpcHelper
                     break;
                 }
             }
-
-            // if (result.IsCompleted)
-            // {
-            //     Logger.Debug("Writer no longger write data to reader.");
-            //     break;
-            // }
         }
 
         reader.Complete();

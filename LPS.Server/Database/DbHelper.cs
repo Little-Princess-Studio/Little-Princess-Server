@@ -93,7 +93,6 @@ public static class DbHelper
         databaseClient = new DbClient(databaseClientIdentifier);
         databaseClient.Initialize();
 
-        // todo: slow.initialize()
         Logger.Info("Initialize database success.");
     }
 

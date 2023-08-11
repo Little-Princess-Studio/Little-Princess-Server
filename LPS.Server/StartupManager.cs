@@ -11,6 +11,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using LPS.Common.Debug;
 using LPS.Common.Rpc;
 using LPS.Common.Rpc.RpcStub;
@@ -489,6 +490,13 @@ public static class StartupManager
 
         var hostMgrConf = GetJson(path: json["hostmanager_conf"]!.ToString())!;
         var hostnum = Convert.ToInt32(hostMgrConf["hostnum"]!.ToString());
+
+        RpcHelper.ScanRpcMethods(
+            new string[] { service_namespace },
+            typeof(ServiceBase),
+            typeof(ServiceAttribute),
+            type => type.GetCustomAttribute<ServiceAttribute>()!.ServiceName,
+            extraAssemblies);
 
         Logger.Debug($"Start up Service {name} at {ip}:{port}, use mq: {useMqToHost}");
 
