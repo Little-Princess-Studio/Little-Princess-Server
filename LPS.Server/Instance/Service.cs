@@ -49,6 +49,8 @@ public class Service : IInstance
 
     private uint acyncId;
 
+    private bool stopFlag;
+
     /// <summary>
     /// Initializes a new instance of the <see cref="Service"/> class.
     /// </summary>
@@ -64,7 +66,7 @@ public class Service : IInstance
             serviceMgrIp,
             serviceMgrPort,
             this.GenerateConnectionId,
-            checkServerStopped: () => false);
+            checkServerStopped: () => this.stopFlag);
 
         this.serviceMgrConnection.RegisterMessageHandler(PackageType.ServiceManagerCommand, this.ServiceManagerCommandHandler);
 
@@ -77,7 +79,10 @@ public class Service : IInstance
     /// <inheritdoc/>
     public void Loop()
     {
+        Logger.Debug($"Service {this.Name} is running.");
         this.serviceMgrConnection.Run();
+
+        Logger.Debug($"Service {this.Name} register self.");
         this.RegisterSelfToServiceManager();
         this.serviceMgrConnection.WaitForExit();
     }
@@ -85,6 +90,7 @@ public class Service : IInstance
     /// <inheritdoc/>
     public void Stop()
     {
+        this.stopFlag = true;
         this.serviceMgrConnection.ShutDown();
     }
 
@@ -104,6 +110,7 @@ public class Service : IInstance
         ready.Args.Add(RpcHelper.GetRpcAny(this.Port));
         ready.Args.Add(RpcHelper.GetRpcAny(this.HostNum));
 
+        Logger.Info($"Service {this.Name} notify ready.");
         this.serviceMgrConnection.Send(ready);
         this.waitForMailBox.Wait();
     }
@@ -111,7 +118,7 @@ public class Service : IInstance
     private void StartServiceInstance(ServiceManagerCommand serviceMgrCmd)
     {
         var arg = serviceMgrCmd.Args[0];
-        var mb = arg.Unpack<Common.Rpc.InnerMessages.MailBox>();
+        var mb = arg.Unpack<MailBoxArg>().PayLoad;
         this.mailBox = RpcHelper.PbMailBoxToRpcMailBox(mb);
         Logger.Info($"Service {this.Name} is ready with mailbox {this.mailBox}.");
         this.waitForMailBox.Signal();

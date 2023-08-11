@@ -166,8 +166,7 @@ public static class StartupManager
 
         StartSubProcess("servicemanager", name, confFilePath, relativePath, hotreload);
 
-        var dict = json["service_manager"]!.ToObject<Dictionary<string, JToken>>()!;
-        var services = dict["services"]!.ToObject<Dictionary<string, JToken>>();
+        var services = json["services"]!.ToObject<Dictionary<string, JToken>>();
         foreach (var serviceName in services!.Keys)
         {
             StartSubProcess("service", serviceName, confFilePath, relativePath, hotreload);
@@ -426,6 +425,13 @@ public static class StartupManager
         var service_namespace = json["service_namespace"]!.ToString();
         ServiceHelper.ScanServices(service_namespace, extraAssemblies);
 
+        var messageQueueConf = GetJson(json["mq_conf"]!.ToString()).ToObject<MessageQueueClient.MqConfig>()!;
+        MessageQueueClient.InitConnectionFactory(messageQueueConf);
+
+        var globalCacheConf = GetJson(json["globalcache_conf"]!.ToString())!
+            .ToObject<DbHelper.DbInfo>()!;
+        DbHelper.Initialize(globalCacheConf, name).Wait();
+
         var serviceMgrInfo = json[propertyName: "service_manager"]!;
         var ip = serviceMgrInfo["ip"]!.ToString();
         var port = Convert.ToInt32(serviceMgrInfo["port"]!.ToString());
@@ -436,6 +442,9 @@ public static class StartupManager
         var hostManagerIp = hostMgrConf["ip"]!.ToString();
         var hostManagerPort = Convert.ToInt32(hostMgrConf["port"]!.ToString());
 
+        var serviceInfo = json[propertyName: "services"]!;
+        var serviceCnt = serviceInfo.Count();
+
         Logger.Debug($"Startup Service Manager {name} at {ip}:{port}, use mq: {useMqToHost}");
         var serviceMgr = new ServiceManager(
             name,
@@ -444,7 +453,8 @@ public static class StartupManager
             hostnum,
             hostManagerIp,
             hostManagerPort,
-            useMqToHost);
+            useMqToHost,
+            serviceCnt);
 
         ServerGlobal.Init(serviceMgr);
 
@@ -460,6 +470,13 @@ public static class StartupManager
         var extraAssemblies = new System.Reflection.Assembly[] { typeof(StartupManager).Assembly };
         var service_namespace = json["service_namespace"]!.ToString();
         ServiceHelper.ScanServices(service_namespace, extraAssemblies);
+
+        var messageQueueConf = GetJson(json["mq_conf"]!.ToString()).ToObject<MessageQueueClient.MqConfig>()!;
+        MessageQueueClient.InitConnectionFactory(messageQueueConf);
+
+        var globalCacheConf = GetJson(json["globalcache_conf"]!.ToString())!
+            .ToObject<DbHelper.DbInfo>()!;
+        DbHelper.Initialize(globalCacheConf, name).Wait();
 
         var serviceMgrInfo = json[propertyName: "service_manager"]!;
         var serviceMgrIp = serviceMgrInfo["ip"]!.ToString();

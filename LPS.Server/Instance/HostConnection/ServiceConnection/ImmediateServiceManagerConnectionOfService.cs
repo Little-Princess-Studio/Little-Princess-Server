@@ -7,7 +7,9 @@
 namespace LPS.Server.Instance.HostConnection.HostManagerConnection;
 
 using System;
+using LPS.Common.Rpc.InnerMessages;
 using LPS.Server.Rpc;
+using LPS.Server.Rpc.InnerMessages;
 
 /// <summary>
 /// Represents a connection to the immediate service manager of the server.
@@ -44,5 +46,19 @@ internal class ImmediateServiceManagerConnectionOfService : ImmediateManagerConn
     protected override TcpClient GetTcpClient() => new(
         this.serviceManagerIp,
         this.serviceManagerPort,
-        new());
+        new())
+        {
+            OnInit = self =>
+            {
+                self.RegisterMessageHandler(PackageType.ServiceManagerCommand, this.HandleMessageFromManager<ServiceManagerCommand>);
+            },
+            OnConnected = self =>
+            {
+                this.managerConnectedEvent.Signal();
+            },
+            OnDispose = self =>
+            {
+                self.UnregisterMessageHandler(PackageType.ServiceManagerCommand, this.HandleMessageFromManager<ServiceManagerCommand>);
+            },
+        };
 }

@@ -61,6 +61,9 @@ public class ServiceManager : IInstance
         string ip,
         int port,
         int hostNum,
+        string hostManagerIp,
+        int hostManagerPort,
+        bool useMqToHostMgr,
         int desiredServiceNum)
     {
         this.Name = name;
@@ -157,7 +160,7 @@ public class ServiceManager : IInstance
                 Type = ServiceManagerCommandType.CreateNewServices,
             };
 
-            var arg = new DictWithStringKeyArg();
+            var serviceDict = new DictWithStringKeyArg();
             foreach (var pair in dict)
             {
                 var serviceName = pair.Key;
@@ -172,8 +175,10 @@ public class ServiceManager : IInstance
                     }));
                 }
 
-                arg.PayLoad.Add(serviceName, Any.Pack(shardList));
+                serviceDict.PayLoad.Add(serviceName, Any.Pack(shardList));
             }
+
+            cmd.Args.Add(Any.Pack(serviceDict));
 
             var pkg = PackageHelper.FromProtoBuf(cmd, 0);
             var bytes = pkg.ToBytes();
