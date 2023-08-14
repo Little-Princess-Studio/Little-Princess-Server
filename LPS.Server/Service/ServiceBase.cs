@@ -34,11 +34,12 @@ public abstract class ServiceBase
     /// <summary>
     /// Starts the service.
     /// </summary>
-    public void Start()
+    /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+    public async Task Start()
     {
         this.sandBox = SandBox.Create(this.IoHandler);
         this.sandBox.Run();
-        this.OnStart();
+        await this.OnStart();
     }
 
     /// <summary>
@@ -62,24 +63,30 @@ public abstract class ServiceBase
     public void EnqueueRpc(ServiceRpc rpc) => this.rpcQueue.Enqueue(rpc);
 
     /// <summary>
-    /// Called when the service is started.
+    /// This method is called when the service is starting up.
     /// </summary>
-    public virtual void OnStart()
+    /// <returns>A task that represents the asynchronous operation.</returns>
+    public virtual Task OnStart()
     {
+        return Task.CompletedTask;
     }
 
     /// <summary>
-    /// Called when the service is restarted.
+    /// This method is called when the service is restart.
     /// </summary>
-    public virtual void OnRestart()
+    /// <returns>A task that represents the asynchronous operation.</returns>
+    public virtual Task OnRestart()
     {
+        return Task.CompletedTask;
     }
 
     /// <summary>
     /// Called when the service is stopped.
     /// </summary>
-    public virtual void OnStop()
+    /// <returns>A task that represents the asynchronous operation.</returns>
+    public virtual Task OnStop()
     {
+        return Task.CompletedTask;
     }
 
     /// <summary>

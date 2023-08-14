@@ -12,6 +12,7 @@ enum RemoteType {
     DBManager = 0;
     Server = 1;
     Gate = 2;
+    ServiceManager = 3;
 }
 
 message Control {

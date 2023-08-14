@@ -26,24 +26,24 @@ namespace LPS.Common.Rpc.InnerMessages {
           string.Concat(
             "ChFzZXJ2aWNlX3JwYy5wcm90bxIcTFBTLkNvbW1vbi5ScGMuSW5uZXJNZXNz",
             "YWdlcxoNbWFpbGJveC5wcm90bxoZZ29vZ2xlL3Byb3RvYnVmL2FueS5wcm90",
-            "byKmAgoKU2VydmljZVJwYxINCgVScGNJRBgBIAEoDRJBCg1TZW5kZXJNYWls",
+            "byKlAgoKU2VydmljZVJwYxINCgVScGNJRBgBIAEoDRJBCg1TZW5kZXJNYWls",
             "Qm94GAIgASgLMiUuTFBTLkNvbW1vbi5ScGMuSW5uZXJNZXNzYWdlcy5NYWls",
-            "Qm94SACIAQESEwoLU2VydmljZU5hbWUYAyABKAkSFAoMU2VydmljZVNoYXJk",
-            "GAQgASgREhIKCk1ldGhvZE5hbWUYBSABKAkSEgoKTm90aWZ5T25seRgGIAEo",
-            "CBI9CgdScGNUeXBlGAcgASgOMiwuTFBTLkNvbW1vbi5ScGMuSW5uZXJNZXNz",
-            "YWdlcy5TZXJ2aWNlUnBjVHlwZRIiCgRBcmdzGAggAygLMhQuZ29vZ2xlLnBy",
-            "b3RvYnVmLkFueUIQCg5fU2VuZGVyTWFpbEJveCKIAQoSU2VydmljZVJwY0Nh",
-            "bGxCYWNrEg0KBVJwY0lEGAEgASgNEj0KB1JwY1R5cGUYAiABKA4yLC5MUFMu",
-            "Q29tbW9uLlJwYy5Jbm5lck1lc3NhZ2VzLlNlcnZpY2VScGNUeXBlEiQKBlJl",
-            "c3VsdBgDIAEoCzIULmdvb2dsZS5wcm90b2J1Zi5BbnkqngEKDlNlcnZpY2VS",
-            "cGNUeXBlEhMKD1NlcnZlclRvU2VydmljZRAAEhMKD1NlcnZpY2VUb1NlcnZl",
-            "chABEhQKEFNlcnZpY2VUb1NlcnZpY2UQAhISCg5DbGllbnRUb1NlcnZlchAD",
-            "EhIKDlNlcnZlclRvQ2xpZW50EAQSEQoNSHR0cFRvU2VydmljZRAFEhEKDVNl",
-            "cnZpY2VUb0h0cHAQBmIGcHJvdG8z"));
+            "Qm94SACIAQESEwoLU2VydmljZU5hbWUYAyABKAkSEgoKTWV0aG9kTmFtZRgE",
+            "IAEoCRITCgtSYW5kb21TaGFyZBgFIAEoCBISCgpOb3RpZnlPbmx5GAYgASgI",
+            "Ej0KB1JwY1R5cGUYByABKA4yLC5MUFMuQ29tbW9uLlJwYy5Jbm5lck1lc3Nh",
+            "Z2VzLlNlcnZpY2VScGNUeXBlEiIKBEFyZ3MYCCADKAsyFC5nb29nbGUucHJv",
+            "dG9idWYuQW55QhAKDl9TZW5kZXJNYWlsQm94IogBChJTZXJ2aWNlUnBjQ2Fs",
+            "bEJhY2sSDQoFUnBjSUQYASABKA0SPQoHUnBjVHlwZRgCIAEoDjIsLkxQUy5D",
+            "b21tb24uUnBjLklubmVyTWVzc2FnZXMuU2VydmljZVJwY1R5cGUSJAoGUmVz",
+            "dWx0GAMgASgLMhQuZ29vZ2xlLnByb3RvYnVmLkFueSqeAQoOU2VydmljZVJw",
+            "Y1R5cGUSEwoPU2VydmVyVG9TZXJ2aWNlEAASEwoPU2VydmljZVRvU2VydmVy",
+            "EAESFAoQU2VydmljZVRvU2VydmljZRACEhIKDkNsaWVudFRvU2VydmVyEAMS",
+            "EgoOU2VydmVyVG9DbGllbnQQBBIRCg1IdHRwVG9TZXJ2aWNlEAUSEQoNU2Vy",
+            "dmljZVRvSHRwcBAGYgZwcm90bzM="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { global::LPS.Common.Rpc.InnerMessages.MailboxReflection.Descriptor, global::Google.Protobuf.WellKnownTypes.AnyReflection.Descriptor, },
           new pbr::GeneratedClrTypeInfo(new[] {typeof(global::LPS.Common.Rpc.InnerMessages.ServiceRpcType), }, null, new pbr::GeneratedClrTypeInfo[] {
-            new pbr::GeneratedClrTypeInfo(typeof(global::LPS.Common.Rpc.InnerMessages.ServiceRpc), global::LPS.Common.Rpc.InnerMessages.ServiceRpc.Parser, new[]{ "RpcID", "SenderMailBox", "ServiceName", "ServiceShard", "MethodName", "NotifyOnly", "RpcType", "Args" }, new[]{ "SenderMailBox" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::LPS.Common.Rpc.InnerMessages.ServiceRpc), global::LPS.Common.Rpc.InnerMessages.ServiceRpc.Parser, new[]{ "RpcID", "SenderMailBox", "ServiceName", "MethodName", "RandomShard", "NotifyOnly", "RpcType", "Args" }, new[]{ "SenderMailBox" }, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::LPS.Common.Rpc.InnerMessages.ServiceRpcCallBack), global::LPS.Common.Rpc.InnerMessages.ServiceRpcCallBack.Parser, new[]{ "RpcID", "RpcType", "Result" }, null, null, null, null)
           }));
     }
@@ -101,8 +101,8 @@ namespace LPS.Common.Rpc.InnerMessages {
       rpcID_ = other.rpcID_;
       senderMailBox_ = other.senderMailBox_ != null ? other.senderMailBox_.Clone() : null;
       serviceName_ = other.serviceName_;
-      serviceShard_ = other.serviceShard_;
       methodName_ = other.methodName_;
+      randomShard_ = other.randomShard_;
       notifyOnly_ = other.notifyOnly_;
       rpcType_ = other.rpcType_;
       args_ = other.args_.Clone();
@@ -151,23 +151,8 @@ namespace LPS.Common.Rpc.InnerMessages {
       }
     }
 
-    /// <summary>Field number for the "ServiceShard" field.</summary>
-    public const int ServiceShardFieldNumber = 4;
-    private int serviceShard_;
-    /// <summary>
-    /// -1 = random
-    /// </summary>
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public int ServiceShard {
-      get { return serviceShard_; }
-      set {
-        serviceShard_ = value;
-      }
-    }
-
     /// <summary>Field number for the "MethodName" field.</summary>
-    public const int MethodNameFieldNumber = 5;
+    public const int MethodNameFieldNumber = 4;
     private string methodName_ = "";
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
@@ -175,6 +160,18 @@ namespace LPS.Common.Rpc.InnerMessages {
       get { return methodName_; }
       set {
         methodName_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    /// <summary>Field number for the "RandomShard" field.</summary>
+    public const int RandomShardFieldNumber = 5;
+    private bool randomShard_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool RandomShard {
+      get { return randomShard_; }
+      set {
+        randomShard_ = value;
       }
     }
 
@@ -231,8 +228,8 @@ namespace LPS.Common.Rpc.InnerMessages {
       if (RpcID != other.RpcID) return false;
       if (!object.Equals(SenderMailBox, other.SenderMailBox)) return false;
       if (ServiceName != other.ServiceName) return false;
-      if (ServiceShard != other.ServiceShard) return false;
       if (MethodName != other.MethodName) return false;
+      if (RandomShard != other.RandomShard) return false;
       if (NotifyOnly != other.NotifyOnly) return false;
       if (RpcType != other.RpcType) return false;
       if(!args_.Equals(other.args_)) return false;
@@ -246,8 +243,8 @@ namespace LPS.Common.Rpc.InnerMessages {
       if (RpcID != 0) hash ^= RpcID.GetHashCode();
       if (senderMailBox_ != null) hash ^= SenderMailBox.GetHashCode();
       if (ServiceName.Length != 0) hash ^= ServiceName.GetHashCode();
-      if (ServiceShard != 0) hash ^= ServiceShard.GetHashCode();
       if (MethodName.Length != 0) hash ^= MethodName.GetHashCode();
+      if (RandomShard != false) hash ^= RandomShard.GetHashCode();
       if (NotifyOnly != false) hash ^= NotifyOnly.GetHashCode();
       if (RpcType != global::LPS.Common.Rpc.InnerMessages.ServiceRpcType.ServerToService) hash ^= RpcType.GetHashCode();
       hash ^= args_.GetHashCode();
@@ -281,13 +278,13 @@ namespace LPS.Common.Rpc.InnerMessages {
         output.WriteRawTag(26);
         output.WriteString(ServiceName);
       }
-      if (ServiceShard != 0) {
-        output.WriteRawTag(32);
-        output.WriteSInt32(ServiceShard);
-      }
       if (MethodName.Length != 0) {
-        output.WriteRawTag(42);
+        output.WriteRawTag(34);
         output.WriteString(MethodName);
+      }
+      if (RandomShard != false) {
+        output.WriteRawTag(40);
+        output.WriteBool(RandomShard);
       }
       if (NotifyOnly != false) {
         output.WriteRawTag(48);
@@ -320,13 +317,13 @@ namespace LPS.Common.Rpc.InnerMessages {
         output.WriteRawTag(26);
         output.WriteString(ServiceName);
       }
-      if (ServiceShard != 0) {
-        output.WriteRawTag(32);
-        output.WriteSInt32(ServiceShard);
-      }
       if (MethodName.Length != 0) {
-        output.WriteRawTag(42);
+        output.WriteRawTag(34);
         output.WriteString(MethodName);
+      }
+      if (RandomShard != false) {
+        output.WriteRawTag(40);
+        output.WriteBool(RandomShard);
       }
       if (NotifyOnly != false) {
         output.WriteRawTag(48);
@@ -356,11 +353,11 @@ namespace LPS.Common.Rpc.InnerMessages {
       if (ServiceName.Length != 0) {
         size += 1 + pb::CodedOutputStream.ComputeStringSize(ServiceName);
       }
-      if (ServiceShard != 0) {
-        size += 1 + pb::CodedOutputStream.ComputeSInt32Size(ServiceShard);
-      }
       if (MethodName.Length != 0) {
         size += 1 + pb::CodedOutputStream.ComputeStringSize(MethodName);
+      }
+      if (RandomShard != false) {
+        size += 1 + 1;
       }
       if (NotifyOnly != false) {
         size += 1 + 1;
@@ -393,11 +390,11 @@ namespace LPS.Common.Rpc.InnerMessages {
       if (other.ServiceName.Length != 0) {
         ServiceName = other.ServiceName;
       }
-      if (other.ServiceShard != 0) {
-        ServiceShard = other.ServiceShard;
-      }
       if (other.MethodName.Length != 0) {
         MethodName = other.MethodName;
+      }
+      if (other.RandomShard != false) {
+        RandomShard = other.RandomShard;
       }
       if (other.NotifyOnly != false) {
         NotifyOnly = other.NotifyOnly;
@@ -436,12 +433,12 @@ namespace LPS.Common.Rpc.InnerMessages {
             ServiceName = input.ReadString();
             break;
           }
-          case 32: {
-            ServiceShard = input.ReadSInt32();
+          case 34: {
+            MethodName = input.ReadString();
             break;
           }
-          case 42: {
-            MethodName = input.ReadString();
+          case 40: {
+            RandomShard = input.ReadBool();
             break;
           }
           case 48: {
@@ -486,12 +483,12 @@ namespace LPS.Common.Rpc.InnerMessages {
             ServiceName = input.ReadString();
             break;
           }
-          case 32: {
-            ServiceShard = input.ReadSInt32();
+          case 34: {
+            MethodName = input.ReadString();
             break;
           }
-          case 42: {
-            MethodName = input.ReadString();
+          case 40: {
+            RandomShard = input.ReadBool();
             break;
           }
           case 48: {

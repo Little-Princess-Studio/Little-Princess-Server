@@ -228,7 +228,7 @@ public static partial class RpcHelper
     }
 
     /// <summary>
-    /// Build RPC message.
+    /// Build entity RPC message.
     /// </summary>
     /// <param name="rpcId">RPC id.</param>
     /// <param name="rpcMethodName">RPC method name.</param>
@@ -238,7 +238,7 @@ public static partial class RpcHelper
     /// <param name="rpcType">Type of the RPC.</param>
     /// <param name="args">RPC arguments.</param>
     /// <returns>RPC protobuf object.</returns>
-    public static EntityRpc BuildRpcMessage(
+    public static EntityRpc BuildEntityRpcMessage(
         uint rpcId,
         string rpcMethodName,
         MailBox sender,
@@ -259,7 +259,47 @@ public static partial class RpcHelper
 
         Array.ForEach(
             args,
-            arg => rpc.Args.Add(Google.Protobuf.WellKnownTypes.Any.Pack(RpcArgToProtoBuf(arg))));
+            arg => rpc.Args.Add(Any.Pack(RpcArgToProtoBuf(arg))));
+
+        return rpc;
+    }
+
+    /// <summary>
+    /// Builds a ServiceRpc message with the specified parameters.
+    /// </summary>
+    /// <param name="rpcId">The ID of the RPC.</param>
+    /// <param name="serviceName">The name of the service.</param>
+    /// <param name="rpcMethodName">The name of the RPC method.</param>
+    /// <param name="sender">The mailbox of the sender.</param>
+    /// <param name="randomShard">If random select a shard to invoke the RPC.</param>
+    /// <param name="notifyOnly">Whether to only notify the receiver.</param>
+    /// <param name="rpcType">The type of the RPC.</param>
+    /// <param name="args">The arguments to pass to the RPC method.</param>
+    /// <returns>A ServiceRpc message.</returns>
+    public static ServiceRpc BuildServiceRpcMessage(
+        uint rpcId,
+        string serviceName,
+        string rpcMethodName,
+        MailBox sender,
+        bool randomShard,
+        bool notifyOnly,
+        ServiceRpcType rpcType,
+        params object?[] args)
+    {
+        var rpc = new ServiceRpc
+        {
+            RpcID = rpcId,
+            SenderMailBox = RpcMailBoxToPbMailBox(sender),
+            ServiceName = serviceName,
+            MethodName = rpcMethodName,
+            RandomShard = randomShard,
+            NotifyOnly = notifyOnly,
+            RpcType = rpcType,
+        };
+
+        Array.ForEach(
+            args,
+            arg => rpc.Args.Add(Any.Pack(RpcArgToProtoBuf(arg))));
 
         return rpc;
     }

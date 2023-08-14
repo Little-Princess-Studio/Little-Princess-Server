@@ -65,9 +65,14 @@ public abstract class BaseEntity : ITypeIdSupport
     public bool IsFrozen { get; protected set; }
 
     /// <summary>
-    /// Sets the RPC send handler.
+    /// Sets the entity RPC send handler.
     /// </summary>
-    public Action<EntityRpc> OnSend { private get; set; } = null!;
+    public Action<EntityRpc> OnSendEntityRpc { private get; set; } = null!;
+
+    /// <summary>
+    /// Sets the service RPC send handler.
+    /// </summary>
+    public Action<ServiceRpc> OnSendServiceRpc { private get; set; } = null!;
 
     /// <inheritdoc/>
     public uint TypeId { get; private set; }
@@ -292,7 +297,7 @@ public abstract class BaseEntity : ITypeIdSupport
         }
 
         var id = this.IncreaseRpcIdCnt();
-        var rpcMsg = RpcHelper.BuildRpcMessage(
+        var rpcMsg = RpcHelper.BuildEntityRpcMessage(
             id,
             rpcMethodName,
             this.MailBox,
@@ -300,7 +305,7 @@ public abstract class BaseEntity : ITypeIdSupport
             notifyOnly,
             rpcType,
             args);
-        this.OnSend.Invoke(rpcMsg);
+        this.OnSendEntityRpc.Invoke(rpcMsg);
     }
 
     /// <summary>
@@ -331,7 +336,7 @@ public abstract class BaseEntity : ITypeIdSupport
             throw new Exception("Entity is frozen.");
         }
 
-        var rpcMsg = RpcHelper.BuildRpcMessage(
+        var rpcMsg = RpcHelper.BuildEntityRpcMessage(
             rpcId,
             rpcMethodName,
             this.MailBox,
@@ -339,7 +344,7 @@ public abstract class BaseEntity : ITypeIdSupport
             notifyOnly,
             rpcType,
             args);
-        this.OnSend.Invoke(rpcMsg);
+        this.OnSendEntityRpc.Invoke(rpcMsg);
     }
 
     /// <summary>
@@ -370,10 +375,10 @@ public abstract class BaseEntity : ITypeIdSupport
                 5000,
                 (rpcId) => new RpcTimeOutException(this, rpcId));
 
-        var rpcMsg = RpcHelper.BuildRpcMessage(
+        var rpcMsg = RpcHelper.BuildEntityRpcMessage(
             id, rpcMethodName, this.MailBox, targetMailBox, false, rpcType, args);
 
-        this.OnSend.Invoke(rpcMsg);
+        this.OnSendEntityRpc.Invoke(rpcMsg);
         await task;
     }
 
@@ -415,9 +420,9 @@ public abstract class BaseEntity : ITypeIdSupport
                 5000,
                 (rpcId) => new RpcTimeOutException(this, rpcId));
 
-        var rpcMsg = RpcHelper.BuildRpcMessage(
+        var rpcMsg = RpcHelper.BuildEntityRpcMessage(
             id, rpcMethodName, this.MailBox, targetMailBox, false, rpcType, args);
-        this.OnSend.Invoke(rpcMsg);
+        this.OnSendEntityRpc.Invoke(rpcMsg);
 
         var res = await task;
         return (T)res;
@@ -456,9 +461,9 @@ public abstract class BaseEntity : ITypeIdSupport
         }
 
         var id = this.IncreaseRpcIdCnt();
-        var rpcMsg = RpcHelper.BuildRpcMessage(
+        var rpcMsg = RpcHelper.BuildEntityRpcMessage(
             id, rpcMethodName, this.MailBox, targetMailBox, true, rpcType, args);
-        this.OnSend.Invoke(rpcMsg);
+        this.OnSendEntityRpc.Invoke(rpcMsg);
     }
 
     /// <summary>
@@ -469,6 +474,66 @@ public abstract class BaseEntity : ITypeIdSupport
     /// <param name="args">Arg list.</param>
     public void Notify(MailBox targetMailBox, string rpcMethodName, params object?[] args) =>
         this.Notify(targetMailBox, rpcMethodName, RpcType.ServerInside, args);
+
+    /// <summary>
+    /// Calls a service's random shard and executes the specified RPC method with the given arguments..
+    /// </summary>
+    /// <param name="serviceName">The name of the service to call.</param>
+    /// <param name="rpcMethodName">The name of the RPC method to call.</param>
+    /// <param name="args">The arguments to pass to the RPC method.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    public Task CallServiceShardRandomly(string serviceName, string rpcMethodName, params object?[] args)
+        => this.CallService(serviceName, rpcMethodName, true, args);
+
+    /// <summary>
+    /// Calls a service's random shard and executes the specified RPC method with the given arguments.
+    /// </summary>
+    /// <typeparam name="T">The return type of the RPC method.</typeparam>
+    /// <param name="serviceName">The name of the service to call.</param>
+    /// <param name="rpcMethodName">The name of the RPC method to execute.</param>
+    /// <param name="args">The arguments to pass to the RPC method.</param>
+    /// <returns>A task that represents the asynchronous operation. The task result contains the return value of the RPC method.</returns>
+    public Task<T> CallServiceShardRandomly<T>(string serviceName, string rpcMethodName, params object?[] args)
+        => this.CallService<T>(serviceName, rpcMethodName, true, args);
+
+    /// <summary>
+    /// Calls a service shard by this entity's ID using the specified RPC method and arguments.
+    /// </summary>
+    /// <param name="serviceName">The name of the service to call.</param>
+    /// <param name="rpcMethodName">The name of the RPC method to call.</param>
+    /// <param name="args">The arguments to pass to the RPC method.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    public Task CallServiceShardById(string serviceName, string rpcMethodName, params object?[] args)
+        => this.CallService(serviceName, rpcMethodName, false, args);
+
+    /// <summary>
+    /// Calls a service shard by this entity's ID using the specified RPC method and arguments.
+    /// </summary>
+    /// <typeparam name="T">The type of the result.</typeparam>
+    /// <param name="serviceName">The name of the service to call.</param>
+    /// <param name="rpcMethodName">The name of the RPC method to call.</param>
+    /// <param name="args">The arguments to pass to the RPC method.</param>
+    /// <returns>A task representing the result of the RPC method call.</returns>
+    public Task<T> CallServiceShardById<T>(string serviceName, string rpcMethodName, params object?[] args)
+        => this.CallService<T>(serviceName, rpcMethodName, false, args);
+
+    /// <summary>
+    /// Notifies a service shard randomly using the specified service name, RPC method name, and arguments.
+    /// </summary>
+    /// <param name="serviceName">The name of the service to notify.</param>
+    /// <param name="rpcMethodName">The name of the RPC method to call.</param>
+    /// <param name="args">The arguments to pass to the RPC method.</param>
+    public void NotifyServiceShardRandomly(string serviceName, string rpcMethodName, params object?[] args)
+        => this.NotifyService(serviceName, rpcMethodName, true, args);
+
+    /// <summary>
+    /// Notifies the service shard by this entity's ID.
+    /// </summary>
+    /// <param name="serviceName">The name of the service.</param>
+    /// <param name="rpcMethodName">The name of the RPC method.</param>
+    /// <param name="args">The arguments to pass to the RPC method.</param>
+    public void NotifyServiceShardById(string serviceName, string rpcMethodName, params object?[] args)
+        => this.NotifyService(serviceName, rpcMethodName, false, args);
 
     /// <summary>
     /// OnResult is a special RPC method with special parameter.
@@ -485,6 +550,74 @@ public abstract class BaseEntity : ITypeIdSupport
 
         var rpcId = entityRpc.RpcID;
         this.RpcAsyncCallBack(rpcId, entityRpc);
+    }
+
+    private async Task CallService(string serviceName, string rpcMethodName, bool random, params object?[] args)
+    {
+        if (this.IsDestroyed)
+        {
+            throw new Exception("Entity already destroyed.");
+        }
+
+        if (this.IsFrozen)
+        {
+            throw new Exception("Entity is frozen.");
+        }
+
+        var (task, id) =
+            this.rpcBlankAsyncTaskGenerator.GenerateAsyncTask(
+                5000,
+                (rpcId) => new RpcTimeOutException(this, rpcId));
+
+        var rpcMsg = RpcHelper.BuildServiceRpcMessage(
+            id, serviceName, rpcMethodName, this.MailBox, random, false, ServiceRpcType.ServiceToService, args);
+
+        this.OnSendServiceRpc.Invoke(rpcMsg);
+        await task;
+    }
+
+    private async Task<T> CallService<T>(string serviceName, string rpcMethodName, bool random, params object?[] args)
+    {
+        if (this.IsDestroyed)
+        {
+            throw new Exception("Entity already destroyed.");
+        }
+
+        if (this.IsFrozen)
+        {
+            throw new Exception("Entity is frozen.");
+        }
+
+        var (task, id) =
+            this.rpcAsyncTaskGenerator.GenerateAsyncTask(
+                typeof(T),
+                5000,
+                (rpcId) => new RpcTimeOutException(this, rpcId));
+
+        var rpcMsg = RpcHelper.BuildServiceRpcMessage(
+            id, serviceName, rpcMethodName, this.MailBox, random, false, ServiceRpcType.ServiceToService, args);
+        this.OnSendServiceRpc.Invoke(rpcMsg);
+
+        var res = await task;
+        return (T)res;
+    }
+
+    private void NotifyService(string serviceName, string rpcMethodName, bool random, params object?[] args)
+    {
+        if (this.IsDestroyed)
+        {
+            throw new Exception("Entity already destroyed.");
+        }
+
+        if (this.IsFrozen)
+        {
+            throw new Exception("Entity is frozen.");
+        }
+
+        var id = this.IncreaseRpcIdCnt();
+        var rpcMsg = RpcHelper.BuildServiceRpcMessage(
+            id, serviceName, rpcMethodName, this.MailBox, random, true, ServiceRpcType.ServiceToService, args);
+        this.OnSendServiceRpc.Invoke(rpcMsg);
     }
 
     private void RpcAsyncCallBack(uint rpcId, EntityRpc entityRpc)

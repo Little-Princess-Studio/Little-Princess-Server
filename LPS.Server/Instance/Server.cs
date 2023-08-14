@@ -338,6 +338,11 @@ public class Server : IInstance
         }
     }
 
+    private void SendServiceRpc(ServiceRpc rpc)
+    {
+        throw new NotImplementedException();
+    }
+
     private async Task OnCreateEntity(Connection? gateConn, string entityClassName, string jsonDesc, MailBox mailBox)
     {
         Logger.Info($"[OnCreateEntity] Server create a new entity with mailbox {mailBox}");
@@ -362,7 +367,8 @@ public class Server : IInstance
                 $"[OnCreateEntity] Non-ServerClientEntity of {entityClassName} was created with gate connection!");
         }
 
-        entity.OnSend = entityRpc => this.SendEntityRpc(entity, entityRpc);
+        entity.OnSendEntityRpc = entityRpc => this.SendEntityRpc(entity, entityRpc);
+        entity.OnSendServiceRpc = serviceRpc => this.SendServiceRpc(serviceRpc);
         entity.MailBox = mailBox;
 
         Logger.Debug($"[OnCreateEntity] record local entity: {mailBox.Id}");
@@ -519,11 +525,13 @@ public class Server : IInstance
         this.defaultCell = new ServerDefaultCellEntity()
         {
             MailBox = new MailBox(newId, this.Ip, this.Port, this.HostNum),
-            OnSend = entityRpc => this.SendEntityRpc(this.defaultCell!, entityRpc),
+            OnSendEntityRpc = entityRpc => this.SendEntityRpc(this.defaultCell!, entityRpc),
+            OnSendServiceRpc = serviceRpc => this.SendServiceRpc(serviceRpc),
             EntityLeaveCallBack = entity => this.localEntityDict.Remove(entity.MailBox.Id),
             EntityEnterCallBack = (entity, gateMailBox) =>
             {
-                entity.OnSend = entityRpc => this.SendEntityRpc(entity, entityRpc);
+                entity.OnSendEntityRpc = entityRpc => this.SendEntityRpc(entity, entityRpc);
+                entity.OnSendServiceRpc = serviceRpc => this.SendServiceRpc(serviceRpc);
                 if (entity is ServerClientEntity serverClientEntity)
                 {
                     Logger.Debug("transferred new serverClientEntity, bind new conn");
@@ -548,7 +556,8 @@ public class Server : IInstance
         this.entity = new ServerEntity(serverEntityMailBox)
         {
             // todo: insert local rpc call operation to pump queue, instead of directly calling local entity rpc here.
-            OnSend = entityRpc => this.SendEntityRpc(this.entity!, entityRpc),
+            OnSendEntityRpc = entityRpc => this.SendEntityRpc(this.entity!, entityRpc),
+            OnSendServiceRpc = serviceRpc => this.SendServiceRpc(serviceRpc),
         };
 
         Logger.Info("server entity generated.");

@@ -599,6 +599,9 @@ public class HostManager : IInstance
                 }
 
                 break;
+            case RemoteType.ServiceManager:
+                // Todo: broadcast service manager
+                break;
             case RemoteType.Dbmanager:
                 break;
             default:

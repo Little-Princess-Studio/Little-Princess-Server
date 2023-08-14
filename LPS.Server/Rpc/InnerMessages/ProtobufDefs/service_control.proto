@@ -4,8 +4,9 @@ package LPS.Server.Rpc.InnerMessages;
 
 enum ServiceControlMessage {
     Ready = 0;
-    Restarted = 1;
-    ShutDown = 2;
+    ServiceReady = 1;
+    Restarted = 2;
+    ShutDown = 3;
 }
 
 enum ServiceRemoteType {

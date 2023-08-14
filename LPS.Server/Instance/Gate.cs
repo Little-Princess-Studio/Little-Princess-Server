@@ -545,7 +545,7 @@ public class Gate : IInstance
                 new Common.Rpc.MailBox(createEntityRes.Mailbox.ID, this.Ip, this.Port, this.HostNum);
             this.entity = new(serverEntityMailBox, this)
             {
-                OnSend = entityRpc =>
+                OnSendEntityRpc = entityRpc =>
                 {
                     var targetMailBox = entityRpc.EntityMailBox;
                     var clientToServer = this.FindServerOfEntity(targetMailBox);

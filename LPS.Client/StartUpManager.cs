@@ -112,7 +112,7 @@ public static class StartUpManager
         shadowEntityTask.ContinueWith(t =>
         {
             var shadowEntity = t.Result;
-            shadowEntity.OnSend = rpc => { Client.Instance.Send(rpc); };
+            shadowEntity.OnSendEntityRpc = rpc => { Client.Instance.Send(rpc); };
             shadowEntity.MailBox = RpcHelper.PbMailBoxToRpcMailBox(clientCreateEntity.ServerClientMailBox);
             shadowEntity.BindServerMailBox();
 

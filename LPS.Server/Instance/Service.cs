@@ -10,6 +10,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using Google.Protobuf;
+using Google.Protobuf.WellKnownTypes;
 using LPS.Common.Debug;
 using LPS.Common.Rpc;
 using LPS.Common.Rpc.InnerMessages;
@@ -144,7 +145,30 @@ public class Service : IInstance
                 this.serviceMap[serviceName][shardNum] = service;
 
                 Logger.Info($"Start service {serviceName} shard {shardNum}");
-                service.Start();
+                service.Start().ContinueWith(t =>
+                {
+                    if (t.Exception != null)
+                    {
+                        Logger.Error(t.Exception);
+                        return;
+                    }
+
+                    var msg = new ServiceControl()
+                    {
+                        From = ServiceRemoteType.Service,
+                        Message = ServiceControlMessage.ServiceReady,
+                    };
+
+                    msg.Args.Add(Any.Pack(new MailBoxArg()
+                    {
+                        PayLoad = RpcHelper.RpcMailBoxToPbMailBox(this.mailBox),
+                    }));
+                    msg.Args.Add(RpcHelper.GetRpcAny(serviceName));
+                    msg.Args.Add(RpcHelper.GetRpcAny(shardNum));
+
+                    Logger.Info($"Service shard {serviceName} {shardNum} notify ready.");
+                    this.serviceMgrConnection.Send(msg);
+                });
             }
         }
     }

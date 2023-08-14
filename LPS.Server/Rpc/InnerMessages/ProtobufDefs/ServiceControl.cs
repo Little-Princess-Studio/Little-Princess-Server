@@ -29,10 +29,10 @@ namespace LPS.Server.Rpc.InnerMessages {
             "Y2VDb250cm9sEj0KBEZyb20YASABKA4yLy5MUFMuU2VydmVyLlJwYy5Jbm5l",
             "ck1lc3NhZ2VzLlNlcnZpY2VSZW1vdGVUeXBlEkQKB01lc3NhZ2UYAiABKA4y",
             "My5MUFMuU2VydmVyLlJwYy5Jbm5lck1lc3NhZ2VzLlNlcnZpY2VDb250cm9s",
-            "TWVzc2FnZRIiCgRBcmdzGAMgAygLMhQuZ29vZ2xlLnByb3RvYnVmLkFueSo/",
-            "ChVTZXJ2aWNlQ29udHJvbE1lc3NhZ2USCQoFUmVhZHkQABINCglSZXN0YXJ0",
-            "ZWQQARIMCghTaHV0RG93bhACKiAKEVNlcnZpY2VSZW1vdGVUeXBlEgsKB1Nl",
-            "cnZpY2UQAGIGcHJvdG8z"));
+            "TWVzc2FnZRIiCgRBcmdzGAMgAygLMhQuZ29vZ2xlLnByb3RvYnVmLkFueSpR",
+            "ChVTZXJ2aWNlQ29udHJvbE1lc3NhZ2USCQoFUmVhZHkQABIQCgxTZXJ2aWNl",
+            "UmVhZHkQARINCglSZXN0YXJ0ZWQQAhIMCghTaHV0RG93bhADKiAKEVNlcnZp",
+            "Y2VSZW1vdGVUeXBlEgsKB1NlcnZpY2UQAGIGcHJvdG8z"));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { global::Google.Protobuf.WellKnownTypes.AnyReflection.Descriptor, },
           new pbr::GeneratedClrTypeInfo(new[] {typeof(global::LPS.Server.Rpc.InnerMessages.ServiceControlMessage), typeof(global::LPS.Server.Rpc.InnerMessages.ServiceRemoteType), }, null, new pbr::GeneratedClrTypeInfo[] {
@@ -45,8 +45,9 @@ namespace LPS.Server.Rpc.InnerMessages {
   #region Enums
   public enum ServiceControlMessage {
     [pbr::OriginalName("Ready")] Ready = 0,
-    [pbr::OriginalName("Restarted")] Restarted = 1,
-    [pbr::OriginalName("ShutDown")] ShutDown = 2,
+    [pbr::OriginalName("ServiceReady")] ServiceReady = 1,
+    [pbr::OriginalName("Restarted")] Restarted = 2,
+    [pbr::OriginalName("ShutDown")] ShutDown = 3,
   }
 
   public enum ServiceRemoteType {
