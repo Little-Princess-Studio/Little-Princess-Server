@@ -75,12 +75,16 @@ public class Gate : IInstance
 
     private readonly TcpServer tcpGateServer;
     private readonly IManagerConnection hostConnection;
+    private IManagerConnection? serviceMgrConnection;
 
     private GateEntity? entity;
 
     // if all the tcp clients have connected to server/other gate, countdownEvent_ will down to 0
     private CountdownEvent? allServersConnectedEvent;
     private CountdownEvent? allOtherGatesConnectedEvent;
+    private CountdownEvent waitForSyncServiceManagerEvent;
+
+    private Common.Rpc.MailBox serviceManagerMailBox;
 
     private uint createEntityCounter;
 
@@ -125,6 +129,7 @@ public class Gate : IInstance
         };
 
         this.localEntityGeneratedEvent = new CountdownEvent(1);
+        this.waitForSyncServiceManagerEvent = new CountdownEvent(1);
 
         if (!useMqToHostMgr)
         {
@@ -191,6 +196,11 @@ public class Gate : IInstance
 
         this.allOtherGatesConnectedEvent!.Wait();
         Logger.Info("All other gates connected.");
+
+        this.waitForSyncServiceManagerEvent.Wait();
+        Logger.Info("Service manager connected.");
+
+        this.ConnectToServiceManager();
 
         this.readyToPumpClients = true;
         Logger.Info("Waiting completed");
@@ -262,6 +272,7 @@ public class Gate : IInstance
         this.tcpGateServer.RegisterMessageHandler(
             PackageType.RequireComponentSync,
             this.HandleRequireComponentSyncFromClient);
+        this.tcpGateServer.RegisterMessageHandler(PackageType.ServiceRpc, this.HandleServiceRpcFromClient);
     }
 
     private void UnregisterMessageFromServerAndOtherGateHandlers()
@@ -278,6 +289,7 @@ public class Gate : IInstance
         this.tcpGateServer.UnregisterMessageHandler(
             PackageType.RequireComponentSync,
             this.HandleRequireComponentSyncFromClient);
+        this.tcpGateServer.UnregisterMessageHandler(PackageType.ServiceRpc, this.HandleServiceRpcFromClient);
     }
 
     private void HandleHostCommandFromHost(IMessage msg)
@@ -295,6 +307,9 @@ public class Gate : IInstance
             case HostCommandType.SyncGates:
                 this.SyncOtherGatesMailBoxes(hostCmd.Args
                     .Select(mb => RpcHelper.PbMailBoxToRpcMailBox(mb.Unpack<MailBox>())).ToArray());
+                break;
+            case HostCommandType.SyncServiceManager:
+                this.SyncServiceManagerMailBox(RpcHelper.PbMailBoxToRpcMailBox(hostCmd.Args[0].Unpack<MailBoxArg>().PayLoad));
                 break;
             case HostCommandType.Open:
                 break;
@@ -374,6 +389,29 @@ public class Gate : IInstance
         }
 
         this.serversMailBoxesReadyEvent.Signal();
+    }
+
+    private void SyncServiceManagerMailBox(Common.Rpc.MailBox serviceManagerMailBox)
+    {
+        this.waitForSyncServiceManagerEvent.Signal();
+        this.serviceManagerMailBox = serviceManagerMailBox;
+    }
+
+    private void HandleServiceRpcFromClient((IMessage Message, Connection Connection, uint RpcId) arg)
+    {
+        Logger.Info("Handle ServiceRpc From Other Gates.");
+
+        var (msg, _, _) = arg;
+        var serviceRpc = (msg as ServiceRpc)!;
+
+        if (serviceRpc.RpcType == ServiceRpcType.ClientToService)
+        {
+            this.serviceMgrConnection!.Send(msg);
+        }
+        else
+        {
+            throw new Exception($"Invalid RpcType {serviceRpc.RpcType}");
+        }
     }
 
     private void HandleEntityRpcFromClient((IMessage Message, Connection Connection, uint RpcId) arg)
@@ -722,6 +760,23 @@ public class Gate : IInstance
                 throw new Exception($"Invalid rpc type: {rpcType}");
             }
         }
+    }
+
+    private void ConnectToServiceManager()
+    {
+        this.serviceMgrConnection = new ImmediateServiceManagerConnectionOfServer(
+            this.serviceManagerMailBox.Ip,
+            this.serviceManagerMailBox.Port,
+            this.GenerateRpcId,
+            () => this.tcpGateServer!.Stopped);
+
+        this.serviceMgrConnection.RegisterMessageHandler(PackageType.ServiceRpcCallBack, this.HandleServiceRpcCallBack);
+        this.serviceMgrConnection.Run();
+    }
+
+    private void HandleServiceRpcCallBack(IMessage message)
+    {
+        throw new NotImplementedException();
     }
 
     private void PumpMessageHandler()

@@ -35,11 +35,11 @@ namespace LPS.Common.Rpc.InnerMessages {
             "dG9idWYuQW55QhAKDl9TZW5kZXJNYWlsQm94IogBChJTZXJ2aWNlUnBjQ2Fs",
             "bEJhY2sSDQoFUnBjSUQYASABKA0SPQoHUnBjVHlwZRgCIAEoDjIsLkxQUy5D",
             "b21tb24uUnBjLklubmVyTWVzc2FnZXMuU2VydmljZVJwY1R5cGUSJAoGUmVz",
-            "dWx0GAMgASgLMhQuZ29vZ2xlLnByb3RvYnVmLkFueSqeAQoOU2VydmljZVJw",
+            "dWx0GAMgASgLMhQuZ29vZ2xlLnByb3RvYnVmLkFueSqzAQoOU2VydmljZVJw",
             "Y1R5cGUSEwoPU2VydmVyVG9TZXJ2aWNlEAASEwoPU2VydmljZVRvU2VydmVy",
             "EAESFAoQU2VydmljZVRvU2VydmljZRACEhIKDkNsaWVudFRvU2VydmVyEAMS",
             "EgoOU2VydmVyVG9DbGllbnQQBBIRCg1IdHRwVG9TZXJ2aWNlEAUSEQoNU2Vy",
-            "dmljZVRvSHRwcBAGYgZwcm90bzM="));
+            "dmljZVRvSHRwcBAGEhMKD0NsaWVudFRvU2VydmljZRAHYgZwcm90bzM="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { global::LPS.Common.Rpc.InnerMessages.MailboxReflection.Descriptor, global::Google.Protobuf.WellKnownTypes.AnyReflection.Descriptor, },
           new pbr::GeneratedClrTypeInfo(new[] {typeof(global::LPS.Common.Rpc.InnerMessages.ServiceRpcType), }, null, new pbr::GeneratedClrTypeInfo[] {
@@ -59,6 +59,7 @@ namespace LPS.Common.Rpc.InnerMessages {
     [pbr::OriginalName("ServerToClient")] ServerToClient = 4,
     [pbr::OriginalName("HttpToService")] HttpToService = 5,
     [pbr::OriginalName("ServiceToHtpp")] ServiceToHtpp = 6,
+    [pbr::OriginalName("ClientToService")] ClientToService = 7,
   }
 
   #endregion

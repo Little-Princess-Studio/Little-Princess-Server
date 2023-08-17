@@ -65,13 +65,17 @@ public class Server : IInstance
 
     private readonly CountdownEvent localEntityGeneratedEvent;
     private readonly CountdownEvent waitForSyncGatesEvent;
+    private readonly CountdownEvent waitForSyncServiceManagerEvent;
 
     private readonly IManagerConnection hostConnection;
+    private IManagerConnection? serviceMgrConnection;
 
     private MessageQueueClient? messageQueueClientToWebMgr;
 
     private ServerEntity? entity;
     private CellEntity? defaultCell;
+
+    private Common.Rpc.MailBox serviceManagerMailBox;
 
     private Connection[] GateConnections => this.tcpServer.AllConnections;
 
@@ -139,6 +143,7 @@ public class Server : IInstance
 
         this.localEntityGeneratedEvent = new CountdownEvent(2);
         this.waitForSyncGatesEvent = new CountdownEvent(1);
+        this.waitForSyncServiceManagerEvent = new CountdownEvent(1);
     }
 
     /// <inheritdoc/>
@@ -178,6 +183,9 @@ public class Server : IInstance
 
         Logger.Debug("wait for gate mailbox registered");
         this.gatesMailBoxesRegisteredEvent!.Wait();
+
+        Logger.Debug("wait for service manager registered");
+        this.waitForSyncServiceManagerEvent.Wait();
 
         this.InitWebManagerMessageQueueClient();
 
@@ -340,7 +348,7 @@ public class Server : IInstance
 
     private void SendServiceRpc(ServiceRpc rpc)
     {
-        throw new NotImplementedException();
+        this.serviceMgrConnection?.Send(rpc);
     }
 
     private async Task OnCreateEntity(Connection? gateConn, string entityClassName, string jsonDesc, MailBox mailBox)
@@ -501,6 +509,11 @@ public class Server : IInstance
         {
             this.gatesMailBoxesRegisteredEvent = new CountdownEvent(hostCmd.Args.Count);
             this.waitForSyncGatesEvent.Signal(1);
+        }
+        else if (hostCmd.Type == HostCommandType.SyncServiceManager)
+        {
+            this.serviceManagerMailBox = RpcHelper.PbMailBoxToRpcMailBox(hostCmd.Args[0].Unpack<MailBoxArg>().PayLoad);
+            this.waitForSyncServiceManagerEvent.Signal(1);
         }
     }
 
@@ -676,6 +689,23 @@ public class Server : IInstance
         {
             throw new Exception($"Entity not exist: {entityId}");
         }
+    }
+
+    private void ConnectToServiceManager()
+    {
+        this.serviceMgrConnection = new ImmediateServiceManagerConnectionOfServer(
+            this.serviceManagerMailBox.Ip,
+            this.serviceManagerMailBox.Port,
+            this.GenerateConnectionId,
+            () => this.tcpServer!.Stopped);
+
+        this.serviceMgrConnection.RegisterMessageHandler(PackageType.ServiceRpcCallBack, this.HandleServiceRpcCallBack);
+        this.serviceMgrConnection.Run();
+    }
+
+    private void HandleServiceRpcCallBack(IMessage message)
+    {
+        var serviceRpc = (message as ServiceRpcCallBack)!;
     }
 
     private void InitWebManagerMessageQueueClient()

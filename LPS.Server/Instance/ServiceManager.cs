@@ -191,10 +191,16 @@ public class ServiceManager : IInstance
                         From = RemoteType.ServiceManager,
                     };
 
-                    hostMsg.Args.Add(RpcHelper.GetRpcAny(this.Name));
-                    hostMsg.Args.Add(RpcHelper.GetRpcAny(this.Ip));
-                    hostMsg.Args.Add(RpcHelper.GetRpcAny(this.Port));
-                    hostMsg.Args.Add(RpcHelper.GetRpcAny(this.HostNum));
+                    hostMsg.Args.Add(Any.Pack(new MailBoxArg()
+                    {
+                        PayLoad = new Common.Rpc.InnerMessages.MailBox()
+                        {
+                            ID = string.Empty,
+                            IP = this.Ip,
+                            Port = (uint)this.Port,
+                            HostNum = (uint)this.HostNum,
+                        },
+                    }));
 
                     this.hostMgrConnection.Send(hostMsg);
                 }

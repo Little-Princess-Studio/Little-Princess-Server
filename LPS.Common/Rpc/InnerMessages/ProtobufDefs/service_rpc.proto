@@ -12,6 +12,7 @@ enum ServiceRpcType
   ServerToClient = 4;
   HttpToService = 5;
   ServiceToHtpp = 6;
+  ClientToService = 7;
 }
 
 message ServiceRpc {

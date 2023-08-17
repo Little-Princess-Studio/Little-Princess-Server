@@ -121,6 +121,8 @@ public class HostManager : IInstance
     private readonly Dispatcher<(IMessage Mesage, string TargetIdentifier, InstanceType OriType)> dispatcher =
         new();
 
+    private (bool ServicManagerReady, Common.Rpc.MailBox ServiceManagerMailBox) serviceManagerInfo = (false, default);
+
     private uint createEntityCnt;
 
     /// <summary>
@@ -600,7 +602,7 @@ public class HostManager : IInstance
 
                 break;
             case RemoteType.ServiceManager:
-                // Todo: broadcast service manager
+                this.serviceManagerInfo = (true, mailBox);
                 break;
             case RemoteType.Dbmanager:
                 break;
@@ -608,7 +610,7 @@ public class HostManager : IInstance
                 throw new ArgumentOutOfRangeException(nameof(hostCmdFrom), hostCmdFrom, null);
         }
 
-        if (this.serversMailBoxes.Count != this.DesiredServerNum || this.gatesMailBoxes.Count != this.DesiredGateNum)
+        if (this.serversMailBoxes.Count != this.DesiredServerNum || this.gatesMailBoxes.Count != this.DesiredGateNum || !this.serviceManagerInfo.ServicManagerReady)
         {
             return;
         }
@@ -697,6 +699,33 @@ public class HostManager : IInstance
                 Consts.HostMgrToGateExchangeName,
                 Consts.HostBroadCastMessagePackageToGate,
                 false);
+        }
+
+        // -----------------------------------
+        // broadcast sync msg
+        syncCmd = new HostCommand
+        {
+            Type = HostCommandType.SyncServiceManager,
+        };
+
+        syncCmd.Args.Add(Any.Pack(new MailBoxArg()
+        {
+            PayLoad = RpcHelper.RpcMailBoxToPbMailBox(this.serviceManagerInfo.ServiceManagerMailBox),
+        }));
+
+        pkg = PackageHelper.FromProtoBuf(syncCmd, 0);
+        bytes = pkg.ToBytes();
+
+        // to gates
+        foreach (var gateConn in gateConns)
+        {
+            gateConn.Socket.Send(bytes);
+        }
+
+        // to server
+        foreach (var serverConn in serverConns)
+        {
+            serverConn.Socket.Send(bytes);
         }
     }
 }
