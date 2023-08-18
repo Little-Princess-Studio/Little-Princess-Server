@@ -51,6 +51,7 @@ internal class ImmediateServiceManagerConnectionOfService : ImmediateManagerConn
             OnInit = self =>
             {
                 self.RegisterMessageHandler(PackageType.ServiceManagerCommand, this.HandleMessageFromManager<ServiceManagerCommand>);
+                self.RegisterMessageHandler(PackageType.ServiceRpc, this.HandleMessageFromManager<ServiceRpc>);
             },
             OnConnected = self =>
             {
@@ -59,6 +60,7 @@ internal class ImmediateServiceManagerConnectionOfService : ImmediateManagerConn
             OnDispose = self =>
             {
                 self.UnregisterMessageHandler(PackageType.ServiceManagerCommand, this.HandleMessageFromManager<ServiceManagerCommand>);
+                self.UnregisterMessageHandler(PackageType.ServiceRpc, this.HandleMessageFromManager<ServiceRpc>);
             },
         };
 }

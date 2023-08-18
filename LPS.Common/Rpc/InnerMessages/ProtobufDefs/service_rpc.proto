@@ -13,6 +13,7 @@ enum ServiceRpcType
   HttpToService = 5;
   ServiceToHtpp = 6;
   ClientToService = 7;
+  ServiceToClient = 8;
 }
 
 message ServiceRpc {
@@ -21,9 +22,10 @@ message ServiceRpc {
     string ServiceName = 3;
     string MethodName = 4;
     bool RandomShard = 5;
-    bool NotifyOnly = 6;
-    ServiceRpcType RpcType = 7;
-    repeated google.protobuf.Any Args = 8;
+    uint32 ShardID = 6; // -1 for random
+    bool NotifyOnly = 7;
+    ServiceRpcType RpcType = 8;
+    repeated google.protobuf.Any Args = 9;
 };
 
 message ServiceRpcCallBack {

@@ -10,6 +10,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using LPS.Common.Debug;
+using LPS.Common.Rpc;
+using LPS.Common.Rpc.InnerMessages;
 using LPS.Common.Util;
 
 /// <summary>
@@ -91,5 +94,46 @@ internal static class ServiceHelper
         }
 
         return resultList;
+    }
+
+    /// <summary>
+    /// Calls the specified service with the given RPC request.
+    /// </summary>
+    /// <param name="service">The service to call.</param>
+    /// <param name="serviceRpc">The RPC request to send to the service.</param>
+    public static void CallService(ServiceBase service, ServiceRpc serviceRpc)
+    {
+        // todo: impl jit to compile methodInfo.invoke to expression.invoke to improve perf.
+        var descriptor = RpcHelper.GetRpcMethodArgTypes(service.TypeId, rpcMethodName: serviceRpc.MethodName);
+        var authority = descriptor.Authority;
+        var methodInfo = descriptor.Method;
+
+        var args = RpcHelper.ProtobufArgsToRpcArgList(serviceRpc.Args, methodInfo);
+
+        object? res;
+        try
+        {
+            res = methodInfo.Invoke(service, args);
+        }
+        catch (Exception e)
+        {
+            Logger.Error(e, "Failed to call rpc method.");
+            return;
+        }
+
+        bool notifyOnly = serviceRpc.NotifyOnly;
+
+        var senderMailBox = serviceRpc.SenderMailBox;
+
+        var sendRpcType = serviceRpc.RpcType;
+        if (serviceRpc.RpcType == ServiceRpcType.ClientToService)
+        {
+            Logger.Info("rpc call is from client, the result will be sent to client.");
+            sendRpcType = ServiceRpcType.ServiceToClient;
+        }
+        else if (serviceRpc.RpcType == ServiceRpcType.ServiceToClient)
+        {
+            sendRpcType = ServiceRpcType.ClientToService;
+        }
     }
 }

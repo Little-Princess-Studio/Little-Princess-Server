@@ -70,6 +70,7 @@ public class Service : IInstance
             checkServerStopped: () => this.stopFlag);
 
         this.serviceMgrConnection.RegisterMessageHandler(PackageType.ServiceManagerCommand, this.ServiceManagerCommandHandler);
+        this.serviceMgrConnection.RegisterMessageHandler(PackageType.ServiceRpc, this.ServiceRpcHandler);
 
         this.Name = name;
         this.Ip = ip;
@@ -93,6 +94,17 @@ public class Service : IInstance
     {
         this.stopFlag = true;
         this.serviceMgrConnection.ShutDown();
+    }
+
+    private void ServiceRpcHandler(IMessage message)
+    {
+        var serviceRpc = (message as ServiceRpc)!;
+        var serviceName = serviceRpc.ServiceName;
+        var methodName = serviceRpc.MethodName;
+        var shard = serviceRpc.ShardID;
+
+        var service = this.serviceMap[serviceName][shard];
+        ServiceHelper.CallService(service, serviceRpc);
     }
 
     private uint GenerateConnectionId()

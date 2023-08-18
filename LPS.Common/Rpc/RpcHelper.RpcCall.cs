@@ -64,7 +64,7 @@ public static partial class RpcHelper
             return;
         }
 
-        var args = ProtobufArgsToRpcArgList(entityRpc, methodInfo);
+        var args = ProtobufArgsToRpcArgList(entityRpc.Args, methodInfo);
 
         object? res;
         try

@@ -9,6 +9,8 @@ namespace LPS.Service.Instance;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
 using System.Threading.Tasks;
 using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
@@ -48,6 +50,7 @@ public class ServiceManager : IInstance
     private readonly int desiredServiceNum;
     private readonly Dictionary<string, ServiceRoutingMapDescriptor> serviceRoutingMap = new();
     private readonly IManagerConnection hostMgrConnection;
+    private readonly MD5 md5 = MD5.Create();
 
     private State state = State.Init;
 
@@ -116,11 +119,55 @@ public class ServiceManager : IInstance
 
     private void HandleServiceRpc((IMessage Message, Connection Connection, uint RpcId) arg)
     {
-        // var serviceRpc = arg.Message as ServiceRpc;
+        Logger.Info($"ServiceRpc received.");
+        var serviceRpc = (arg.Message as ServiceRpc)!;
+
+        // choose the shard to send the service rpc.
+        var serviceName = serviceRpc.ServiceName;
+        var desc = this.serviceRoutingMap[serviceName];
+        var shardCnt = (uint?)desc?.ShardCount;
+
+        if (shardCnt is not null)
+        {
+            uint shard;
+            if (serviceRpc.RandomShard)
+            {
+                shard = (uint)this.random.Next((int)shardCnt);
+            }
+            else
+            {
+                var id = serviceRpc.SenderMailBox.ID;
+                var encoded = this.md5.ComputeHash(Encoding.UTF8.GetBytes(id));
+                shard = (uint)(BitConverter.ToUInt32(encoded, 0) % shardCnt);
+                serviceRpc.ShardID = (uint)shard;
+            }
+
+            var serviceMb = desc!.GetShardMailBox(shard);
+
+            var serviceConn = this.mailBoxToServiceConn[serviceMb];
+            if (serviceConn is not null)
+            {
+                Logger.Debug($"Servce RPC {serviceName}:{serviceRpc.MethodName} sent to {serviceName}:{shard}");
+                var pkg = PackageHelper.FromProtoBuf(serviceRpc, 0);
+                serviceConn.Socket.Send(pkg.ToBytes());
+            }
+            else
+            {
+                var e = new Exception($"Service {serviceName}:{shard} is not exists.");
+                Logger.Error(e);
+            }
+        }
+        else
+        {
+            var e = new Exception($"Service {serviceName}is not exists.");
+            Logger.Error(e);
+        }
     }
 
     private void HandleServiceRpcCallBack((IMessage Message, Connection Connection, uint RpcId) arg)
     {
+        Logger.Info($"ServiceRpcCallBack received.");
+
         // var serviceRpc = arg.Message as ServiceRpcCallBack;
     }
 
@@ -311,6 +358,8 @@ public class ServiceManager : IInstance
 
     private class ServiceRoutingMapDescriptor
     {
+        public readonly int ShardCount;
+
         public bool AllShardReady => this.UnreadyShards is null;
 
         private HashSet<uint>? UnreadyShards { get; set; }
@@ -320,7 +369,10 @@ public class ServiceManager : IInstance
         public ServiceRoutingMapDescriptor(IEnumerable<uint> shards)
         {
             this.UnreadyShards = new HashSet<uint>(shards);
+            this.ShardCount = shards.Count();
         }
+
+        public Common.Rpc.MailBox GetShardMailBox(uint shard) => this.ShardToMbMap[shard];
 
         public void RegisterShard(uint shard, Common.Rpc.MailBox mb)
         {

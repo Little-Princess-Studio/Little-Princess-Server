@@ -706,6 +706,7 @@ public class Server : IInstance
     private void HandleServiceRpcCallBack(IMessage message)
     {
         var serviceRpc = (message as ServiceRpcCallBack)!;
+        throw new NotImplementedException();
     }
 
     private void InitWebManagerMessageQueueClient()

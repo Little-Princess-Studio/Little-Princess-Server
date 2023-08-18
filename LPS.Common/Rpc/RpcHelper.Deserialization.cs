@@ -55,6 +55,20 @@ public static partial class RpcHelper
         return obj;
     }
 
+    /// <summary>
+    /// Converts a collection of protobuf arguments to an array of RPC arguments based on the given method information.
+    /// </summary>
+    /// <param name="args">The collection of protobuf arguments to convert.</param>
+    /// <param name="methodInfo">The method information to use for argument type information.</param>
+    /// <returns>An array of RPC arguments.</returns>
+    public static object?[] ProtobufArgsToRpcArgList(IEnumerable<Any> args, MethodInfo methodInfo)
+    {
+        var argTypes = methodInfo.GetParameters().Select(info => info.ParameterType).ToArray();
+        return args
+            .Select((elem, index) => ProtoBufAnyToRpcArg(elem, argTypes[index]))
+            .ToArray();
+    }
+
     private static object ValueTupleProtoBufToRpcArg(ValueTupleArg args, Type argType)
     {
         var tupleElemTypes = argType.GetGenericArguments();
@@ -131,13 +145,5 @@ public static partial class RpcHelper
         }
 
         return dict!;
-    }
-
-    private static object?[] ProtobufArgsToRpcArgList(EntityRpc entityRpc, MethodInfo methodInfo)
-    {
-        var argTypes = methodInfo.GetParameters().Select(info => info.ParameterType).ToArray();
-        return entityRpc.Args
-            .Select((elem, index) => ProtoBufAnyToRpcArg(elem, argTypes[index]))
-            .ToArray();
     }
 }

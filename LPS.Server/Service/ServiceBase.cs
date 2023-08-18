@@ -14,22 +14,35 @@ using LPS.Common.Debug;
 using LPS.Common.Ipc;
 using LPS.Common.Rpc;
 using LPS.Common.Rpc.InnerMessages;
+using LPS.Common.Util;
 
 /// <summary>
 /// Base class for all services in the LPS.
 /// </summary>
-public abstract class ServiceBase
+public abstract class ServiceBase : ITypeIdSupport
 {
     /// <summary>
     /// Gets or sets the shard number for this service.
     /// </summary>
     public uint Shard { get; set; }
 
+    /// <inheritdoc/>
+    public uint TypeId { get; }
+
     private readonly ConcurrentQueue<ServiceRpc> rpcQueue = new();
 
     private bool stopFlag = false;
 
     private SandBox sandBox = null!;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ServiceBase"/> class.
+    /// Sets the TypeId property to the unique identifier of the derived class.
+    /// </summary>
+    public ServiceBase()
+    {
+        this.TypeId = TypeIdHelper.GetId(this.GetType());
+    }
 
     /// <summary>
     /// Starts the service.

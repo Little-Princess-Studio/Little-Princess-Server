@@ -47,6 +47,17 @@ public static partial class RpcHelper
         RpcPropertyContainerDeserializeFactory = new(Util.TypeExtensions.GetTypeEqualityComparer());
 
     /// <summary>
+    /// Gets the argument types for the specified RPC method.
+    /// </summary>
+    /// <param name="typeId">The ID of the type that the RPC method belongs to.</param>
+    /// <param name="rpcMethodName">The name of the RPC method.</param>
+    /// <returns>The <see cref="RpcMethodDescriptor"/> object that contains the argument types for the specified RPC method.</returns>
+    public static RpcMethodDescriptor GetRpcMethodArgTypes(uint typeId, string rpcMethodName)
+    {
+        return rpcMethodInfo[typeId][rpcMethodName];
+    }
+
+    /// <summary>
     /// Register a Type as rpc container type.
     /// </summary>
     /// <param name="containerType">Container type.</param>
@@ -768,11 +779,6 @@ public static partial class RpcHelper
         return tree;
     }
 
-    private static RpcMethodDescriptor GetRpcMethodArgTypes(uint typeId, string rpcMethodName)
-    {
-        return rpcMethodInfo[typeId][rpcMethodName];
-    }
-
     private static void RegisterRpcPropertyContainerIntern(Type type, RpcPropertyContainerDeserializeEntry entry)
     {
         if (RpcPropertyContainerDeserializeFactory.ContainsKey(type))
@@ -809,7 +815,8 @@ public static partial class RpcHelper
         }
     }
 
-    private readonly struct RpcMethodDescriptor
+#pragma warning disable SA1600
+    public readonly struct RpcMethodDescriptor
     {
         public readonly MethodInfo Method;
 
@@ -824,3 +831,4 @@ public static partial class RpcHelper
         }
     }
 }
+#pragma warning restore SA1600
