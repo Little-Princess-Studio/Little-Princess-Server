@@ -29,6 +29,12 @@ public abstract class ServiceBase : ITypeIdSupport
     /// <inheritdoc/>
     public uint TypeId { get; }
 
+    /// <summary>
+    /// Sets the action to be executed when a service RPC callback is sent.
+    /// </summary>
+    /// <value>The action to be executed when a service RPC callback is sent.</value>
+    public Action<ServiceRpcCallBack> OnSendServiceRpcCallBack { private get; set; } = null!;
+
     private readonly ConcurrentQueue<ServiceRpc> rpcQueue = new();
 
     private bool stopFlag = false;
@@ -67,6 +73,37 @@ public abstract class ServiceBase : ITypeIdSupport
     {
         this.stopFlag = true;
         this.OnStop();
+    }
+
+    /// <summary>
+    /// Send RPC call given a RPC id.
+    /// </summary>
+    /// <param name="rpcId">Rpc Id.</param>
+    /// <param name="targetMailBox">Target entity's mailbox.</param>
+    /// <param name="rpcType">Rpc Type.</param>
+    /// <param name="result">Rpc result.</param>
+    /// <exception cref="Exception">Throw exception if failed to send.</exception>
+    public void SendCallBackWithRpcId(
+        uint rpcId,
+        Common.Rpc.MailBox? targetMailBox,
+        ServiceRpcType rpcType,
+        object? result)
+    {
+        if (this.stopFlag)
+        {
+            throw new Exception("Service is stopped.");
+        }
+
+        if (rpcType == ServiceRpcType.ServerToService
+            || rpcType == ServiceRpcType.HttpToService
+            || rpcType == ServiceRpcType.ClientToService)
+        {
+            throw new Exception($"Invalid rpc type {rpcType}.");
+        }
+
+        var callback = ServiceHelper.BuildServiceRpcCallBackMessage(
+            rpcId, targetMailBox, rpcType, result);
+        this.OnSendServiceRpcCallBack?.Invoke(callback);
     }
 
     /// <summary>

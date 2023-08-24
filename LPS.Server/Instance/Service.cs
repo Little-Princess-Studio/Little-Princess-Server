@@ -149,6 +149,7 @@ public class Service : IInstance
             {
                 var shardNum = (uint)shard.Unpack<IntArg>().PayLoad;
                 var service = ServiceHelper.CreateService(serviceName, shardNum);
+                service.OnSendServiceRpcCallBack = this.SendServiceRpcCallBack;
                 if (!this.serviceMap.ContainsKey(serviceName))
                 {
                     this.serviceMap[serviceName] = new Dictionary<uint, ServiceBase>();
@@ -182,6 +183,24 @@ public class Service : IInstance
                     this.serviceMgrConnection.Send(msg);
                 });
             }
+        }
+    }
+
+    private void SendServiceRpcCallBack(ServiceRpcCallBack callback)
+    {
+        var rpcType = callback.RpcType;
+        switch (rpcType)
+        {
+            case ServiceRpcType.ServiceToServer:
+            case ServiceRpcType.ServiceToService:
+            case ServiceRpcType.ServiceToHttp:
+            case ServiceRpcType.ServiceToClient:
+                this.serviceMgrConnection.Send(callback);
+                break;
+            case ServiceRpcType.HttpToService:
+            case ServiceRpcType.ClientToService:
+            case ServiceRpcType.ServerToService:
+                throw new Exception($"Invalid rpc type {rpcType}.");
         }
     }
 

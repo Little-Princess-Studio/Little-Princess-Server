@@ -15,6 +15,8 @@ using System.Threading.Tasks;
 using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
 using LPS.Common.Debug;
+using LPS.Common.Entity;
+using LPS.Common.Ipc;
 using LPS.Common.Rpc;
 using LPS.Common.Rpc.InnerMessages;
 using LPS.Server;
@@ -51,6 +53,7 @@ public class ServiceManager : IInstance
     private readonly Dictionary<string, ServiceRoutingMapDescriptor> serviceRoutingMap = new();
     private readonly IManagerConnection hostMgrConnection;
     private readonly MD5 md5 = MD5.Create();
+    private readonly AsyncTaskGenerator<ServiceRpcCallBack, Connection> asyncTaskGenerator = new();
 
     private State state = State.Init;
 
@@ -147,6 +150,26 @@ public class ServiceManager : IInstance
             var serviceConn = this.mailBoxToServiceConn[serviceMb];
             if (serviceConn is not null)
             {
+                var (task, id) =
+                    this.asyncTaskGenerator.GenerateAsyncTask(
+                        serviceConn,
+                        1000,
+                        (rpcId) => new RpcTimeOutException($"Service RPC timeout: {serviceName}:{serviceRpc.MethodName}."));
+                serviceRpc.ServiceManagerRpcId = id;
+                task.ContinueWith(t =>
+                {
+                    if (t.Exception != null)
+                    {
+                        Logger.Error(t.Exception, $"Service RPC {serviceName}:{serviceRpc.MethodName} failed.");
+                        return;
+                    }
+
+                    var callback = t.Result;
+                    var conn = this.asyncTaskGenerator.GetDataByAsyncTaskId(callback.ServiceManagerRpcId);
+                    var pkg = PackageHelper.FromProtoBuf(callback, 0).ToBytes();
+                    conn.Socket.Send(pkg);
+                });
+
                 Logger.Debug($"Servce RPC {serviceName}:{serviceRpc.MethodName} sent to {serviceName}:{shard}");
                 var pkg = PackageHelper.FromProtoBuf(serviceRpc, 0);
                 serviceConn.Socket.Send(pkg.ToBytes());
@@ -168,7 +191,9 @@ public class ServiceManager : IInstance
     {
         Logger.Info($"ServiceRpcCallBack received.");
 
-        // var serviceRpc = arg.Message as ServiceRpcCallBack;
+        var callback = (arg.Message as ServiceRpcCallBack)!;
+        var serviceMgrRpcId = callback.ServiceManagerRpcId;
+        this.asyncTaskGenerator.ResolveAsyncTask(serviceMgrRpcId, callback);
     }
 
     private void HandleServiceControl((IMessage Message, Connection Connection, uint RpcId) tuple)

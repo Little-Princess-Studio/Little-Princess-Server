@@ -8,12 +8,10 @@ enum ServiceRpcType
   ServerToService = 0;
   ServiceToServer = 1;
   ServiceToService = 2;
-  ClientToServer = 3;
-  ServerToClient = 4;
-  HttpToService = 5;
-  ServiceToHtpp = 6;
-  ClientToService = 7;
-  ServiceToClient = 8;
+  HttpToService = 4;
+  ServiceToHttp = 5;
+  ClientToService = 6;
+  ServiceToClient = 7;
 }
 
 message ServiceRpc {
@@ -25,11 +23,14 @@ message ServiceRpc {
     uint32 ShardID = 6; // -1 for random
     bool NotifyOnly = 7;
     ServiceRpcType RpcType = 8;
-    repeated google.protobuf.Any Args = 9;
+    uint32 ServiceManagerRpcId = 9;
+    repeated google.protobuf.Any Args = 10;
 };
 
 message ServiceRpcCallBack {
     uint32 RpcID = 1;
     ServiceRpcType RpcType = 2;
-    google.protobuf.Any Result = 3;
+    optional MailBox TargetMailBox = 3;
+    uint32 ServiceManagerRpcId = 4;
+    google.protobuf.Any Result = 5;
 }

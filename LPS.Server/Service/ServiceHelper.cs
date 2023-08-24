@@ -10,6 +10,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Threading.Tasks;
+using Google.Protobuf.WellKnownTypes;
 using LPS.Common.Debug;
 using LPS.Common.Rpc;
 using LPS.Common.Rpc.InnerMessages;
@@ -20,7 +22,7 @@ using LPS.Common.Util;
 /// </summary>
 internal static class ServiceHelper
 {
-    private static Dictionary<string, Type> serviceMap = null!;
+    private static Dictionary<string, System.Type> serviceMap = null!;
 
     /// <summary>
     /// Scans for services in the specified namespace and assemblies, and initializes them.
@@ -134,6 +136,351 @@ internal static class ServiceHelper
         else if (serviceRpc.RpcType == ServiceRpcType.ServiceToClient)
         {
             sendRpcType = ServiceRpcType.ClientToService;
+        }
+
+        if (res != null)
+        {
+            HandleRpcMethodResult(service, serviceRpc, methodInfo, res, senderMailBox, sendRpcType, notifyOnly);
+        }
+        else
+        {
+            if (!notifyOnly)
+            {
+                service.SendCallBackWithRpcId(
+                    serviceRpc.RpcID,
+                    RpcHelper.PbMailBoxToRpcMailBox(senderMailBox),
+                    sendRpcType,
+                    res);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Build service RPC message.
+    /// </summary>
+    /// <param name="rpcId">RPC id.</param>
+    /// <param name="targetMailBox">Target mailbox.</param>
+    /// <param name="rpcType">RPC type.</param>
+    /// <param name="result">RPC callback result.</param>
+    /// <returns>RPC protobuf object.</returns>
+    public static ServiceRpcCallBack BuildServiceRpcCallBackMessage(
+        uint rpcId,
+        Common.Rpc.MailBox? targetMailBox,
+        ServiceRpcType rpcType,
+        object? result)
+    {
+        var rpc = new ServiceRpcCallBack
+        {
+            RpcID = rpcId,
+            RpcType = rpcType,
+            TargetMailBox = targetMailBox is not null ?
+                RpcHelper.RpcMailBoxToPbMailBox((Common.Rpc.MailBox)targetMailBox) : null,
+        };
+
+        rpc.Result = Any.Pack(RpcHelper.RpcArgToProtoBuf(result));
+
+        return rpc;
+    }
+
+    private static void HandleRpcMethodResult(
+        ServiceBase service,
+        ServiceRpc serviceRpc,
+        MethodInfo methodInfo,
+        object res,
+        Common.Rpc.InnerMessages.MailBox senderMailBox,
+        ServiceRpcType sendRpcType,
+        bool notifyOnly)
+    {
+        var returnType = methodInfo.ReturnType;
+        if (returnType.IsGenericType)
+        {
+            // TODO: for performance, need using IL instead of dynamic/reflection?
+            if (returnType.GetGenericTypeDefinition() == typeof(Task<>))
+            {
+                SendTaskResult(service, serviceRpc, senderMailBox, sendRpcType, res, notifyOnly);
+            }
+            else if (returnType.GetGenericTypeDefinition() == typeof(ValueTask<>))
+            {
+                SendValueTaskResult(service, serviceRpc, senderMailBox, sendRpcType, res, notifyOnly);
+            }
+        }
+        else if (returnType == typeof(Task))
+        {
+            ((Task)res).ContinueWith(task =>
+            {
+                if (task.Exception is not null)
+                {
+                    Logger.Error(task.Exception, "Failed to call rpc method.");
+                    return;
+                }
+
+                if (notifyOnly)
+                {
+                    return;
+                }
+
+                service.SendCallBackWithRpcId(
+                    serviceRpc.RpcID,
+                    RpcHelper.PbMailBoxToRpcMailBox(senderMailBox),
+                    sendRpcType,
+                    RpcHelper.EmptyRes);
+            });
+        }
+        else if (returnType == typeof(ValueTask))
+        {
+            var task = (ValueTask)res;
+            if (task.IsCompleted)
+            {
+                if (task.IsFaulted)
+                {
+                    var e = task.AsTask().Exception!;
+                    Logger.Error(e, "Failed to call rpc method.");
+                    return;
+                }
+
+                if (notifyOnly)
+                {
+                    return;
+                }
+
+                service.SendCallBackWithRpcId(
+                    serviceRpc.RpcID,
+                    RpcHelper.PbMailBoxToRpcMailBox(senderMailBox),
+                    sendRpcType,
+                    RpcHelper.EmptyRes);
+            }
+            else
+            {
+                // if ValueTask not complete, alloc awaiter to wait
+                task.AsTask().ContinueWith((t) =>
+                {
+                    if (t.Exception is not null)
+                    {
+                        Logger.Error(t.Exception, "Failed to call rpc method.");
+                        return;
+                    }
+
+                    if (notifyOnly)
+                    {
+                        return;
+                    }
+
+                    service.SendCallBackWithRpcId(
+                        serviceRpc.RpcID,
+                        RpcHelper.PbMailBoxToRpcMailBox(senderMailBox),
+                        sendRpcType,
+                        RpcHelper.EmptyRes);
+                });
+            }
+        }
+    }
+
+    private static void SendValueTaskResult(
+        ServiceBase service,
+        ServiceRpc serviceRpc,
+        Common.Rpc.InnerMessages.MailBox senderMailBox,
+        ServiceRpcType sendRpcType,
+        in object res,
+        bool notifyOnly)
+    {
+        void SendDynamic(dynamic t) =>
+            service.SendCallBackWithRpcId(
+                serviceRpc.RpcID,
+                RpcHelper.PbMailBoxToRpcMailBox(senderMailBox),
+                sendRpcType,
+                t.Result);
+
+        void Send<T>(in ValueTask<T> t) => service.SendCallBackWithRpcId(
+                serviceRpc.RpcID,
+                RpcHelper.PbMailBoxToRpcMailBox(senderMailBox),
+                sendRpcType,
+                t.Result);
+
+        void HandleValueTask<T>(in ValueTask<T> task)
+        {
+            // ValueTask should always be sync
+            if (task.IsCompleted)
+            {
+                if (task.IsFaulted)
+                {
+                    var e = task.AsTask().Exception!;
+                    Logger.Error(e, "Failed to call rpc method.");
+                    return;
+                }
+
+                if (notifyOnly)
+                {
+                    return;
+                }
+
+                Send(task);
+            }
+            else
+            {
+                // if ValueTask not complete, alloc awaiter to wait
+                task.AsTask().ContinueWith((t) =>
+                {
+                    if (t.Exception is not null)
+                    {
+                        Logger.Error(t.Exception, "Failed to call rpc method.");
+                        return;
+                    }
+
+                    if (notifyOnly)
+                    {
+                        return;
+                    }
+
+                    service.SendCallBackWithRpcId(
+                        serviceRpc.RpcID,
+                        RpcHelper.PbMailBoxToRpcMailBox(senderMailBox),
+                        sendRpcType,
+                        t.Result);
+                });
+            }
+        }
+
+        void HandleValueTaskDynamic(dynamic task)
+        {
+            if (task.IsCompleted)
+            {
+                if (task.IsFaulted)
+                {
+                    var e = task.AsTask().Exception!;
+                    Logger.Error(e, "Failed to call rpc method.");
+                    return;
+                }
+
+                if (notifyOnly)
+                {
+                    return;
+                }
+
+                SendDynamic(task);
+            }
+            else
+            {
+                task.AsTask().ContinueWith(new Action(() =>
+                {
+                    if (task.Exception is not null)
+                    {
+                        Logger.Error(task.Exception, "Failed to call rpc method.");
+                        return;
+                    }
+
+                    if (notifyOnly)
+                    {
+                        return;
+                    }
+
+                    service.SendCallBackWithRpcId(
+                        serviceRpc.RpcID,
+                        RpcHelper.PbMailBoxToRpcMailBox(senderMailBox),
+                        sendRpcType,
+                        task.Result);
+                }));
+            }
+        }
+
+        switch (res)
+        {
+            case ValueTask<int> task:
+                HandleValueTask(task);
+                break;
+            case ValueTask<string> task:
+                HandleValueTask(task);
+                break;
+            case ValueTask<float> task:
+                HandleValueTask(task);
+                break;
+            case ValueTask<LPS.Common.Rpc.MailBox> task:
+                HandleValueTask(task);
+                break;
+            case ValueTask<bool> task:
+                HandleValueTask(task);
+                break;
+            default:
+                {
+                    dynamic task = res;
+                    HandleValueTaskDynamic(task);
+                }
+
+                break;
+        }
+    }
+
+    private static void SendTaskResult(
+        ServiceBase service,
+        ServiceRpc serviceRpc,
+        LPS.Common.Rpc.InnerMessages.MailBox senderMailBox,
+        ServiceRpcType sendRpcType,
+        in object res,
+        bool notifyOnly)
+    {
+        void SendDynamic(dynamic t)
+        {
+            if (t.Exception is not null)
+            {
+                Logger.Error(t.Exception, "Failed to call rpc method.");
+                return;
+            }
+
+            if (notifyOnly)
+            {
+                return;
+            }
+
+            service.SendCallBackWithRpcId(
+                serviceRpc.RpcID,
+                RpcHelper.PbMailBoxToRpcMailBox(senderMailBox),
+                sendRpcType,
+                t.Result);
+        }
+
+        void Send<T>(Task<T> t)
+        {
+            if (t.Exception is not null)
+            {
+                Logger.Error(t.Exception, "Failed to call rpc method.");
+                return;
+            }
+
+            if (notifyOnly)
+            {
+                return;
+            }
+
+            service.SendCallBackWithRpcId(
+                serviceRpc.RpcID,
+                RpcHelper.PbMailBoxToRpcMailBox(senderMailBox),
+                sendRpcType,
+                t.Result);
+        }
+
+        switch (res)
+        {
+            case Task<int> task:
+                task.ContinueWith(Send);
+                break;
+            case Task<string> task:
+                task.ContinueWith(Send);
+                break;
+            case Task<float> task:
+                task.ContinueWith(Send);
+                break;
+            case Task<Common.Rpc.MailBox> task:
+                task.ContinueWith(Send);
+                break;
+            case Task<bool> task:
+                task.ContinueWith(Send);
+                break;
+            default:
+                {
+                    dynamic task = res;
+                    task.ContinueWith((Action<dynamic>)SendDynamic);
+                }
+
+                break;
         }
     }
 }
