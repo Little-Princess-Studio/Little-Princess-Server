@@ -11,6 +11,9 @@ enum ServiceControlMessage {
 
 enum ServiceRemoteType {
     Service = 0;
+    Server = 1;
+    Gate = 2;
+    Http = 3;
 }
 
 message ServiceControl {

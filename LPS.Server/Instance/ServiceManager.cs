@@ -21,10 +21,12 @@ using LPS.Common.Rpc;
 using LPS.Common.Rpc.InnerMessages;
 using LPS.Server;
 using LPS.Server.Database;
+using LPS.Server.Instance.ConnectionManager;
 using LPS.Server.Instance.HostConnection;
 using LPS.Server.Rpc;
 using LPS.Server.Rpc.InnerMessages;
 using LPS.Server.Service;
+using static LPS.Server.Instance.ConnectionManager.ServiceManagerConnectionManager;
 
 /// <summary>
 /// Represents a service instance, which contains multiple LPS service instance.
@@ -48,12 +50,14 @@ public class ServiceManager : IInstance
 
     private readonly TcpServer tcpServer;
     private readonly Random random = new();
-    private readonly Dictionary<Common.Rpc.MailBox, Connection> mailBoxToServiceConn = new();
     private readonly int desiredServiceNum;
     private readonly Dictionary<string, ServiceRoutingMapDescriptor> serviceRoutingMap = new();
     private readonly IManagerConnection hostMgrConnection;
     private readonly MD5 md5 = MD5.Create();
     private readonly AsyncTaskGenerator<ServiceRpcCallBack, Connection> asyncTaskGenerator = new();
+
+    private readonly Dictionary<Common.Rpc.MailBox, Connection> mailBoxToServiceConn = new();
+    private ServiceManagerConnectionManager connectionManager = null!;
 
     private State state = State.Init;
 
@@ -90,6 +94,8 @@ public class ServiceManager : IInstance
             OnInit = this.RegisterServerMessageHandlers,
             OnDispose = this.UnregisterServerMessageHandlers,
         };
+
+        this.InitConnectionManager();
     }
 
     /// <inheritdoc/>
@@ -204,26 +210,7 @@ public class ServiceManager : IInstance
         switch (ctl.Message)
         {
             case ServiceControlMessage.Ready:
-                if (!this.CheckStateIn(State.WaitForServiceInstanceRegister))
-                {
-                    break;
-                }
-
-                _ = this.GenerateMailBoxForService(ctl, conn)
-                    .ContinueWith(t =>
-                {
-                    if (t.Exception != null)
-                    {
-                        Logger.Error(t.Exception, $"Failed to generate mailbox for service.");
-                        return;
-                    }
-
-                    if (this.mailBoxToServiceConn.Count == this.desiredServiceNum)
-                    {
-                        this.state = State.WaitForServicesRegister;
-                        this.NotifyServiceInstancesToStartServices();
-                    }
-                });
+                this.HandleServiceControlReady(ctl, conn);
                 break;
             case ServiceControlMessage.ServiceReady:
                 if (!this.CheckStateIn(State.WaitForServicesRegister))
@@ -237,6 +224,48 @@ public class ServiceManager : IInstance
                 break;
             case ServiceControlMessage.ShutDown:
                 break;
+        }
+    }
+
+    private void HandleServiceControlReady(ServiceControl ctlMsg, Connection conn)
+    {
+        if (ctlMsg.From == ServiceRemoteType.Service)
+        {
+            if (!this.CheckStateIn(State.WaitForServiceInstanceRegister))
+            {
+                return;
+            }
+
+            _ = this.GenerateMailBoxForService(ctlMsg, conn)
+                .ContinueWith(t =>
+            {
+                if (t.Exception != null)
+                {
+                    Logger.Error(t.Exception, $"Failed to generate mailbox for service.");
+                    return;
+                }
+
+                if (this.mailBoxToServiceConn.Count == this.desiredServiceNum)
+                {
+                    this.state = State.WaitForServicesRegister;
+                    this.NotifyServiceInstancesToStartServices();
+                }
+            });
+        }
+        else if (ctlMsg.From == ServiceRemoteType.Gate)
+        {
+            var mb = ctlMsg.Args[0].Unpack<MailBoxArg>().PayLoad;
+            this.connectionManager.RegisterImmediateConnection(conn, ConnectionType.Gate, mb.ID);
+        }
+        else if (ctlMsg.From == ServiceRemoteType.Server)
+        {
+            var mb = ctlMsg.Args[0].Unpack<MailBoxArg>().PayLoad;
+            this.connectionManager.RegisterImmediateConnection(conn, ConnectionType.Server, mb.ID);
+        }
+        else
+        {
+            var e = new Exception($"Invalid service remote type {ctlMsg.From}.");
+            Logger.Error(e);
         }
     }
 
@@ -357,6 +386,8 @@ public class ServiceManager : IInstance
             lock (this.mailBoxToServiceConn)
             {
                 this.mailBoxToServiceConn.Add(mailBox, conn);
+                this.connectionManager.RegisterImmediateConnection(
+                    conn, ConnectionType.Service, id);
             }
         });
     }
@@ -371,6 +402,47 @@ public class ServiceManager : IInstance
         }
 
         return true;
+    }
+
+    private void InitConnectionManager()
+    {
+        var gateConnectionMap = new ConnectionMap(
+            sendImmediateMessage: (conn, msg) =>
+            {
+                var pkg = PackageHelper.FromProtoBuf(msg, 0);
+                conn.Socket.Send(pkg.ToBytes());
+            },
+            sendMessageQueueMessage: (conn, msg) =>
+            {
+                throw new NotImplementedException();
+            });
+
+        var serverConnectionMap = new ConnectionMap(
+            sendImmediateMessage: (conn, msg) =>
+            {
+                var pkg = PackageHelper.FromProtoBuf(msg, 0);
+                conn.Socket.Send(pkg.ToBytes());
+            },
+            sendMessageQueueMessage: (conn, msg) =>
+            {
+                throw new NotImplementedException();
+            });
+
+        var serviceConnectionMap = new ConnectionMap(
+            sendImmediateMessage: (conn, msg) =>
+            {
+                var pkg = PackageHelper.FromProtoBuf(msg, 0);
+                conn.Socket.Send(pkg.ToBytes());
+            },
+            sendMessageQueueMessage: (conn, msg) =>
+            {
+                throw new NotImplementedException();
+            });
+
+        this.connectionManager = new ServiceManagerConnectionManager(
+            gateConnectionMap: gateConnectionMap,
+            serviceConnectionMap: serviceConnectionMap,
+            serverConnectionMap: serverConnectionMap);
     }
 
     private enum State

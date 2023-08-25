@@ -148,6 +148,7 @@ internal static class ServiceHelper
             {
                 service.SendCallBackWithRpcId(
                     serviceRpc.RpcID,
+                    serviceRpc.ServiceManagerRpcId,
                     RpcHelper.PbMailBoxToRpcMailBox(senderMailBox),
                     sendRpcType,
                     res);
@@ -161,18 +162,21 @@ internal static class ServiceHelper
     /// <param name="rpcId">RPC id.</param>
     /// <param name="targetMailBox">Target mailbox.</param>
     /// <param name="rpcType">RPC type.</param>
+    /// <param name="serviceManagerRpcId">Service manager rpc ID.</param>
     /// <param name="result">RPC callback result.</param>
     /// <returns>RPC protobuf object.</returns>
     public static ServiceRpcCallBack BuildServiceRpcCallBackMessage(
         uint rpcId,
         Common.Rpc.MailBox? targetMailBox,
         ServiceRpcType rpcType,
+        uint serviceManagerRpcId,
         object? result)
     {
         var rpc = new ServiceRpcCallBack
         {
             RpcID = rpcId,
             RpcType = rpcType,
+            ServiceManagerRpcId = serviceManagerRpcId,
             TargetMailBox = targetMailBox is not null ?
                 RpcHelper.RpcMailBoxToPbMailBox((Common.Rpc.MailBox)targetMailBox) : null,
         };
@@ -221,6 +225,7 @@ internal static class ServiceHelper
 
                 service.SendCallBackWithRpcId(
                     serviceRpc.RpcID,
+                    serviceRpc.ServiceManagerRpcId,
                     RpcHelper.PbMailBoxToRpcMailBox(senderMailBox),
                     sendRpcType,
                     RpcHelper.EmptyRes);
@@ -245,6 +250,7 @@ internal static class ServiceHelper
 
                 service.SendCallBackWithRpcId(
                     serviceRpc.RpcID,
+                    serviceRpc.ServiceManagerRpcId,
                     RpcHelper.PbMailBoxToRpcMailBox(senderMailBox),
                     sendRpcType,
                     RpcHelper.EmptyRes);
@@ -267,6 +273,7 @@ internal static class ServiceHelper
 
                     service.SendCallBackWithRpcId(
                         serviceRpc.RpcID,
+                        serviceRpc.ServiceManagerRpcId,
                         RpcHelper.PbMailBoxToRpcMailBox(senderMailBox),
                         sendRpcType,
                         RpcHelper.EmptyRes);
@@ -286,12 +293,14 @@ internal static class ServiceHelper
         void SendDynamic(dynamic t) =>
             service.SendCallBackWithRpcId(
                 serviceRpc.RpcID,
+                serviceRpc.ServiceManagerRpcId,
                 RpcHelper.PbMailBoxToRpcMailBox(senderMailBox),
                 sendRpcType,
                 t.Result);
 
         void Send<T>(in ValueTask<T> t) => service.SendCallBackWithRpcId(
                 serviceRpc.RpcID,
+                serviceRpc.ServiceManagerRpcId,
                 RpcHelper.PbMailBoxToRpcMailBox(senderMailBox),
                 sendRpcType,
                 t.Result);
@@ -333,6 +342,7 @@ internal static class ServiceHelper
 
                     service.SendCallBackWithRpcId(
                         serviceRpc.RpcID,
+                        serviceRpc.ServiceManagerRpcId,
                         RpcHelper.PbMailBoxToRpcMailBox(senderMailBox),
                         sendRpcType,
                         t.Result);
@@ -375,6 +385,7 @@ internal static class ServiceHelper
 
                     service.SendCallBackWithRpcId(
                         serviceRpc.RpcID,
+                        serviceRpc.ServiceManagerRpcId,
                         RpcHelper.PbMailBoxToRpcMailBox(senderMailBox),
                         sendRpcType,
                         task.Result);
@@ -432,6 +443,7 @@ internal static class ServiceHelper
 
             service.SendCallBackWithRpcId(
                 serviceRpc.RpcID,
+                serviceRpc.ServiceManagerRpcId,
                 RpcHelper.PbMailBoxToRpcMailBox(senderMailBox),
                 sendRpcType,
                 t.Result);
@@ -452,6 +464,7 @@ internal static class ServiceHelper
 
             service.SendCallBackWithRpcId(
                 serviceRpc.RpcID,
+                serviceRpc.ServiceManagerRpcId,
                 RpcHelper.PbMailBoxToRpcMailBox(senderMailBox),
                 sendRpcType,
                 t.Result);

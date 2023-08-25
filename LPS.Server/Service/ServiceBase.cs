@@ -79,12 +79,14 @@ public abstract class ServiceBase : ITypeIdSupport
     /// Send RPC call given a RPC id.
     /// </summary>
     /// <param name="rpcId">Rpc Id.</param>
+    /// <param name="serviceManagerRpcId">Service manager rpc ID.</param>
     /// <param name="targetMailBox">Target entity's mailbox.</param>
     /// <param name="rpcType">Rpc Type.</param>
     /// <param name="result">Rpc result.</param>
     /// <exception cref="Exception">Throw exception if failed to send.</exception>
     public void SendCallBackWithRpcId(
         uint rpcId,
+        uint serviceManagerRpcId,
         Common.Rpc.MailBox? targetMailBox,
         ServiceRpcType rpcType,
         object? result)
@@ -102,7 +104,7 @@ public abstract class ServiceBase : ITypeIdSupport
         }
 
         var callback = ServiceHelper.BuildServiceRpcCallBackMessage(
-            rpcId, targetMailBox, rpcType, result);
+            rpcId, targetMailBox, rpcType, serviceManagerRpcId, result);
         this.OnSendServiceRpcCallBack?.Invoke(callback);
     }
 

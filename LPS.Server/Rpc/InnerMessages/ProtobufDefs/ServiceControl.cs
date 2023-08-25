@@ -31,8 +31,9 @@ namespace LPS.Server.Rpc.InnerMessages {
             "My5MUFMuU2VydmVyLlJwYy5Jbm5lck1lc3NhZ2VzLlNlcnZpY2VDb250cm9s",
             "TWVzc2FnZRIiCgRBcmdzGAMgAygLMhQuZ29vZ2xlLnByb3RvYnVmLkFueSpR",
             "ChVTZXJ2aWNlQ29udHJvbE1lc3NhZ2USCQoFUmVhZHkQABIQCgxTZXJ2aWNl",
-            "UmVhZHkQARINCglSZXN0YXJ0ZWQQAhIMCghTaHV0RG93bhADKiAKEVNlcnZp",
-            "Y2VSZW1vdGVUeXBlEgsKB1NlcnZpY2UQAGIGcHJvdG8z"));
+            "UmVhZHkQARINCglSZXN0YXJ0ZWQQAhIMCghTaHV0RG93bhADKkAKEVNlcnZp",
+            "Y2VSZW1vdGVUeXBlEgsKB1NlcnZpY2UQABIKCgZTZXJ2ZXIQARIICgRHYXRl",
+            "EAISCAoESHR0cBADYgZwcm90bzM="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { global::Google.Protobuf.WellKnownTypes.AnyReflection.Descriptor, },
           new pbr::GeneratedClrTypeInfo(new[] {typeof(global::LPS.Server.Rpc.InnerMessages.ServiceControlMessage), typeof(global::LPS.Server.Rpc.InnerMessages.ServiceRemoteType), }, null, new pbr::GeneratedClrTypeInfo[] {
@@ -52,6 +53,9 @@ namespace LPS.Server.Rpc.InnerMessages {
 
   public enum ServiceRemoteType {
     [pbr::OriginalName("Service")] Service = 0,
+    [pbr::OriginalName("Server")] Server = 1,
+    [pbr::OriginalName("Gate")] Gate = 2,
+    [pbr::OriginalName("Http")] Http = 3,
   }
 
   #endregion
