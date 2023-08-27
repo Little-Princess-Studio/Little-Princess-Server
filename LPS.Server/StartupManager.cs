@@ -469,8 +469,8 @@ public static class StartupManager
         var json = GetJson(path: confFilePath);
 
         var extraAssemblies = new System.Reflection.Assembly[] { typeof(StartupManager).Assembly };
-        var service_namespace = json["service_namespace"]!.ToString();
-        ServiceHelper.ScanServices(service_namespace, extraAssemblies);
+        var serviceNamespace = json["service_namespace"]!.ToString();
+        ServiceHelper.ScanServices(serviceNamespace, extraAssemblies);
 
         var messageQueueConf = GetJson(json["mq_conf"]!.ToString()).ToObject<MessageQueueClient.MqConfig>()!;
         MessageQueueClient.InitConnectionFactory(messageQueueConf);
@@ -492,7 +492,7 @@ public static class StartupManager
         var hostnum = Convert.ToInt32(hostMgrConf["hostnum"]!.ToString());
 
         RpcHelper.ScanRpcMethods(
-            new string[] { service_namespace },
+            new string[] { serviceNamespace },
             typeof(ServiceBase),
             typeof(ServiceAttribute),
             type => type.GetCustomAttribute<ServiceAttribute>()!.ServiceName,

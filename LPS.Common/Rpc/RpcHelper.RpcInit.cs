@@ -494,7 +494,7 @@ public static partial class RpcHelper
                 }
 
                 var attrName = getKeyName(type);
-                var regName = string.IsNullOrEmpty(attrName) ? attrName : type.Name;
+                var regName = !string.IsNullOrEmpty(attrName) ? attrName : type.Name;
                 EntityClassMap[regName!] = type;
                 Logger.Info($"Register entity pair : {regName} {type}");
             });

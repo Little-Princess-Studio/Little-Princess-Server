@@ -337,7 +337,17 @@ public class Server : IInstance
 
             try
             {
-                RpcHelper.CallLocalEntity(entity, entityRpc);
+                // Migrate notification
+                if (entityRpc.RpcType == RpcType.ServerToClient && baseEntity is ServerClientEntity)
+                {
+                    var gateConn = (baseEntity as ServerClientEntity)!.Client.GateConn;
+                    Logger.Info($"serverToClient rpc send to gate {gateConn.MailBox}");
+                    this.tcpServer.Send(entityRpc, gateConn);
+                }
+                else
+                {
+                    RpcHelper.CallLocalEntity(entity, entityRpc);
+                }
             }
             catch (Exception e)
             {

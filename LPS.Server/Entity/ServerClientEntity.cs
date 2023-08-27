@@ -114,7 +114,6 @@ public class ServerClientEntity : DistributeEntity
             this.MailBox,
             targetMailBox);
 
-        // this.Client.Notify("OnMigrated", targetMailBox, string.Empty, targetEntityClassName);
         // do not use this.Client.Notify since the mailbox registered in the gate has already been changed.
         this.Notify(targetMailBox, "OnMigrated", RpcType.ServerToClient, targetMailBox, string.Empty, targetEntityClassName);
 

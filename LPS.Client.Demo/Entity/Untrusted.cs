@@ -55,7 +55,7 @@ public class Untrusted : ShadowClientEntity
     }
 
     /// <inheritdoc/>
-    [RpcMethod(Authority.ClientOnly)]
+    [RpcMethod(Authority.ClientStub)]
     public override async ValueTask OnMigrated(MailBox targetMailBox, string migrateInfo, string targetEntityClassName)
     {
         Logger.Debug(
