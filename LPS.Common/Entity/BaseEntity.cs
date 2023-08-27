@@ -570,7 +570,7 @@ public abstract class BaseEntity : ITypeIdSupport
                 (rpcId) => new RpcTimeOutException(this, rpcId));
 
         var rpcMsg = RpcHelper.BuildServiceRpcMessage(
-            id, serviceName, rpcMethodName, this.MailBox, random, false, ServiceRpcType.ServiceToService, args);
+            id, serviceName, rpcMethodName, this.MailBox, random, false, ServiceRpcType.ServerToService, args);
 
         this.OnSendServiceRpc.Invoke(rpcMsg);
         await task;
@@ -595,7 +595,7 @@ public abstract class BaseEntity : ITypeIdSupport
                 (rpcId) => new RpcTimeOutException(this, rpcId));
 
         var rpcMsg = RpcHelper.BuildServiceRpcMessage(
-            id, serviceName, rpcMethodName, this.MailBox, random, false, ServiceRpcType.ServiceToService, args);
+            id, serviceName, rpcMethodName, this.MailBox, random, false, ServiceRpcType.ServerToService, args);
         this.OnSendServiceRpc.Invoke(rpcMsg);
 
         var res = await task;
@@ -616,7 +616,7 @@ public abstract class BaseEntity : ITypeIdSupport
 
         var id = this.IncreaseRpcIdCnt();
         var rpcMsg = RpcHelper.BuildServiceRpcMessage(
-            id, serviceName, rpcMethodName, this.MailBox, random, true, ServiceRpcType.ServiceToService, args);
+            id, serviceName, rpcMethodName, this.MailBox, random, true, ServiceRpcType.ServerToService, args);
         this.OnSendServiceRpc.Invoke(rpcMsg);
     }
 

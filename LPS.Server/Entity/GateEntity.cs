@@ -28,6 +28,7 @@ public class GateEntity : ServerEntity
         : base(mailbox)
     {
         this.gate = gate;
+        this.IsFrozen = false;
     }
 
     /// <summary>

@@ -26,6 +26,7 @@ public class ServerEntity : DistributeEntity
     public ServerEntity(MailBox mailbox)
     {
         this.MailBox = mailbox;
+        this.IsFrozen = false;
     }
 
     /// <summary>

@@ -161,13 +161,13 @@ public class Server : IInstance
         this.tcpServer.Run();
         this.hostConnection.Run();
 
-        Logger.Debug("Host manager connected.");
-        Logger.Debug("Start time circle pump.");
+        Logger.Info("Host manager connected.");
+        Logger.Info("Start time circle pump.");
         var sendQueueSandBox = SandBox.Create(this.TimeCircleSyncMessageEnqueueHandler);
         sendQueueSandBox.Run();
 
         this.localEntityGeneratedEvent.Wait();
-        Logger.Debug($"Local entity generated. {this.entity!.MailBox}");
+        Logger.Info($"Local entity generated. {this.entity!.MailBox}");
 
         // register server and wait for sync ack
         var regCtl = new Control
@@ -178,20 +178,25 @@ public class Server : IInstance
         regCtl.Args.Add(Any.Pack(RpcHelper.RpcMailBoxToPbMailBox(this.entity!.MailBox)));
         this.hostConnection.Send(regCtl);
 
-        Logger.Debug("wait for sync gates mailboxes");
+        Logger.Info("wait for sync gates mailboxes");
         this.waitForSyncGatesEvent.Wait();
 
-        Logger.Debug("wait for gate mailbox registered");
+        Logger.Info("wait for gate mailbox registered");
         this.gatesMailBoxesRegisteredEvent!.Wait();
 
-        Logger.Debug("wait for service manager registered");
+        Logger.Info("wait for service manager registered");
         this.waitForSyncServiceManagerEvent.Wait();
 
+        Logger.Info("Try to connect to service manager");
+        this.ConnectToServiceManager();
+
+        Logger.Info("Try to connect to web manager");
         this.InitWebManagerMessageQueueClient();
 
         // gate main thread will stuck here
         this.hostConnection.WaitForExit();
         this.tcpServer.WaitForExit();
+        this.serviceMgrConnection?.WaitForExit();
 
         this.messageQueueClientToWebMgr!.ShutDown();
     }
@@ -697,7 +702,8 @@ public class Server : IInstance
             this.serviceManagerMailBox.Ip,
             this.serviceManagerMailBox.Port,
             this.GenerateConnectionId,
-            () => this.tcpServer!.Stopped);
+            () => this.tcpServer!.Stopped,
+            this.entity!.MailBox);
 
         this.serviceMgrConnection.RegisterMessageHandler(PackageType.ServiceRpcCallBack, this.HandleServiceRpcCallBack);
         this.serviceMgrConnection.Run();

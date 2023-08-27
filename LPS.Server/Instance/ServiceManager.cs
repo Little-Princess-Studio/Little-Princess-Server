@@ -23,6 +23,7 @@ using LPS.Server;
 using LPS.Server.Database;
 using LPS.Server.Instance.ConnectionManager;
 using LPS.Server.Instance.HostConnection;
+using LPS.Server.Instance.HostConnection.HostManagerConnection;
 using LPS.Server.Rpc;
 using LPS.Server.Rpc.InnerMessages;
 using LPS.Server.Service;
@@ -52,16 +53,18 @@ public class ServiceManager : IInstance
     private readonly Random random = new();
     private readonly int desiredServiceNum;
     private readonly Dictionary<string, ServiceRoutingMapDescriptor> serviceRoutingMap = new();
-    private readonly IManagerConnection hostMgrConnection;
     private readonly MD5 md5 = MD5.Create();
     private readonly AsyncTaskGenerator<ServiceRpcCallBack, Connection> asyncTaskGenerator = new();
-
     private readonly Dictionary<Common.Rpc.MailBox, Connection> mailBoxToServiceConn = new();
+
+    private IManagerConnection hostMgrConnection = null!;
+
     private ServiceManagerConnectionManager connectionManager = null!;
 
     private State state = State.Init;
 
     private int unreadyServiceNum;
+    private uint hostMgrConnectionIdCounter;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ServiceManager"/> class.
@@ -89,12 +92,14 @@ public class ServiceManager : IInstance
         this.Port = port;
         this.HostNum = hostNum;
         this.desiredServiceNum = desiredServiceNum;
+
         this.tcpServer = new TcpServer(this.Ip, this.Port)
         {
             OnInit = this.RegisterServerMessageHandlers,
             OnDispose = this.UnregisterServerMessageHandlers,
         };
 
+        this.InitHostManagerConnection(hostManagerIp, hostManagerPort);
         this.InitConnectionManager();
     }
 
@@ -103,13 +108,17 @@ public class ServiceManager : IInstance
     {
         this.state = State.WaitForServiceInstanceRegister;
         this.tcpServer.Run();
+        this.hostMgrConnection.Run();
+
         this.tcpServer.WaitForExit();
+        this.hostMgrConnection.WaitForExit();
     }
 
     /// <inheritdoc/>
     public void Stop()
     {
         this.tcpServer.Stop();
+        this.hostMgrConnection.ShutDown();
     }
 
     private void RegisterServerMessageHandlers()
@@ -254,12 +263,12 @@ public class ServiceManager : IInstance
         }
         else if (ctlMsg.From == ServiceRemoteType.Gate)
         {
-            var mb = ctlMsg.Args[0].Unpack<MailBoxArg>().PayLoad;
+            var mb = ctlMsg.Args[0].Unpack<Common.Rpc.InnerMessages.MailBox>();
             this.connectionManager.RegisterImmediateConnection(conn, ConnectionType.Gate, mb.ID);
         }
         else if (ctlMsg.From == ServiceRemoteType.Server)
         {
-            var mb = ctlMsg.Args[0].Unpack<MailBoxArg>().PayLoad;
+            var mb = ctlMsg.Args[0].Unpack<Common.Rpc.InnerMessages.MailBox>();
             this.connectionManager.RegisterImmediateConnection(conn, ConnectionType.Server, mb.ID);
         }
         else
@@ -267,6 +276,26 @@ public class ServiceManager : IInstance
             var e = new Exception($"Invalid service remote type {ctlMsg.From}.");
             Logger.Error(e);
         }
+    }
+
+    private void InitHostManagerConnection(string hostManagerIp, int hostManagerPort)
+    {
+        this.hostMgrConnection = new ImmediateHostManagerConnectionOfServiceManager(
+            hostManagerIp,
+            hostManagerPort,
+            this.GenerateAsyncId,
+            () => this.tcpServer!.Stopped);
+        this.hostMgrConnection.RegisterMessageHandler(PackageType.HostCommand, this.HandleHostCommand);
+    }
+
+    private void HandleHostCommand(IMessage message)
+    {
+        throw new NotImplementedException();
+    }
+
+    private uint GenerateAsyncId()
+    {
+        return this.hostMgrConnectionIdCounter++;
     }
 
     private void RegisterServiceRoute(ServiceControl ctlMsg)
@@ -292,16 +321,14 @@ public class ServiceManager : IInstance
                         From = RemoteType.ServiceManager,
                     };
 
-                    hostMsg.Args.Add(Any.Pack(new MailBoxArg()
-                    {
-                        PayLoad = new Common.Rpc.InnerMessages.MailBox()
+                    hostMsg.Args.Add(Any.Pack(
+                        new Common.Rpc.InnerMessages.MailBox()
                         {
                             ID = string.Empty,
                             IP = this.Ip,
                             Port = (uint)this.Port,
                             HostNum = (uint)this.HostNum,
-                        },
-                    }));
+                        }));
 
                     this.hostMgrConnection.Send(hostMsg);
                 }
@@ -315,7 +342,29 @@ public class ServiceManager : IInstance
 
         var assignResult = ServiceHelper.AssignServicesToServiceInstances(this.mailBoxToServiceConn.Count);
 
+        var shardDict = new Dictionary<string, List<int>>();
+
+        foreach (var assignedInfo in assignResult)
+        {
+            foreach (var (serviceName, shardList) in assignedInfo)
+            {
+                if (!shardDict.ContainsKey(serviceName))
+                {
+                    shardDict[serviceName] = new List<int>();
+                }
+
+                shardDict[serviceName].AddRange(shardList);
+            }
+        }
+
+        foreach (var (serviceName, shardList) in shardDict)
+        {
+            var routingDesc = new ServiceRoutingMapDescriptor(shardList.Select(x => (uint)x));
+            this.serviceRoutingMap[serviceName] = routingDesc;
+        }
+
         this.unreadyServiceNum = assignResult.Count;
+        Logger.Debug($"unreadyServiceNum: {this.unreadyServiceNum}");
         var idx = 0;
         foreach (var (mailbox, conn) in this.mailBoxToServiceConn)
         {
@@ -342,9 +391,6 @@ public class ServiceManager : IInstance
                 }
 
                 serviceDict.PayLoad.Add(serviceName, Any.Pack(shardList));
-
-                var routingDesc = new ServiceRoutingMapDescriptor(serviceShards.Select(x => (uint)x));
-                this.serviceRoutingMap[serviceName] = routingDesc;
             }
 
             cmd.Args.Add(Any.Pack(serviceDict));
@@ -352,7 +398,7 @@ public class ServiceManager : IInstance
             var pkg = PackageHelper.FromProtoBuf(cmd, 0);
             var bytes = pkg.ToBytes();
             conn.Socket.Send(bytes);
-            Logger.Init($"Send command {cmd.Type} to service instance");
+            Logger.Info($"Send command {cmd.Type} to service instance");
         }
     }
 
@@ -392,11 +438,11 @@ public class ServiceManager : IInstance
         });
     }
 
-    private bool CheckStateIn(params State[] state)
+    private bool CheckStateIn(params State[] states)
     {
-        if (!state.Contains(this.state))
+        if (!states.Contains(this.state))
         {
-            var e = new Exception($"Service manager is not in state {State.WaitForServicesRegister}, but {this.state}");
+            var e = new Exception($"Service manager is not in state {string.Join(',', states.Select(s => s.ToString()))}, but {this.state}");
             Logger.Warn(e);
             return false;
         }
@@ -492,6 +538,19 @@ public class ServiceManager : IInstance
             {
                 this.UnreadyShards = null;
             }
+        }
+
+        public string DebugString()
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine($"Shard count: {this.ShardCount}");
+            if (this.UnreadyShards is not null)
+            {
+                sb.AppendLine($"Unready shards: {string.Join(',', this.UnreadyShards)}");
+            }
+
+            sb.AppendLine($"Shard to mailbox map: {string.Join(',', this.ShardToMbMap.Select(x => $"{x.Key}:{x.Value}"))}");
+            return sb.ToString();
         }
     }
 }

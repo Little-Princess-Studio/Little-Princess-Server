@@ -177,7 +177,7 @@ public class Service : IInstance
                         PayLoad = RpcHelper.RpcMailBoxToPbMailBox(this.mailBox),
                     }));
                     msg.Args.Add(RpcHelper.GetRpcAny(serviceName));
-                    msg.Args.Add(RpcHelper.GetRpcAny(shardNum));
+                    msg.Args.Add(RpcHelper.GetRpcAny((int)shardNum));
 
                     Logger.Info($"Service shard {serviceName} {shardNum} notify ready.");
                     this.serviceMgrConnection.Send(msg);
@@ -194,11 +194,9 @@ public class Service : IInstance
             case ServiceRpcType.ServiceToServer:
             case ServiceRpcType.ServiceToService:
             case ServiceRpcType.ServiceToHttp:
-            case ServiceRpcType.ServiceToClient:
                 this.serviceMgrConnection.Send(callback);
                 break;
             case ServiceRpcType.HttpToService:
-            case ServiceRpcType.ClientToService:
             case ServiceRpcType.ServerToService:
                 throw new Exception($"Invalid rpc type {rpcType}.");
         }

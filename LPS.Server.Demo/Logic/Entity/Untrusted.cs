@@ -103,13 +103,16 @@ public class Untrusted : ServerClientEntity, IServerUntrustedStub
         return res;
     }
 
-    /// <summary>
-    /// Check username and password from database.
-    /// </summary>
-    /// <param name="name">User name.</param>
-    /// <param name="password">Password.</param>
-    /// <returns>Async value task of the check result.</returns>
-    public async Task<(bool Success, string AccountId)> CheckPassword(string name, string password)
+    /// <inheritdoc/>
+    [RpcMethod(Authority.ClientOnly)]
+    public async Task<string> CallServiceEcho(string msg)
+    {
+        var res = await this.CallServiceShardRandomly<string>("EchoService", "Echo", msg);
+        Logger.Info($"[Untrusted] CallServiceEcho, msg -> {msg}, res -> {res}");
+        return res;
+    }
+
+    private async Task<(bool Success, string AccountId)> CheckPassword(string name, string password)
     {
         var res = await DbHelper.CallDbApi<(string Password, string AccountId)>(nameof(DbApi.DbApi.QueryAccountByUserName), name);
 

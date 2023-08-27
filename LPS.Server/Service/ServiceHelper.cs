@@ -128,15 +128,6 @@ internal static class ServiceHelper
         var senderMailBox = serviceRpc.SenderMailBox;
 
         var sendRpcType = serviceRpc.RpcType;
-        if (serviceRpc.RpcType == ServiceRpcType.ClientToService)
-        {
-            Logger.Info("rpc call is from client, the result will be sent to client.");
-            sendRpcType = ServiceRpcType.ServiceToClient;
-        }
-        else if (serviceRpc.RpcType == ServiceRpcType.ServiceToClient)
-        {
-            sendRpcType = ServiceRpcType.ClientToService;
-        }
 
         if (res != null)
         {

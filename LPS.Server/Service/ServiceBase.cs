@@ -97,8 +97,7 @@ public abstract class ServiceBase : ITypeIdSupport
         }
 
         if (rpcType == ServiceRpcType.ServerToService
-            || rpcType == ServiceRpcType.HttpToService
-            || rpcType == ServiceRpcType.ClientToService)
+            || rpcType == ServiceRpcType.HttpToService)
         {
             throw new Exception($"Invalid rpc type {rpcType}.");
         }

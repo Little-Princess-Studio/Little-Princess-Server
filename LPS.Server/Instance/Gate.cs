@@ -212,7 +212,16 @@ public class Gate : IInstance
         {
             var serverEntityMailBox = client.MailBox;
             var res = this.entity!.Call(serverEntityMailBox, "Echo", "Hello");
-            res.ContinueWith(t => Logger.Info($"Echo Res Callback"));
+            res.ContinueWith(t =>
+            {
+                if (t.Exception != null)
+                {
+                    Logger.Error(t.Exception, $"Echo Res Callback Error.");
+                    return;
+                }
+
+                Logger.Info($"Echo Res Callback");
+            });
         });
 
         // gate main thread will stuck here
@@ -272,7 +281,6 @@ public class Gate : IInstance
         this.tcpGateServer.RegisterMessageHandler(
             PackageType.RequireComponentSync,
             this.HandleRequireComponentSyncFromClient);
-        this.tcpGateServer.RegisterMessageHandler(PackageType.ServiceRpc, this.HandleServiceRpcFromClient);
     }
 
     private void UnregisterMessageFromServerAndOtherGateHandlers()
@@ -289,7 +297,6 @@ public class Gate : IInstance
         this.tcpGateServer.UnregisterMessageHandler(
             PackageType.RequireComponentSync,
             this.HandleRequireComponentSyncFromClient);
-        this.tcpGateServer.UnregisterMessageHandler(PackageType.ServiceRpc, this.HandleServiceRpcFromClient);
     }
 
     private void HandleHostCommandFromHost(IMessage msg)
@@ -395,23 +402,6 @@ public class Gate : IInstance
     {
         this.waitForSyncServiceManagerEvent.Signal();
         this.serviceManagerMailBox = serviceManagerMailBox;
-    }
-
-    private void HandleServiceRpcFromClient((IMessage Message, Connection Connection, uint RpcId) arg)
-    {
-        Logger.Info("Handle ServiceRpc From Other Gates.");
-
-        var (msg, _, _) = arg;
-        var serviceRpc = (msg as ServiceRpc)!;
-
-        if (serviceRpc.RpcType == ServiceRpcType.ClientToService)
-        {
-            this.serviceMgrConnection!.Send(msg);
-        }
-        else
-        {
-            throw new Exception($"Invalid RpcType {serviceRpc.RpcType}");
-        }
     }
 
     private void HandleEntityRpcFromClient((IMessage Message, Connection Connection, uint RpcId) arg)
@@ -764,7 +754,7 @@ public class Gate : IInstance
 
     private void ConnectToServiceManager()
     {
-        this.serviceMgrConnection = new ImmediateServiceManagerConnectionOfServer(
+        this.serviceMgrConnection = new ImmediateServiceManagerConnectionOfGate(
             this.serviceManagerMailBox.Ip,
             this.serviceManagerMailBox.Port,
             this.GenerateRpcId,

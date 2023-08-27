@@ -39,11 +39,10 @@ namespace LPS.Common.Rpc.InnerMessages {
             "cmdldE1haWxCb3gYAyABKAsyJS5MUFMuQ29tbW9uLlJwYy5Jbm5lck1lc3Nh",
             "Z2VzLk1haWxCb3hIAIgBARIbChNTZXJ2aWNlTWFuYWdlclJwY0lkGAQgASgN",
             "EiQKBlJlc3VsdBgFIAEoCzIULmdvb2dsZS5wcm90b2J1Zi5BbnlCEAoOX1Rh",
-            "cmdldE1haWxCb3gqoAEKDlNlcnZpY2VScGNUeXBlEhMKD1NlcnZlclRvU2Vy",
-            "dmljZRAAEhMKD1NlcnZpY2VUb1NlcnZlchABEhQKEFNlcnZpY2VUb1NlcnZp",
-            "Y2UQAhIRCg1IdHRwVG9TZXJ2aWNlEAQSEQoNU2VydmljZVRvSHR0cBAFEhMK",
-            "D0NsaWVudFRvU2VydmljZRAGEhMKD1NlcnZpY2VUb0NsaWVudBAHYgZwcm90",
-            "bzM="));
+            "cmdldE1haWxCb3gqdgoOU2VydmljZVJwY1R5cGUSEwoPU2VydmVyVG9TZXJ2",
+            "aWNlEAASEwoPU2VydmljZVRvU2VydmVyEAESFAoQU2VydmljZVRvU2Vydmlj",
+            "ZRACEhEKDUh0dHBUb1NlcnZpY2UQBBIRCg1TZXJ2aWNlVG9IdHRwEAViBnBy",
+            "b3RvMw=="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { global::LPS.Common.Rpc.InnerMessages.MailboxReflection.Descriptor, global::Google.Protobuf.WellKnownTypes.AnyReflection.Descriptor, },
           new pbr::GeneratedClrTypeInfo(new[] {typeof(global::LPS.Common.Rpc.InnerMessages.ServiceRpcType), }, null, new pbr::GeneratedClrTypeInfo[] {
@@ -61,8 +60,6 @@ namespace LPS.Common.Rpc.InnerMessages {
     [pbr::OriginalName("ServiceToService")] ServiceToService = 2,
     [pbr::OriginalName("HttpToService")] HttpToService = 4,
     [pbr::OriginalName("ServiceToHttp")] ServiceToHttp = 5,
-    [pbr::OriginalName("ClientToService")] ClientToService = 6,
-    [pbr::OriginalName("ServiceToClient")] ServiceToClient = 7,
   }
 
   #endregion

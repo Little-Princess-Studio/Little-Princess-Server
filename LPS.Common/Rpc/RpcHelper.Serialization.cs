@@ -259,6 +259,7 @@ public static partial class RpcHelper
         var type = obj.GetType();
         return obj switch
         {
+            null => new NullArg(),
             bool b => new BoolArg { PayLoad = b },
             int i => new IntArg { PayLoad = i },
             float f => new FloatArg { PayLoad = f },
@@ -318,10 +319,10 @@ public static partial class RpcHelper
 
     private static bool ValidateRpcType(Type type)
     {
-        if (type == typeof(int)
-            || type == typeof(float)
+        if (type == typeof(int) || type == typeof(int?)
+            || type == typeof(float) || type == typeof(float?)
             || type == typeof(string)
-            || type == typeof(MailBox)
+            || type == typeof(MailBox) || type == typeof(MailBox?)
             || type == typeof(bool))
         {
             return true;

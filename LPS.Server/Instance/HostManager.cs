@@ -625,12 +625,18 @@ public class HostManager : IInstance
                 conn => this.serversMailBoxes.FindIndex(mb => mb.CompareOnlyID(conn.MailBox)) != -1)
             .ToList();
 
+        this.NotifySyncGates(gateConns, serverConns);
+        this.NotifySyncServers(gateConns, serverConns);
+        this.NotifySyncServiceManager(gateConns, serverConns);
+    }
+
+    private void NotifySyncGates(List<Connection> gateConns, List<Connection> serverConns)
+    {
         // send gates mailboxes
         var syncCmd = new HostCommand
         {
             Type = HostCommandType.SyncGates,
         };
-
         foreach (var gateConn in this.gatesMailBoxes)
         {
             syncCmd.Args.Add(Any.Pack(RpcHelper.RpcMailBoxToPbMailBox(gateConn)));
@@ -668,11 +674,11 @@ public class HostManager : IInstance
                 Consts.HostBroadCastMessagePackageToGate,
                 false);
         }
+    }
 
-        // -----------------------------------
-
-        // broadcast sync msg
-        syncCmd = new HostCommand
+    private void NotifySyncServers(List<Connection> gateConns, List<Connection> serverConns)
+    {
+        var syncCmd = new HostCommand
         {
             Type = HostCommandType.SyncServers,
         };
@@ -683,8 +689,41 @@ public class HostManager : IInstance
             syncCmd.Args.Add(Any.Pack(RpcHelper.RpcMailBoxToPbMailBox(serverConn)));
         }
 
-        pkg = PackageHelper.FromProtoBuf(syncCmd, 0);
-        bytes = pkg.ToBytes();
+        var pkg = PackageHelper.FromProtoBuf(syncCmd, 0);
+        var bytes = pkg.ToBytes();
+
+        // to gates
+        foreach (var gateConn in gateConns)
+        {
+            gateConn.Socket.Send(bytes);
+        }
+
+        if (gateConns.Count != this.DesiredGateNum)
+        {
+            this.messageQueueClientToServer.Publish(
+                bytes,
+                Consts.HostMgrToGateExchangeName,
+                Consts.HostBroadCastMessagePackageToGate,
+                false);
+        }
+    }
+
+    private void NotifySyncServiceManager(List<Connection> gateConns, List<Connection> serverConns)
+    {
+        Logger.Info("notify to sync service manager");
+
+        var syncCmd = new HostCommand
+        {
+            Type = HostCommandType.SyncServiceManager,
+        };
+
+        syncCmd.Args.Add(Any.Pack(new MailBoxArg()
+        {
+            PayLoad = RpcHelper.RpcMailBoxToPbMailBox(this.serviceManagerInfo.ServiceManagerMailBox),
+        }));
+
+        var pkg = PackageHelper.FromProtoBuf(syncCmd, 0);
+        var bytes = pkg.ToBytes();
 
         // to gates
         foreach (var gateConn in gateConns)
@@ -701,31 +740,19 @@ public class HostManager : IInstance
                 false);
         }
 
-        // -----------------------------------
-        // broadcast sync msg
-        syncCmd = new HostCommand
-        {
-            Type = HostCommandType.SyncServiceManager,
-        };
-
-        syncCmd.Args.Add(Any.Pack(new MailBoxArg()
-        {
-            PayLoad = RpcHelper.RpcMailBoxToPbMailBox(this.serviceManagerInfo.ServiceManagerMailBox),
-        }));
-
-        pkg = PackageHelper.FromProtoBuf(syncCmd, 0);
-        bytes = pkg.ToBytes();
-
-        // to gates
-        foreach (var gateConn in gateConns)
-        {
-            gateConn.Socket.Send(bytes);
-        }
-
         // to server
         foreach (var serverConn in serverConns)
         {
             serverConn.Socket.Send(bytes);
+        }
+
+        if (serverConns.Count != this.DesiredServerNum)
+        {
+            this.messageQueueClientToServer.Publish(
+                bytes,
+                Consts.HostMgrToServerExchangeName,
+                Consts.HostBroadCastMessagePackageToServer,
+                false);
         }
     }
 }

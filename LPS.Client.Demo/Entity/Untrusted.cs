@@ -85,4 +85,15 @@ public class Untrusted : ShadowClientEntity
     /// <returns>Async value task.</returns>
     public ValueTask ChangeProp(string prop) =>
         this.serverUntrustedRpc.ChangeProp(prop);
+
+    /// <summary>
+    /// Calls the service echo method with the specified message and logs the response.
+    /// </summary>
+    /// <param name="msg">The message to send to the service.</param>
+    /// <returns>A task that represents the asynchronous operation.</returns>
+    public async Task CallServiceEcho(string msg)
+    {
+        var res = await this.serverUntrustedRpc.CallServiceEcho(msg);
+        Logger.Debug($"[CallServiceEcho]: {res}");
+    }
 }

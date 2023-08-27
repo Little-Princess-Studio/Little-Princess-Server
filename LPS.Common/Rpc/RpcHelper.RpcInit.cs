@@ -180,10 +180,8 @@ public static partial class RpcHelper
         Action? onExitLoop)
     {
 #if USE_PIPE
-        Logger.Debug("Use Pipe: true");
         await HandleMessageWithPipe(conn, stopCondition, onGotMessage, onExitLoop);
 #else
-        Logger.Debug("Use Pipe: false");
         var buf = new byte[512];
         var messageBuf = new MessageBuffer();
         var socket = conn.Socket;
@@ -466,6 +464,11 @@ public static partial class RpcHelper
     /// <param name="extraAssemblies">An optional array of extra assemblies to scan for classes.</param>
     public static void ScanRpcMethods(string[] namespaceNames, Type baseClassType, Type attributeTypeToScan, Func<Type, string?> getKeyName, Assembly[]? extraAssemblies = null)
     {
+#if USE_PIPE
+        Logger.Debug("Use Pipe: true");
+#else
+        Logger.Debug("Use Pipe: false");
+#endif
         var tempRpcMethodInfo = new Dictionary<uint, ReadOnlyDictionary<string, RpcMethodDescriptor>>();
 
         foreach (var namespaceName in namespaceNames)

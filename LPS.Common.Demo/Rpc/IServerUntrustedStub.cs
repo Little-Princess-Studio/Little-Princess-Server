@@ -33,4 +33,11 @@ public interface IServerUntrustedStub : IRpcStub
     /// <param name="password">Password.</param>
     /// <returns>Async value task.</returns>
     Task<bool> LogIn(string name, string password);
+
+    /// <summary>
+    /// Calls the Echo service with the specified message.
+    /// </summary>
+    /// <param name="message">The message to send to the Echo service.</param>
+    /// <returns>A task that represents the asynchronous operation. The task result contains the response from the Echo service.</returns>
+    Task<string> CallServiceEcho(string message);
 }
