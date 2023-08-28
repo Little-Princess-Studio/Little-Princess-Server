@@ -41,6 +41,19 @@ internal static class ServiceHelper
     }
 
     /// <summary>
+    /// Scans all the RPC methods in the specified namespace and registers them.
+    /// </summary>
+    /// <param name="namespaceNames">The namespaces to scan for RPC methods.</param>
+    /// <param name="extraAssemblies">Optional extra assemblies to include in the scan.</param>
+    /// <exception cref="Exception">Thrown if there is an error while scanning or registering the RPC methods.</exception>
+    public static void ScanRpcMethods(string[] namespaceNames, Assembly[]? extraAssemblies = null) => RpcHelper.ScanRpcMethods(
+            namespaceNames,
+            typeof(ServiceBase),
+            typeof(ServiceAttribute),
+            type => type.GetCustomAttribute<ServiceAttribute>()!.ServiceName,
+            extraAssemblies);
+
+    /// <summary>
     /// Creates a new instance of the service.
     /// </summary>
     /// <param name="serviceName">The name of the service to create.</param>
@@ -106,7 +119,7 @@ internal static class ServiceHelper
     public static void CallService(ServiceBase service, ServiceRpc serviceRpc)
     {
         // todo: impl jit to compile methodInfo.invoke to expression.invoke to improve perf.
-        var descriptor = RpcHelper.GetRpcMethodArgTypes(service.TypeId, rpcMethodName: serviceRpc.MethodName);
+        var descriptor = RpcHelper.GetRpcMethodArgTypes(service.TypeId, serviceRpc.MethodName);
         var authority = descriptor.Authority;
         var methodInfo = descriptor.Method;
 
@@ -127,7 +140,24 @@ internal static class ServiceHelper
 
         var senderMailBox = serviceRpc.SenderMailBox;
 
-        var sendRpcType = serviceRpc.RpcType;
+        ServiceRpcType sendRpcType;
+
+        switch (serviceRpc.RpcType)
+        {
+            case ServiceRpcType.ServerToService:
+                sendRpcType = ServiceRpcType.ServiceToServer;
+                break;
+            case ServiceRpcType.ServiceToService:
+                sendRpcType = ServiceRpcType.ServiceToService;
+                break;
+            case ServiceRpcType.HttpToService:
+                sendRpcType = ServiceRpcType.ServiceToHttp;
+                break;
+            case ServiceRpcType.ServiceToServer:
+            case ServiceRpcType.ServiceToHttp:
+            default:
+                throw new Exception($"Invalid rpc type {serviceRpc.RpcType}.");
+        }
 
         if (res != null)
         {

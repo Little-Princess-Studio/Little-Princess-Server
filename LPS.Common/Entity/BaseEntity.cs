@@ -48,8 +48,8 @@ public abstract class BaseEntity : ITypeIdSupport
     /// </remarks>
     protected ReadOnlyDictionary<string, uint> ComponentNameToComponentTypeId { get; set; } = null!;
 
-    private readonly AsyncTaskGenerator<object> rpcBlankAsyncTaskGenerator;
-    private readonly AsyncTaskGenerator<object, System.Type> rpcAsyncTaskGenerator;
+    private readonly AsyncTaskGenerator<object?> rpcBlankAsyncTaskGenerator;
+    private readonly AsyncTaskGenerator<object?, System.Type> rpcAsyncTaskGenerator;
 
     private Dictionary<string, RpcProperty>? propertyTree;
 
@@ -549,7 +549,25 @@ public abstract class BaseEntity : ITypeIdSupport
         }
 
         var rpcId = entityRpc.RpcID;
-        this.RpcAsyncCallBack(rpcId, entityRpc);
+        var result = entityRpc.Args[0];
+        this.RpcAsyncCallBack(rpcId, result: result);
+    }
+
+    /// <summary>
+    /// Called when a service RPC callback is received.
+    /// </summary>
+    /// <param name="serviceRpc">The service RPC object containing the callback data.</param>
+    public void OnServiceRpcCallBack(ServiceRpcCallBack serviceRpc)
+    {
+        if (this.IsDestroyed)
+        {
+            Logger.Warn("Entity already destroyed.");
+            return;
+        }
+
+        var rpcId = serviceRpc.RpcID;
+        var result = serviceRpc.Result;
+        this.RpcAsyncCallBack(rpcId, result);
     }
 
     private async Task CallService(string serviceName, string rpcMethodName, bool random, params object?[] args)
@@ -620,13 +638,13 @@ public abstract class BaseEntity : ITypeIdSupport
         this.OnSendServiceRpc.Invoke(rpcMsg);
     }
 
-    private void RpcAsyncCallBack(uint rpcId, EntityRpc entityRpc)
+    private void RpcAsyncCallBack(uint rpcId, Any result)
     {
         if (this.rpcAsyncTaskGenerator.ContainsAsyncId(rpcId))
         {
             var returnType = this.rpcAsyncTaskGenerator.GetDataByAsyncTaskId(rpcId);
-            var rpcArg = RpcHelper.ProtoBufAnyToRpcArg(entityRpc.Args[0], returnType);
-            this.rpcAsyncTaskGenerator.ResolveAsyncTask(rpcId, rpcArg!);
+            var rpcArg = RpcHelper.ProtoBufAnyToRpcArg(result, returnType);
+            this.rpcAsyncTaskGenerator.ResolveAsyncTask(rpcId, rpcArg);
         }
         else
         {

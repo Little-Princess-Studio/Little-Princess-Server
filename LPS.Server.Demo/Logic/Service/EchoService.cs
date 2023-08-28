@@ -7,6 +7,7 @@
 namespace LPS.Server.Demo.Logic.Service;
 
 using LPS.Common.Debug;
+using LPS.Common.Rpc.RpcStub;
 using LPS.Server.Service;
 
 /// <summary>
@@ -20,6 +21,7 @@ public class EchoService : ServiceBase
     /// </summary>
     /// <param name="msg">The message to echo.</param>
     /// <returns>A <see cref="ValueTask{TResult}"/> representing the asynchronous operation that returns the echoed message.</returns>
+    [RpcMethod(Authority.ServerOnly)]
     public ValueTask<string> Echo(string msg)
     {
         Logger.Info($"EchoService.Echo {msg}");

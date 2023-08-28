@@ -361,10 +361,7 @@ public class Server : IInstance
         }
     }
 
-    private void SendServiceRpc(ServiceRpc rpc)
-    {
-        this.serviceMgrConnection?.Send(rpc);
-    }
+    private void SendServiceRpc(ServiceRpc rpc) => this.serviceMgrConnection?.Send(rpc);
 
     private async Task OnCreateEntity(Connection? gateConn, string entityClassName, string jsonDesc, MailBox mailBox)
     {
@@ -721,8 +718,18 @@ public class Server : IInstance
 
     private void HandleServiceRpcCallBack(IMessage message)
     {
-        var serviceRpc = (message as ServiceRpcCallBack)!;
-        throw new NotImplementedException();
+        var serviceRpcCallBack = (message as ServiceRpcCallBack)!;
+        Logger.Debug("HandleServiceRpcCallBack");
+        var recieverMailBox = RpcHelper.PbMailBoxToRpcMailBox(serviceRpcCallBack.TargetMailBox);
+        if (this.localEntityDict.ContainsKey(recieverMailBox.Id))
+        {
+            var entity = this.localEntityDict[recieverMailBox.Id];
+            entity.OnServiceRpcCallBack(serviceRpcCallBack);
+        }
+        else
+        {
+            Logger.Warn("ServiceRpcCallBack target not exist");
+        }
     }
 
     private void InitWebManagerMessageQueueClient()

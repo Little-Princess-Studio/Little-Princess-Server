@@ -422,9 +422,10 @@ public static class StartupManager
 
         var json = GetJson(path: confFilePath);
 
-        var extraAssemblies = new System.Reflection.Assembly[] { typeof(StartupManager).Assembly };
-        var service_namespace = json["service_namespace"]!.ToString();
-        ServiceHelper.ScanServices(service_namespace, extraAssemblies);
+        var extraAssemblies = new Assembly[] { typeof(StartupManager).Assembly };
+        var serviceNamespace = json["service_namespace"]!.ToString();
+        ServiceHelper.ScanServices(serviceNamespace, extraAssemblies);
+        ServiceHelper.ScanRpcMethods(new[] { serviceNamespace }, extraAssemblies);
 
         var messageQueueConf = GetJson(json["mq_conf"]!.ToString()).ToObject<MessageQueueClient.MqConfig>()!;
         MessageQueueClient.InitConnectionFactory(messageQueueConf);

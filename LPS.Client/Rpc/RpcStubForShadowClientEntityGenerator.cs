@@ -31,12 +31,13 @@ public class RpcStubForShadowClientEntityGenerator : RpcStubGenerator
         var returnType = method.ReturnType.GenericTypeArguments[0];
         var methodName = method.Name;
         var parameterTypes = method.GetParameters().Select(p => p.ParameterType).ToArray();
-        var callMethod = this.EntityType
+        var callMethod = typeof(ShadowClientEntity.ServerProxy)
             .GetMethods()
-            .Where(method => !method.IsGenericMethod && method.Name.Split("`")[0] == "Call")
+            .Where(method => method.IsGenericMethod && method.Name.Split("`")[0] == "Call")
             .First()!;
 
-        this.GenerateRpcCall(entityField, ilgenerator, methodName, parameterTypes, callMethod);
+        var generated = callMethod.MakeGenericMethod(returnType);
+        this.GenerateRpcCall(entityField, ilgenerator, methodName, parameterTypes, generated);
     }
 
     /// <inheritdoc/>
@@ -45,9 +46,9 @@ public class RpcStubForShadowClientEntityGenerator : RpcStubGenerator
         // Task/ValueTask
         var methodName = method.Name;
         var parameterTypes = method.GetParameters().Select(p => p.ParameterType).ToArray();
-        var callMethod = this.EntityType
+        var callMethod = typeof(ShadowClientEntity.ServerProxy)
             .GetMethods()
-            .Where(method => method.IsGenericMethod && method.Name.Split("`")[0] == "Call")
+            .Where(method => !method.IsGenericMethod && method.Name.Split("`")[0] == "Call")
             .First()!;
 
         this.GenerateRpcCall(entityField, ilgenerator, methodName, parameterTypes, callMethod);

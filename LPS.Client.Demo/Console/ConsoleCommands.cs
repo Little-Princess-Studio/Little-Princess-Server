@@ -173,4 +173,14 @@ public static class ConsoleCommands
     {
         await (ClientGlobal.ShadowClientEntity as Player) !.Ping(content);
     }
+
+    /// <summary>
+    /// Call service echo.
+    /// </summary>
+    /// <param name="msg">Echo message.</param>
+    [ConsoleCommand("send.call_service_echo")]
+    public static async void CallServiceEcho(string msg)
+    {
+        await (ClientGlobal.ShadowClientEntity as Untrusted) !.CallServiceEcho(msg);
+    }
 }

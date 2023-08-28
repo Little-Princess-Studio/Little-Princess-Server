@@ -54,7 +54,7 @@ public class ServiceManager : IInstance
     private readonly int desiredServiceNum;
     private readonly Dictionary<string, ServiceRoutingMapDescriptor> serviceRoutingMap = new();
     private readonly MD5 md5 = MD5.Create();
-    private readonly AsyncTaskGenerator<ServiceRpcCallBack, Connection> asyncTaskGenerator = new();
+    private readonly AsyncTaskGenerator<(ServiceRpcCallBack Callback, Connection Connection), Connection> asyncTaskGenerator = new();
     private readonly Dictionary<Common.Rpc.MailBox, Connection> mailBoxToServiceConn = new();
 
     private IManagerConnection hostMgrConnection = null!;
@@ -139,6 +139,7 @@ public class ServiceManager : IInstance
     {
         Logger.Info($"ServiceRpc received.");
         var serviceRpc = (arg.Message as ServiceRpc)!;
+        var senderConn = arg.Connection;
 
         // choose the shard to send the service rpc.
         var serviceName = serviceRpc.ServiceName;
@@ -157,18 +158,18 @@ public class ServiceManager : IInstance
                 var id = serviceRpc.SenderMailBox.ID;
                 var encoded = this.md5.ComputeHash(Encoding.UTF8.GetBytes(id));
                 shard = (uint)(BitConverter.ToUInt32(encoded, 0) % shardCnt);
-                serviceRpc.ShardID = (uint)shard;
             }
 
-            var serviceMb = desc!.GetShardMailBox(shard);
+            serviceRpc.ShardID = (uint)shard;
 
+            var serviceMb = desc!.GetShardMailBox(shard);
             var serviceConn = this.mailBoxToServiceConn[serviceMb];
             if (serviceConn is not null)
             {
                 var (task, id) =
                     this.asyncTaskGenerator.GenerateAsyncTask(
-                        serviceConn,
-                        1000,
+                        senderConn,
+                        5000,
                         (rpcId) => new RpcTimeOutException($"Service RPC timeout: {serviceName}:{serviceRpc.MethodName}."));
                 serviceRpc.ServiceManagerRpcId = id;
                 task.ContinueWith(t =>
@@ -179,8 +180,7 @@ public class ServiceManager : IInstance
                         return;
                     }
 
-                    var callback = t.Result;
-                    var conn = this.asyncTaskGenerator.GetDataByAsyncTaskId(callback.ServiceManagerRpcId);
+                    var (callback, conn) = t.Result;
                     var pkg = PackageHelper.FromProtoBuf(callback, 0).ToBytes();
                     conn.Socket.Send(pkg);
                 });
@@ -208,7 +208,9 @@ public class ServiceManager : IInstance
 
         var callback = (arg.Message as ServiceRpcCallBack)!;
         var serviceMgrRpcId = callback.ServiceManagerRpcId;
-        this.asyncTaskGenerator.ResolveAsyncTask(serviceMgrRpcId, callback);
+        Logger.Debug($"service manager rpc id recieved: {callback.ServiceManagerRpcId}");
+        var conn = this.asyncTaskGenerator.GetDataByAsyncTaskId(callback.ServiceManagerRpcId);
+        this.asyncTaskGenerator.ResolveAsyncTask(serviceMgrRpcId, (callback, conn));
     }
 
     private void HandleServiceControl((IMessage Message, Connection Connection, uint RpcId) tuple)
@@ -503,30 +505,30 @@ public class ServiceManager : IInstance
     {
         public readonly int ShardCount;
 
-        public bool AllShardReady => this.UnreadyShards is null;
+        public bool AllShardReady => this.unreadyShards is null;
 
-        private HashSet<uint>? UnreadyShards { get; set; }
+        private readonly Dictionary<uint, Common.Rpc.MailBox> shardToMbMap = new();
 
-        private Dictionary<uint, Common.Rpc.MailBox> ShardToMbMap { get; set; } = new();
+        private HashSet<uint>? unreadyShards;
 
         public ServiceRoutingMapDescriptor(IEnumerable<uint> shards)
         {
-            this.UnreadyShards = new HashSet<uint>(shards);
+            this.unreadyShards = new HashSet<uint>(shards);
             this.ShardCount = shards.Count();
         }
 
-        public Common.Rpc.MailBox GetShardMailBox(uint shard) => this.ShardToMbMap[shard];
+        public Common.Rpc.MailBox GetShardMailBox(uint shard) => this.shardToMbMap[shard];
 
         public void RegisterShard(uint shard, Common.Rpc.MailBox mb)
         {
-            if (this.UnreadyShards != null && this.UnreadyShards.Contains(shard))
+            if (this.unreadyShards != null && this.unreadyShards.Contains(shard))
             {
-                this.UnreadyShards.Remove(shard);
+                this.unreadyShards.Remove(shard);
             }
 
-            if (!this.ShardToMbMap.ContainsKey(shard))
+            if (!this.shardToMbMap.ContainsKey(shard))
             {
-                this.ShardToMbMap[shard] = mb;
+                this.shardToMbMap[shard] = mb;
             }
             else
             {
@@ -534,9 +536,9 @@ public class ServiceManager : IInstance
                 return;
             }
 
-            if (this.UnreadyShards != null && this.UnreadyShards.Count == 0)
+            if (this.unreadyShards != null && this.unreadyShards.Count == 0)
             {
-                this.UnreadyShards = null;
+                this.unreadyShards = null;
             }
         }
 
@@ -544,12 +546,12 @@ public class ServiceManager : IInstance
         {
             var sb = new StringBuilder();
             sb.AppendLine($"Shard count: {this.ShardCount}");
-            if (this.UnreadyShards is not null)
+            if (this.unreadyShards is not null)
             {
-                sb.AppendLine($"Unready shards: {string.Join(',', this.UnreadyShards)}");
+                sb.AppendLine($"Unready shards: {string.Join(',', this.unreadyShards)}");
             }
 
-            sb.AppendLine($"Shard to mailbox map: {string.Join(',', this.ShardToMbMap.Select(x => $"{x.Key}:{x.Value}"))}");
+            sb.AppendLine($"Shard to mailbox map: {string.Join(',', this.shardToMbMap.Select(x => $"{x.Key}:{x.Value}"))}");
             return sb.ToString();
         }
     }
