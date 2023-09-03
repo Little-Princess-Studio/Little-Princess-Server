@@ -58,6 +58,7 @@ public static class StartUpManager
 
         Client.Instance.RegisterMessageHandler(PackageType.ClientCreateEntity, HandleClientCreateEntity);
         Client.Instance.RegisterMessageHandler(PackageType.EntityRpc, HandleEntityRpc);
+        Client.Instance.RegisterMessageHandler(PackageType.EntityRpcCallBack, HandleEntityRpcCallBack);
         Client.Instance.RegisterMessageHandler(PackageType.PropertyFullSync, HandlePropertyFullSync);
         Client.Instance.RegisterMessageHandler(PackageType.PropertySyncCommandList, HandlePropertySyncCommandList);
         Client.Instance.RegisterMessageHandler(PackageType.ComponentSync, HandleComponentSync);
@@ -97,6 +98,15 @@ public static class StartUpManager
 
         // Logger.Info($"rpc msg from server {entityRpc}");
         RpcHelper.CallLocalEntity(getShadowEntityCallBack(), entityRpc);
+    }
+
+    private static void HandleEntityRpcCallBack((IMessage Message, Connection Connection, uint RpcId) arg)
+    {
+        var (msg, _, _) = arg;
+        var callBack = (EntityRpcCallBack)msg;
+
+        var localEntity = getShadowEntityCallBack();
+        localEntity.OnRpcCallBack(callBack);
     }
 
     private static void HandleClientCreateEntity((IMessage Message, Connection Connection, uint RpcId) arg)

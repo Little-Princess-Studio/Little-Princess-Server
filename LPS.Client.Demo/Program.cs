@@ -33,9 +33,8 @@ public static class Program
             entity => ClientGlobal.ShadowClientEntity = entity);
 
         StartUpManager.StartClient();
-
-        AutoCompleteConsole.Init();
-        AutoCompleteConsole.Loop();
+        AutoCompleteConsoleV2.Init();
+        AutoCompleteConsoleV2.Loop();
 
         StartUpManager.StopClient();
     }

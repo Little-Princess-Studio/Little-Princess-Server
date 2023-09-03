@@ -68,6 +68,12 @@ public static class CommandParser
     }
 
     /// <summary>
+    /// Returns an array of all command names.
+    /// </summary>
+    /// <returns>An array of strings representing all command names.</returns>
+    public static string[] GetAllCmdNames() => CmdMapping.Keys.ToArray();
+
+    /// <summary>
     /// Dispatch command.
     /// </summary>
     /// <param name="commandString">Command raw string.</param>
@@ -101,7 +107,7 @@ public static class CommandParser
             var args = cmdArgs
                 .Select((literal, idx) => ConvertCommandStringArgToObject(argTypes[idx], literal))
                 .ToArray();
-            methodInfo.Invoke(null, args);
+            var res = methodInfo.Invoke(null, args);
         }
         else
         {
