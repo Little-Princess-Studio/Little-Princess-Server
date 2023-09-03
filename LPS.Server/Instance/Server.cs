@@ -381,7 +381,7 @@ public class Server : IInstance
 
                 Logger.Info($"serverToClient rpc send to gate {gateConn.MailBox}");
 
-                this.tcpServer.Send(targetMailBox, gateConn);
+                this.tcpServer.Send(callback, gateConn);
             }
             else
             {

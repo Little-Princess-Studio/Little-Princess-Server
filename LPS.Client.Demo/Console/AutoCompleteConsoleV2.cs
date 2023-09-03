@@ -28,7 +28,7 @@ public static class AutoCompleteConsoleV2
         while (true)
         {
             var s = AnsiConsole.Prompt(
-                new TextPrompt<string>("cmd> ")
+                new TextPrompt<string>(string.Empty)
                     .AddChoices(suggestions)
                     .ShowChoices(false)
                     .Validate(sugg => suggestions.Any(cmd => sugg.StartsWith(cmd)))

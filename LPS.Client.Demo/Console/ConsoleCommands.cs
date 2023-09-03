@@ -62,7 +62,7 @@ public static class ConsoleCommands
     public static async void Echo()
     {
         var startTime = new TimeSpan(System.DateTime.Now.Ticks);
-        for (int i = 0; i < 1; ++i)
+        for (int i = 0; i < 10; ++i)
         {
             var start = new TimeSpan(System.DateTime.Now.Ticks);
             var res = await ClientGlobal.ShadowClientEntity
