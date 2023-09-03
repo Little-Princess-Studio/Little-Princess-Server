@@ -14,7 +14,7 @@ using LPS.Server.Service;
 /// Represents a service that echoes back any input it receives.
 /// </summary>
 [Service("EchoService", 5)]
-public class EchoService : ServiceBase
+public class EchoService : BaseService
 {
     /// <summary>
     /// Echoes the input message.

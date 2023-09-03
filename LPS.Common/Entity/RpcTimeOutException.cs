@@ -14,7 +14,7 @@ public class RpcTimeOutException : Exception
     /// <summary>
     /// Who send the Rpc.
     /// </summary>
-    public readonly BaseEntity? Who;
+    public readonly object? Who;
 
     /// <summary>
     /// Id of the timed out RPC request.
@@ -53,7 +53,7 @@ public class RpcTimeOutException : Exception
     /// </summary>
     /// <param name="who">Who.</param>
     /// <param name="rpcId">Rpc ID.</param>
-    public RpcTimeOutException(BaseEntity who, uint rpcId)
+    public RpcTimeOutException(object who, uint rpcId)
         : base("Rpc time out.")
     {
         this.Who = who;

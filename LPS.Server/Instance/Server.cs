@@ -361,6 +361,65 @@ public class Server : IInstance
         }
     }
 
+    private void SendEntityRpcCallBack(BaseEntity baseEntity, EntityRpcCallBack callback)
+    {
+        // send this rpc to gate
+        var targetMailBox = callback.TargetMailBox;
+
+        // send to self
+        if (baseEntity.MailBox.CompareOnlyID(targetMailBox))
+        {
+            Logger.Info($"rpctype: {callback.RpcType}");
+            var rpcType = callback.RpcType;
+            if (rpcType == RpcType.ClientToServer || rpcType == RpcType.ServerInside)
+            {
+                baseEntity.OnRpcCallBack(callback);
+            }
+            else if (rpcType == RpcType.ServerToClient)
+            {
+                var gateConn = (baseEntity as ServerClientEntity)!.Client.GateConn;
+
+                Logger.Info($"serverToClient rpc send to gate {gateConn.MailBox}");
+
+                this.tcpServer.Send(targetMailBox, gateConn);
+            }
+            else
+            {
+                throw new Exception($"Invalid rpc type: {callback.RpcType}");
+            }
+        }
+
+        // send to local entity
+        else if (this.localEntityDict.ContainsKey(targetMailBox.ID))
+        {
+            var entity = this.localEntityDict[targetMailBox.ID];
+
+            try
+            {
+                // Migrate notification
+                if (callback.RpcType == RpcType.ServerToClient && baseEntity is ServerClientEntity)
+                {
+                    var gateConn = (baseEntity as ServerClientEntity)!.Client.GateConn;
+                    Logger.Info($"serverToClient rpc send to gate {gateConn.MailBox}");
+                    this.tcpServer.Send(callback, gateConn);
+                }
+                else
+                {
+                    entity.OnRpcCallBack(callback);
+                }
+            }
+            catch (Exception e)
+            {
+                Logger.Error(e, "Exception happened when call local entity");
+            }
+        }
+        else
+        {
+            // redirect to gate
+            this.tcpServer.Send(callback, this.GateConnections[0]);
+        }
+    }
+
     private void SendServiceRpc(ServiceRpc rpc) => this.serviceMgrConnection?.Send(rpc);
 
     private async Task OnCreateEntity(Connection? gateConn, string entityClassName, string jsonDesc, MailBox mailBox)
@@ -389,6 +448,7 @@ public class Server : IInstance
 
         entity.OnSendEntityRpc = entityRpc => this.SendEntityRpc(entity, entityRpc);
         entity.OnSendServiceRpc = serviceRpc => this.SendServiceRpc(serviceRpc);
+        entity.OnSendEntityRpcCallback = callback => this.SendEntityRpcCallBack(entity, callback);
         entity.MailBox = mailBox;
 
         Logger.Debug($"[OnCreateEntity] record local entity: {mailBox.Id}");
@@ -552,11 +612,13 @@ public class Server : IInstance
             MailBox = new MailBox(newId, this.Ip, this.Port, this.HostNum),
             OnSendEntityRpc = entityRpc => this.SendEntityRpc(this.defaultCell!, entityRpc),
             OnSendServiceRpc = serviceRpc => this.SendServiceRpc(serviceRpc),
+            OnSendEntityRpcCallback = callback => this.SendEntityRpcCallBack(this.defaultCell!, callback),
             EntityLeaveCallBack = entity => this.localEntityDict.Remove(entity.MailBox.Id),
             EntityEnterCallBack = (entity, gateMailBox) =>
             {
                 entity.OnSendEntityRpc = entityRpc => this.SendEntityRpc(entity, entityRpc);
                 entity.OnSendServiceRpc = serviceRpc => this.SendServiceRpc(serviceRpc);
+                entity.OnSendEntityRpc = entityRpc => this.SendEntityRpc(entity, entityRpc);
                 if (entity is ServerClientEntity serverClientEntity)
                 {
                     Logger.Debug("transferred new serverClientEntity, bind new conn");
@@ -583,6 +645,7 @@ public class Server : IInstance
             // todo: insert local rpc call operation to pump queue, instead of directly calling local entity rpc here.
             OnSendEntityRpc = entityRpc => this.SendEntityRpc(this.entity!, entityRpc),
             OnSendServiceRpc = serviceRpc => this.SendServiceRpc(serviceRpc),
+            OnSendEntityRpcCallback = callback => this.SendEntityRpcCallBack(this.entity!, callback),
         };
 
         Logger.Info("server entity generated.");

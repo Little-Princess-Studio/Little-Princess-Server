@@ -17,7 +17,7 @@ using LPS.Server.Service;
 /// Represents a service for managing player rosters.
 /// </summary>
 [Service("PlayerRosterService", 1)]
-public class PlayerRosterService : ServiceBase
+public class PlayerRosterService : BaseService
 {
     private const string RosterKeyName = "$_lps_player_roster";
 

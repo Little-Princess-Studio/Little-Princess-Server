@@ -494,7 +494,7 @@ public static class StartupManager
 
         RpcHelper.ScanRpcMethods(
             new string[] { serviceNamespace },
-            typeof(ServiceBase),
+            typeof(BaseService),
             typeof(ServiceAttribute),
             type => type.GetCustomAttribute<ServiceAttribute>()!.ServiceName,
             extraAssemblies);

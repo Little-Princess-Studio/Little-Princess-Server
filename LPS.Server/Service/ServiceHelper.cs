@@ -35,7 +35,7 @@ internal static class ServiceHelper
             @namespace,
             typeof(ServiceAttribute),
             false,
-            type => type.IsClass && type.IsSubclassOf(typeof(ServiceBase)),
+            type => type.IsClass && type.IsSubclassOf(typeof(BaseService)),
             assemblies);
         serviceMap = types.ToDictionary(type => type.GetCustomAttribute<ServiceAttribute>()!.ServiceName, type => type);
     }
@@ -48,7 +48,7 @@ internal static class ServiceHelper
     /// <exception cref="Exception">Thrown if there is an error while scanning or registering the RPC methods.</exception>
     public static void ScanRpcMethods(string[] namespaceNames, Assembly[]? extraAssemblies = null) => RpcHelper.ScanRpcMethods(
             namespaceNames,
-            typeof(ServiceBase),
+            typeof(BaseService),
             typeof(ServiceAttribute),
             type => type.GetCustomAttribute<ServiceAttribute>()!.ServiceName,
             extraAssemblies);
@@ -58,13 +58,15 @@ internal static class ServiceHelper
     /// </summary>
     /// <param name="serviceName">The name of the service to create.</param>
     /// <param name="shard">The shard to assign to the service.</param>
+    /// <param name="mailBox">The mailbox of the service.</param>
     /// <returns>A new instance of the service.</returns>
-    public static ServiceBase CreateService(string serviceName, uint shard)
+    public static BaseService CreateService(string serviceName, uint shard, Common.Rpc.MailBox mailBox)
     {
         if (serviceMap.ContainsKey(serviceName))
         {
-            var service = (ServiceBase)Activator.CreateInstance(serviceMap[serviceName])!;
+            var service = (BaseService)Activator.CreateInstance(serviceMap[serviceName])!;
             service.Shard = shard;
+            service.MailBox = mailBox;
             return service;
         }
         else
@@ -116,7 +118,7 @@ internal static class ServiceHelper
     /// </summary>
     /// <param name="service">The service to call.</param>
     /// <param name="serviceRpc">The RPC request to send to the service.</param>
-    public static void CallService(ServiceBase service, ServiceRpc serviceRpc)
+    public static void CallService(BaseService service, ServiceRpc serviceRpc)
     {
         // todo: impl jit to compile methodInfo.invoke to expression.invoke to improve perf.
         var descriptor = RpcHelper.GetRpcMethodArgTypes(service.TypeId, serviceRpc.MethodName);
@@ -208,7 +210,7 @@ internal static class ServiceHelper
     }
 
     private static void HandleRpcMethodResult(
-        ServiceBase service,
+        BaseService service,
         ServiceRpc serviceRpc,
         MethodInfo methodInfo,
         object res,
@@ -304,7 +306,7 @@ internal static class ServiceHelper
     }
 
     private static void SendValueTaskResult(
-        ServiceBase service,
+        BaseService service,
         ServiceRpc serviceRpc,
         Common.Rpc.InnerMessages.MailBox senderMailBox,
         ServiceRpcType sendRpcType,
@@ -442,7 +444,7 @@ internal static class ServiceHelper
     }
 
     private static void SendTaskResult(
-        ServiceBase service,
+        BaseService service,
         ServiceRpc serviceRpc,
         LPS.Common.Rpc.InnerMessages.MailBox senderMailBox,
         ServiceRpcType sendRpcType,

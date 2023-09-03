@@ -48,8 +48,8 @@ public abstract class BaseEntity : ITypeIdSupport
     /// </remarks>
     protected ReadOnlyDictionary<string, uint> ComponentNameToComponentTypeId { get; set; } = null!;
 
-    private readonly AsyncTaskGenerator<object?> rpcBlankAsyncTaskGenerator;
-    private readonly AsyncTaskGenerator<object?, System.Type> rpcAsyncTaskGenerator;
+    private readonly AsyncTaskGenerator<object?> rpcAsyncTaskWithoutResultGenerator;
+    private readonly AsyncTaskGenerator<object?, System.Type> rpcAsyncTaskWithResultGenerator;
 
     private Dictionary<string, RpcProperty>? propertyTree;
 
@@ -68,6 +68,11 @@ public abstract class BaseEntity : ITypeIdSupport
     /// Sets the entity RPC send handler.
     /// </summary>
     public Action<EntityRpc> OnSendEntityRpc { private get; set; } = null!;
+
+    /// <summary>
+    /// Sets the entity RPC callback send handler.
+    /// </summary>
+    public Action<EntityRpcCallBack> OnSendEntityRpcCallback { private get; set; } = null!;
 
     /// <summary>
     /// Sets the service RPC send handler.
@@ -202,11 +207,11 @@ public abstract class BaseEntity : ITypeIdSupport
     protected BaseEntity()
     {
         this.TypeId = TypeIdHelper.GetId(this.GetType());
-        this.rpcBlankAsyncTaskGenerator = new AsyncTaskGenerator<object>
+        this.rpcAsyncTaskWithoutResultGenerator = new()
         {
             OnGenerateAsyncId = this.IncreaseRpcIdCnt,
         };
-        this.rpcAsyncTaskGenerator = new AsyncTaskGenerator<object, System.Type>
+        this.rpcAsyncTaskWithResultGenerator = new()
         {
             OnGenerateAsyncId = this.IncreaseRpcIdCnt,
         };
@@ -308,23 +313,59 @@ public abstract class BaseEntity : ITypeIdSupport
         this.OnSendEntityRpc.Invoke(rpcMsg);
     }
 
+    /*
+        /// <summary>
+        /// Send RPC call given a RPC id.
+        /// </summary>
+        /// <param name="rpcId">Rpc Id.</param>
+        /// <param name="targetMailBox">Target entity's mailbox.</param>
+        /// <param name="rpcMethodName">Rpc method name.</param>
+        /// <param name="notifyOnly">Only notify.</param>
+        /// <param name="rpcType">Rpc Type.</param>
+        /// <param name="args">Arg list.</param>
+        /// <exception cref="Exception">Throw exception if failed to send.</exception>
+        public void SendWithRpcId(
+            uint rpcId,
+            MailBox targetMailBox,
+            string rpcMethodName,
+            bool notifyOnly,
+            RpcType rpcType,
+            params object?[] args)
+        {
+            if (this.IsDestroyed)
+            {
+                throw new Exception("Entity already destroyed.");
+            }
+
+            if (this.IsFrozen && rpcType != RpcType.ServerToClient)
+            {
+                throw new Exception("Entity is frozen.");
+            }
+
+            var rpcMsg = RpcHelper.BuildEntityRpcMessage(
+                rpcId,
+                rpcMethodName,
+                this.MailBox,
+                targetMailBox,
+                notifyOnly,
+                rpcType,
+                args);
+            this.OnSendEntityRpc.Invoke(rpcMsg);
+        }
+    */
+
     /// <summary>
-    /// Send RPC call given a RPC id.
+    /// Sends an RPC callback with the specified RPC ID, target mailbox, RPC type, and result object.
     /// </summary>
-    /// <param name="rpcId">Rpc Id.</param>
-    /// <param name="targetMailBox">Target entity's mailbox.</param>
-    /// <param name="rpcMethodName">Rpc method name.</param>
-    /// <param name="notifyOnly">Only notify.</param>
-    /// <param name="rpcType">Rpc Type.</param>
-    /// <param name="args">Arg list.</param>
-    /// <exception cref="Exception">Throw exception if failed to send.</exception>
-    public void SendWithRpcId(
+    /// <param name="rpcId">The ID of the RPC.</param>
+    /// <param name="targetMailBox">The mailbox to send the RPC callback to.</param>
+    /// <param name="rpcType">The type of the RPC.</param>
+    /// <param name="result">The result object to send with the RPC callback.</param>
+    public void SendRpcCallBackWithRpcId(
         uint rpcId,
         MailBox targetMailBox,
-        string rpcMethodName,
-        bool notifyOnly,
         RpcType rpcType,
-        params object?[] args)
+        object? result)
     {
         if (this.IsDestroyed)
         {
@@ -336,15 +377,8 @@ public abstract class BaseEntity : ITypeIdSupport
             throw new Exception("Entity is frozen.");
         }
 
-        var rpcMsg = RpcHelper.BuildEntityRpcMessage(
-            rpcId,
-            rpcMethodName,
-            this.MailBox,
-            targetMailBox,
-            notifyOnly,
-            rpcType,
-            args);
-        this.OnSendEntityRpc.Invoke(rpcMsg);
+        var callback = RpcHelper.BuildEntityRpcCallBackMessage(rpcId, targetMailBox, rpcType, result);
+        this.OnSendEntityRpcCallback(callback);
     }
 
     /// <summary>
@@ -371,7 +405,7 @@ public abstract class BaseEntity : ITypeIdSupport
         }
 
         var (task, id) =
-            this.rpcBlankAsyncTaskGenerator.GenerateAsyncTask(
+            this.rpcAsyncTaskWithoutResultGenerator.GenerateAsyncTask(
                 5000,
                 (rpcId) => new RpcTimeOutException(this, rpcId));
 
@@ -415,7 +449,7 @@ public abstract class BaseEntity : ITypeIdSupport
         }
 
         var (task, id) =
-            this.rpcAsyncTaskGenerator.GenerateAsyncTask(
+            this.rpcAsyncTaskWithResultGenerator.GenerateAsyncTask(
                 typeof(T),
                 5000,
                 (rpcId) => new RpcTimeOutException(this, rpcId));
@@ -536,11 +570,10 @@ public abstract class BaseEntity : ITypeIdSupport
         => this.NotifyService(serviceName, rpcMethodName, false, args);
 
     /// <summary>
-    /// OnResult is a special RPC method with special parameter.
+    /// OnRpcCallBack is used to handle the rpc callback msg.
     /// </summary>
-    /// <param name="entityRpc">Entity rpc message.</param>
-    [RpcMethod(Authority.All)]
-    public void OnResult(EntityRpc entityRpc)
+    /// <param name="callBack">Entity rpc callback message.</param>
+    public void OnRpcCallBack(EntityRpcCallBack callBack)
     {
         if (this.IsDestroyed)
         {
@@ -548,8 +581,8 @@ public abstract class BaseEntity : ITypeIdSupport
             return;
         }
 
-        var rpcId = entityRpc.RpcID;
-        var result = entityRpc.Args[0];
+        var rpcId = callBack.RpcID;
+        var result = callBack.Result;
         this.RpcAsyncCallBack(rpcId, result: result);
     }
 
@@ -583,7 +616,7 @@ public abstract class BaseEntity : ITypeIdSupport
         }
 
         var (task, id) =
-            this.rpcBlankAsyncTaskGenerator.GenerateAsyncTask(
+            this.rpcAsyncTaskWithoutResultGenerator.GenerateAsyncTask(
                 5000,
                 (rpcId) => new RpcTimeOutException(this, rpcId));
 
@@ -607,7 +640,7 @@ public abstract class BaseEntity : ITypeIdSupport
         }
 
         var (task, id) =
-            this.rpcAsyncTaskGenerator.GenerateAsyncTask(
+            this.rpcAsyncTaskWithResultGenerator.GenerateAsyncTask(
                 typeof(T),
                 5000,
                 (rpcId) => new RpcTimeOutException(this, rpcId));
@@ -640,15 +673,15 @@ public abstract class BaseEntity : ITypeIdSupport
 
     private void RpcAsyncCallBack(uint rpcId, Any result)
     {
-        if (this.rpcAsyncTaskGenerator.ContainsAsyncId(rpcId))
+        if (this.rpcAsyncTaskWithResultGenerator.ContainsAsyncId(rpcId))
         {
-            var returnType = this.rpcAsyncTaskGenerator.GetDataByAsyncTaskId(rpcId);
+            var returnType = this.rpcAsyncTaskWithResultGenerator.GetDataByAsyncTaskId(rpcId);
             var rpcArg = RpcHelper.ProtoBufAnyToRpcArg(result, returnType);
-            this.rpcAsyncTaskGenerator.ResolveAsyncTask(rpcId, rpcArg);
+            this.rpcAsyncTaskWithResultGenerator.ResolveAsyncTask(rpcId, rpcArg);
         }
         else
         {
-            this.rpcBlankAsyncTaskGenerator.ResolveAsyncTask(rpcId, null!);
+            this.rpcAsyncTaskWithoutResultGenerator.ResolveAsyncTask(rpcId, null!);
         }
     }
 

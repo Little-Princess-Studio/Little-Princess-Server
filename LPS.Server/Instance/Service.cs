@@ -44,7 +44,7 @@ public class Service : IInstance
 
     private readonly CountdownEvent waitForMailBox = new(1);
 
-    private readonly Dictionary<string, Dictionary<uint, ServiceBase>> serviceMap = new();
+    private readonly Dictionary<string, Dictionary<uint, BaseService>> serviceMap = new();
 
     private Common.Rpc.MailBox mailBox;
 
@@ -104,7 +104,7 @@ public class Service : IInstance
         var shard = serviceRpc.ShardID;
 
         var service = this.serviceMap[serviceName][shard];
-        ServiceHelper.CallService(service, serviceRpc);
+        service.EnqueueRpc(serviceRpc);
     }
 
     private uint GenerateConnectionId()
@@ -143,16 +143,19 @@ public class Service : IInstance
         foreach (var pair in serviceDict.PayLoad)
         {
             var serviceName = pair.Key;
-            var serviceShards = pair.Value.Unpack<ListArg>();
+            var serviceShardDict = pair.Value.Unpack<DictWithIntKeyArg>();
 
-            foreach (var shard in serviceShards.PayLoad)
+            foreach (var shard in serviceShardDict.PayLoad)
             {
-                var shardNum = (uint)shard.Unpack<IntArg>().PayLoad;
-                var service = ServiceHelper.CreateService(serviceName, shardNum);
+                var shardNum = (uint)shard.Key;
+                var shardId = RpcHelper.GetString(shard.Value);
+
+                var mailbox = new Common.Rpc.MailBox(shardId, this.Ip, this.Port, this.HostNum);
+                var service = ServiceHelper.CreateService(serviceName, shardNum, mailbox);
                 service.OnSendServiceRpcCallBack = this.SendServiceRpcCallBack;
                 if (!this.serviceMap.ContainsKey(serviceName))
                 {
-                    this.serviceMap[serviceName] = new Dictionary<uint, ServiceBase>();
+                    this.serviceMap[serviceName] = new Dictionary<uint, BaseService>();
                 }
 
                 this.serviceMap[serviceName][shardNum] = service;

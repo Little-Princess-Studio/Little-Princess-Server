@@ -105,3 +105,10 @@ message EntityRpc {
     RpcType RpcType = 6;
     repeated google.protobuf.Any Args = 7;
 };
+
+message EntityRpcCallBack {
+    uint32 RpcID = 1;
+    RpcType RpcType = 2;
+    MailBox TargetMailBox = 3;
+    google.protobuf.Any Result = 4;
+}

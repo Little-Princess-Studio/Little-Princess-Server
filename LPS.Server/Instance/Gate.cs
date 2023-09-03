@@ -576,11 +576,25 @@ public class Gate : IInstance
                 OnSendEntityRpc = entityRpc =>
                 {
                     var targetMailBox = entityRpc.EntityMailBox;
-                    var clientToServer = this.FindServerOfEntity(targetMailBox);
+                    var clientToServer = this.FindServerTcpClientFromMailBox(targetMailBox);
                     if (clientToServer != null)
                     {
                         Logger.Debug($"Rpc Call, send entityRpc to {targetMailBox}");
                         clientToServer.Send(entityRpc);
+                    }
+                    else
+                    {
+                        throw new Exception($"gate's server client not found: {targetMailBox}");
+                    }
+                },
+                OnSendEntityRpcCallback = entityRpcCallback =>
+                {
+                    var targetMailBox = entityRpcCallback.TargetMailBox;
+                    var clientToServer = this.FindServerTcpClientFromMailBox(targetMailBox);
+                    if (clientToServer != null)
+                    {
+                        Logger.Debug($"Rpc Call, send entityRpcCallback to {targetMailBox}");
+                        clientToServer.Send(entityRpcCallback);
                     }
                     else
                     {
@@ -616,7 +630,7 @@ public class Gate : IInstance
         }
     }
 
-    private TcpClient? FindServerOfEntity(MailBox targetMailBox)
+    private TcpClient? FindServerTcpClientFromMailBox(MailBox targetMailBox)
     {
         var clientToServer = this.tcpClientsToServer!
             .FirstOrDefault(
@@ -627,7 +641,7 @@ public class Gate : IInstance
         return clientToServer;
     }
 
-    private TcpClient? FindServerOfEntity(Common.Rpc.MailBox targetMailBox)
+    private TcpClient? FindServerTcpClientFromMailBox(Common.Rpc.MailBox targetMailBox)
     {
         var clientToServer = this.tcpClientsToServer!
             .FirstOrDefault(
@@ -669,7 +683,7 @@ public class Gate : IInstance
         }
 
         var mb = this.entityIdToClientConnMapping[entityId].MailBox;
-        var clientToServer = this.FindServerOfEntity(mb);
+        var clientToServer = this.FindServerTcpClientFromMailBox(mb);
 
         if (clientToServer != null)
         {
@@ -725,7 +739,7 @@ public class Gate : IInstance
                 }
                 else
                 {
-                    var serverClient = this.FindServerOfEntity(targetEntityMailBox);
+                    var serverClient = this.FindServerTcpClientFromMailBox(targetEntityMailBox);
                     if (serverClient != null)
                     {
                         Logger.Debug($"redirect to server {serverClient.MailBox}");

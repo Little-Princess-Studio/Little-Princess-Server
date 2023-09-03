@@ -58,12 +58,11 @@ public static partial class RpcHelper
         }
 
         // OnResult is a special rpc method.
-        if (entityRpc.MethodName == "OnResult")
-        {
-            methodInfo.Invoke(entity, new object?[] { entityRpc });
-            return;
-        }
-
+        // if (entityRpc.MethodName == "OnResult")
+        // {
+        //     methodInfo.Invoke(entity, new object?[] { entityRpc });
+        //     return;
+        // }
         var args = ProtobufArgsToRpcArgList(entityRpc.Args, methodInfo);
 
         object? res;
@@ -100,11 +99,9 @@ public static partial class RpcHelper
         {
             if (!notifyOnly)
             {
-                entity.SendWithRpcId(
+                entity.SendRpcCallBackWithRpcId(
                     entityRpc.RpcID,
                     PbMailBoxToRpcMailBox(senderMailBox),
-                    "OnResult",
-                    true,
                     sendRpcType,
                     res);
             }
@@ -148,11 +145,9 @@ public static partial class RpcHelper
                     return;
                 }
 
-                entity.SendWithRpcId(
+                entity.SendRpcCallBackWithRpcId(
                     entityRpc.RpcID,
                     PbMailBoxToRpcMailBox(senderMailBox),
-                    "OnResult",
-                    true,
                     sendRpcType,
                     EmptyRes);
             });
@@ -174,11 +169,9 @@ public static partial class RpcHelper
                     return;
                 }
 
-                entity.SendWithRpcId(
+                entity.SendRpcCallBackWithRpcId(
                     entityRpc.RpcID,
                     PbMailBoxToRpcMailBox(senderMailBox),
-                    "OnResult",
-                    true,
                     sendRpcType,
                     EmptyRes);
             }
@@ -198,11 +191,9 @@ public static partial class RpcHelper
                         return;
                     }
 
-                    entity.SendWithRpcId(
+                    entity.SendRpcCallBackWithRpcId(
                         entityRpc.RpcID,
                         PbMailBoxToRpcMailBox(senderMailBox),
-                        "OnResult",
-                        true,
                         sendRpcType,
                         EmptyRes);
                 });
@@ -219,19 +210,15 @@ public static partial class RpcHelper
         bool notifyOnly)
     {
         void SendDynamic(dynamic t) =>
-            entity.SendWithRpcId(
+            entity.SendRpcCallBackWithRpcId(
                 entityRpc.RpcID,
                 PbMailBoxToRpcMailBox(senderMailBox),
-                "OnResult",
-                true,
                 sendRpcType,
                 t.Result);
 
-        void Send<T>(in ValueTask<T> t) => entity.SendWithRpcId(
+        void Send<T>(in ValueTask<T> t) => entity.SendRpcCallBackWithRpcId(
                 entityRpc.RpcID,
                 PbMailBoxToRpcMailBox(senderMailBox),
-                "OnResult",
-                true,
                 sendRpcType,
                 t.Result);
 
@@ -270,11 +257,9 @@ public static partial class RpcHelper
                         return;
                     }
 
-                    entity.SendWithRpcId(
+                    entity.SendRpcCallBackWithRpcId(
                         entityRpc.RpcID,
                         PbMailBoxToRpcMailBox(senderMailBox),
-                        "OnResult",
-                        true,
                         sendRpcType,
                         t.Result);
                 });
@@ -314,11 +299,9 @@ public static partial class RpcHelper
                         return;
                     }
 
-                    entity.SendWithRpcId(
+                    entity.SendRpcCallBackWithRpcId(
                         entityRpc.RpcID,
                         PbMailBoxToRpcMailBox(senderMailBox),
-                        "OnResult",
-                        true,
                         sendRpcType,
                         task.Result);
                 }));
@@ -373,11 +356,9 @@ public static partial class RpcHelper
                 return;
             }
 
-            entity.SendWithRpcId(
+            entity.SendRpcCallBackWithRpcId(
                 entityRpc.RpcID,
                 PbMailBoxToRpcMailBox(senderMailBox),
-                "OnResult",
-                true,
                 sendRpcType,
                 t.Result);
         }
@@ -395,11 +376,9 @@ public static partial class RpcHelper
                 return;
             }
 
-            entity.SendWithRpcId(
+            entity.SendRpcCallBackWithRpcId(
                 entityRpc.RpcID,
                 PbMailBoxToRpcMailBox(senderMailBox),
-                "OnResult",
-                true,
                 sendRpcType,
                 t.Result);
         }

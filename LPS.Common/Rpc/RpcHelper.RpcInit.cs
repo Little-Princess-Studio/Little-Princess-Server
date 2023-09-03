@@ -274,6 +274,31 @@ public static partial class RpcHelper
     }
 
     /// <summary>
+    /// Builds an EntityRpcCallBack message with the specified parameters.
+    /// </summary>
+    /// <param name="rpcId">The ID of the RPC.</param>
+    /// <param name="target">The mailbox of the target.</param>
+    /// <param name="rpcType">The type of the RPC.</param>
+    /// <param name="result">The result of the RPC.</param>
+    /// <returns>The EntityRpcCallBack message.</returns>
+    public static EntityRpcCallBack BuildEntityRpcCallBackMessage(
+        uint rpcId,
+        MailBox target,
+        RpcType rpcType,
+        object? result)
+    {
+        var rpc = new EntityRpcCallBack
+        {
+            RpcID = rpcId,
+            TargetMailBox = RpcMailBoxToPbMailBox(target),
+            RpcType = rpcType,
+            Result = Any.Pack(RpcArgToProtoBuf(result)),
+        };
+
+        return rpc;
+    }
+
+    /// <summary>
     /// Builds a ServiceRpc message with the specified parameters.
     /// </summary>
     /// <param name="rpcId">The ID of the RPC.</param>

@@ -266,7 +266,7 @@ public class ServiceManager : IInstance
         else if (ctlMsg.From == ServiceRemoteType.Gate)
         {
             var mb = ctlMsg.Args[0].Unpack<Common.Rpc.InnerMessages.MailBox>();
-            this.connectionManager.RegisterImmediateConnection(conn, ConnectionType.Gate, mb.ID);
+            this.connectionManager.RegisterImmediateConnection(conn, connectionType: ConnectionType.Gate, mb.ID);
         }
         else if (ctlMsg.From == ServiceRemoteType.Server)
         {
@@ -378,22 +378,44 @@ public class ServiceManager : IInstance
 
             var serviceDict = new DictWithStringKeyArg();
 
+            var generateTaskList = new List<Task>();
             foreach (var pair in dict)
             {
                 var serviceName = pair.Key;
                 var serviceShards = pair.Value;
 
-                var shardList = new ListArg();
-                foreach (var shard in serviceShards)
-                {
-                    shardList.PayLoad.Add(Any.Pack(new IntArg()
-                    {
-                        PayLoad = shard,
-                    }));
-                }
+                var serviceShardIdTasks =
+                    serviceShards.Select(_ => DbHelper.GenerateNewGlobalId());
 
-                serviceDict.PayLoad.Add(serviceName, Any.Pack(shardList));
+                // wait for generating ids.
+                var generateTaskForService = Task.WhenAll(serviceShardIdTasks)
+                    .ContinueWith(t =>
+                {
+                    if (t.Exception != null)
+                    {
+                        Logger.Error(t.Exception, $"Failed to generate ids for service {serviceName}.");
+                        return;
+                    }
+
+                    var ids = t.Result;
+                    var shardRpcDict = new DictWithIntKeyArg();
+
+                    int i = 0;
+                    foreach (var shard in serviceShards)
+                    {
+                        shardRpcDict.PayLoad.Add(shard, Any.Pack(new StringArg()
+                        {
+                            PayLoad = ids[i],
+                        }));
+                    }
+
+                    serviceDict.PayLoad.Add(serviceName, Any.Pack(message: shardRpcDict));
+                });
+
+                generateTaskList.Add(generateTaskForService);
             }
+
+            Task.WhenAll(generateTaskList).Wait();
 
             cmd.Args.Add(Any.Pack(serviceDict));
 
