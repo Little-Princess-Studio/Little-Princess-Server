@@ -251,7 +251,7 @@ internal static class ServiceHelper
                     serviceRpc.ServiceManagerRpcId,
                     RpcHelper.PbMailBoxToRpcMailBox(senderMailBox),
                     sendRpcType,
-                    RpcHelper.EmptyRes);
+                    null);
             });
         }
         else if (returnType == typeof(ValueTask))
@@ -276,7 +276,7 @@ internal static class ServiceHelper
                     serviceRpc.ServiceManagerRpcId,
                     RpcHelper.PbMailBoxToRpcMailBox(senderMailBox),
                     sendRpcType,
-                    RpcHelper.EmptyRes);
+                    null);
             }
             else
             {
@@ -299,7 +299,7 @@ internal static class ServiceHelper
                         serviceRpc.ServiceManagerRpcId,
                         RpcHelper.PbMailBoxToRpcMailBox(senderMailBox),
                         sendRpcType,
-                        RpcHelper.EmptyRes);
+                        null);
                 });
             }
         }

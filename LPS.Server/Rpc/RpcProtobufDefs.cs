@@ -48,6 +48,7 @@ public static class RpcProtobufDefs
         RegisterProtobufDef<ServiceRpcCallBack>(PackageType.ServiceRpcCallBack);
         RegisterProtobufDef<ServiceControl>(PackageType.ServiceControl);
         RegisterProtobufDef<ServiceManagerCommand>(PackageType.ServiceManagerCommand);
+        RegisterProtobufDef<EntityRpcCallBack>(PackageType.EntityRpcCallBack);
 
         #endregion
 

@@ -34,11 +34,6 @@ public static partial class RpcHelper
     /// </summary>
     public static readonly Dictionary<string, Type> EntityClassMap = new();
 
-    /// <summary>
-    /// RPC empty res.
-    /// </summary>
-    public static readonly object?[] EmptyRes = { null };
-
     private static ReadOnlyDictionary<uint, ReadOnlyDictionary<string, RpcMethodDescriptor>> rpcMethodInfo = null!;
 
     private delegate RpcPropertyContainer RpcPropertyContainerDeserializeEntry(Any content);
@@ -582,21 +577,14 @@ public static partial class RpcHelper
     public static bool ValidateMethodSignature(MethodInfo methodInfo, int startArgIdx, bool ignoreReturnType)
     {
         var valid = false;
-        if (methodInfo.Name == "OnResult")
-        {
-            valid = true;
-        }
-        else
-        {
-            var argTypes = methodInfo.GetParameters().Select(p => p.ParameterType).ToArray();
-            valid = ValidateArgs(argTypes[startArgIdx..]);
+        var argTypes = methodInfo.GetParameters().Select(p => p.ParameterType).ToArray();
+        valid = ValidateArgs(argTypes[startArgIdx..]);
 
-            if (!valid)
-            {
-                Logger.Warn($@"Args type invalid: invalid rpc method declaration: 
-                                                            {methodInfo.ReturnType.Name} {methodInfo.Name}
-                                                            ({string.Join(',', argTypes.Select(t => t.Name))})");
-            }
+        if (!valid)
+        {
+            Logger.Warn($@"Args type invalid: invalid rpc method declaration: 
+                                                        {methodInfo.ReturnType.Name} {methodInfo.Name}
+                                                        ({string.Join(',', argTypes.Select(t => t.Name))})");
         }
 
         var returnType = methodInfo.ReturnType;
@@ -617,20 +605,13 @@ public static partial class RpcHelper
             }
             else
             {
-                if (methodInfo.Name != "OnResult")
-                {
-                    valid = ValidateRpcType(returnType);
-                }
-                else
-                {
-                    Logger.Debug("BaseEntity::OnResult will not be checked");
-                }
+                valid = ValidateRpcType(returnType);
             }
         }
 
         if (!valid)
         {
-            var argTypes = methodInfo.GetParameters().Select(p => p.ParameterType).ToArray();
+            argTypes = methodInfo.GetParameters().Select(p => p.ParameterType).ToArray();
             Logger.Warn("Return type invalid: rpc method declaration:" +
                         $"{methodInfo.ReturnType.Name} {methodInfo.Name}" +
                         $"$({string.Join(',', argTypes.Select(t => t.Name))})");

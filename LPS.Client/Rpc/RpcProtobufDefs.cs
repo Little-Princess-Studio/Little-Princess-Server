@@ -31,6 +31,7 @@ public static class RpcProtobufDefs
 
         RegisterProtobufDef<Authentication>(PackageType.Authentication);
         RegisterProtobufDef<EntityRpc>(PackageType.EntityRpc);
+        RegisterProtobufDef<EntityRpcCallBack>(PackageType.EntityRpcCallBack);
         RegisterProtobufDef<ClientCreateEntity>(PackageType.ClientCreateEntity);
         RegisterProtobufDef<RequirePropertyFullSync>(PackageType.RequirePropertyFullSync);
         RegisterProtobufDef<PropertyFullSync>(PackageType.PropertyFullSync);

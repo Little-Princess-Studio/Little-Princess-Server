@@ -57,12 +57,6 @@ public static partial class RpcHelper
             }
         }
 
-        // OnResult is a special rpc method.
-        // if (entityRpc.MethodName == "OnResult")
-        // {
-        //     methodInfo.Invoke(entity, new object?[] { entityRpc });
-        //     return;
-        // }
         var args = ProtobufArgsToRpcArgList(entityRpc.Args, methodInfo);
 
         object? res;
@@ -103,7 +97,7 @@ public static partial class RpcHelper
                     entityRpc.RpcID,
                     PbMailBoxToRpcMailBox(senderMailBox),
                     sendRpcType,
-                    res);
+                    null);
             }
         }
     }
@@ -149,7 +143,7 @@ public static partial class RpcHelper
                     entityRpc.RpcID,
                     PbMailBoxToRpcMailBox(senderMailBox),
                     sendRpcType,
-                    EmptyRes);
+                    null);
             });
         }
         else if (returnType == typeof(ValueTask))
@@ -173,7 +167,7 @@ public static partial class RpcHelper
                     entityRpc.RpcID,
                     PbMailBoxToRpcMailBox(senderMailBox),
                     sendRpcType,
-                    EmptyRes);
+                    null);
             }
             else
             {
@@ -195,7 +189,7 @@ public static partial class RpcHelper
                         entityRpc.RpcID,
                         PbMailBoxToRpcMailBox(senderMailBox),
                         sendRpcType,
-                        EmptyRes);
+                        null);
                 });
             }
         }

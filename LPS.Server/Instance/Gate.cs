@@ -200,8 +200,6 @@ public class Gate : IInstance
         this.waitForSyncServiceManagerEvent.Wait();
         Logger.Info("Service manager connected.");
 
-        this.ConnectToServiceManager();
-
         this.readyToPumpClients = true;
         Logger.Info("Waiting completed");
 
@@ -275,6 +273,7 @@ public class Gate : IInstance
 
         // tcpGateServer_.RegisterMessageHandler(PackageType.Control, this.HandleControlMessage);
         this.tcpGateServer.RegisterMessageHandler(PackageType.EntityRpc, this.HandleEntityRpcFromClient);
+        this.tcpGateServer.RegisterMessageHandler(PackageType.EntityRpcCallBack, callback: this.HandleEntityRpcCallBackFromClient);
         this.tcpGateServer.RegisterMessageHandler(
             PackageType.RequirePropertyFullSync,
             this.HandleRequireFullSyncFromClient);
@@ -291,6 +290,7 @@ public class Gate : IInstance
 
         // tcpGateServer_.UnregisterMessageHandler(PackageType.Control, this.HandleControlMessage);
         this.tcpGateServer.UnregisterMessageHandler(PackageType.EntityRpc, this.HandleEntityRpcFromClient);
+        this.tcpGateServer.UnregisterMessageHandler(PackageType.EntityRpcCallBack, callback: this.HandleEntityRpcCallBackFromClient);
         this.tcpGateServer.UnregisterMessageHandler(
             PackageType.RequirePropertyFullSync,
             this.HandleRequireFullSyncFromClient);
@@ -414,6 +414,16 @@ public class Gate : IInstance
         this.HandleEntityRpcMessageOnGate(entityRpc);
     }
 
+    private void HandleEntityRpcCallBackFromClient((IMessage Message, Connection Connection, uint RpcId) arg)
+    {
+        // if gate's server have recieved the EntityRpc msg, it must be redirect from other gates
+        Logger.Info("Handle EntityRpc From Other Gates.");
+
+        var (msg, _, _) = arg;
+        var callback = (msg as EntityRpcCallBack)!;
+        this.HandleEntityRpcCallBackMessageOnGate(callback);
+    }
+
     private uint GenerateRpcId()
     {
         return this.createEntityCounter++;
@@ -493,6 +503,10 @@ public class Gate : IInstance
             this.HandleEntityRpcFromServer(client, arg);
         this.tcpClientsActions[(serverIdx, PackageType.EntityRpc)] = EntityRpcHandler;
 
+        void EntityRpcCallBackHandler((IMessage Message, Connection Connection, uint RpcId) arg) =>
+            this.HandleEntityRpcCallBackFromServer(client, arg);
+        this.tcpClientsActions[(serverIdx, PackageType.EntityRpcCallBack)] = EntityRpcCallBackHandler;
+
         void PropertyFullSync((IMessage Message, Connection Connection, uint RpcId) arg) =>
             this.HandlePropertyFullSyncFromServer(client, arg);
         this.tcpClientsActions[(serverIdx, PackageType.PropertyFullSync)] = PropertyFullSync;
@@ -506,6 +520,7 @@ public class Gate : IInstance
         this.tcpClientsActions[(serverIdx, PackageType.ComponentSync)] = ComponentSync;
 
         client.RegisterMessageHandler(PackageType.EntityRpc, EntityRpcHandler);
+        client.RegisterMessageHandler(PackageType.EntityRpcCallBack, EntityRpcCallBackHandler);
         client.RegisterMessageHandler(PackageType.PropertyFullSync, PropertyFullSync);
         client.RegisterMessageHandler(PackageType.PropertySyncCommandList, PropSyncCommandList);
         client.RegisterMessageHandler(PackageType.ComponentSync, ComponentSync);
@@ -520,6 +535,10 @@ public class Gate : IInstance
         client.UnregisterMessageHandler(
             PackageType.EntityRpc,
             this.tcpClientsActions[(idx, PackageType.EntityRpc)]);
+
+        client.UnregisterMessageHandler(
+            PackageType.EntityRpcCallBack,
+            this.tcpClientsActions[(idx, PackageType.EntityRpcCallBack)]);
 
         client.UnregisterMessageHandler(
             PackageType.PropertyFullSync,
@@ -546,7 +565,7 @@ public class Gate : IInstance
                     $" {propertySyncCommandList.PropType}");
 
         // TODO: Redirect to shadow entity on server
-        this.RedirectMsgToEntityOnClient(propertySyncCommandList.EntityId, propertySyncCommandList);
+        this.RedirectMsgToClientEntity(propertySyncCommandList.EntityId, propertySyncCommandList);
     }
 
     private void HandleComponentSyncFromServer(TcpClient client, (IMessage Message, Connection Connection, uint RpcId) arg)
@@ -557,7 +576,7 @@ public class Gate : IInstance
         var componentSync = (msg as ComponentSync)!;
 
         Logger.Info("send componentSync to client");
-        this.RedirectMsgToEntityOnClient(componentSync.EntityId, msg);
+        this.RedirectMsgToClientEntity(componentSync.EntityId, msg);
     }
 
     private void HandleRequireCreateEntityResFromHost(IMessage msg)
@@ -661,6 +680,15 @@ public class Gate : IInstance
         this.HandleEntityRpcMessageOnGate(entityRpc);
     }
 
+    private void HandleEntityRpcCallBackFromServer(TcpClient client, (IMessage Message, Connection Connection, uint RpcId) arg)
+    {
+        Logger.Info("HandleEntityRpcCallBackFromServer");
+
+        var (msg, _, _) = ((IMessage, Connection, uint))arg;
+        var callBack = (msg as EntityRpcCallBack)!;
+        this.HandleEntityRpcCallBackMessageOnGate(callBack);
+    }
+
     private void HandlePropertyFullSyncFromServer(TcpClient client, object arg)
     {
         Logger.Info("HandlePropertyFullSyncFromServer");
@@ -669,7 +697,7 @@ public class Gate : IInstance
         var fullSync = (msg as PropertyFullSync)!;
 
         Logger.Info("send fullSync to client");
-        this.RedirectMsgToEntityOnClient(fullSync.EntityId, msg);
+        this.RedirectMsgToClientEntity(fullSync.EntityId, msg);
     }
 
     #endregion
@@ -695,7 +723,7 @@ public class Gate : IInstance
         }
     }
 
-    private void RedirectMsgToEntityOnClient(string entityId, IMessage msg)
+    private void RedirectMsgToClientEntity(string entityId, IMessage msg)
     {
         if (!this.entityIdToClientConnMapping.ContainsKey(entityId))
         {
@@ -757,7 +785,7 @@ public class Gate : IInstance
             {
                 // send to client
                 Logger.Info("send rpc to client");
-                this.RedirectMsgToEntityOnClient(entityRpc.EntityMailBox.ID, entityRpc);
+                this.RedirectMsgToClientEntity(entityRpc.EntityMailBox.ID, entityRpc);
             }
             else
             {
@@ -766,21 +794,62 @@ public class Gate : IInstance
         }
     }
 
-    private void ConnectToServiceManager()
+    private void HandleEntityRpcCallBackMessageOnGate(EntityRpcCallBack callback)
     {
-        this.serviceMgrConnection = new ImmediateServiceManagerConnectionOfGate(
-            this.serviceManagerMailBox.Ip,
-            this.serviceManagerMailBox.Port,
-            this.GenerateRpcId,
-            () => this.tcpGateServer!.Stopped);
+        var targetEntityMailBox = callback.TargetMailBox!;
 
-        this.serviceMgrConnection.RegisterMessageHandler(PackageType.ServiceRpcCallBack, this.HandleServiceRpcCallBack);
-        this.serviceMgrConnection.Run();
-    }
+        // if rpc's target is gate entity
+        if (this.entity!.MailBox.CompareOnlyID(targetEntityMailBox))
+        {
+            Logger.Debug("send to gate itself");
+            Logger.Debug($"gate entity rpc callback");
+            this.entity.OnRpcCallBack(callback);
+        }
+        else
+        {
+            var rpcType = callback.RpcType;
+            if (rpcType == RpcType.ClientToServer || rpcType == RpcType.ServerInside)
+            {
+                // todo: dictionary cache
+                var gate = this.tcpClientsToOtherGate!
+                    .FirstOrDefault(
+                        client => client!.TargetIp == targetEntityMailBox.IP
+                                  && client.TargetPort == targetEntityMailBox.Port,
+                        null);
 
-    private void HandleServiceRpcCallBack(IMessage message)
-    {
-        throw new NotImplementedException();
+                // if rpc's target is other gate entity
+                if (gate != null)
+                {
+                    Logger.Debug("redirect to gate's entity");
+                    gate.Send(callback);
+                }
+                else
+                {
+                    var serverClient = this.FindServerTcpClientFromMailBox(targetEntityMailBox);
+                    if (serverClient != null)
+                    {
+                        Logger.Debug($"redirect to server {serverClient.MailBox}");
+                        serverClient.Send(callback);
+                    }
+                    else
+                    {
+                        Logger.Warn(
+                            $"invalid rpc target mailbox: {targetEntityMailBox.IP} {targetEntityMailBox.Port} {targetEntityMailBox.ID}" +
+                            $"{targetEntityMailBox.HostNum}");
+                    }
+                }
+            }
+            else if (rpcType == RpcType.ServerToClient)
+            {
+                // send to client
+                Logger.Info("send rpc to client");
+                this.RedirectMsgToClientEntity(callback.TargetMailBox.ID, callback);
+            }
+            else
+            {
+                throw new Exception($"Invalid rpc type: {rpcType}");
+            }
+        }
     }
 
     private void PumpMessageHandler()

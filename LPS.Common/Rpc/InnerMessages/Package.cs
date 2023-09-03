@@ -162,5 +162,6 @@ public enum PackageType
     ServiceRpcCallBack = 17,
     ServiceControl = 18,
     ServiceManagerCommand = 19,
+    EntityRpcCallBack = 20,
 #pragma warning restore SA1602
 }

@@ -415,6 +415,8 @@ public class Server : IInstance
         }
         else
         {
+            Logger.Debug("[Server] SendEntityRpcCallBack redirect to gate");
+
             // redirect to gate
             this.tcpServer.Send(callback, this.GateConnections[0]);
         }
@@ -460,6 +462,7 @@ public class Server : IInstance
     private void RegisterServerMessageHandlers()
     {
         this.tcpServer.RegisterMessageHandler(PackageType.EntityRpc, this.HandleEntityRpc);
+        this.tcpServer.RegisterMessageHandler(PackageType.EntityRpcCallBack, this.HandleEntityRpcCallBack);
         this.tcpServer.RegisterMessageHandler(PackageType.RequirePropertyFullSync, this.HandleRequirePropertyFullSync);
         this.tcpServer.RegisterMessageHandler(PackageType.RequireComponentSync, this.HandleRequireComponentSync);
         this.tcpServer.RegisterMessageHandler(PackageType.Control, this.HandleControl);
@@ -468,6 +471,7 @@ public class Server : IInstance
     private void UnregisterServerMessageHandlers()
     {
         this.tcpServer.UnregisterMessageHandler(PackageType.EntityRpc, this.HandleEntityRpc);
+        this.tcpServer.UnregisterMessageHandler(PackageType.EntityRpcCallBack, this.HandleEntityRpcCallBack);
         this.tcpServer.UnregisterMessageHandler(
             PackageType.RequirePropertyFullSync,
             this.HandleRequirePropertyFullSync);
@@ -618,7 +622,7 @@ public class Server : IInstance
             {
                 entity.OnSendEntityRpc = entityRpc => this.SendEntityRpc(entity, entityRpc);
                 entity.OnSendServiceRpc = serviceRpc => this.SendServiceRpc(serviceRpc);
-                entity.OnSendEntityRpc = entityRpc => this.SendEntityRpc(entity, entityRpc);
+                entity.OnSendEntityRpcCallback = callback => this.SendEntityRpcCallBack(entity, callback);
                 if (entity is ServerClientEntity serverClientEntity)
                 {
                     Logger.Debug("transferred new serverClientEntity, bind new conn");
@@ -701,6 +705,56 @@ public class Server : IInstance
         {
             // redirect to gate
             this.tcpServer.Send(entityRpc, this.GateConnections[0]);
+        }
+    }
+
+    private void HandleEntityRpcCallBack((IMessage Message, Connection Connection, uint RpcId) arg)
+    {
+        var (msg, _, _) = arg;
+        var callback = (msg as EntityRpcCallBack)!;
+
+        var targetMailBox = callback.TargetMailBox;
+
+        if (this.entity!.MailBox.CompareOnlyID(targetMailBox))
+        {
+            Logger.Debug($"Rpc Callback");
+            try
+            {
+                this.entity!.OnRpcCallBack(callback);
+            }
+            catch (Exception e)
+            {
+                Logger.Error(e, "Exception happend when call server entity");
+            }
+        }
+        else if (this.cells.ContainsKey(targetMailBox.ID))
+        {
+            var cell = this.cells[targetMailBox.ID];
+            try
+            {
+                cell.OnRpcCallBack(callback);
+            }
+            catch (Exception e)
+            {
+                Logger.Error(e, "Exception happened when call cell");
+            }
+        }
+        else if (this.localEntityDict.ContainsKey(targetMailBox.ID))
+        {
+            var entity = this.localEntityDict[targetMailBox.ID];
+            try
+            {
+                entity.OnRpcCallBack(callback);
+            }
+            catch (Exception e)
+            {
+                Logger.Error(e, "Exception happened when call server distribute entity");
+            }
+        }
+        else
+        {
+            // redirect to gate
+            this.tcpServer.Send(callback, this.GateConnections[0]);
         }
     }
 
