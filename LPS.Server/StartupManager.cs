@@ -271,7 +271,14 @@ public static class StartupManager
         var serverNum = json["server_num"]!.ToObject<int>();
         var gateNum = json["gate_num"]!.ToObject<int>();
 
-        var hostManager = new HostManager(name, hostnum, ip, port, serverNum, gateNum);
+        var hostManager = new HostManager(
+            name,
+            hostnum,
+            ip,
+            port,
+            serverNum,
+            gateNum,
+            json);
 
         ServerGlobal.Init(hostManager);
 
@@ -312,7 +319,8 @@ public static class StartupManager
             hostManagerPort,
             globalCacheConf,
             databaseConf,
-            databaseApiProviderNamespace);
+            databaseApiProviderNamespace,
+            json);
 
         ServerGlobal.Init(databaseManager);
 
@@ -367,7 +375,17 @@ public static class StartupManager
         #endregion
 
         Logger.Debug($"Startup Gate {name} at {ip}:{port}, use mq: {useMqToHost}");
-        var gate = new Gate(name, ip, port, hostnum, hostManagerIp, hostManagerPort, servers, otherGates, useMqToHost);
+        var gate = new Gate(
+            name,
+            ip,
+            port,
+            hostnum,
+            hostManagerIp,
+            hostManagerPort,
+            servers,
+            otherGates,
+            useMqToHost,
+            json);
 
         ServerGlobal.Init(gate);
 
@@ -409,7 +427,7 @@ public static class StartupManager
         var hostManagerPort = Convert.ToInt32(hostMgrConf["port"]!.ToString());
 
         Logger.Debug($"Startup Server {name} at {ip}:{port}, use mq: {useMqToHost}");
-        var server = new Server(name, ip, port, hostnum, hostManagerIp, hostManagerPort, useMqToHost);
+        var server = new Server(name, ip, port, hostnum, hostManagerIp, hostManagerPort, useMqToHost, json);
 
         ServerGlobal.Init(server);
 
@@ -456,7 +474,8 @@ public static class StartupManager
             hostManagerIp,
             hostManagerPort,
             useMqToHost,
-            serviceCnt);
+            serviceCnt,
+            json);
 
         ServerGlobal.Init(serviceMgr);
 
@@ -507,7 +526,8 @@ public static class StartupManager
             name,
             ip,
             port,
-            hostnum);
+            hostnum,
+            json);
 
         ServerGlobal.Init(service);
 

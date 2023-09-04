@@ -48,6 +48,9 @@ public class Server : IInstance
     public int HostNum { get; }
 
     /// <inheritdoc/>
+    public JToken Config { get; }
+
+    /// <inheritdoc/>
     public InstanceType InstanceType => InstanceType.Server;
 
     private readonly Dictionary<string, DistributeEntity> localEntityDict = new();
@@ -92,6 +95,7 @@ public class Server : IInstance
     /// <param name="hostManagerIp">Ip of the hostmanager.</param>
     /// <param name="hostManagerPort">Port of the hostmanager.</param>
     /// <param name="useMqToHostMgr">If use message queue to build connection with host manager.</param>
+    /// <param name="config">Config of the instance.</param>
     public Server(
         string name,
         string ip,
@@ -99,12 +103,14 @@ public class Server : IInstance
         int hostnum,
         string hostManagerIp,
         int hostManagerPort,
-        bool useMqToHostMgr)
+        bool useMqToHostMgr,
+        JToken config)
     {
         this.Name = name;
         this.Ip = ip;
         this.Port = port;
         this.HostNum = hostnum;
+        this.Config = config;
 
         if (!useMqToHostMgr)
         {

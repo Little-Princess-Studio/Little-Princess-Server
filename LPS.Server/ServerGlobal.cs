@@ -8,6 +8,7 @@ namespace LPS.Server;
 
 using System;
 using LPS.Server.Instance;
+using Newtonsoft.Json.Linq;
 
 /// <summary>
 /// ServerGlobal variable.
@@ -140,6 +141,11 @@ public interface IInstance
     /// Gets the name of the instance.
     /// </summary>
     string Name { get; }
+
+    /// <summary>
+    /// Gets the configuration settings for the server.
+    /// </summary>
+    JToken Config { get; }
 
     /// <summary>
     /// Main loop of the instance process.

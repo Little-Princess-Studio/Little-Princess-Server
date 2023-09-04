@@ -89,6 +89,9 @@ public class HostManager : IInstance
     /// <inheritdoc/>
     public int Port { get; }
 
+    /// <inheritdoc/>
+    public JToken Config { get; }
+
     /// <summary>
     /// Server num of the server desired to be registered.
     /// </summary>
@@ -134,7 +137,8 @@ public class HostManager : IInstance
     /// <param name="port">Port of the hostmanager.</param>
     /// <param name="serverNum">Server number of hostmanager.</param>
     /// <param name="gateNum">Gate number of the hostmanager.</param>
-    public HostManager(string name, int hostNum, string ip, int port, int serverNum, int gateNum)
+    /// <param name="config">Config of the instance.</param>
+    public HostManager(string name, int hostNum, string ip, int port, int serverNum, int gateNum, JToken config)
     {
         this.Name = name;
         this.HostNum = hostNum;
@@ -142,6 +146,7 @@ public class HostManager : IInstance
         this.Port = port;
         this.DesiredServerNum = serverNum;
         this.DesiredGateNum = gateNum;
+        this.Config = config;
 
         this.tcpServer = new TcpServer(ip, port)
         {

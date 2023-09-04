@@ -43,6 +43,9 @@ public class DbManager : IInstance
     public int HostNum { get; }
 
     /// <inheritdoc/>
+    public JToken Config { get; }
+
+    /// <inheritdoc/>
     public InstanceType InstanceType => InstanceType.DbManager;
 
     private readonly TcpClient clientToHostManager;
@@ -61,6 +64,7 @@ public class DbManager : IInstance
     /// <param name="cacheInfo">Global cache info.</param>
     /// <param name="databaseInfo">Database info.</param>
     /// <param name="databaseApiProviderNamespace">Namespace of DatabaseApiProvider.</param>
+    /// <param name="config">Config of the instance.</param>
     public DbManager(
         string ip,
         int port,
@@ -69,12 +73,14 @@ public class DbManager : IInstance
         int hostManagerPort,
         DbHelper.DbInfo cacheInfo,
         DbHelper.DbInfo databaseInfo,
-        string databaseApiProviderNamespace)
+        string databaseApiProviderNamespace,
+        JToken config)
     {
         this.Ip = ip;
         this.Port = port;
         this.HostNum = hostNum;
         this.Name = "hostmgr";
+        this.Config = config;
 
         this.messageQueueClientToOtherInstance = new MessageQueueClient();
         this.clientToHostManager = new TcpClient(

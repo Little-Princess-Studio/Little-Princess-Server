@@ -27,6 +27,7 @@ using LPS.Server.Instance.HostConnection.HostManagerConnection;
 using LPS.Server.Rpc;
 using LPS.Server.Rpc.InnerMessages;
 using LPS.Server.Service;
+using Newtonsoft.Json.Linq;
 using static LPS.Server.Instance.ConnectionManager.ServiceManagerConnectionManager;
 
 /// <summary>
@@ -48,6 +49,9 @@ public class ServiceManager : IInstance
 
     /// <inheritdoc/>
     public int HostNum { get; }
+
+    /// <inheritdoc/>
+    public JToken Config { get; }
 
     private readonly TcpServer tcpServer;
     private readonly Random random = new();
@@ -77,6 +81,7 @@ public class ServiceManager : IInstance
     /// <param name="hostManagerPort">Port of the hostmanager.</param>
     /// <param name="useMqToHostMgr">If use message queue to build connection with host manager.</param>
     /// <param name="desiredServiceNum">The desired number of services to be registered.</param>
+    /// <param name="config">Config of the instance.</param>
     public ServiceManager(
         string name,
         string ip,
@@ -85,13 +90,15 @@ public class ServiceManager : IInstance
         string hostManagerIp,
         int hostManagerPort,
         bool useMqToHostMgr,
-        int desiredServiceNum)
+        int desiredServiceNum,
+        JToken config)
     {
         this.Name = name;
         this.Ip = ip;
         this.Port = port;
         this.HostNum = hostNum;
         this.desiredServiceNum = desiredServiceNum;
+        this.Config = config;
 
         this.tcpServer = new TcpServer(this.Ip, this.Port)
         {

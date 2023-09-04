@@ -19,6 +19,7 @@ using LPS.Server.Instance.HostConnection;
 using LPS.Server.Instance.HostConnection.HostManagerConnection;
 using LPS.Server.Rpc.InnerMessages;
 using LPS.Server.Service;
+using Newtonsoft.Json.Linq;
 
 /// <summary>
 /// Represents a service instance, which contains multiple LPS service instance.
@@ -39,6 +40,9 @@ public class Service : IInstance
 
     /// <inheritdoc/>
     public int HostNum { get; }
+
+    /// <inheritdoc/>
+    public JToken Config { get; }
 
     private readonly IManagerConnection serviceMgrConnection;
 
@@ -63,8 +67,11 @@ public class Service : IInstance
     /// <param name="ip">The IP address of the service instance.</param>
     /// <param name="port">The port number of the service instance.</param>
     /// <param name="hostNum">The number of the host.</param>
-    public Service(string serviceMgrIp, int serviceMgrPort, string name, string ip, int port, int hostNum)
+    /// <param name="config">Config of the instance.</param>
+    public Service(string serviceMgrIp, int serviceMgrPort, string name, string ip, int port, int hostNum, JToken config)
     {
+        this.Config = config;
+
         this.serviceMgrConnection = new ImmediateServiceManagerConnectionOfService(
             serviceMgrIp,
             serviceMgrPort,
@@ -235,6 +242,10 @@ public class Service : IInstance
         {
             var service = this.serviceMbMap[serviceMb];
             service.OnServiceRpcCallBack(callback);
+        }
+        else
+        {
+            Logger.Warn($"Service {serviceMb} can not find service.");
         }
     }
 

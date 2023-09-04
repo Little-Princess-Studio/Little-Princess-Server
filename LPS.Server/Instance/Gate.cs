@@ -25,6 +25,7 @@ using LPS.Server.Instance.HostConnection;
 using LPS.Server.Instance.HostConnection.HostManagerConnection;
 using LPS.Server.Rpc;
 using LPS.Server.Rpc.InnerMessages;
+using Newtonsoft.Json.Linq;
 using MailBox = LPS.Common.Rpc.InnerMessages.MailBox;
 
 /// <summary>
@@ -48,6 +49,9 @@ public class Gate : IInstance
 
     /// <inheritdoc/>
     public int HostNum { get; }
+
+    /// <inheritdoc/>
+    public JToken Config { get; }
 
     /// <inheritdoc/>
     public InstanceType InstanceType => InstanceType.Gate;
@@ -75,7 +79,6 @@ public class Gate : IInstance
 
     private readonly TcpServer tcpGateServer;
     private readonly IManagerConnection hostConnection;
-    private IManagerConnection? serviceMgrConnection;
 
     private GateEntity? entity;
 
@@ -105,6 +108,7 @@ public class Gate : IInstance
     /// <param name="servers">All the servers info.</param>
     /// <param name="otherGates">All the other servers info.</param>
     /// <param name="useMqToHostMgr">If use message queue to build connection with host manager.</param>
+    /// <param name="config">Config of the instance.</param>
     public Gate(
         string name,
         string ip,
@@ -114,12 +118,14 @@ public class Gate : IInstance
         int hostManagerPort,
         (string IP, int Port)[] servers,
         (string InnerIp, string Ip, int Port)[] otherGates,
-        bool useMqToHostMgr)
+        bool useMqToHostMgr,
+        JToken config)
     {
         this.Name = name;
         this.Ip = ip;
         this.Port = port;
         this.HostNum = hostNum;
+        this.Config = config;
 
         // tcp gate server handles msg from server/other gates
         this.tcpGateServer = new TcpServer(ip, port)
