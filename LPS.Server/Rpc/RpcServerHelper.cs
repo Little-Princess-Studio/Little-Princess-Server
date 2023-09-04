@@ -42,6 +42,7 @@ public static class RpcServerHelper
                 var obj = (Activator.CreateInstance(entityClass, desc) as DistributeEntity)!;
                 await obj.InitComponents();
                 RpcHelper.BuildPropertyTree(obj, AllowedRpcPropertyGenTypes);
+                await obj.OnInit();
                 return obj;
             }
 

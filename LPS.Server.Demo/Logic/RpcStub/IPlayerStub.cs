@@ -6,7 +6,7 @@
 
 namespace LPS.Server.Demo.Logic.RpcStub;
 
-using LPS.Common.Demo.Rpc;
+using LPS.Common.Demo.Rpc.ClientStub;
 using LPS.Common.Rpc.RpcStub;
 
 /// <summary>

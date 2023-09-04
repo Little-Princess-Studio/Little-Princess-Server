@@ -28,9 +28,10 @@ namespace LPS.Server.Rpc.InnerMessages {
             "cGMuSW5uZXJNZXNzYWdlcxoZZ29vZ2xlL3Byb3RvYnVmL2FueS5wcm90byKC",
             "AQoVU2VydmljZU1hbmFnZXJDb21tYW5kEkUKBFR5cGUYASABKA4yNy5MUFMu",
             "U2VydmVyLlJwYy5Jbm5lck1lc3NhZ2VzLlNlcnZpY2VNYW5hZ2VyQ29tbWFu",
-            "ZFR5cGUSIgoEQXJncxgCIAMoCzIULmdvb2dsZS5wcm90b2J1Zi5BbnkqVAoZ",
+            "ZFR5cGUSIgoEQXJncxgCIAMoCzIULmdvb2dsZS5wcm90b2J1Zi5BbnkqagoZ",
             "U2VydmljZU1hbmFnZXJDb21tYW5kVHlwZRIJCgVTdGFydBAAEgsKB1Jlc3Rh",
-            "cnQQARIICgRTdG9wEAISFQoRQ3JlYXRlTmV3U2VydmljZXMQA2IGcHJvdG8z"));
+            "cnQQARIICgRTdG9wEAISFQoRQ3JlYXRlTmV3U2VydmljZXMQAxIUChBBbGxT",
+            "ZXJ2aWNlc1JlYWR5EARiBnByb3RvMw=="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { global::Google.Protobuf.WellKnownTypes.AnyReflection.Descriptor, },
           new pbr::GeneratedClrTypeInfo(new[] {typeof(global::LPS.Server.Rpc.InnerMessages.ServiceManagerCommandType), }, null, new pbr::GeneratedClrTypeInfo[] {
@@ -46,6 +47,7 @@ namespace LPS.Server.Rpc.InnerMessages {
     [pbr::OriginalName("Restart")] Restart = 1,
     [pbr::OriginalName("Stop")] Stop = 2,
     [pbr::OriginalName("CreateNewServices")] CreateNewServices = 3,
+    [pbr::OriginalName("AllServicesReady")] AllServicesReady = 4,
   }
 
   #endregion

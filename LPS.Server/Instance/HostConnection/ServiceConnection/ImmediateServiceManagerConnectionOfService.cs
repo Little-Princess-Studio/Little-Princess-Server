@@ -52,6 +52,7 @@ internal class ImmediateServiceManagerConnectionOfService : ImmediateManagerConn
             {
                 self.RegisterMessageHandler(PackageType.ServiceManagerCommand, this.HandleMessageFromManager<ServiceManagerCommand>);
                 self.RegisterMessageHandler(PackageType.ServiceRpc, this.HandleMessageFromManager<ServiceRpc>);
+                self.RegisterMessageHandler(PackageType.ServiceRpcCallBack, this.HandleMessageFromManager<ServiceRpcCallBack>);
             },
             OnConnected = self =>
             {
@@ -61,6 +62,7 @@ internal class ImmediateServiceManagerConnectionOfService : ImmediateManagerConn
             {
                 self.UnregisterMessageHandler(PackageType.ServiceManagerCommand, this.HandleMessageFromManager<ServiceManagerCommand>);
                 self.UnregisterMessageHandler(PackageType.ServiceRpc, this.HandleMessageFromManager<ServiceRpc>);
+                self.UnregisterMessageHandler(PackageType.ServiceRpcCallBack, this.HandleMessageFromManager<ServiceRpcCallBack>);
             },
         };
 }

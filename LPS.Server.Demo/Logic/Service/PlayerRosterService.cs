@@ -16,7 +16,7 @@ using LPS.Server.Service;
 /// <summary>
 /// Represents a service for managing player rosters.
 /// </summary>
-[Service("PlayerRosterService", 1)]
+[Service(nameof(PlayerRosterService), 1)]
 public class PlayerRosterService : BaseService
 {
     private const string RosterKeyName = "$_lps_player_roster";
@@ -29,6 +29,12 @@ public class PlayerRosterService : BaseService
     public PlayerRosterService()
     {
         this.redisClient = DbHelper.FastGlobalCache.GetNativeClient<CSRedisClient>() ?? throw new Exception("Redis client is null");
+    }
+
+    /// <inheritdoc/>
+    public override async Task OnAllServiceReady()
+    {
+        await this.CallServiceById(nameof(EchoService), nameof(EchoService.Echo), "Hello, world!");
     }
 
     /// <summary>
@@ -64,7 +70,7 @@ public class PlayerRosterService : BaseService
     /// <param name="mailBox">The mailbox to register.</param>
     /// <returns>A task that represents the asynchronous operation. The task result contains a value indicating whether the player was successfully registered.</returns>
     [RpcMethod(Authority.ServerOnly)]
-    public Task<bool> RegisterPlayer(string playerId, MailBox mailBox) => this.redisClient.HSetNxAsync(RosterKeyName, playerId, mailBox.ToString());
+    public Task<bool> RegisterPlayer(string playerId, MailBox mailBox) => this.redisClient.HSetAsync(RosterKeyName, playerId, mailBox.ToString());
 
     /// <summary>
     /// Unregisters a player with the specified ID and mailbox.

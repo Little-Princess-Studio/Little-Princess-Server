@@ -333,6 +333,17 @@ public class ServiceManager : IInstance
                         }));
 
                     this.hostMgrConnection.Send(hostMsg);
+
+                    var readyMsg = new ServiceManagerCommand()
+                    {
+                        Type = ServiceManagerCommandType.AllServicesReady,
+                    };
+
+                    var pkg = PackageHelper.FromProtoBuf(readyMsg, 0);
+                    foreach (var conn in this.mailBoxToServiceConn.Values)
+                    {
+                        conn.Socket.Send(pkg.ToBytes());
+                    }
                 }
             }
         }

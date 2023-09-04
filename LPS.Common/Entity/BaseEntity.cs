@@ -313,47 +313,6 @@ public abstract class BaseEntity : ITypeIdSupport
         this.OnSendEntityRpc.Invoke(rpcMsg);
     }
 
-    /*
-        /// <summary>
-        /// Send RPC call given a RPC id.
-        /// </summary>
-        /// <param name="rpcId">Rpc Id.</param>
-        /// <param name="targetMailBox">Target entity's mailbox.</param>
-        /// <param name="rpcMethodName">Rpc method name.</param>
-        /// <param name="notifyOnly">Only notify.</param>
-        /// <param name="rpcType">Rpc Type.</param>
-        /// <param name="args">Arg list.</param>
-        /// <exception cref="Exception">Throw exception if failed to send.</exception>
-        public void SendWithRpcId(
-            uint rpcId,
-            MailBox targetMailBox,
-            string rpcMethodName,
-            bool notifyOnly,
-            RpcType rpcType,
-            params object?[] args)
-        {
-            if (this.IsDestroyed)
-            {
-                throw new Exception("Entity already destroyed.");
-            }
-
-            if (this.IsFrozen && rpcType != RpcType.ServerToClient)
-            {
-                throw new Exception("Entity is frozen.");
-            }
-
-            var rpcMsg = RpcHelper.BuildEntityRpcMessage(
-                rpcId,
-                rpcMethodName,
-                this.MailBox,
-                targetMailBox,
-                notifyOnly,
-                rpcType,
-                args);
-            this.OnSendEntityRpc.Invoke(rpcMsg);
-        }
-    */
-
     /// <summary>
     /// Sends an RPC callback with the specified RPC ID, target mailbox, RPC type, and result object.
     /// </summary>

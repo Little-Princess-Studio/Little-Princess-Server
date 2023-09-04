@@ -4,7 +4,7 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
-namespace LPS.Common.Demo.Rpc;
+namespace LPS.Common.Demo.Rpc.ClientStub;
 
 using LPS.Common.Rpc.RpcStub;
 

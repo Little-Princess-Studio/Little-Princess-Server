@@ -11,7 +11,7 @@ using Common.Debug;
 using Common.Rpc.RpcStub;
 using Common.Rpc.RpcProperty;
 using Common.Rpc.RpcProperty.RpcContainer;
-using LPS.Common.Demo.Rpc;
+using LPS.Common.Demo.Rpc.ServerStub;
 using LPS.Server.Database;
 using LPS.Server.Entity;
 using LPS.Server.Rpc;

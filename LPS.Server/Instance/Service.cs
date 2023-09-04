@@ -46,6 +46,8 @@ public class Service : IInstance
 
     private readonly Dictionary<string, Dictionary<uint, BaseService>> serviceMap = new();
 
+    private readonly Dictionary<Common.Rpc.MailBox, BaseService> serviceMbMap = new();
+
     private Common.Rpc.MailBox mailBox;
 
     private uint acyncId;
@@ -71,6 +73,7 @@ public class Service : IInstance
 
         this.serviceMgrConnection.RegisterMessageHandler(PackageType.ServiceManagerCommand, this.ServiceManagerCommandHandler);
         this.serviceMgrConnection.RegisterMessageHandler(PackageType.ServiceRpc, this.ServiceRpcHandler);
+        this.serviceMgrConnection.RegisterMessageHandler(PackageType.ServiceRpcCallBack, this.ServiceRpcCallBackHandler);
 
         this.Name = name;
         this.Ip = ip;
@@ -152,6 +155,7 @@ public class Service : IInstance
 
                 var mailbox = new Common.Rpc.MailBox(shardId, this.Ip, this.Port, this.HostNum);
                 var service = ServiceHelper.CreateService(serviceName, shardNum, mailbox);
+                service.OnSendServiceRpc = serviceRpc => this.serviceMgrConnection.Send(serviceRpc);
                 service.OnSendServiceRpcCallBack = this.SendServiceRpcCallBack;
                 if (!this.serviceMap.ContainsKey(serviceName))
                 {
@@ -159,8 +163,9 @@ public class Service : IInstance
                 }
 
                 this.serviceMap[serviceName][shardNum] = service;
-
+                this.serviceMbMap[mailbox] = service;
                 Logger.Info($"Start service {serviceName} shard {shardNum}");
+
                 service.Start().ContinueWith(t =>
                 {
                     if (t.Exception != null)
@@ -205,6 +210,34 @@ public class Service : IInstance
         }
     }
 
+    private void NotifyAllServiceReady()
+    {
+        foreach (var dict in this.serviceMap.Values)
+        {
+            foreach (var service in dict.Values)
+            {
+                service.OnAllServiceReady().ContinueWith(t =>
+                {
+                    if (t.Exception is not null)
+                    {
+                        Logger.Error(t.Exception, "Service notify all service ready failed.");
+                    }
+                });
+            }
+        }
+    }
+
+    private void ServiceRpcCallBackHandler(IMessage message)
+    {
+        var callback = (ServiceRpcCallBack)message;
+        var serviceMb = RpcHelper.PbMailBoxToRpcMailBox(callback.TargetMailBox);
+        if (this.serviceMbMap.ContainsKey(serviceMb))
+        {
+            var service = this.serviceMbMap[serviceMb];
+            service.OnServiceRpcCallBack(callback);
+        }
+    }
+
     private void StopServiceInstance()
     {
         this.serviceMgrConnection.ShutDown();
@@ -227,6 +260,9 @@ public class Service : IInstance
                 break;
             case ServiceManagerCommandType.Restart:
                 throw new NotImplementedException();
+            case ServiceManagerCommandType.AllServicesReady:
+                this.NotifyAllServiceReady();
+                break;
             default:
                 break;
         }

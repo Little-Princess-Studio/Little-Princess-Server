@@ -13,6 +13,7 @@ using LPS.Common.Rpc.RpcProperty;
 using LPS.Server.Database;
 using LPS.Server.Demo.Entity.Component;
 using LPS.Server.Demo.Logic.RpcStub;
+using LPS.Server.Demo.Logic.Service;
 using LPS.Server.Entity;
 using LPS.Server.Entity.Component;
 using LPS.Server.Rpc.RpcProperty;
@@ -50,6 +51,25 @@ public class Player : ServerClientEntity
     {
         // cache the stub
         this.playerStub = this.GetRpcStub<IPlayerStub>();
+    }
+
+    /// <inheritdoc/>
+    public override async Task OnInit()
+    {
+        var databaseId = this.DbId;
+        var res = await this.CallServiceShardById<bool>(
+            nameof(PlayerRosterService),
+            nameof(PlayerRosterService.RegisterPlayer),
+            databaseId,
+            this.MailBox);
+        if (!res)
+        {
+            Logger.Warn($"playerId {databaseId} already exist, replace it.");
+        }
+        else
+        {
+            Logger.Info("Register player to roster success.");
+        }
     }
 
     /// <summary>

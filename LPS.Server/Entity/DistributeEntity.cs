@@ -309,6 +309,15 @@ public abstract class DistributeEntity : BaseEntity, ISendPropertySyncMessage
     }
 
     /// <summary>
+    /// Initializes the entity.
+    /// </summary>
+    /// <returns>A task that represents the asynchronous initialization operation.</returns>
+    public virtual Task OnInit()
+    {
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
     /// Initializes all components of the distribute entity.
     /// Only the components that are tagged as non-lazy will be initialized.
     /// </summary>

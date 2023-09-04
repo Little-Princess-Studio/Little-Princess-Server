@@ -7,6 +7,7 @@ enum ServiceManagerCommandType {
     Restart = 1;
     Stop = 2;
     CreateNewServices = 3;
+    AllServicesReady = 4;
 }
 
 message ServiceManagerCommand {

@@ -10,6 +10,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
+using Google.Protobuf.WellKnownTypes;
 using LPS.Common.Debug;
 using LPS.Common.Entity;
 using LPS.Common.Ipc;
@@ -57,7 +58,6 @@ public abstract class BaseService : ITypeIdSupport
     private readonly AsyncTaskGenerator<object?, System.Type> rpcAsyncTaskWithResultGenerator = new();
 
     private bool stopFlag = false;
-
     private SandBox sandBox = null!;
 
     /// <summary>
@@ -78,6 +78,15 @@ public abstract class BaseService : ITypeIdSupport
         this.sandBox = SandBox.Create(this.IoHandler);
         this.sandBox.Run();
         await this.OnStart();
+    }
+
+    /// <summary>
+    /// This method is called when all services are ready.
+    /// </summary>
+    /// <returns>A task that represents the asynchronous operation.</returns>
+    public virtual Task OnAllServiceReady()
+    {
+        return Task.CompletedTask;
     }
 
     /// <summary>
@@ -251,6 +260,30 @@ public abstract class BaseService : ITypeIdSupport
     public Task NotifyService(string serviceName, int shard, string methodName, params object[] args)
     {
         throw new NotImplementedException();
+    }
+
+    /// <summary>
+    /// This method is called when a remote procedure call (RPC) is received by the service.
+    /// </summary>
+    /// <param name="callback">The RPC callback to handle.</param>
+    public void OnServiceRpcCallBack(ServiceRpcCallBack callback)
+    {
+        var rpcId = callback.RpcID;
+        this.RpcAsyncCallBack(rpcId, callback.Result);
+    }
+
+    private void RpcAsyncCallBack(uint rpcId, Any result)
+    {
+        if (this.rpcAsyncTaskWithResultGenerator.ContainsAsyncId(rpcId))
+        {
+            var returnType = this.rpcAsyncTaskWithResultGenerator.GetDataByAsyncTaskId(rpcId);
+            var rpcArg = RpcHelper.ProtoBufAnyToRpcArg(result, returnType);
+            this.rpcAsyncTaskWithResultGenerator.ResolveAsyncTask(rpcId, rpcArg);
+        }
+        else
+        {
+            this.rpcAsyncTaskWithoutResultGenerator.ResolveAsyncTask(rpcId, null!);
+        }
     }
 
     private void IoHandler()

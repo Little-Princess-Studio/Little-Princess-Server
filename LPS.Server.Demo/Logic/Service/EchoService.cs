@@ -13,7 +13,7 @@ using LPS.Server.Service;
 /// <summary>
 /// Represents a service that echoes back any input it receives.
 /// </summary>
-[Service("EchoService", 5)]
+[Service(nameof(EchoService), 5)]
 public class EchoService : BaseService
 {
     /// <summary>
