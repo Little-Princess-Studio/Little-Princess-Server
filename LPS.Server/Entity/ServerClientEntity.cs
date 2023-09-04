@@ -51,10 +51,8 @@ public class ServerClientEntity : DistributeEntity
     [RpcMethod(Authority.All)]
     public override Task TransferIntoCell(MailBox targetCellMailBox, string transferInfo)
     {
-        // todo: serialContent is the serialized rpc property tree of entity
         Logger.Debug($"start transfer to {targetCellMailBox}");
 
-        var serialContent = string.Empty;
         try
         {
             var gateMailBox = this.Client.GateConn.MailBox;
@@ -64,7 +62,6 @@ public class ServerClientEntity : DistributeEntity
                 "RequireTransfer",
                 this.MailBox,
                 this.GetType().Name,
-                serialContent,
                 transferInfo,
                 gateMailBox);
 

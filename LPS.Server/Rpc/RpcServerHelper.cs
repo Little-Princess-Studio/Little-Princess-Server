@@ -42,7 +42,6 @@ public static class RpcServerHelper
                 var obj = (Activator.CreateInstance(entityClass, desc) as DistributeEntity)!;
                 await obj.InitComponents();
                 RpcHelper.BuildPropertyTree(obj, AllowedRpcPropertyGenTypes);
-                await obj.OnInit();
                 return obj;
             }
 
@@ -89,11 +88,10 @@ public static class RpcServerHelper
     /// </summary>
     /// <param name="entityMailBox">Mailbox of the entity.</param>
     /// <param name="entityClassName">Entity class name.</param>
-    /// <param name="serialContent">serialized data.</param>
     /// <returns>Built DistributeEntity object.</returns>
     /// <exception cref="Exception">Throw exception if failed to build entity.</exception>
     public static DistributeEntity BuildEntityFromSerialContent(
-        MailBox entityMailBox, string entityClassName, string serialContent)
+        MailBox entityMailBox, string entityClassName)
     {
         // var entity = Activator.CreateInstance<DistributeEntity>(entityClassName);
         if (EntityClassMap.ContainsKey(entityClassName))
@@ -103,7 +101,6 @@ public static class RpcServerHelper
             {
                 var obj = (Activator.CreateInstance(entityClass, null) as DistributeEntity)!;
                 obj.MailBox = entityMailBox;
-                obj.Deserialize(serialContent);
                 RpcHelper.BuildPropertyTree(obj, AllowedRpcPropertyGenTypes);
                 return obj;
             }

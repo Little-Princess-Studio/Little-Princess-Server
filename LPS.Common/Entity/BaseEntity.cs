@@ -251,23 +251,6 @@ public abstract class BaseEntity : ITypeIdSupport
     }
 
     /// <summary>
-    /// Serialize the entity.
-    /// </summary>
-    /// <returns>Serialization content.</returns>
-    public virtual string Serialize()
-    {
-        return string.Empty;
-    }
-
-    /// <summary>
-    /// Deserialize the entity.
-    /// </summary>
-    /// <param name="content">Serialization content.</param>
-    public virtual void Deserialize(string content)
-    {
-    }
-
-    /// <summary>
     /// Destroy the entity.
     /// </summary>
     public void Destroy()

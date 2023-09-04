@@ -6,7 +6,7 @@
 
 namespace LPS.Client.Demo.Entity.RpcStub;
 
-using LPS.Common.Demo.Rpc;
+using LPS.Common.Demo.Rpc.ServerStub;
 using LPS.Common.Rpc.RpcStub;
 
 /// <summary>

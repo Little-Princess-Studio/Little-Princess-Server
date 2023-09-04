@@ -13,8 +13,7 @@ using LPS.Client.Entity;
 using LPS.Client.Rpc.RpcProperty;
 using LPS.Client.Entity.Component;
 using LPS.Client.Demo.Entity.Component;
-using Google.Protobuf.WellKnownTypes;
-using LPS.Common.Demo.Rpc;
+using LPS.Common.Demo.Rpc.ClientStub;
 
 /// <summary>
 /// Player class, from Untrusted.

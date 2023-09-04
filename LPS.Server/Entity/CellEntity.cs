@@ -70,7 +70,6 @@ public abstract class CellEntity : DistributeEntity
     /// </summary>
     /// <param name="entityMailBox">Mailbox of the entity wants to transfer into this cell.</param>
     /// <param name="entityClassName">Entity class name of the entity.</param>
-    /// <param name="serialContent">Serialization content of the entity.</param>
     /// <param name="transferInfo">Transfer info of the entity.</param>
     /// <param name="gateMailBox">Mailbox of the gate which sends the request rpc.</param>
     /// <returns>Pair of (success, new mailbox of the entity transferred).</returns>
@@ -78,11 +77,10 @@ public abstract class CellEntity : DistributeEntity
     public ValueTask<(bool ResultOfTransfer, MailBox NewMailbox)> RequireTransfer(
         MailBox entityMailBox,
         string entityClassName,
-        string serialContent,
         string transferInfo,
         MailBox gateMailBox)
     {
-        Logger.Debug($"transfer request: {entityMailBox} {entityClassName} {serialContent} {transferInfo}");
+        Logger.Debug($"transfer request: {entityMailBox} {entityClassName} {transferInfo}");
 
         var res = false;
         do
@@ -94,8 +92,7 @@ public abstract class CellEntity : DistributeEntity
 
             var entity = RpcServerHelper.BuildEntityFromSerialContent(
                 new MailBox(entityMailBox.Id, this.MailBox.Ip, this.MailBox.Port, this.MailBox.HostNum),
-                entityClassName,
-                serialContent);
+                entityClassName);
 
             entity.Cell = this;
             entity.OnTransferred(transferInfo);

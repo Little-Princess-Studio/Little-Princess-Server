@@ -116,6 +116,14 @@ public abstract class DistributeEntity : BaseEntity, ISendPropertySyncMessage
         onSyncContentReady.Invoke(this.MailBox.Id, treeDict);
 
         this.IsFrozen = false;
+
+        this.OnInit().ContinueWith(t =>
+        {
+            if (t.Exception is not null)
+            {
+                Logger.Error(t.Exception, "Failed to init entity.");
+            }
+        });
     }
 
     /// <summary>
@@ -270,7 +278,6 @@ public abstract class DistributeEntity : BaseEntity, ISendPropertySyncMessage
         // todo: serialContent is the serialized rpc property tree of entity
         Logger.Debug($"start transfer to {targetCellMailBox}");
 
-        var serialContent = string.Empty;
         try
         {
             var (res, mailbox) = await this.Call<(bool, MailBox)>(
@@ -278,7 +285,6 @@ public abstract class DistributeEntity : BaseEntity, ISendPropertySyncMessage
                 nameof(CellEntity.RequireTransfer),
                 this.MailBox,
                 this.GetType().Name,
-                serialContent,
                 transferInfo);
 
             if (!res)

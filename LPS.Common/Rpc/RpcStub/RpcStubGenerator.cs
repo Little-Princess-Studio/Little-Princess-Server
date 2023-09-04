@@ -64,6 +64,10 @@ public class RpcStubGenerator
     {
         var rpcStubInterfaceIdToStubTypeBuilder = new Dictionary<uint, Type>();
 
+        var assemblyName = new AssemblyName("RpcStubImplAssembly");
+        var assemblyBuilder = AssemblyBuilder.DefineDynamicAssembly(assemblyName, AssemblyBuilderAccess.Run);
+        var moduleBuilder = assemblyBuilder.DefineDynamicModule("RpcStubImplModule");
+
         foreach (var @namespace in namespaces)
         {
             var allInterfaces = AttributeHelper.ScanTypeWithNamespaceAndAttribute(
@@ -81,7 +85,7 @@ public class RpcStubGenerator
                     throw new InvalidOperationException($"Duplicate interface ID {interfaceId}.");
                 }
 
-                var stubType = this.Generate(type);
+                var stubType = this.Generate(type, moduleBuilder);
                 rpcStubInterfaceIdToStubTypeBuilder.Add(interfaceId, stubType);
 
                 Logger.Info($"[RpcStubGenerator] Generated {stubType} for {type}.");
@@ -94,23 +98,11 @@ public class RpcStubGenerator
     /// <summary>
     /// Generates a server-side implementation of the specified RPC interface.
     /// </summary>
-    /// <typeparam name="T">The RPC interface to generate an implementation for.</typeparam>
-    /// <returns>An instance of the generated implementation.</returns>
-    /// <exception cref="ArgumentException">Thrown when T is not an interface type or is not marked with RpcServerStubAttribute.</exception>
-    public virtual Type Generate<T>()
-        where T : IRpcStub
-    {
-        var interfaceType = typeof(T);
-        return this.Generate(interfaceType);
-    }
-
-    /// <summary>
-    /// Generates a server-side implementation of the specified RPC interface.
-    /// </summary>
     /// <param name="interfaceType">The RPC interface to generate an implementation for.</param>
+    /// <param name="moduleBuilder">The <see cref="ModuleBuilder"/> to use for the generated implementation.</param>
     /// <returns>A <see cref="Type"/> object representing the generated implementation.</returns>
     /// <exception cref="ArgumentException">Thrown when <paramref name="interfaceType"/> is not an interface type or is not marked with <see cref="RpcServerStubAttribute"/>.</exception>
-    public virtual Type Generate(Type interfaceType)
+    public virtual Type Generate(Type interfaceType, ModuleBuilder moduleBuilder)
     {
         if (!interfaceType.IsInterface)
         {
@@ -122,9 +114,6 @@ public class RpcStubGenerator
             throw new ArgumentException("T must be marked with RpcStubAttribute.");
         }
 
-        var assemblyName = new AssemblyName(interfaceType.Name + "ImplAssembly");
-        var assemblyBuilder = AssemblyBuilder.DefineDynamicAssembly(assemblyName, AssemblyBuilderAccess.Run);
-        var moduleBuilder = assemblyBuilder.DefineDynamicModule(interfaceType.Name + "ImplModule");
         var typeBuilder = moduleBuilder.DefineType(interfaceType.Name + "Impl", TypeAttributes.Public | TypeAttributes.Class);
         typeBuilder.AddInterfaceImplementation(interfaceType);
 
