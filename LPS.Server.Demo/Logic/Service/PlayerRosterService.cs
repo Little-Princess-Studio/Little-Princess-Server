@@ -7,6 +7,7 @@
 namespace LPS.Server.Demo.Logic.Service;
 
 using CSRedis;
+using LPS.Common.Debug;
 using LPS.Common.Rpc;
 using LPS.Common.Rpc.RpcStub;
 using LPS.Server.Database;
@@ -34,7 +35,8 @@ public class PlayerRosterService : BaseService
     /// <inheritdoc/>
     public override async Task OnAllServiceReady()
     {
-        await this.CallServiceById(nameof(EchoService), nameof(EchoService.Echo), "Hello, world!");
+        var res = await this.CallServiceById<string>(nameof(EchoService), nameof(EchoService.Echo), "Hello, world!");
+        Logger.Info($"EchoService.Echo {res}");
     }
 
     /// <summary>
@@ -70,7 +72,11 @@ public class PlayerRosterService : BaseService
     /// <param name="mailBox">The mailbox to register.</param>
     /// <returns>A task that represents the asynchronous operation. The task result contains a value indicating whether the player was successfully registered.</returns>
     [RpcMethod(Authority.ServerOnly)]
-    public Task<bool> RegisterPlayer(string playerId, MailBox mailBox) => this.redisClient.HSetAsync(RosterKeyName, playerId, mailBox.ToString());
+    public Task<bool> RegisterPlayer(string playerId, MailBox mailBox)
+    {
+        Logger.Info($"RegisterPlayer {playerId} {mailBox}");
+        return this.redisClient.HSetAsync(RosterKeyName, playerId, mailBox.ToString());
+    }
 
     /// <summary>
     /// Unregisters a player with the specified ID and mailbox.
@@ -80,6 +86,7 @@ public class PlayerRosterService : BaseService
     [RpcMethod(Authority.ServerOnly)]
     public async Task<bool> UnregisterPlayer(string playerId)
     {
+        Logger.Info("UnregisterPlayer");
         var res = await this.redisClient.HDelAsync(RosterKeyName, playerId);
         return res > 0;
     }
