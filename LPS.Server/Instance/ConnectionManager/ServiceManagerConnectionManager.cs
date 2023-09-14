@@ -8,6 +8,7 @@ namespace LPS.Server.Instance.ConnectionManager;
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Google.Protobuf;
 using LPS.Common.Debug;
 using LPS.Common.Rpc;
@@ -20,6 +21,7 @@ internal class ServiceManagerConnectionManager
     private readonly ConnectionMap gateConnectionMap;
     private readonly ConnectionMap serviceConnectionMap;
     private readonly ConnectionMap serverConnectionMap;
+    private readonly Random random = new Random();
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ServiceManagerConnectionManager"/> class.
@@ -60,6 +62,55 @@ internal class ServiceManagerConnectionManager
                 Logger.Warn($"Invalid connection type {connectionType}.");
                 break;
         }
+    }
+
+    /// <summary>
+    /// Sends a message to a random gate.
+    /// </summary>
+    /// <param name="msg">The message to send.</param>
+    public void SendMessageToRandomGate(IMessage msg)
+    {
+        var sendImmediately = this.random.Next(0, 2) == 0;
+        string connId = string.Empty;
+        if (sendImmediately)
+        {
+            var immediateConnIds = this.gateConnectionMap.GetImmediateConnectionConnections();
+            if (immediateConnIds.Length > 0)
+            {
+                connId = immediateConnIds[this.random.Next(0, immediateConnIds.Length)];
+            }
+            else
+            {
+                var msgConnIds = this.gateConnectionMap.GetAllMessageQueueIdentifiers();
+                if (msgConnIds.Length > 0)
+                {
+                    connId = msgConnIds[this.random.Next(0, msgConnIds.Length)];
+                }
+            }
+        }
+        else
+        {
+            var msgConnIds = this.gateConnectionMap.GetAllMessageQueueIdentifiers();
+            if (msgConnIds.Length > 0)
+            {
+                connId = msgConnIds[this.random.Next(0, msgConnIds.Length)];
+            }
+            else
+            {
+                var immediateConnIds = this.gateConnectionMap.GetImmediateConnectionConnections();
+                if (immediateConnIds.Length > 0)
+                {
+                    connId = immediateConnIds[this.random.Next(0, immediateConnIds.Length)];
+                }
+            }
+        }
+
+        if (string.IsNullOrEmpty(connId))
+        {
+            throw new Exception("No gate connections available.");
+        }
+
+        this.gateConnectionMap.SendMessage(connId, msg);
     }
 
     /// <summary>
@@ -146,6 +197,10 @@ internal class ServiceManagerConnectionManager
 
         public void RegisterMessageQueueConnection(string id, string identifier)
             => this.msgqQueueConnectionMap[id] = identifier;
+
+        public string[] GetImmediateConnectionConnections() => this.immediateConnectionMap.Keys.ToArray();
+
+        public string[] GetAllMessageQueueIdentifiers() => this.msgqQueueConnectionMap.Keys.ToArray();
 
         public Connection? GetConnectionById(string id)
         {

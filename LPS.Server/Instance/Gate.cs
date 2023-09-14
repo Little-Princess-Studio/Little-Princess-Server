@@ -36,7 +36,7 @@ using MailBox = LPS.Common.Rpc.InnerMessages.MailBox;
 /// All the gate mailbox info will be saved in redis, and gate will
 /// repeatly sync these info from redis.
 /// </summary>
-public class Gate : IInstance
+public partial class Gate : IInstance
 {
     /// <inheritdoc/>
     public string Name { get; }
@@ -78,7 +78,8 @@ public class Gate : IInstance
     private readonly SandBox clientsPumpMsgSandBox;
 
     private readonly TcpServer tcpGateServer;
-    private readonly IManagerConnection hostConnection;
+    private IManagerConnection hostConnection = null!;
+    private IManagerConnection serviceMgrConnection = null!;
 
     private GateEntity? entity;
 
@@ -137,23 +138,7 @@ public class Gate : IInstance
         this.localEntityGeneratedEvent = new CountdownEvent(1);
         this.waitForSyncServiceManagerEvent = new CountdownEvent(1);
 
-        if (!useMqToHostMgr)
-        {
-            this.hostConnection = new ImmediateHostManagerConnectionOfGate(
-                hostManagerIp,
-                hostManagerPort,
-                this.GenerateRpcId,
-                () => this.tcpGateServer.Stopped);
-        }
-        else
-        {
-            this.hostConnection = new MessageQueueHostManagerConnectionOfGate(this.Name, this.GenerateRpcId);
-        }
-
-        this.hostConnection.RegisterMessageHandler(
-            PackageType.RequireCreateEntityRes,
-            this.HandleRequireCreateEntityResFromHost);
-        this.hostConnection.RegisterMessageHandler(PackageType.HostCommand, this.HandleHostCommandFromHost);
+        this.InitHostManagerConnection(useMqToHostMgr, hostManagerIp, hostManagerPort);
 
         this.clientsPumpMsgSandBox = SandBox.Create(this.PumpMessageHandler);
     }
@@ -206,6 +191,9 @@ public class Gate : IInstance
         this.waitForSyncServiceManagerEvent.Wait();
         Logger.Info("Service manager connected.");
 
+        Logger.Info("Try to connect to service manager");
+        this.ConnectToServiceManager();
+
         this.readyToPumpClients = true;
         Logger.Info("Waiting completed");
 
@@ -244,8 +232,8 @@ public class Gate : IInstance
     /// <param name="oldMailBox">Old mailbox.</param>
     /// <param name="newMailBox">New mailbox.</param>
     public void UpdateServerClientEntityRegistration(
-        LPS.Common.Rpc.MailBox oldMailBox,
-        LPS.Common.Rpc.MailBox newMailBox)
+        Common.Rpc.MailBox oldMailBox,
+        Common.Rpc.MailBox newMailBox)
     {
         var oldId = oldMailBox.Id;
         var newId = newMailBox.Id;
@@ -270,389 +258,14 @@ public class Gate : IInstance
         var decryptedData = Encoding.UTF8.GetString(decryptedBytes);
         return decryptedData;
     }
-
-    #region register server message
-
-    private void RegisterMessageFromServerAndOtherGateHandlers()
+    private uint GenerateConnectionId()
     {
-        this.tcpGateServer.RegisterMessageHandler(PackageType.Authentication, this.HandleAuthenticationFromClient);
-
-        // tcpGateServer_.RegisterMessageHandler(PackageType.Control, this.HandleControlMessage);
-        this.tcpGateServer.RegisterMessageHandler(PackageType.EntityRpc, this.HandleEntityRpcFromClient);
-        this.tcpGateServer.RegisterMessageHandler(PackageType.EntityRpcCallBack, callback: this.HandleEntityRpcCallBackFromClient);
-        this.tcpGateServer.RegisterMessageHandler(
-            PackageType.RequirePropertyFullSync,
-            this.HandleRequireFullSyncFromClient);
-        this.tcpGateServer.RegisterMessageHandler(
-            PackageType.RequireComponentSync,
-            this.HandleRequireComponentSyncFromClient);
-    }
-
-    private void UnregisterMessageFromServerAndOtherGateHandlers()
-    {
-        this.tcpGateServer.UnregisterMessageHandler(
-            PackageType.Authentication,
-            this.HandleAuthenticationFromClient);
-
-        // tcpGateServer_.UnregisterMessageHandler(PackageType.Control, this.HandleControlMessage);
-        this.tcpGateServer.UnregisterMessageHandler(PackageType.EntityRpc, this.HandleEntityRpcFromClient);
-        this.tcpGateServer.UnregisterMessageHandler(PackageType.EntityRpcCallBack, callback: this.HandleEntityRpcCallBackFromClient);
-        this.tcpGateServer.UnregisterMessageHandler(
-            PackageType.RequirePropertyFullSync,
-            this.HandleRequireFullSyncFromClient);
-        this.tcpGateServer.UnregisterMessageHandler(
-            PackageType.RequireComponentSync,
-            this.HandleRequireComponentSyncFromClient);
-    }
-
-    private void HandleHostCommandFromHost(IMessage msg)
-    {
-        var hostCmd = (msg as HostCommand)!;
-
-        Logger.Info($"Handle host command, cmd type: {hostCmd.Type}");
-
-        switch (hostCmd.Type)
-        {
-            case HostCommandType.SyncServers:
-                this.SyncServersMailBoxes(hostCmd.Args
-                    .Select(mb => RpcHelper.PbMailBoxToRpcMailBox(mb.Unpack<MailBox>())).ToArray());
-                break;
-            case HostCommandType.SyncGates:
-                this.SyncOtherGatesMailBoxes(hostCmd.Args
-                    .Select(mb => RpcHelper.PbMailBoxToRpcMailBox(mb.Unpack<MailBox>())).ToArray());
-                break;
-            case HostCommandType.SyncServiceManager:
-                this.SyncServiceManagerMailBox(RpcHelper.PbMailBoxToRpcMailBox(hostCmd.Args[0].Unpack<MailBoxArg>().PayLoad));
-                break;
-            case HostCommandType.Open:
-                break;
-            case HostCommandType.Stop:
-                break;
-            default:
-                throw new ArgumentOutOfRangeException();
-        }
-    }
-
-    private void SyncOtherGatesMailBoxes(Common.Rpc.MailBox[] otherGatesMailBoxes)
-    {
-        // connect to each gate
-        // tcp gate to other gate only send msg to other gate's server
-        Logger.Info($"Sync gates, cnt: {otherGatesMailBoxes.Length}");
-        this.allOtherGatesConnectedEvent = new CountdownEvent(otherGatesMailBoxes.Length - 1);
-        this.tcpClientsToOtherGate = new Rpc.TcpClient[otherGatesMailBoxes.Length - 1];
-        var idx = 0;
-        foreach (var mb in otherGatesMailBoxes)
-        {
-            if (mb.CompareOnlyAddress(this.entity!.MailBox))
-            {
-                continue;
-            }
-
-            var tmpIdx = idx;
-            var otherGateInnerIp = mb.Ip;
-            var otherGatePort = mb.Port;
-            var client = new TcpClient(otherGateInnerIp, otherGatePort, this.sendQueue)
-            {
-                OnConnected = _ => this.allOtherGatesConnectedEvent.Signal(),
-                MailBox = mb,
-            };
-
-            this.tcpClientsToOtherGate[idx] = client;
-            ++idx;
-        }
-
-        this.otherGatesMailBoxesReadyEvent.Signal();
-    }
-
-    private void SyncServersMailBoxes(Common.Rpc.MailBox[] serverMailBoxes)
-    {
-        // connect to each server
-        // tcp gate to server handlers msg from server
-        Logger.Info($"Sync servers, cnt: {serverMailBoxes.Length}");
-        this.allServersConnectedEvent = new(serverMailBoxes.Length);
-        this.tcpClientsToServer = new TcpClient[serverMailBoxes.Length];
-        var idx = 0;
-        foreach (var mb in serverMailBoxes)
-        {
-            var tmpIdx = idx;
-            var serverIp = mb.Ip;
-            var serverPort = mb.Port;
-            Logger.Debug($"server ip: {serverIp} server port: {serverPort}");
-            var client = new TcpClient(serverIp, serverPort, this.sendQueue)
-            {
-                OnInit = _ => this.RegisterGateMessageHandlers(tmpIdx),
-                OnDispose = _ => this.UnregisterGateMessageHandlers(tmpIdx),
-                OnConnected = self =>
-                {
-                    var ctl = new Control()
-                    {
-                        From = RemoteType.Gate,
-                        Message = ControlMessage.Ready,
-                    };
-
-                    ctl.Args.Add(Any.Pack(RpcHelper.RpcMailBoxToPbMailBox(this.entity!.MailBox)));
-                    self.Send(ctl, false);
-
-                    this.allServersConnectedEvent.Signal();
-                },
-                MailBox = mb,
-            };
-            this.tcpClientsToServer[idx] = client;
-            ++idx;
-        }
-
-        this.serversMailBoxesReadyEvent.Signal();
-    }
-
-    private void SyncServiceManagerMailBox(Common.Rpc.MailBox serviceManagerMailBox)
-    {
-        this.waitForSyncServiceManagerEvent.Signal();
-        this.serviceManagerMailBox = serviceManagerMailBox;
-    }
-
-    private void HandleEntityRpcFromClient((IMessage Message, Connection Connection, uint RpcId) arg)
-    {
-        // if gate's server have recieved the EntityRpc msg, it must be redirect from other gates
-        Logger.Info("Handle EntityRpc From Other Gates.");
-
-        var (msg, _, _) = arg;
-        var entityRpc = (msg as EntityRpc)!;
-        this.HandleEntityRpcMessageOnGate(entityRpc);
-    }
-
-    private void HandleEntityRpcCallBackFromClient((IMessage Message, Connection Connection, uint RpcId) arg)
-    {
-        // if gate's server have recieved the EntityRpc msg, it must be redirect from other gates
-        Logger.Info("Handle EntityRpc From Other Gates.");
-
-        var (msg, _, _) = arg;
-        var callback = (msg as EntityRpcCallBack)!;
-        this.HandleEntityRpcCallBackMessageOnGate(callback);
+        return this.createEntityCounter++;
     }
 
     private uint GenerateRpcId()
     {
         return this.createEntityCounter++;
-    }
-
-    private void HandleAuthenticationFromClient((IMessage Message, Connection Connection, uint RpcId) arg)
-    {
-        var (msg, conn, _) = arg;
-        var auth = (msg as Authentication)!;
-
-        // TODO: Cache the rsa object
-        var decryptedData = DecryptedCiphertext(auth);
-
-        Logger.Info($"Got decrypted content: {decryptedData}");
-
-        if (decryptedData == auth.Content)
-        {
-            Logger.Info("Auth success");
-
-            var connId = this.GenerateRpcId();
-
-            var createEntityMsg = new RequireCreateEntity
-            {
-                EntityClassName = "Untrusted",
-                CreateType = CreateType.Anywhere,
-                Description = string.Empty,
-                EntityType = EntityType.ServerClientEntity,
-                ConnectionID = connId,
-                GateId = this.entity!.MailBox.Id,
-            };
-
-            if (conn.ConnectionId != uint.MaxValue)
-            {
-                throw new Exception("Entity is creating");
-            }
-
-            conn.ConnectionId = connId;
-            this.createEntityMapping[connId] = conn;
-
-            this.hostConnection.Send(createEntityMsg);
-        }
-        else
-        {
-            Logger.Warn("Auth failed");
-            conn.Disconnect();
-            conn.TokenSource.Cancel();
-        }
-    }
-
-    private void HandleRequireFullSyncFromClient((IMessage Message, Connection Connection, uint RpcId) arg)
-    {
-        Logger.Info("[Gate] HandleRequireFullSyncFromClient");
-        var (msg, conn, _) = arg;
-        var requirePropertyFullSyncMsg = (msg as RequirePropertyFullSync)!;
-
-        this.RedirectMsgToEntityOnServer(requirePropertyFullSyncMsg.EntityId, msg);
-    }
-
-    private void HandleRequireComponentSyncFromClient((IMessage Message, Connection Connection, uint RpcId) arg)
-    {
-        Logger.Info("[Gate] HandleRequireComponentSyncFromClient");
-        var (msg, conn, _) = arg;
-        var requireComponentSyncMsg = (msg as RequireComponentSync)!;
-
-        this.RedirectMsgToEntityOnServer(requireComponentSyncMsg.EntityId, msg);
-    }
-
-    #endregion
-
-    #region register client message
-
-    private void RegisterGateMessageHandlers(int serverIdx)
-    {
-        var client = this.tcpClientsToServer![serverIdx];
-
-        void EntityRpcHandler((IMessage Message, Connection Connection, uint RpcId) arg) =>
-            this.HandleEntityRpcFromServer(client, arg);
-        this.tcpClientsActions[(serverIdx, PackageType.EntityRpc)] = EntityRpcHandler;
-
-        void EntityRpcCallBackHandler((IMessage Message, Connection Connection, uint RpcId) arg) =>
-            this.HandleEntityRpcCallBackFromServer(client, arg);
-        this.tcpClientsActions[(serverIdx, PackageType.EntityRpcCallBack)] = EntityRpcCallBackHandler;
-
-        void PropertyFullSync((IMessage Message, Connection Connection, uint RpcId) arg) =>
-            this.HandlePropertyFullSyncFromServer(client, arg);
-        this.tcpClientsActions[(serverIdx, PackageType.PropertyFullSync)] = PropertyFullSync;
-
-        void PropSyncCommandList((IMessage Message, Connection Connection, uint RpcId) arg) =>
-            this.HandlePropertySyncCommandListFromServer(client, arg);
-        this.tcpClientsActions[(serverIdx, PackageType.PropertySyncCommandList)] = PropSyncCommandList;
-
-        void ComponentSync((IMessage Message, Connection Connection, uint RpcId) arg) =>
-            this.HandleComponentSyncFromServer(client, arg);
-        this.tcpClientsActions[(serverIdx, PackageType.ComponentSync)] = ComponentSync;
-
-        client.RegisterMessageHandler(PackageType.EntityRpc, EntityRpcHandler);
-        client.RegisterMessageHandler(PackageType.EntityRpcCallBack, EntityRpcCallBackHandler);
-        client.RegisterMessageHandler(PackageType.PropertyFullSync, PropertyFullSync);
-        client.RegisterMessageHandler(PackageType.PropertySyncCommandList, PropSyncCommandList);
-        client.RegisterMessageHandler(PackageType.ComponentSync, ComponentSync);
-
-        Logger.Info($"client {serverIdx} registered msg");
-    }
-
-    private void UnregisterGateMessageHandlers(int idx)
-    {
-        var client = this.tcpClientsToServer![idx];
-
-        client.UnregisterMessageHandler(
-            PackageType.EntityRpc,
-            this.tcpClientsActions[(idx, PackageType.EntityRpc)]);
-
-        client.UnregisterMessageHandler(
-            PackageType.EntityRpcCallBack,
-            this.tcpClientsActions[(idx, PackageType.EntityRpcCallBack)]);
-
-        client.UnregisterMessageHandler(
-            PackageType.PropertyFullSync,
-            this.tcpClientsActions[(idx, PackageType.PropertyFullSync)]);
-
-        client.UnregisterMessageHandler(
-            PackageType.PropertySyncCommandList,
-            this.tcpClientsActions[(idx, PackageType.PropertySyncCommandList)]);
-
-        client.UnregisterMessageHandler(
-            PackageType.ComponentSync,
-            this.tcpClientsActions[(idx, PackageType.ComponentSync)]);
-    }
-
-    private void HandlePropertySyncCommandListFromServer(
-        TcpClient client,
-        (IMessage Message, Connection Connection, uint RpcId) arg)
-    {
-        var (msg, _, _) = arg;
-        var propertySyncCommandList = (msg as PropertySyncCommandList)!;
-
-        Logger.Info($"property sync: {propertySyncCommandList.Path}" +
-                    $" {propertySyncCommandList.EntityId}" +
-                    $" {propertySyncCommandList.PropType}");
-
-        // TODO: Redirect to shadow entity on server
-        this.RedirectMsgToClientEntity(propertySyncCommandList.EntityId, propertySyncCommandList);
-    }
-
-    private void HandleComponentSyncFromServer(TcpClient client, (IMessage Message, Connection Connection, uint RpcId) arg)
-    {
-        Logger.Info("HandleComponentSyncFromServer");
-
-        var (msg, _, _) = ((IMessage, Connection, uint))arg;
-        var componentSync = (msg as ComponentSync)!;
-
-        Logger.Info("send componentSync to client");
-        this.RedirectMsgToClientEntity(componentSync.EntityId, msg);
-    }
-
-    private void HandleRequireCreateEntityResFromHost(IMessage msg)
-    {
-        var createEntityRes = (msg as RequireCreateEntityRes)!;
-
-        Logger.Debug($"HandleRequireCreateEntityResFromHost {createEntityRes.Mailbox}");
-
-        if (createEntityRes.EntityType == EntityType.GateEntity)
-        {
-            Logger.Info("Create gate entity success.");
-            var serverEntityMailBox =
-                new Common.Rpc.MailBox(createEntityRes.Mailbox.ID, this.Ip, this.Port, this.HostNum);
-            this.entity = new(serverEntityMailBox, this)
-            {
-                OnSendEntityRpc = entityRpc =>
-                {
-                    var targetMailBox = entityRpc.EntityMailBox;
-                    var clientToServer = this.FindServerTcpClientFromMailBox(targetMailBox);
-                    if (clientToServer != null)
-                    {
-                        Logger.Debug($"Rpc Call, send entityRpc to {targetMailBox}");
-                        clientToServer.Send(entityRpc);
-                    }
-                    else
-                    {
-                        throw new Exception($"gate's server client not found: {targetMailBox}");
-                    }
-                },
-                OnSendEntityRpcCallback = entityRpcCallback =>
-                {
-                    var targetMailBox = entityRpcCallback.TargetMailBox;
-                    var clientToServer = this.FindServerTcpClientFromMailBox(targetMailBox);
-                    if (clientToServer != null)
-                    {
-                        Logger.Debug($"Rpc Call, send entityRpcCallback to {targetMailBox}");
-                        clientToServer.Send(entityRpcCallback);
-                    }
-                    else
-                    {
-                        throw new Exception($"gate's server client not found: {targetMailBox}");
-                    }
-                },
-            };
-
-            this.localEntityGeneratedEvent.Signal(1);
-        }
-        else if (createEntityRes.EntityType == EntityType.ServerClientEntity)
-        {
-            Logger.Info($"Create server client entity {createEntityRes.EntityClassName}");
-            var connId = createEntityRes.ConnectionID;
-            if (!this.createEntityMapping.ContainsKey(connId))
-            {
-                Logger.Warn($"Invalid connid: {connId}");
-                return;
-            }
-
-            this.createEntityMapping.Remove(connId, out var connToClient);
-            var mb = RpcHelper.PbMailBoxToRpcMailBox(createEntityRes.Mailbox!);
-
-            Logger.Info($"create server client entity {mb.Id}");
-            this.entityIdToClientConnMapping[mb.Id] = (mb, connToClient!);
-            var clientCreateEntity = new ClientCreateEntity
-            {
-                EntityClassName = createEntityRes.EntityClassName,
-                ServerClientMailBox = createEntityRes.Mailbox,
-            };
-            var pkg = PackageHelper.FromProtoBuf(clientCreateEntity, 0);
-            connToClient!.Socket.Send(pkg.ToBytes());
-        }
     }
 
     private TcpClient? FindServerTcpClientFromMailBox(MailBox targetMailBox)
@@ -675,58 +288,6 @@ public class Gate : IInstance
                                   && clientToServer.MailBox.HostNum == targetMailBox.HostNum,
                 null);
         return clientToServer;
-    }
-
-    private void HandleEntityRpcFromServer(TcpClient client, object arg)
-    {
-        Logger.Info("HandleEntityRpcFromServer");
-
-        var (msg, _, _) = ((IMessage, Connection, uint))arg;
-        var entityRpc = (msg as EntityRpc)!;
-        this.HandleEntityRpcMessageOnGate(entityRpc);
-    }
-
-    private void HandleEntityRpcCallBackFromServer(TcpClient client, (IMessage Message, Connection Connection, uint RpcId) arg)
-    {
-        Logger.Info("HandleEntityRpcCallBackFromServer");
-
-        var (msg, _, _) = ((IMessage, Connection, uint))arg;
-        var callBack = (msg as EntityRpcCallBack)!;
-        this.HandleEntityRpcCallBackMessageOnGate(callBack);
-    }
-
-    private void HandlePropertyFullSyncFromServer(TcpClient client, object arg)
-    {
-        Logger.Info("HandlePropertyFullSyncFromServer");
-
-        var (msg, _, _) = ((IMessage, Connection, uint))arg;
-        var fullSync = (msg as PropertyFullSync)!;
-
-        Logger.Info("send fullSync to client");
-        this.RedirectMsgToClientEntity(fullSync.EntityId, msg);
-    }
-
-    #endregion
-
-    private void RedirectMsgToEntityOnServer(string entityId, IMessage msg)
-    {
-        if (!this.entityIdToClientConnMapping.ContainsKey(entityId))
-        {
-            Logger.Warn($"{entityId} not exist!");
-            return;
-        }
-
-        var mb = this.entityIdToClientConnMapping[entityId].MailBox;
-        var clientToServer = this.FindServerTcpClientFromMailBox(mb);
-
-        if (clientToServer != null)
-        {
-            clientToServer.Send(msg, false);
-        }
-        else
-        {
-            Logger.Warn($"gate's server client not found: {entityId}");
-        }
     }
 
     private void RedirectMsgToClientEntity(string entityId, IMessage msg)

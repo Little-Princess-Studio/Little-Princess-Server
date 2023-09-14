@@ -94,6 +94,8 @@ enum RpcType
   ServerInside = 0;
   ServerToClient = 1;
   ClientToServer = 2;
+  ServiceToEntity = 3;
+  EntityToService = 4;
 }
 
 message EntityRpc {
@@ -103,12 +105,14 @@ message EntityRpc {
     string MethodName = 4;
     bool NotifyOnly = 5;
     RpcType RpcType = 6;
-    repeated google.protobuf.Any Args = 7;
+    uint32 ServiceManagerRpcId = 7;
+    repeated google.protobuf.Any Args = 8;
 };
 
 message EntityRpcCallBack {
     uint32 RpcID = 1;
     RpcType RpcType = 2;
     MailBox TargetMailBox = 3;
-    google.protobuf.Any Result = 4;
+    uint32 ServiceManagerRpcId = 4;
+    google.protobuf.Any Result = 5;
 }

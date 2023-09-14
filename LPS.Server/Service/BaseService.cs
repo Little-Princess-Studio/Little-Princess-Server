@@ -54,11 +54,12 @@ public abstract class BaseService : ITypeIdSupport
 
     private readonly ConcurrentQueue<ServiceRpc> rpcQueue = new();
 
-    private readonly AsyncTaskGenerator<object?> rpcAsyncTaskWithoutResultGenerator = new();
-    private readonly AsyncTaskGenerator<object?, System.Type> rpcAsyncTaskWithResultGenerator = new();
+    private readonly AsyncTaskGenerator<object?> rpcAsyncTaskWithoutResultGenerator;
+    private readonly AsyncTaskGenerator<object?, System.Type> rpcAsyncTaskWithResultGenerator;
 
     private bool stopFlag = false;
     private SandBox sandBox = null!;
+    private uint rpcIdCnt;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="BaseService"/> class.
@@ -67,6 +68,15 @@ public abstract class BaseService : ITypeIdSupport
     public BaseService()
     {
         this.TypeId = TypeIdHelper.GetId(this.GetType());
+
+        this.rpcAsyncTaskWithoutResultGenerator = new()
+        {
+            OnGenerateAsyncId = this.IncreaseRpcIdCnt,
+        };
+        this.rpcAsyncTaskWithResultGenerator = new()
+        {
+            OnGenerateAsyncId = this.IncreaseRpcIdCnt,
+        };
     }
 
     /// <summary>
@@ -172,36 +182,64 @@ public abstract class BaseService : ITypeIdSupport
     /// Invokes a RPC on the specified entity with its mailbox and returns a task that represents the asynchronous operation.
     /// </summary>
     /// <typeparam name="T">The return type of the remote method.</typeparam>
-    /// <param name="mailBox">The mailbox of the entity to call RPC.</param>
-    /// <param name="methodName">The name of the remote method to call.</param>
+    /// <param name="targetMailBox">The mailbox of the entity to call RPC.</param>
+    /// <param name="rpcMethodName">The name of the remote method to call.</param>
     /// <param name="args">The arguments to pass to the remote method.</param>
     /// <returns>A task that represents the asynchronous operation.</returns>
-    public Task<T> Call<T>(Common.Rpc.MailBox mailBox, string methodName, params object[] args)
+    public async Task<T> Call<T>(Common.Rpc.MailBox targetMailBox, string rpcMethodName, params object[] args)
     {
-        throw new NotImplementedException();
+        var (task, id) =
+            this.rpcAsyncTaskWithResultGenerator.GenerateAsyncTask(
+                typeof(T),
+                5000,
+                (rpcId) => new RpcTimeOutException(this, rpcId));
+
+        var rpcMsg = RpcHelper.BuildEntityRpcMessage(
+            id, rpcMethodName, this.MailBox, targetMailBox, false, RpcType.ServiceToEntity, args);
+        this.OnSendEntityRpc.Invoke(rpcMsg);
+
+        var res = await task;
+#pragma warning disable CS8600
+#pragma warning disable CS8603
+        return (T)res;
+#pragma warning restore CS8603
+#pragma warning restore CS8600
     }
 
     /// <summary>
     /// Invokes a RPC on the specified entity with its mailbox and returns a task that represents the asynchronous operation.
     /// </summary>
-    /// <param name="mailBox">The mailbox of the entity to call RPC.</param>
-    /// <param name="methodName">The name of the remote method to call.</param>
+    /// <param name="targetMailBox">The mailbox of the entity to call RPC.</param>
+    /// <param name="rpcMethodName">The name of the remote method to call.</param>
     /// <param name="args">The arguments to pass to the remote method.</param>
     /// <returns>A task that represents the asynchronous operation.</returns>
-    public Task Call(Common.Rpc.MailBox mailBox, string methodName, params object[] args)
+    public async Task Call(Common.Rpc.MailBox targetMailBox, string rpcMethodName, params object[] args)
     {
-        throw new NotImplementedException();
+        var (task, id) =
+            this.rpcAsyncTaskWithoutResultGenerator.GenerateAsyncTask(
+                5000,
+                (rpcId) => new RpcTimeOutException(this, rpcId));
+
+        var rpcMsg = RpcHelper.BuildEntityRpcMessage(
+            id, rpcMethodName, this.MailBox, targetMailBox, false, RpcType.ServiceToEntity, args);
+
+        this.OnSendEntityRpc.Invoke(rpcMsg);
+        await task;
     }
 
     /// <summary>
     /// Notifies the specified entity with its mailbox by invoking a remote method with the specified name and arguments.
     /// </summary>
-    /// <param name="mailBox">The mailbox of the entity to notify.</param>
-    /// <param name="methodName">The name of the remote method to invoke.</param>
+    /// <param name="targetMailBox">The mailbox of the entity to notify.</param>
+    /// <param name="rpcMethodName">The name of the remote method to invoke.</param>
     /// <param name="args">The arguments to pass to the remote method.</param>
-    public void Notify(Common.Rpc.MailBox mailBox, string methodName, params object[] args)
+    public void Notify(Common.Rpc.MailBox targetMailBox, string rpcMethodName, params object[] args)
     {
-        throw new NotImplementedException();
+        var id = this.IncreaseRpcIdCnt();
+        var rpcMsg = RpcHelper.BuildEntityRpcMessage(
+            id, rpcMethodName, this.MailBox, targetMailBox, true, RpcType.ServiceToEntity, args);
+
+        this.OnSendEntityRpc.Invoke(rpcMsg);
     }
 
     /// <summary>
@@ -212,21 +250,8 @@ public abstract class BaseService : ITypeIdSupport
     /// <param name="rpcMethodName">The name of the remote method to call.</param>
     /// <param name="args">The arguments to pass to the remote method.</param>
     /// <returns>A task that represents the asynchronous operation.</returns>
-    public async Task<T> CallServiceById<T>(string serviceName, string rpcMethodName, params object[] args)
-    {
-        var (task, id) =
-        this.rpcAsyncTaskWithResultGenerator.GenerateAsyncTask(
-        typeof(T),
-        5000,
-        (rpcId) => new RpcTimeOutException(this, rpcId));
-
-        var rpcMsg = RpcHelper.BuildServiceRpcMessage(
-            id, serviceName, rpcMethodName, this.MailBox, false, false, ServiceRpcType.ServiceToService, args);
-        this.OnSendServiceRpc.Invoke(rpcMsg);
-
-        var res = await task;
-        return (T)res;
-    }
+    public Task<T> CallServiceShardById<T>(string serviceName, string rpcMethodName, params object[] args)
+        => this.CallServiceShard<T>(serviceName, rpcMethodName, false, args);
 
     /// <summary>
     /// Invokes a remote method on the specified service with the given name, shard and method name, and returns a task that represents the asynchronous operation.
@@ -235,32 +260,48 @@ public abstract class BaseService : ITypeIdSupport
     /// <param name="rpcMethodName">The name of the remote method to call.</param>
     /// <param name="args">The arguments to pass to the remote method.</param>
     /// <returns>A task that represents the asynchronous operation.</returns>
-    public async Task CallServiceById(string serviceName, string rpcMethodName, params object[] args)
-    {
-        var (task, id) =
-            this.rpcAsyncTaskWithoutResultGenerator.GenerateAsyncTask(
-                5000,
-                (rpcId) => new RpcTimeOutException(this, rpcId));
+    public Task CallServiceShardById(string serviceName, string rpcMethodName, params object[] args)
+        => this.CallServiceShard(serviceName, rpcMethodName, false, args);
 
-        var rpcMsg = RpcHelper.BuildServiceRpcMessage(
-            id, serviceName, rpcMethodName, this.MailBox, false, false, ServiceRpcType.ServiceToService, args);
+    /// <summary>
+    /// Calls a service shard randomly.
+    /// </summary>
+    /// <typeparam name="T">The return type of the RPC method.</typeparam>
+    /// <param name="serviceName">The name of the service.</param>
+    /// <param name="rpcMethodName">The name of the RPC method.</param>
+    /// <param name="args">The arguments to pass to the RPC method.</param>
+    /// <returns>A task that represents the asynchronous operation. The task result contains the return value of the RPC method.</returns>
+    public Task<T> CallServiceShardRandomly<T>(string serviceName, string rpcMethodName, params object[] args)
+        => this.CallServiceShard<T>(serviceName, rpcMethodName, true, args);
 
-        this.OnSendServiceRpc.Invoke(rpcMsg);
-        await task;
-    }
+    /// <summary>
+    /// Calls a service shard randomly using the specified service name, RPC method name, and arguments.
+    /// </summary>
+    /// <param name="serviceName">The name of the service to call.</param>
+    /// <param name="rpcMethodName">The name of the RPC method to call.</param>
+    /// <param name="args">The arguments to pass to the RPC method.</param>
+    /// <returns>A task that represents the asynchronous operation.</returns>
+    public Task CallServiceShardRandomly(string serviceName, string rpcMethodName, params object[] args)
+        => this.CallServiceShard(serviceName, rpcMethodName, true, args);
 
     /// <summary>
     /// Notifies the specified service with the given name, shard and method name by invoking a remote method with the specified name and arguments.
     /// </summary>
     /// <param name="serviceName">The name of the service to notify.</param>
     /// <param name="shard">The shard of the service to notify.</param>
-    /// <param name="methodName">The name of the remote method to invoke.</param>
+    /// <param name="rpcMethodName">The name of the remote method to invoke.</param>
     /// <param name="args">The arguments to pass to the remote method.</param>
-    /// <returns>A task that represents the asynchronous operation.</returns>
-    public Task NotifyService(string serviceName, int shard, string methodName, params object[] args)
-    {
-        throw new NotImplementedException();
-    }
+    public void NotifyServiceShardById(string serviceName, int shard, string rpcMethodName, params object[] args)
+        => this.NotifyServiceShard(serviceName, rpcMethodName, false, args);
+
+    /// <summary>
+    /// Notifies a service shard randomly using RPC.
+    /// </summary>
+    /// <param name="serviceName">The name of the service to notify.</param>
+    /// <param name="rpcMethodName">The name of the RPC method to call.</param>
+    /// <param name="args">The arguments to pass to the RPC method.</param>
+    public void NotifyServiceShardRandomly(string serviceName, string rpcMethodName, params object[] args)
+        => this.NotifyServiceShard(serviceName, rpcMethodName, true, args);
 
     /// <summary>
     /// This method is called when a remote procedure call (RPC) is received by the service.
@@ -270,6 +311,48 @@ public abstract class BaseService : ITypeIdSupport
     {
         var rpcId = callback.RpcID;
         this.RpcAsyncCallBack(rpcId, callback.Result);
+    }
+
+    private async Task<T> CallServiceShard<T>(string serviceName, string rpcMethodName, bool random, params object[] args)
+    {
+        var (task, id) =
+            this.rpcAsyncTaskWithResultGenerator.GenerateAsyncTask(
+        typeof(T),
+        5000,
+        (rpcId) => new RpcTimeOutException(this, rpcId));
+
+        var rpcMsg = RpcHelper.BuildServiceRpcMessage(
+            id, serviceName, rpcMethodName, this.MailBox, random, false, ServiceRpcType.ServiceToService, args);
+        this.OnSendServiceRpc.Invoke(rpcMsg);
+
+        var res = await task;
+#pragma warning disable CS8600
+#pragma warning disable CS8603
+        return (T)res;
+#pragma warning restore CS8603
+#pragma warning restore CS8600
+    }
+
+    private async Task CallServiceShard(string serviceName, string rpcMethodName, bool random, params object[] args)
+    {
+        var (task, id) =
+            this.rpcAsyncTaskWithoutResultGenerator.GenerateAsyncTask(
+                5000,
+                (rpcId) => new RpcTimeOutException(this, rpcId));
+
+        var rpcMsg = RpcHelper.BuildServiceRpcMessage(
+            id, serviceName, rpcMethodName, this.MailBox, random, false, ServiceRpcType.ServiceToService, args);
+        this.OnSendServiceRpc.Invoke(rpcMsg);
+
+        await task;
+    }
+
+    private void NotifyServiceShard(string serviceName, string rpcMethodName, bool random, params object[] args)
+    {
+        var id = this.IncreaseRpcIdCnt();
+        var rpcMsg = RpcHelper.BuildServiceRpcMessage(
+            id, serviceName, rpcMethodName, this.MailBox, random, false, ServiceRpcType.ServiceToService, args);
+        this.OnSendServiceRpc.Invoke(rpcMsg);
     }
 
     private void RpcAsyncCallBack(uint rpcId, Any result)
@@ -285,6 +368,8 @@ public abstract class BaseService : ITypeIdSupport
             this.rpcAsyncTaskWithoutResultGenerator.ResolveAsyncTask(rpcId, null!);
         }
     }
+
+    private uint IncreaseRpcIdCnt() => this.rpcIdCnt++;
 
     private void IoHandler()
     {

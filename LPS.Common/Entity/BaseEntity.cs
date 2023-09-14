@@ -401,7 +401,11 @@ public abstract class BaseEntity : ITypeIdSupport
         this.OnSendEntityRpc.Invoke(rpcMsg);
 
         var res = await task;
+#pragma warning disable CS8600
+#pragma warning disable CS8603
         return (T)res;
+#pragma warning restore CS8603
+#pragma warning restore CS8600
     }
 
     /// <summary>
@@ -592,7 +596,11 @@ public abstract class BaseEntity : ITypeIdSupport
         this.OnSendServiceRpc.Invoke(rpcMsg);
 
         var res = await task;
+#pragma warning disable CS8600
+#pragma warning disable CS8603
         return (T)res;
+#pragma warning restore CS8603
+#pragma warning restore CS8600
     }
 
     private void NotifyService(string serviceName, string rpcMethodName, bool random, params object?[] args)

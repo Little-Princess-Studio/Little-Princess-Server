@@ -164,6 +164,7 @@ public class Service : IInstance
                 var service = ServiceHelper.CreateService(serviceName, shardNum, mailbox);
                 service.OnSendServiceRpc = serviceRpc => this.serviceMgrConnection.Send(serviceRpc);
                 service.OnSendServiceRpcCallBack = this.SendServiceRpcCallBack;
+                service.OnSendEntityRpc = this.SendEntityRpc;
                 if (!this.serviceMap.ContainsKey(serviceName))
                 {
                     this.serviceMap[serviceName] = new Dictionary<uint, BaseService>();
@@ -199,6 +200,13 @@ public class Service : IInstance
                 });
             }
         }
+    }
+
+    // service -> service mgr -> gate -> server -> entity
+    // entity -> server -> gate -> service mgr -> service
+    private void SendEntityRpc(EntityRpc rpc)
+    {
+        this.serviceMgrConnection.Send(rpc);
     }
 
     private void SendServiceRpcCallBack(ServiceRpcCallBack callback)

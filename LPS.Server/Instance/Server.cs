@@ -82,7 +82,7 @@ public class Server : IInstance
 
     private Connection[] GateConnections => this.tcpServer.AllConnections;
 
-    private uint createEntityCounter;
+    private uint rpcIdCounter;
     private CountdownEvent? gatesMailBoxesRegisteredEvent;
 
     /// <summary>
@@ -117,12 +117,12 @@ public class Server : IInstance
             this.hostConnection = new ImmediateHostManagerConnectionOfServer(
                 hostManagerIp,
                 hostManagerPort,
-                this.GenerateConnectionId,
+                this.GenerateRpcId,
                 () => this.tcpServer!.Stopped);
         }
         else
         {
-            this.hostConnection = new MessageQueueHostManagerConnectionOfServer(this.Name, this.GenerateConnectionId);
+            this.hostConnection = new MessageQueueHostManagerConnectionOfServer(this.Name, this.GenerateRpcId);
         }
 
         this.hostConnection.RegisterMessageHandler(
@@ -135,7 +135,7 @@ public class Server : IInstance
 
         this.asyncTaskGeneratorForMailBox = new AsyncTaskGenerator<MailBox>
         {
-            OnGenerateAsyncId = this.GenerateConnectionId,
+            OnGenerateAsyncId = this.GenerateRpcId,
         };
 
         this.tcpServer = new TcpServer(ip, port)
@@ -249,9 +249,9 @@ public class Server : IInstance
         return task;
     }
 
-    private uint GenerateConnectionId()
+    private uint GenerateRpcId()
     {
-        return this.createEntityCounter++;
+        return this.rpcIdCounter++;
     }
 
     private void OnTick(uint deltaTime)
@@ -831,7 +831,7 @@ public class Server : IInstance
         this.serviceMgrConnection = new ImmediateServiceManagerConnectionOfServer(
             this.serviceManagerMailBox.Ip,
             this.serviceManagerMailBox.Port,
-            this.GenerateConnectionId,
+            this.GenerateRpcId,
             () => this.tcpServer!.Stopped,
             this.entity!.MailBox);
 

@@ -58,8 +58,10 @@ public class ServiceManager : IInstance
     private readonly int desiredServiceNum;
     private readonly Dictionary<string, ServiceRoutingMapDescriptor> serviceRoutingMap = new();
     private readonly MD5 md5 = MD5.Create();
-    private readonly AsyncTaskGenerator<(ServiceRpcCallBack Callback, Connection Connection), Connection> asyncTaskGenerator = new();
+    private readonly AsyncTaskGenerator<(ServiceRpcCallBack Callback, Connection Connection), Connection> serviceRpcCallbackAsyncTaskGenerator = new();
+    private readonly AsyncTaskGenerator<(EntityRpcCallBack Callback, string Identifier), string> entityRpcCallBackAsyncTaskGenerator = new();
     private readonly Dictionary<Common.Rpc.MailBox, Connection> mailBoxToServiceConn = new();
+    private readonly Dispatcher<(IMessage Mesage, string TargetIdentifier, InstanceType OriType)> dispatcher = new();
 
     private IManagerConnection hostMgrConnection = null!;
 
@@ -133,6 +135,8 @@ public class ServiceManager : IInstance
         this.tcpServer.RegisterMessageHandler(PackageType.ServiceRpc, this.HandleServiceRpc);
         this.tcpServer.RegisterMessageHandler(PackageType.ServiceRpcCallBack, this.HandleServiceRpcCallBack);
         this.tcpServer.RegisterMessageHandler(PackageType.ServiceControl, this.HandleServiceControl);
+        this.tcpServer.RegisterMessageHandler(PackageType.EntityRpc, this.HandleEntityRpc);
+        this.tcpServer.RegisterMessageHandler(PackageType.EntityRpcCallBack, this.HandleEntityRpcCallBack);
     }
 
     private void UnregisterServerMessageHandlers()
@@ -140,11 +144,51 @@ public class ServiceManager : IInstance
         this.tcpServer.UnregisterMessageHandler(PackageType.ServiceRpc, this.HandleServiceRpc);
         this.tcpServer.UnregisterMessageHandler(PackageType.ServiceRpcCallBack, this.HandleServiceRpcCallBack);
         this.tcpServer.UnregisterMessageHandler(PackageType.ServiceControl, this.HandleServiceControl);
+        this.tcpServer.UnregisterMessageHandler(PackageType.EntityRpc, this.HandleEntityRpc);
+        this.tcpServer.UnregisterMessageHandler(PackageType.EntityRpcCallBack, this.HandleEntityRpcCallBack);
+    }
+
+    private void HandleEntityRpc((IMessage Message, Connection Connection, uint RpcId) arg)
+    {
+        Logger.Info("EntityRpc received.");
+        var entityRpc = (EntityRpc)arg.Message;
+        var senderId = entityRpc.SenderMailBox.ID;
+
+        var (task, id) =
+            this.entityRpcCallBackAsyncTaskGenerator.GenerateAsyncTask(
+                senderId,
+                5000,
+                (rpcId) => new RpcTimeOutException($"Entity RPC timeout."));
+        entityRpc.ServiceManagerRpcId = id;
+        task.ContinueWith(t =>
+        {
+            if (t.Exception != null)
+            {
+                Logger.Error(t.Exception, $"Entity RPC failed.");
+                return;
+            }
+
+            var (callback, identifier) = t.Result;
+            this.connectionManager.SendMessage(identifier, callback, ConnectionType.Service);
+        });
+
+        Logger.Debug($"Entity RPC sent to gate");
+        this.connectionManager.SendMessageToRandomGate(entityRpc);
+    }
+
+    private void HandleEntityRpcCallBack((IMessage Message, Connection Connection, uint RpcId) arg)
+    {
+        Logger.Info("EntityRpcCallBack received.");
+        var callback = (EntityRpcCallBack)arg.Message;
+        var serviceMgrRpcId = callback.ServiceManagerRpcId;
+        var identifier =
+            this.entityRpcCallBackAsyncTaskGenerator.GetDataByAsyncTaskId(serviceMgrRpcId);
+        this.entityRpcCallBackAsyncTaskGenerator.ResolveAsyncTask(serviceMgrRpcId, (callback, identifier));
     }
 
     private void HandleServiceRpc((IMessage Message, Connection Connection, uint RpcId) arg)
     {
-        Logger.Info($"ServiceRpc received.");
+        Logger.Info("ServiceRpc received.");
         var serviceRpc = (arg.Message as ServiceRpc)!;
         var senderConn = arg.Connection;
 
@@ -174,7 +218,7 @@ public class ServiceManager : IInstance
             if (serviceConn is not null)
             {
                 var (task, id) =
-                    this.asyncTaskGenerator.GenerateAsyncTask(
+                    this.serviceRpcCallbackAsyncTaskGenerator.GenerateAsyncTask(
                         senderConn,
                         5000,
                         (rpcId) => new RpcTimeOutException($"Service RPC timeout: {serviceName}:{serviceRpc.MethodName}."));
@@ -216,8 +260,8 @@ public class ServiceManager : IInstance
         var callback = (arg.Message as ServiceRpcCallBack)!;
         var serviceMgrRpcId = callback.ServiceManagerRpcId;
         Logger.Debug($"service manager rpc id recieved: {callback.ServiceManagerRpcId}");
-        var conn = this.asyncTaskGenerator.GetDataByAsyncTaskId(callback.ServiceManagerRpcId);
-        this.asyncTaskGenerator.ResolveAsyncTask(serviceMgrRpcId, (callback, conn));
+        var conn = this.serviceRpcCallbackAsyncTaskGenerator.GetDataByAsyncTaskId(callback.ServiceManagerRpcId);
+        this.serviceRpcCallbackAsyncTaskGenerator.ResolveAsyncTask(serviceMgrRpcId, (callback, conn));
     }
 
     private void HandleServiceControl((IMessage Message, Connection Connection, uint RpcId) tuple)
