@@ -16,6 +16,7 @@ using LPS.Server.Database;
 using LPS.Server.Entity;
 using LPS.Server.Rpc;
 using LPS.Server.Rpc.RpcProperty;
+using LPS.Server.Demo.Logic.Service;
 
 /// <summary>
 /// Untrusted class is the first created entity between client and server.
@@ -110,6 +111,22 @@ public class Untrusted : ServerClientEntity, IServerUntrustedStub
         var res = await this.CallServiceShardRandomly<string>("EchoService", "Echo", msg);
         Logger.Info($"[Untrusted] CallServiceEcho, msg -> {msg}, res -> {res}");
         return res;
+    }
+
+    /// <inheritdoc/>
+    [RpcMethod(Authority.ClientOnly)]
+    public async Task CallServiceEchoWithCallBack(string msg)
+    {
+        await this.CallServiceShardRandomly<string>(nameof(EchoService), nameof(EchoService.EchoWithCallBackToEntity), this.MailBox, msg);
+        Logger.Info($"[Untrusted] CallServiceEchoWithCallBack, msg -> {msg}");
+    }
+
+    /// <inheritdoc/>
+    [RpcMethod(Authority.ServiceOnly)]
+    public ValueTask OnCallServiceEchoWithCallBack(string msg)
+    {
+        Logger.Info($"[Untrusted] OnCallServiceEchoWithCallBack, msg -> {msg}");
+        return ValueTask.CompletedTask;
     }
 
     private async Task<(bool Success, string AccountId)> CheckPassword(string name, string password)

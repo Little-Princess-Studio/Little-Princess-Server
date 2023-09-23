@@ -35,7 +35,7 @@ public class PlayerRosterService : BaseService
     /// <inheritdoc/>
     public override async Task OnAllServiceReady()
     {
-        var res = await this.CallServiceById<string>(nameof(EchoService), nameof(EchoService.Echo), "Hello, world!");
+        var res = await this.CallServiceShardById<string>(nameof(EchoService), nameof(EchoService.Echo), "Hello, world!");
         Logger.Info($"EchoService.Echo {res}");
     }
 

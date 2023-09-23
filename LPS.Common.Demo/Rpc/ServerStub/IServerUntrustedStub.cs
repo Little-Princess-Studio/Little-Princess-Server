@@ -40,4 +40,18 @@ public interface IServerUntrustedStub : IRpcStub
     /// <param name="message">The message to send to the Echo service.</param>
     /// <returns>A task that represents the asynchronous operation. The task result contains the response from the Echo service.</returns>
     Task<string> CallServiceEcho(string message);
+
+    /// <summary>
+    /// Calls the EchoService's EchoWithCallBackToEntity method with a given message and returns the result.
+    /// </summary>
+    /// <param name="msg">The message to be passed to the EchoService.</param>
+    /// <returns>The result of the EchoWithCallBackToEntity method.</returns>
+    Task CallServiceEchoWithCallBack(string msg);
+
+    /// <summary>
+    /// Handles an echo message received from a service.
+    /// </summary>
+    /// <param name="msg">The message to echo.</param>
+    /// <returns>A <see cref="ValueTask"/> representing the asynchronous operation.</returns>
+    ValueTask OnCallServiceEchoWithCallBack(string msg);
 }
