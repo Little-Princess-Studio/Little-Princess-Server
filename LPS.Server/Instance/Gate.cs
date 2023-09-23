@@ -258,6 +258,7 @@ public partial class Gate : IInstance
         var decryptedData = Encoding.UTF8.GetString(decryptedBytes);
         return decryptedData;
     }
+
     private uint GenerateConnectionId()
     {
         return this.createEntityCounter++;
@@ -317,7 +318,7 @@ public partial class Gate : IInstance
         else
         {
             var rpcType = entityRpc.RpcType;
-            if (rpcType == RpcType.ClientToServer || rpcType == RpcType.ServerInside)
+            if (rpcType == RpcType.ClientToServer || rpcType == RpcType.ServerInside || rpcType == RpcType.ServiceToEntity)
             {
                 // todo: dictionary cache
                 var gate = this.tcpClientsToOtherGate!
@@ -337,7 +338,7 @@ public partial class Gate : IInstance
                     var serverClient = this.FindServerTcpClientFromMailBox(targetEntityMailBox);
                     if (serverClient != null)
                     {
-                        Logger.Debug($"redirect to server {serverClient.MailBox}");
+                        Logger.Debug($"redirect to server {serverClient.MailBox} with rpc type {rpcType}");
                         serverClient.Send(entityRpc);
                     }
                     else
@@ -411,6 +412,12 @@ public partial class Gate : IInstance
                 // send to client
                 Logger.Info("send rpc to client");
                 this.RedirectMsgToClientEntity(callback.TargetMailBox.ID, callback);
+            }
+            else if (rpcType == RpcType.EntityToService)
+            {
+                // send entity rpc msg to service
+                Logger.Info("send entity rpc to service");
+                this.serviceMgrConnection.Send(callback);
             }
             else
             {

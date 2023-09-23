@@ -37,9 +37,27 @@ public partial class Gate
 
     private void HandleEntityRpc(IMessage message)
     {
+        var entityRpc = (EntityRpc)message;
+
+        if (entityRpc.RpcType != RpcType.ServiceToEntity)
+        {
+            throw new Exception("Gate connection to service manager for EntityRpc msg only support ServiceToEntity Rpc");
+        }
+
+        // redirect entity rpc to entity's server
+        this.HandleEntityRpcMessageOnGate(entityRpc);
     }
 
     private void HandleEntityRpcCallBack(IMessage message)
     {
+        var callback = (EntityRpcCallBack)message;
+
+        if (callback.RpcType != RpcType.EntityToService)
+        {
+            throw new Exception("Gate connection to service manager for EntityRpcCallBack msg only support EntityToService Rpc");
+        }
+
+        // redirect entity rpc to service manager
+        this.HandleEntityRpcCallBackMessageOnGate(callback);
     }
 }

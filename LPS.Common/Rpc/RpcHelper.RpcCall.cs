@@ -29,6 +29,45 @@ public static partial class RpcHelper
         var methodInfo = descriptor.Method;
         var rpcType = entityRpc.RpcType;
 
+        DoAuthorityCheck(authority, rpcType, entityRpc);
+
+        var args = ProtobufArgsToRpcArgList(entityRpc.Args, methodInfo);
+
+        object? res;
+        try
+        {
+            res = methodInfo.Invoke(entity, args);
+        }
+        catch (Exception e)
+        {
+            Logger.Error(e, "Failed to call rpc method.");
+            return;
+        }
+
+        bool notifyOnly = entityRpc.NotifyOnly;
+        var senderMailBox = entityRpc.SenderMailBox;
+        var sendRpcType = GetCallBackType(entityRpc);
+
+        if (res != null)
+        {
+            HandleRpcMethodResult(entity, entityRpc, methodInfo, res, senderMailBox, sendRpcType, notifyOnly);
+        }
+        else
+        {
+            if (!notifyOnly)
+            {
+                entity.SendRpcCallBackWithRpcId(
+                    entityRpc.RpcID,
+                    PbMailBoxToRpcMailBox(senderMailBox),
+                    sendRpcType,
+                    null);
+            }
+        }
+    }
+
+    private static void DoAuthorityCheck(RpcStub.Authority authority, RpcType rpcType, EntityRpc entityRpc)
+    {
+        // Do authority check
         if (authority != RpcStub.Authority.All)
         {
             if (rpcType == RpcType.ServerInside)
@@ -55,51 +94,34 @@ public static partial class RpcHelper
                     return;
                 }
             }
+            else if (rpcType == RpcType.ServiceToEntity)
+            {
+                if (!authority.HasFlag(RpcStub.Authority.ServiceOnly))
+                {
+                    Logger.Warn($"Rpc method {entityRpc.MethodName} can only be called from service to entity.");
+                    return;
+                }
+            }
         }
+    }
 
-        var args = ProtobufArgsToRpcArgList(entityRpc.Args, methodInfo);
-
-        object? res;
-        try
-        {
-            res = methodInfo.Invoke(entity, args);
-        }
-        catch (Exception e)
-        {
-            Logger.Error(e, "Failed to call rpc method.");
-            return;
-        }
-
-        bool notifyOnly = entityRpc.NotifyOnly;
-
-        var senderMailBox = entityRpc.SenderMailBox;
-
+    private static RpcType GetCallBackType(EntityRpc entityRpc)
+    {
         var sendRpcType = RpcType.ServerInside;
         if (entityRpc.RpcType == RpcType.ClientToServer)
         {
-            Logger.Info("rpc call is from client, the result will be sent to client.");
             sendRpcType = RpcType.ServerToClient;
         }
         else if (entityRpc.RpcType == RpcType.ServerToClient)
         {
             sendRpcType = RpcType.ClientToServer;
         }
+        else if (entityRpc.RpcType == RpcType.ServiceToEntity)
+        {
+            sendRpcType = RpcType.EntityToService;
+        }
 
-        if (res != null)
-        {
-            HandleRpcMethodResult(entity, entityRpc, methodInfo, res, senderMailBox, sendRpcType, notifyOnly);
-        }
-        else
-        {
-            if (!notifyOnly)
-            {
-                entity.SendRpcCallBackWithRpcId(
-                    entityRpc.RpcID,
-                    PbMailBoxToRpcMailBox(senderMailBox),
-                    sendRpcType,
-                    null);
-            }
-        }
+        return sendRpcType;
     }
 
     private static void HandleRpcMethodResult(

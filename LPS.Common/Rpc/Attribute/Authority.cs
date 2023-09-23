@@ -27,7 +27,12 @@ public enum Authority
     ClientStub = 0x00000004,
 
     /// <summary>
+    /// RPC method can only be called from service to server.
+    /// </summary>
+    ServiceOnly = 0x00000008,
+
+    /// <summary>
     /// RPC method can be called both from server to client or server to server.
     /// </summary>
-    All = ServerOnly | ClientOnly,
+    All = ServerOnly | ClientOnly | ServiceOnly,
 }
