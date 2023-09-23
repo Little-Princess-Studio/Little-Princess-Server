@@ -96,4 +96,14 @@ public class Untrusted : ShadowClientEntity
         var res = await this.serverUntrustedRpc.CallServiceEcho(msg);
         Logger.Debug($"[CallServiceEcho]: {res}");
     }
+
+    /// <summary>
+    /// Calls the server's untrusted RPC service to echo the given message back to the client.
+    /// </summary>
+    /// <param name="msg">The message to send to the server.</param>
+    /// <returns>A task that represents the asynchronous operation.</returns>
+    public async Task CallServiceEchoWithCallBack(string msg)
+    {
+        await this.serverUntrustedRpc.CallServiceEchoWithCallBack(msg);
+    }
 }
