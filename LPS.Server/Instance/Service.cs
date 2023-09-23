@@ -81,6 +81,7 @@ public class Service : IInstance
         this.serviceMgrConnection.RegisterMessageHandler(PackageType.ServiceManagerCommand, this.ServiceManagerCommandHandler);
         this.serviceMgrConnection.RegisterMessageHandler(PackageType.ServiceRpc, this.ServiceRpcHandler);
         this.serviceMgrConnection.RegisterMessageHandler(PackageType.ServiceRpcCallBack, this.ServiceRpcCallBackHandler);
+        this.serviceMgrConnection.RegisterMessageHandler(PackageType.EntityRpcCallBack, this.EntityRpcCallBackHandler);
 
         this.Name = name;
         this.Ip = ip;
@@ -88,7 +89,7 @@ public class Service : IInstance
         this.HostNum = hostNum;
     }
 
-    /// <inheritdoc/>
+   /// <inheritdoc/>
     public void Loop()
     {
         Logger.Debug($"Service {this.Name} is running.");
@@ -253,7 +254,23 @@ public class Service : IInstance
         }
         else
         {
-            Logger.Warn($"Service {serviceMb} can not find service.");
+            Logger.Warn($"Service {serviceMb} can not be found.");
+        }
+    }
+
+    private void EntityRpcCallBackHandler(IMessage message)
+    {
+        var callback = (EntityRpcCallBack)message;
+
+        var serviceMb = RpcHelper.PbMailBoxToRpcMailBox(callback.TargetMailBox);
+        if (this.serviceMbMap.ContainsKey(serviceMb))
+        {
+            BaseService? service = this.serviceMbMap[serviceMb];
+            service.OnEntityRpcCallBack(callback);
+        }
+        else
+        {
+            Logger.Warn($"Service {serviceMb} can not be found.");
         }
     }
 

@@ -313,6 +313,16 @@ public abstract class BaseService : ITypeIdSupport
         this.RpcAsyncCallBack(rpcId, callback.Result);
     }
 
+    /// <summary>
+    /// Invoked when an entity RPC callback is received.
+    /// </summary>
+    /// <param name="callback">The entity RPC callback.</param>
+    public void OnEntityRpcCallBack(EntityRpcCallBack callback)
+    {
+        var rpcId = callback.RpcID;
+        this.RpcAsyncCallBack(rpcId, callback.Result);
+    }
+
     private async Task<T> CallServiceShard<T>(string serviceName, string rpcMethodName, bool random, params object[] args)
     {
         var (task, id) =
