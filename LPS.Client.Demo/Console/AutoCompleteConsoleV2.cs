@@ -5,7 +5,6 @@
 // -----------------------------------------------------------------------
 
 using LPS.Client.Demo.Console;
-using Spectre.Console;
 
 /// <summary>
 /// Console with auto completing.
@@ -24,15 +23,11 @@ public static class AutoCompleteConsoleV2
     /// </summary>
     public static void Loop()
     {
-        var suggestions = CommandParser.GetAllCmdNames();
+        ReadLine.AutoCompletionHandler = new AutoCompletionHandler();
+
         while (true)
         {
-            var s = AnsiConsole.Prompt(
-                new TextPrompt<string>(string.Empty)
-                    .AddChoices(suggestions)
-                    .ShowChoices(false)
-                    .Validate(sugg => suggestions.Any(cmd => sugg.StartsWith(cmd)))
-                    .InvalidChoiceMessage("Invalid cmd name. Please input again."));
+            var s = ReadLine.Read("cmd>");
 
             if (s.Trim() == string.Empty)
             {
@@ -52,6 +47,18 @@ public static class AutoCompleteConsoleV2
             {
                 System.Console.WriteLine(e.Message);
             }
+        }
+    }
+
+    private class AutoCompletionHandler : IAutoCompleteHandler
+    {
+        public char[] Separators { get; set; } = new char[] { };
+
+        private string[] suggestions = CommandParser.GetAllCmdNames();
+
+        public string[] GetSuggestions(string text, int index)
+        {
+            return this.suggestions.Where(cmd => cmd.StartsWith(text)).Select(cmd => cmd.Substring(0)).ToArray();
         }
     }
 }
