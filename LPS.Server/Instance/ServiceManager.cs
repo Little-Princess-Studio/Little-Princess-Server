@@ -156,7 +156,7 @@ public class ServiceManager : IInstance
 
         var (task, id) =
             this.entityRpcCallBackAsyncTaskGenerator.GenerateAsyncTask(
-                senderId,
+                entityRpc.ServiceInstanceId,
                 5000,
                 (rpcId) => new RpcTimeOutException($"Entity RPC timeout."));
         entityRpc.ServiceManagerRpcId = id;
@@ -316,11 +316,13 @@ public class ServiceManager : IInstance
         }
         else if (ctlMsg.From == ServiceRemoteType.Gate)
         {
+            Logger.Info($"Gate {ctlMsg.Args[0].Unpack<Common.Rpc.InnerMessages.MailBox>()} is ready.");
             var mb = ctlMsg.Args[0].Unpack<Common.Rpc.InnerMessages.MailBox>();
-            this.connectionManager.RegisterImmediateConnection(conn, connectionType: ConnectionType.Gate, mb.ID);
+            this.connectionManager.RegisterImmediateConnection(conn, ConnectionType.Gate, mb.ID);
         }
         else if (ctlMsg.From == ServiceRemoteType.Server)
         {
+            Logger.Info($"Server {ctlMsg.Args[0].Unpack<Common.Rpc.InnerMessages.MailBox>()} is ready.");
             var mb = ctlMsg.Args[0].Unpack<Common.Rpc.InnerMessages.MailBox>();
             this.connectionManager.RegisterImmediateConnection(conn, ConnectionType.Server, mb.ID);
         }

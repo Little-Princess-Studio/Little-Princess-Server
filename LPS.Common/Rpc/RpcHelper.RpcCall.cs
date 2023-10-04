@@ -60,6 +60,8 @@ public static partial class RpcHelper
                     entityRpc.RpcID,
                     PbMailBoxToRpcMailBox(senderMailBox),
                     sendRpcType,
+                    entityRpc.ServiceManagerRpcId,
+                    entityRpc.ServiceInstanceId,
                     null);
             }
         }
@@ -165,6 +167,8 @@ public static partial class RpcHelper
                     entityRpc.RpcID,
                     PbMailBoxToRpcMailBox(senderMailBox),
                     sendRpcType,
+                    entityRpc.ServiceManagerRpcId,
+                    entityRpc.ServiceInstanceId,
                     null);
             });
         }
@@ -189,6 +193,8 @@ public static partial class RpcHelper
                     entityRpc.RpcID,
                     PbMailBoxToRpcMailBox(senderMailBox),
                     sendRpcType,
+                    entityRpc.ServiceManagerRpcId,
+                    entityRpc.ServiceInstanceId,
                     null);
             }
             else
@@ -211,6 +217,8 @@ public static partial class RpcHelper
                         entityRpc.RpcID,
                         PbMailBoxToRpcMailBox(senderMailBox),
                         sendRpcType,
+                        entityRpc.ServiceManagerRpcId,
+                        entityRpc.ServiceInstanceId,
                         null);
                 });
             }
@@ -230,12 +238,16 @@ public static partial class RpcHelper
                 entityRpc.RpcID,
                 PbMailBoxToRpcMailBox(senderMailBox),
                 sendRpcType,
+                entityRpc.ServiceManagerRpcId,
+                entityRpc.ServiceInstanceId,
                 t.Result);
 
         void Send<T>(in ValueTask<T> t) => entity.SendRpcCallBackWithRpcId(
                 entityRpc.RpcID,
                 PbMailBoxToRpcMailBox(senderMailBox),
                 sendRpcType,
+                entityRpc.ServiceManagerRpcId,
+                entityRpc.ServiceInstanceId,
                 t.Result);
 
         void HandleValueTask<T>(in ValueTask<T> task)
@@ -277,6 +289,8 @@ public static partial class RpcHelper
                         entityRpc.RpcID,
                         PbMailBoxToRpcMailBox(senderMailBox),
                         sendRpcType,
+                        entityRpc.ServiceManagerRpcId,
+                        entityRpc.ServiceInstanceId,
                         t.Result);
                 });
             }
@@ -319,6 +333,8 @@ public static partial class RpcHelper
                         entityRpc.RpcID,
                         PbMailBoxToRpcMailBox(senderMailBox),
                         sendRpcType,
+                        entityRpc.ServiceManagerRpcId,
+                        entityRpc.ServiceInstanceId,
                         task.Result);
                 }));
             }
@@ -376,6 +392,8 @@ public static partial class RpcHelper
                 entityRpc.RpcID,
                 PbMailBoxToRpcMailBox(senderMailBox),
                 sendRpcType,
+                entityRpc.ServiceManagerRpcId,
+                entityRpc.ServiceInstanceId,
                 t.Result);
         }
 
@@ -396,6 +414,8 @@ public static partial class RpcHelper
                 entityRpc.RpcID,
                 PbMailBoxToRpcMailBox(senderMailBox),
                 sendRpcType,
+                entityRpc.ServiceManagerRpcId,
+                entityRpc.ServiceInstanceId,
                 t.Result);
         }
 

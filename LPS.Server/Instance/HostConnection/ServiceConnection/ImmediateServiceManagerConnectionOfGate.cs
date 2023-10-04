@@ -7,6 +7,8 @@
 namespace LPS.Server.Instance.HostConnection.HostManagerConnection;
 
 using System;
+using Google.Protobuf.WellKnownTypes;
+using LPS.Common.Rpc;
 using LPS.Common.Rpc.InnerMessages;
 using LPS.Server.Rpc;
 using LPS.Server.Rpc.InnerMessages;
@@ -19,6 +21,7 @@ internal class ImmediateServiceManagerConnectionOfGate : ImmediateManagerConnect
     private readonly string serviceManagerIp;
     private readonly int serviceManagerPort;
     private readonly Func<uint> onGenerateAsyncId;
+    private readonly Common.Rpc.MailBox gateMailBox;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ImmediateServiceManagerConnectionOfGate"/> class.
@@ -27,16 +30,19 @@ internal class ImmediateServiceManagerConnectionOfGate : ImmediateManagerConnect
     /// <param name="serviceManagerPort">The port number of the service manager.</param>
     /// <param name="onGenerateAsyncId">A function that generates an asynchronous ID.</param>
     /// <param name="checkServerStopped">A function that returns a value indicating whether the server is stopped.</param>
+    /// <param name="gateMailBox">The mailbox of the gate.</param>
     public ImmediateServiceManagerConnectionOfGate(
         string serviceManagerIp,
         int serviceManagerPort,
         Func<uint> onGenerateAsyncId,
-        Func<bool> checkServerStopped)
+        Func<bool> checkServerStopped,
+        Common.Rpc.MailBox gateMailBox)
         : base(checkServerStopped)
     {
         this.serviceManagerIp = serviceManagerIp;
         this.serviceManagerPort = serviceManagerPort;
         this.onGenerateAsyncId = onGenerateAsyncId;
+        this.gateMailBox = gateMailBox;
     }
 
     /// <inheritdoc/>
@@ -51,14 +57,26 @@ internal class ImmediateServiceManagerConnectionOfGate : ImmediateManagerConnect
             OnInit = self =>
             {
                 self.RegisterMessageHandler(PackageType.ServiceRpcCallBack, this.HandleMessageFromManager<ServiceRpcCallBack>);
+                self.RegisterMessageHandler(PackageType.EntityRpc, this.HandleMessageFromManager<EntityRpc>);
             },
             OnConnected = self =>
             {
                 this.managerConnectedEvent.Signal();
+
+                var serviceCtl = new ServiceControl
+                {
+                    From = ServiceRemoteType.Gate,
+                    Message = ServiceControlMessage.Ready,
+                };
+
+                serviceCtl.Args.Add(
+                    Any.Pack(RpcHelper.RpcMailBoxToPbMailBox(this.gateMailBox)));
+                this.Send(serviceCtl);
             },
             OnDispose = self =>
             {
                 self.UnregisterMessageHandler(PackageType.ServiceRpcCallBack, this.HandleMessageFromManager<ServiceRpcCallBack>);
+                self.UnregisterMessageHandler(PackageType.EntityRpc, this.HandleMessageFromManager<EntityRpc>);
             },
         };
 }

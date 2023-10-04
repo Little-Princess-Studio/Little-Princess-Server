@@ -302,11 +302,15 @@ public abstract class BaseEntity : ITypeIdSupport
     /// <param name="rpcId">The ID of the RPC.</param>
     /// <param name="targetMailBox">The mailbox to send the RPC callback to.</param>
     /// <param name="rpcType">The type of the RPC.</param>
+    /// <param name="serviceManagerRpcId">Service manager rpc id.</param>
+    /// <param name="serviceInstanceId">Service instance id.</param>
     /// <param name="result">The result object to send with the RPC callback.</param>
     public void SendRpcCallBackWithRpcId(
         uint rpcId,
         MailBox targetMailBox,
         RpcType rpcType,
+        uint serviceManagerRpcId,
+        string serviceInstanceId,
         object? result)
     {
         if (this.IsDestroyed)
@@ -320,6 +324,8 @@ public abstract class BaseEntity : ITypeIdSupport
         }
 
         var callback = RpcHelper.BuildEntityRpcCallBackMessage(rpcId, targetMailBox, rpcType, result);
+        callback.ServiceManagerRpcId = serviceManagerRpcId;
+        callback.ServiceInstanceId = serviceInstanceId;
         this.OnSendEntityRpcCallback(callback);
     }
 

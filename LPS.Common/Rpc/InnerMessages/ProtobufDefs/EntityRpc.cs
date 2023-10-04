@@ -52,22 +52,26 @@ namespace LPS.Common.Rpc.InnerMessages {
             "eUxvYWQYASADKAsyNy5MUFMuQ29tbW9uLlJwYy5Jbm5lck1lc3NhZ2VzLkRp",
             "Y3RXaXRoVmFsdWVUdXBsZUtleVBhaXIiQgoOUGFpcldpdGhJbnRLZXkSCwoD",
             "S2V5GAEgASgREiMKBVZhbHVlGAIgASgLMhQuZ29vZ2xlLnByb3RvYnVmLkFu",
-            "eSIJCgdOdWxsQXJnIhoKB0pzb25BcmcSDwoHUGF5TG9hZBgBIAEoCSK3AgoJ",
+            "eSIJCgdOdWxsQXJnIhoKB0pzb25BcmcSDwoHUGF5TG9hZBgBIAEoCSKKAwoJ",
             "RW50aXR5UnBjEg0KBVJwY0lEGAEgASgNEjwKDVNlbmRlck1haWxCb3gYAiAB",
             "KAsyJS5MUFMuQ29tbW9uLlJwYy5Jbm5lck1lc3NhZ2VzLk1haWxCb3gSPAoN",
             "RW50aXR5TWFpbEJveBgDIAEoCzIlLkxQUy5Db21tb24uUnBjLklubmVyTWVz",
             "c2FnZXMuTWFpbEJveBISCgpNZXRob2ROYW1lGAQgASgJEhIKCk5vdGlmeU9u",
             "bHkYBSABKAgSNgoHUnBjVHlwZRgGIAEoDjIlLkxQUy5Db21tb24uUnBjLklu",
-            "bmVyTWVzc2FnZXMuUnBjVHlwZRIbChNTZXJ2aWNlTWFuYWdlclJwY0lkGAcg",
-            "ASgNEiIKBEFyZ3MYCCADKAsyFC5nb29nbGUucHJvdG9idWYuQW55ItsBChFF",
-            "bnRpdHlScGNDYWxsQmFjaxINCgVScGNJRBgBIAEoDRI2CgdScGNUeXBlGAIg",
-            "ASgOMiUuTFBTLkNvbW1vbi5ScGMuSW5uZXJNZXNzYWdlcy5ScGNUeXBlEjwK",
-            "DVRhcmdldE1haWxCb3gYAyABKAsyJS5MUFMuQ29tbW9uLlJwYy5Jbm5lck1l",
-            "c3NhZ2VzLk1haWxCb3gSGwoTU2VydmljZU1hbmFnZXJScGNJZBgEIAEoDRIk",
-            "CgZSZXN1bHQYBSABKAsyFC5nb29nbGUucHJvdG9idWYuQW55Km0KB1JwY1R5",
-            "cGUSEAoMU2VydmVySW5zaWRlEAASEgoOU2VydmVyVG9DbGllbnQQARISCg5D",
-            "bGllbnRUb1NlcnZlchACEhMKD1NlcnZpY2VUb0VudGl0eRADEhMKD0VudGl0",
-            "eVRvU2VydmljZRAEYgZwcm90bzM="));
+            "bmVyTWVzc2FnZXMuUnBjVHlwZRIgChNTZXJ2aWNlTWFuYWdlclJwY0lkGAcg",
+            "ASgNSACIAQESHgoRU2VydmljZUluc3RhbmNlSWQYCCABKAlIAYgBARIiCgRB",
+            "cmdzGAkgAygLMhQuZ29vZ2xlLnByb3RvYnVmLkFueUIWChRfU2VydmljZU1h",
+            "bmFnZXJScGNJZEIUChJfU2VydmljZUluc3RhbmNlSWQirgIKEUVudGl0eVJw",
+            "Y0NhbGxCYWNrEg0KBVJwY0lEGAEgASgNEjYKB1JwY1R5cGUYAiABKA4yJS5M",
+            "UFMuQ29tbW9uLlJwYy5Jbm5lck1lc3NhZ2VzLlJwY1R5cGUSPAoNVGFyZ2V0",
+            "TWFpbEJveBgDIAEoCzIlLkxQUy5Db21tb24uUnBjLklubmVyTWVzc2FnZXMu",
+            "TWFpbEJveBIgChNTZXJ2aWNlTWFuYWdlclJwY0lkGAQgASgNSACIAQESHgoR",
+            "U2VydmljZUluc3RhbmNlSWQYBSABKAlIAYgBARIkCgZSZXN1bHQYBiABKAsy",
+            "FC5nb29nbGUucHJvdG9idWYuQW55QhYKFF9TZXJ2aWNlTWFuYWdlclJwY0lk",
+            "QhQKEl9TZXJ2aWNlSW5zdGFuY2VJZCptCgdScGNUeXBlEhAKDFNlcnZlcklu",
+            "c2lkZRAAEhIKDlNlcnZlclRvQ2xpZW50EAESEgoOQ2xpZW50VG9TZXJ2ZXIQ",
+            "AhITCg9TZXJ2aWNlVG9FbnRpdHkQAxITCg9FbnRpdHlUb1NlcnZpY2UQBGIG",
+            "cHJvdG8z"));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { global::LPS.Common.Rpc.InnerMessages.MailboxReflection.Descriptor, global::Google.Protobuf.WellKnownTypes.AnyReflection.Descriptor, },
           new pbr::GeneratedClrTypeInfo(new[] {typeof(global::LPS.Common.Rpc.InnerMessages.RpcType), }, null, new pbr::GeneratedClrTypeInfo[] {
@@ -88,8 +92,8 @@ namespace LPS.Common.Rpc.InnerMessages {
             new pbr::GeneratedClrTypeInfo(typeof(global::LPS.Common.Rpc.InnerMessages.PairWithIntKey), global::LPS.Common.Rpc.InnerMessages.PairWithIntKey.Parser, new[]{ "Key", "Value" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::LPS.Common.Rpc.InnerMessages.NullArg), global::LPS.Common.Rpc.InnerMessages.NullArg.Parser, null, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::LPS.Common.Rpc.InnerMessages.JsonArg), global::LPS.Common.Rpc.InnerMessages.JsonArg.Parser, new[]{ "PayLoad" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::LPS.Common.Rpc.InnerMessages.EntityRpc), global::LPS.Common.Rpc.InnerMessages.EntityRpc.Parser, new[]{ "RpcID", "SenderMailBox", "EntityMailBox", "MethodName", "NotifyOnly", "RpcType", "ServiceManagerRpcId", "Args" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::LPS.Common.Rpc.InnerMessages.EntityRpcCallBack), global::LPS.Common.Rpc.InnerMessages.EntityRpcCallBack.Parser, new[]{ "RpcID", "RpcType", "TargetMailBox", "ServiceManagerRpcId", "Result" }, null, null, null, null)
+            new pbr::GeneratedClrTypeInfo(typeof(global::LPS.Common.Rpc.InnerMessages.EntityRpc), global::LPS.Common.Rpc.InnerMessages.EntityRpc.Parser, new[]{ "RpcID", "SenderMailBox", "EntityMailBox", "MethodName", "NotifyOnly", "RpcType", "ServiceManagerRpcId", "ServiceInstanceId", "Args" }, new[]{ "ServiceManagerRpcId", "ServiceInstanceId" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::LPS.Common.Rpc.InnerMessages.EntityRpcCallBack), global::LPS.Common.Rpc.InnerMessages.EntityRpcCallBack.Parser, new[]{ "RpcID", "RpcType", "TargetMailBox", "ServiceManagerRpcId", "ServiceInstanceId", "Result" }, new[]{ "ServiceManagerRpcId", "ServiceInstanceId" }, null, null, null)
           }));
     }
     #endregion
@@ -3378,6 +3382,7 @@ namespace LPS.Common.Rpc.InnerMessages {
   {
     private static readonly pb::MessageParser<EntityRpc> _parser = new pb::MessageParser<EntityRpc>(() => new EntityRpc());
     private pb::UnknownFieldSet _unknownFields;
+    private int _hasBits0;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pb::MessageParser<EntityRpc> Parser { get { return _parser; } }
@@ -3405,6 +3410,7 @@ namespace LPS.Common.Rpc.InnerMessages {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public EntityRpc(EntityRpc other) : this() {
+      _hasBits0 = other._hasBits0;
       rpcID_ = other.rpcID_;
       senderMailBox_ = other.senderMailBox_ != null ? other.senderMailBox_.Clone() : null;
       entityMailBox_ = other.entityMailBox_ != null ? other.entityMailBox_.Clone() : null;
@@ -3412,6 +3418,7 @@ namespace LPS.Common.Rpc.InnerMessages {
       notifyOnly_ = other.notifyOnly_;
       rpcType_ = other.rpcType_;
       serviceManagerRpcId_ = other.serviceManagerRpcId_;
+      serviceInstanceId_ = other.serviceInstanceId_;
       args_ = other.args_.Clone();
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
@@ -3500,16 +3507,53 @@ namespace LPS.Common.Rpc.InnerMessages {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public uint ServiceManagerRpcId {
-      get { return serviceManagerRpcId_; }
+      get { if ((_hasBits0 & 1) != 0) { return serviceManagerRpcId_; } else { return 0; } }
       set {
+        _hasBits0 |= 1;
         serviceManagerRpcId_ = value;
       }
     }
+    /// <summary>Gets whether the "ServiceManagerRpcId" field is set</summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool HasServiceManagerRpcId {
+      get { return (_hasBits0 & 1) != 0; }
+    }
+    /// <summary>Clears the value of the "ServiceManagerRpcId" field</summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void ClearServiceManagerRpcId() {
+      _hasBits0 &= ~1;
+    }
+
+    /// <summary>Field number for the "ServiceInstanceId" field.</summary>
+    public const int ServiceInstanceIdFieldNumber = 8;
+    private string serviceInstanceId_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string ServiceInstanceId {
+      get { return serviceInstanceId_ ?? ""; }
+      set {
+        serviceInstanceId_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+    /// <summary>Gets whether the "ServiceInstanceId" field is set</summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool HasServiceInstanceId {
+      get { return serviceInstanceId_ != null; }
+    }
+    /// <summary>Clears the value of the "ServiceInstanceId" field</summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void ClearServiceInstanceId() {
+      serviceInstanceId_ = null;
+    }
 
     /// <summary>Field number for the "Args" field.</summary>
-    public const int ArgsFieldNumber = 8;
+    public const int ArgsFieldNumber = 9;
     private static readonly pb::FieldCodec<global::Google.Protobuf.WellKnownTypes.Any> _repeated_args_codec
-        = pb::FieldCodec.ForMessage(66, global::Google.Protobuf.WellKnownTypes.Any.Parser);
+        = pb::FieldCodec.ForMessage(74, global::Google.Protobuf.WellKnownTypes.Any.Parser);
     private readonly pbc::RepeatedField<global::Google.Protobuf.WellKnownTypes.Any> args_ = new pbc::RepeatedField<global::Google.Protobuf.WellKnownTypes.Any>();
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
@@ -3539,6 +3583,7 @@ namespace LPS.Common.Rpc.InnerMessages {
       if (NotifyOnly != other.NotifyOnly) return false;
       if (RpcType != other.RpcType) return false;
       if (ServiceManagerRpcId != other.ServiceManagerRpcId) return false;
+      if (ServiceInstanceId != other.ServiceInstanceId) return false;
       if(!args_.Equals(other.args_)) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
@@ -3553,7 +3598,8 @@ namespace LPS.Common.Rpc.InnerMessages {
       if (MethodName.Length != 0) hash ^= MethodName.GetHashCode();
       if (NotifyOnly != false) hash ^= NotifyOnly.GetHashCode();
       if (RpcType != global::LPS.Common.Rpc.InnerMessages.RpcType.ServerInside) hash ^= RpcType.GetHashCode();
-      if (ServiceManagerRpcId != 0) hash ^= ServiceManagerRpcId.GetHashCode();
+      if (HasServiceManagerRpcId) hash ^= ServiceManagerRpcId.GetHashCode();
+      if (HasServiceInstanceId) hash ^= ServiceInstanceId.GetHashCode();
       hash ^= args_.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
@@ -3597,9 +3643,13 @@ namespace LPS.Common.Rpc.InnerMessages {
         output.WriteRawTag(48);
         output.WriteEnum((int) RpcType);
       }
-      if (ServiceManagerRpcId != 0) {
+      if (HasServiceManagerRpcId) {
         output.WriteRawTag(56);
         output.WriteUInt32(ServiceManagerRpcId);
+      }
+      if (HasServiceInstanceId) {
+        output.WriteRawTag(66);
+        output.WriteString(ServiceInstanceId);
       }
       args_.WriteTo(output, _repeated_args_codec);
       if (_unknownFields != null) {
@@ -3636,9 +3686,13 @@ namespace LPS.Common.Rpc.InnerMessages {
         output.WriteRawTag(48);
         output.WriteEnum((int) RpcType);
       }
-      if (ServiceManagerRpcId != 0) {
+      if (HasServiceManagerRpcId) {
         output.WriteRawTag(56);
         output.WriteUInt32(ServiceManagerRpcId);
+      }
+      if (HasServiceInstanceId) {
+        output.WriteRawTag(66);
+        output.WriteString(ServiceInstanceId);
       }
       args_.WriteTo(ref output, _repeated_args_codec);
       if (_unknownFields != null) {
@@ -3669,8 +3723,11 @@ namespace LPS.Common.Rpc.InnerMessages {
       if (RpcType != global::LPS.Common.Rpc.InnerMessages.RpcType.ServerInside) {
         size += 1 + pb::CodedOutputStream.ComputeEnumSize((int) RpcType);
       }
-      if (ServiceManagerRpcId != 0) {
+      if (HasServiceManagerRpcId) {
         size += 1 + pb::CodedOutputStream.ComputeUInt32Size(ServiceManagerRpcId);
+      }
+      if (HasServiceInstanceId) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(ServiceInstanceId);
       }
       size += args_.CalculateSize(_repeated_args_codec);
       if (_unknownFields != null) {
@@ -3709,8 +3766,11 @@ namespace LPS.Common.Rpc.InnerMessages {
       if (other.RpcType != global::LPS.Common.Rpc.InnerMessages.RpcType.ServerInside) {
         RpcType = other.RpcType;
       }
-      if (other.ServiceManagerRpcId != 0) {
+      if (other.HasServiceManagerRpcId) {
         ServiceManagerRpcId = other.ServiceManagerRpcId;
+      }
+      if (other.HasServiceInstanceId) {
+        ServiceInstanceId = other.ServiceInstanceId;
       }
       args_.Add(other.args_);
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
@@ -3763,6 +3823,10 @@ namespace LPS.Common.Rpc.InnerMessages {
             break;
           }
           case 66: {
+            ServiceInstanceId = input.ReadString();
+            break;
+          }
+          case 74: {
             args_.AddEntriesFrom(input, _repeated_args_codec);
             break;
           }
@@ -3816,6 +3880,10 @@ namespace LPS.Common.Rpc.InnerMessages {
             break;
           }
           case 66: {
+            ServiceInstanceId = input.ReadString();
+            break;
+          }
+          case 74: {
             args_.AddEntriesFrom(ref input, _repeated_args_codec);
             break;
           }
@@ -3833,6 +3901,7 @@ namespace LPS.Common.Rpc.InnerMessages {
   {
     private static readonly pb::MessageParser<EntityRpcCallBack> _parser = new pb::MessageParser<EntityRpcCallBack>(() => new EntityRpcCallBack());
     private pb::UnknownFieldSet _unknownFields;
+    private int _hasBits0;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pb::MessageParser<EntityRpcCallBack> Parser { get { return _parser; } }
@@ -3860,10 +3929,12 @@ namespace LPS.Common.Rpc.InnerMessages {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public EntityRpcCallBack(EntityRpcCallBack other) : this() {
+      _hasBits0 = other._hasBits0;
       rpcID_ = other.rpcID_;
       rpcType_ = other.rpcType_;
       targetMailBox_ = other.targetMailBox_ != null ? other.targetMailBox_.Clone() : null;
       serviceManagerRpcId_ = other.serviceManagerRpcId_;
+      serviceInstanceId_ = other.serviceInstanceId_;
       result_ = other.result_ != null ? other.result_.Clone() : null;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
@@ -3916,14 +3987,51 @@ namespace LPS.Common.Rpc.InnerMessages {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public uint ServiceManagerRpcId {
-      get { return serviceManagerRpcId_; }
+      get { if ((_hasBits0 & 1) != 0) { return serviceManagerRpcId_; } else { return 0; } }
       set {
+        _hasBits0 |= 1;
         serviceManagerRpcId_ = value;
       }
     }
+    /// <summary>Gets whether the "ServiceManagerRpcId" field is set</summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool HasServiceManagerRpcId {
+      get { return (_hasBits0 & 1) != 0; }
+    }
+    /// <summary>Clears the value of the "ServiceManagerRpcId" field</summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void ClearServiceManagerRpcId() {
+      _hasBits0 &= ~1;
+    }
+
+    /// <summary>Field number for the "ServiceInstanceId" field.</summary>
+    public const int ServiceInstanceIdFieldNumber = 5;
+    private string serviceInstanceId_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string ServiceInstanceId {
+      get { return serviceInstanceId_ ?? ""; }
+      set {
+        serviceInstanceId_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+    /// <summary>Gets whether the "ServiceInstanceId" field is set</summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool HasServiceInstanceId {
+      get { return serviceInstanceId_ != null; }
+    }
+    /// <summary>Clears the value of the "ServiceInstanceId" field</summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void ClearServiceInstanceId() {
+      serviceInstanceId_ = null;
+    }
 
     /// <summary>Field number for the "Result" field.</summary>
-    public const int ResultFieldNumber = 5;
+    public const int ResultFieldNumber = 6;
     private global::Google.Protobuf.WellKnownTypes.Any result_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
@@ -3953,6 +4061,7 @@ namespace LPS.Common.Rpc.InnerMessages {
       if (RpcType != other.RpcType) return false;
       if (!object.Equals(TargetMailBox, other.TargetMailBox)) return false;
       if (ServiceManagerRpcId != other.ServiceManagerRpcId) return false;
+      if (ServiceInstanceId != other.ServiceInstanceId) return false;
       if (!object.Equals(Result, other.Result)) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
@@ -3964,7 +4073,8 @@ namespace LPS.Common.Rpc.InnerMessages {
       if (RpcID != 0) hash ^= RpcID.GetHashCode();
       if (RpcType != global::LPS.Common.Rpc.InnerMessages.RpcType.ServerInside) hash ^= RpcType.GetHashCode();
       if (targetMailBox_ != null) hash ^= TargetMailBox.GetHashCode();
-      if (ServiceManagerRpcId != 0) hash ^= ServiceManagerRpcId.GetHashCode();
+      if (HasServiceManagerRpcId) hash ^= ServiceManagerRpcId.GetHashCode();
+      if (HasServiceInstanceId) hash ^= ServiceInstanceId.GetHashCode();
       if (result_ != null) hash ^= Result.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
@@ -3996,12 +4106,16 @@ namespace LPS.Common.Rpc.InnerMessages {
         output.WriteRawTag(26);
         output.WriteMessage(TargetMailBox);
       }
-      if (ServiceManagerRpcId != 0) {
+      if (HasServiceManagerRpcId) {
         output.WriteRawTag(32);
         output.WriteUInt32(ServiceManagerRpcId);
       }
-      if (result_ != null) {
+      if (HasServiceInstanceId) {
         output.WriteRawTag(42);
+        output.WriteString(ServiceInstanceId);
+      }
+      if (result_ != null) {
+        output.WriteRawTag(50);
         output.WriteMessage(Result);
       }
       if (_unknownFields != null) {
@@ -4026,12 +4140,16 @@ namespace LPS.Common.Rpc.InnerMessages {
         output.WriteRawTag(26);
         output.WriteMessage(TargetMailBox);
       }
-      if (ServiceManagerRpcId != 0) {
+      if (HasServiceManagerRpcId) {
         output.WriteRawTag(32);
         output.WriteUInt32(ServiceManagerRpcId);
       }
-      if (result_ != null) {
+      if (HasServiceInstanceId) {
         output.WriteRawTag(42);
+        output.WriteString(ServiceInstanceId);
+      }
+      if (result_ != null) {
+        output.WriteRawTag(50);
         output.WriteMessage(Result);
       }
       if (_unknownFields != null) {
@@ -4053,8 +4171,11 @@ namespace LPS.Common.Rpc.InnerMessages {
       if (targetMailBox_ != null) {
         size += 1 + pb::CodedOutputStream.ComputeMessageSize(TargetMailBox);
       }
-      if (ServiceManagerRpcId != 0) {
+      if (HasServiceManagerRpcId) {
         size += 1 + pb::CodedOutputStream.ComputeUInt32Size(ServiceManagerRpcId);
+      }
+      if (HasServiceInstanceId) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(ServiceInstanceId);
       }
       if (result_ != null) {
         size += 1 + pb::CodedOutputStream.ComputeMessageSize(Result);
@@ -4083,8 +4204,11 @@ namespace LPS.Common.Rpc.InnerMessages {
         }
         TargetMailBox.MergeFrom(other.TargetMailBox);
       }
-      if (other.ServiceManagerRpcId != 0) {
+      if (other.HasServiceManagerRpcId) {
         ServiceManagerRpcId = other.ServiceManagerRpcId;
+      }
+      if (other.HasServiceInstanceId) {
+        ServiceInstanceId = other.ServiceInstanceId;
       }
       if (other.result_ != null) {
         if (result_ == null) {
@@ -4127,6 +4251,10 @@ namespace LPS.Common.Rpc.InnerMessages {
             break;
           }
           case 42: {
+            ServiceInstanceId = input.ReadString();
+            break;
+          }
+          case 50: {
             if (result_ == null) {
               Result = new global::Google.Protobuf.WellKnownTypes.Any();
             }
@@ -4168,6 +4296,10 @@ namespace LPS.Common.Rpc.InnerMessages {
             break;
           }
           case 42: {
+            ServiceInstanceId = input.ReadString();
+            break;
+          }
+          case 50: {
             if (result_ == null) {
               Result = new global::Google.Protobuf.WellKnownTypes.Any();
             }

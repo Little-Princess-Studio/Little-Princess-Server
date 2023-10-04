@@ -23,7 +23,7 @@ public partial class Gate
 {
     private void ConnectToServiceManager()
     {
-        this.serviceMgrConnection = new ImmediateServiceManagerConnectionOfServer(
+        this.serviceMgrConnection = new ImmediateServiceManagerConnectionOfGate(
             this.serviceManagerMailBox.Ip,
             this.serviceManagerMailBox.Port,
             this.GenerateRpcId,

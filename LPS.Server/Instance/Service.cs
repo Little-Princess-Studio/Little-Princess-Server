@@ -207,6 +207,7 @@ public class Service : IInstance
     // entity -> server -> gate -> service mgr -> service
     private void SendEntityRpc(EntityRpc rpc)
     {
+        rpc.ServiceInstanceId = this.mailBox.Id;
         this.serviceMgrConnection.Send(rpc);
     }
 
