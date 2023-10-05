@@ -191,6 +191,6 @@ public static class ConsoleCommands
     [ConsoleCommand("send.call_service_echo_with_callback")]
     public static async void CallServiceEchoWithCallBack(string msg)
     {
-        await (ClientGlobal.ShadowClientEntity as Untrusted) !.CallServiceEchoWithCallBack("msg");
+        await (ClientGlobal.ShadowClientEntity as Untrusted) !.CallServiceEchoWithCallBack(msg);
     }
 }

@@ -104,6 +104,8 @@ public class Untrusted : ShadowClientEntity
     /// <returns>A task that represents the asynchronous operation.</returns>
     public async Task CallServiceEchoWithCallBack(string msg)
     {
+        Logger.Info("[CallServiceEchoWithCallBack]: waiting for server response...");
         await this.serverUntrustedRpc.CallServiceEchoWithCallBack(msg);
+        Logger.Info("[CallServiceEchoWithCallBack]: server response received.");
     }
 }

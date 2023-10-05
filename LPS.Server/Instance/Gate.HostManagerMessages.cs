@@ -199,15 +199,7 @@ public partial class Gate
                 OnDispose = _ => this.UnregisterGateMessageHandlers(tmpIdx),
                 OnConnected = self =>
                 {
-                    var ctl = new Control()
-                    {
-                        From = RemoteType.Gate,
-                        Message = ControlMessage.Ready,
-                    };
-
-                    ctl.Args.Add(Any.Pack(RpcHelper.RpcMailBoxToPbMailBox(this.entity!.MailBox)));
-                    self.Send(ctl, false);
-
+                    this.NotifyServerReady(self);
                     this.allServersConnectedEvent.Signal();
                 },
                 MailBox = mb,
@@ -217,6 +209,18 @@ public partial class Gate
         }
 
         this.serversMailBoxesReadyEvent.Signal();
+    }
+
+    private void NotifyServerReady(TcpClient clientToServer)
+    {
+        var ctl = new Control()
+        {
+            From = RemoteType.Gate,
+            Message = ControlMessage.Ready,
+        };
+
+        ctl.Args.Add(Any.Pack(RpcHelper.RpcMailBoxToPbMailBox(this.entity!.MailBox)));
+        clientToServer.Send(ctl, false);
     }
 
     private void SyncServiceManagerMailBox(Common.Rpc.MailBox serviceManagerMailBox)

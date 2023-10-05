@@ -375,7 +375,7 @@ public abstract class BaseService : ITypeIdSupport
         }
         else
         {
-            this.rpcAsyncTaskWithoutResultGenerator.ResolveAsyncTask(rpcId, null!);
+            this.rpcAsyncTaskWithoutResultGenerator.ResolveAsyncTask(rpcId, null);
         }
     }
 

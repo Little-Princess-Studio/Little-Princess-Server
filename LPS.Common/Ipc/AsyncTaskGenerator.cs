@@ -39,16 +39,7 @@ public class AsyncTaskGenerator<TResult>
     /// <returns>(AsyncTask, Token id) pair.</returns>
     public (Task<TResult> AsyncTaskTarget, uint TokenId) GenerateAsyncTask()
     {
-        uint taskId = 0;
-        if (this.OnGenerateAsyncId != null)
-        {
-            taskId = this.OnGenerateAsyncId.Invoke();
-        }
-        else
-        {
-            taskId = Interlocked.Increment(ref this.asyncId);
-        }
-
+        uint taskId = this.OnGenerateAsyncId != null ? this.OnGenerateAsyncId.Invoke() : Interlocked.Increment(ref this.asyncId);
         var source = new TaskCompletionSource<TResult>();
         this.dictionary[taskId] = source;
         return (source.Task, taskId);
@@ -87,8 +78,7 @@ public class AsyncTaskGenerator<TResult>
 
         var cancellationTokenSource = new CancellationTokenSource(timeoutMilliseconds);
         var source = new TaskCompletionSource<TResult>();
-        var taskId = Interlocked.Increment(ref this.asyncId);
-
+        uint taskId = this.OnGenerateAsyncId != null ? this.OnGenerateAsyncId.Invoke() : Interlocked.Increment(ref this.asyncId);
         cancellationTokenSource.Token.Register(() =>
         {
             if (!this.dictionary.ContainsKey(taskId))
@@ -96,7 +86,7 @@ public class AsyncTaskGenerator<TResult>
                 return;
             }
 
-            var res = this.dictionary.TryRemove(taskId, out _);
+            var res = this.dictionary.TryRemove(key: taskId, out _);
             while (!res)
             {
                 res = this.dictionary.TryRemove(taskId, out _);
@@ -159,16 +149,7 @@ public class AsyncTaskGenerator
     /// <returns>(AsyncTask, Token id) pair.</returns>
     public (Task AsyncTaskTarget, uint TokenId) GenerateAsyncTask()
     {
-        uint taskId = 0;
-        if (this.OnGenerateAsyncId != null)
-        {
-            taskId = this.OnGenerateAsyncId.Invoke();
-        }
-        else
-        {
-            taskId = Interlocked.Increment(ref this.asyncId);
-        }
-
+        uint taskId = this.OnGenerateAsyncId != null ? this.OnGenerateAsyncId.Invoke() : Interlocked.Increment(ref this.asyncId);
         var source = new TaskCompletionSource();
         this.dictionary[taskId] = source;
         return (source.Task, taskId);
@@ -207,7 +188,7 @@ public class AsyncTaskGenerator
 
         var cancellationTokenSource = new CancellationTokenSource(timeoutMilliseconds);
         var source = new TaskCompletionSource();
-        var taskId = Interlocked.Increment(ref this.asyncId);
+        uint taskId = this.OnGenerateAsyncId != null ? this.OnGenerateAsyncId.Invoke() : Interlocked.Increment(ref this.asyncId);
 
         cancellationTokenSource.Token.Register(() =>
         {
@@ -297,16 +278,7 @@ public class AsyncTaskGenerator<TResult, TData>
     /// <returns>((TResult Result, TData Data), Token id) pair.</returns>
     public (Task<TResult> AsyncTaskTarget, uint TokenId) GenerateAsyncTask(TData data)
     {
-        uint taskId = 0;
-        if (this.OnGenerateAsyncId != null)
-        {
-            taskId = this.OnGenerateAsyncId.Invoke();
-        }
-        else
-        {
-            taskId = Interlocked.Increment(ref this.asyncId);
-        }
-
+        uint taskId = this.OnGenerateAsyncId != null ? this.OnGenerateAsyncId.Invoke() : Interlocked.Increment(ref this.asyncId);
         var source = new TaskCompletionSource<TResult>();
         this.dictionary[taskId] = (source, data);
         return (source.Task, taskId);
@@ -332,7 +304,7 @@ public class AsyncTaskGenerator<TResult, TData>
 
         var cancellationTokenSource = new CancellationTokenSource(timeoutMilliseconds);
         var source = new TaskCompletionSource<TResult>();
-        var taskId = Interlocked.Increment(ref this.asyncId);
+        uint taskId = this.OnGenerateAsyncId != null ? this.OnGenerateAsyncId.Invoke() : Interlocked.Increment(ref this.asyncId);
 
         cancellationTokenSource.Token.Register(
             () =>

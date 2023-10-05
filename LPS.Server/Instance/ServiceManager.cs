@@ -471,6 +471,7 @@ public class ServiceManager : IInstance
                         {
                             PayLoad = ids[i],
                         }));
+                        ++i; // increment i
                     }
 
                     serviceDict.PayLoad.Add(serviceName, Any.Pack(message: shardRpcDict));

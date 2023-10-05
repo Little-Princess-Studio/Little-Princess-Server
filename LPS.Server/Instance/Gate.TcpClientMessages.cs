@@ -68,7 +68,7 @@ public partial class Gate
     private void HandleEntityRpcCallBackFromTcpClient((IMessage Message, Connection Connection, uint RpcId) arg)
     {
         // if gate's server have recieved the EntityRpc msg, it must be redirect from other gates
-        Logger.Info("Handle EntityRpc From Other Gates.");
+        Logger.Info("Handle EntityRpcCallback From Other Gates.");
 
         var (msg, _, _) = arg;
         var callback = (msg as EntityRpcCallBack)!;

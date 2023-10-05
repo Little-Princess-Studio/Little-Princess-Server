@@ -173,7 +173,7 @@ public class Service : IInstance
 
                 this.serviceMap[serviceName][shardNum] = service;
                 this.serviceMbMap[mailbox] = service;
-                Logger.Info($"Start service {serviceName} shard {shardNum}");
+                Logger.Info($"Start service {serviceName} shard {shardNum} with mailbox {mailbox}");
 
                 service.Start().ContinueWith(t =>
                 {
