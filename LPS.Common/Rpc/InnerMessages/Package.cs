@@ -163,5 +163,7 @@ public enum PackageType
     ServiceControl = 18,
     ServiceManagerCommand = 19,
     EntityRpcCallBack = 20,
+    Ping = 21,
+    Pong = 22,
 #pragma warning restore SA1602
 }

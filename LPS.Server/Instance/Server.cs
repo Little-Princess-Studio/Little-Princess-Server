@@ -22,7 +22,6 @@ using LPS.Common.Rpc.InnerMessages;
 using LPS.Common.Rpc.RpcPropertySync.RpcPropertySyncMessage;
 using LPS.Server.Entity;
 using LPS.Server.Instance.HostConnection;
-using LPS.Server.Instance.HostConnection.HostManagerConnection;
 using LPS.Server.MessageQueue;
 using LPS.Server.Rpc;
 using LPS.Server.Rpc.InnerMessages;
@@ -70,7 +69,7 @@ public partial class Server : IInstance
     private readonly CountdownEvent waitForSyncGatesEvent;
     private readonly CountdownEvent waitForSyncServiceManagerEvent;
 
-    private IManagerConnection hostConnection = null!;
+    private IManagerConnection hostMgrConnection = null!;
     private IManagerConnection? serviceMgrConnection;
 
     private MessageQueueClient? messageQueueClientToWebMgr;
@@ -136,7 +135,7 @@ public partial class Server : IInstance
     /// <inheritdoc/>
     public void Stop()
     {
-        this.hostConnection.ShutDown();
+        this.hostMgrConnection.ShutDown();
         this.messageQueueClientToWebMgr?.ShutDown();
         this.tcpServer.Stop();
     }
@@ -146,7 +145,7 @@ public partial class Server : IInstance
     {
         Logger.Info($"Start server at {this.Ip}:{this.Port}");
         this.tcpServer.Run();
-        this.hostConnection.Run();
+        this.hostMgrConnection.Run();
 
         Logger.Info("Host manager connected.");
         Logger.Info("Start time circle pump.");
@@ -163,7 +162,7 @@ public partial class Server : IInstance
             Message = ControlMessage.Ready,
         };
         regCtl.Args.Add(Any.Pack(RpcHelper.RpcMailBoxToPbMailBox(this.entity!.MailBox)));
-        this.hostConnection.Send(regCtl);
+        this.hostMgrConnection.Send(regCtl);
 
         Logger.Info("wait for sync gates mailboxes");
         this.waitForSyncGatesEvent.Wait();
@@ -181,7 +180,7 @@ public partial class Server : IInstance
         this.InitWebManagerMessageQueueClient();
 
         // gate main thread will stuck here
-        this.hostConnection.WaitForExit();
+        this.hostMgrConnection.WaitForExit();
         this.tcpServer.WaitForExit();
         this.serviceMgrConnection?.WaitForExit();
 
@@ -217,7 +216,7 @@ public partial class Server : IInstance
     {
         var (task, connectionId) = this.asyncTaskGeneratorForMailBox.GenerateAsyncTask();
 
-        this.hostConnection.Send(new RequireCreateEntity
+        this.hostMgrConnection.Send(new RequireCreateEntity
         {
             EntityType = gateId != string.Empty ? EntityType.ServerClientEntity : EntityType.DistibuteEntity,
             CreateType = CreateType.Anywhere,

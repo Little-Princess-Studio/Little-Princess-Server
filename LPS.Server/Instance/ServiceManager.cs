@@ -62,6 +62,7 @@ public class ServiceManager : IInstance
     private readonly AsyncTaskGenerator<(EntityRpcCallBack Callback, string Identifier), string> entityRpcCallBackAsyncTaskGenerator = new();
     private readonly Dictionary<Common.Rpc.MailBox, Connection> mailBoxToServiceConn = new();
     private readonly Dispatcher<(IMessage Mesage, string TargetIdentifier, InstanceType OriType)> dispatcher = new();
+    private readonly Common.Rpc.MailBox mailBox;
 
     private IManagerConnection hostMgrConnection = null!;
 
@@ -108,7 +109,9 @@ public class ServiceManager : IInstance
             OnDispose = this.UnregisterServerMessageHandlers,
         };
 
-        this.InitHostManagerConnection(hostManagerIp, hostManagerPort);
+        this.mailBox = new(string.Empty, this.Ip, this.Port, this.HostNum);
+
+        this.InitHostManagerConnection(hostManagerIp, hostManagerPort, useMqToHostMgr);
         this.InitConnectionManager();
     }
 
@@ -333,14 +336,32 @@ public class ServiceManager : IInstance
         }
     }
 
-    private void InitHostManagerConnection(string hostManagerIp, int hostManagerPort)
+    private void InitHostManagerConnection(string hostManagerIp, int hostManagerPort, bool useMqToHostMgr)
     {
-        this.hostMgrConnection = new ImmediateHostManagerConnectionOfServiceManager(
-            hostManagerIp,
-            hostManagerPort,
-            this.GenerateAsyncId,
-            () => this.tcpServer!.Stopped);
+        if (!useMqToHostMgr)
+        {
+            this.hostMgrConnection = new ImmediateHostManagerConnectionOfServiceManager(
+                hostManagerIp,
+                hostManagerPort,
+                () => this.tcpServer!.Stopped);
+        }
+        else
+        {
+            this.hostMgrConnection = new MessageQueueHostManagerConnectionOfServiceManager();
+        }
+
         this.hostMgrConnection.RegisterMessageHandler(PackageType.HostCommand, this.HandleHostCommand);
+        this.hostMgrConnection.RegisterMessageHandler(PackageType.Ping, this.HandlePing);
+    }
+
+    private void HandlePing(IMessage message)
+    {
+        var pong = new Pong()
+        {
+            SenderMailBox = RpcHelper.RpcMailBoxToPbMailBox(this.mailBox),
+        };
+
+        this.hostMgrConnection.Send(pong);
     }
 
     private void HandleHostCommand(IMessage message)
@@ -376,14 +397,7 @@ public class ServiceManager : IInstance
                         From = RemoteType.ServiceManager,
                     };
 
-                    hostMsg.Args.Add(Any.Pack(
-                        new Common.Rpc.InnerMessages.MailBox()
-                        {
-                            ID = string.Empty,
-                            IP = this.Ip,
-                            Port = (uint)this.Port,
-                            HostNum = (uint)this.HostNum,
-                        }));
+                    hostMsg.Args.Add(Any.Pack(RpcHelper.RpcMailBoxToPbMailBox(this.mailBox)));
 
                     this.hostMgrConnection.Send(hostMsg);
 
@@ -463,6 +477,7 @@ public class ServiceManager : IInstance
 
                     var ids = t.Result;
                     var shardRpcDict = new DictWithIntKeyArg();
+                    Logger.Debug($"Service {serviceName} ids: {string.Join(',', ids)}");
 
                     int i = 0;
                     foreach (var shard in serviceShards)

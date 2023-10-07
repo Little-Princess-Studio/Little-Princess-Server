@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-// <copyright file="Gate.HostManagerMessages.cs" company="Little Princess Studio">
+// <copyright file="Gate.HostConnection.cs" company="Little Princess Studio">
 // Copyright (c) Little Princess Studio. All rights reserved.
 // </copyright>
 // -----------------------------------------------------------------------
@@ -33,7 +33,7 @@ public partial class Gate
     {
         if (!useMqToHostMgr)
         {
-            this.hostConnection = new ImmediateHostManagerConnectionOfGate(
+            this.hostMgrConnection = new ImmediateHostManagerConnectionOfGate(
                 hostManagerIp,
                 hostManagerPort,
                 this.GenerateRpcId,
@@ -41,13 +41,24 @@ public partial class Gate
         }
         else
         {
-            this.hostConnection = new MessageQueueHostManagerConnectionOfGate(this.Name, this.GenerateRpcId);
+            this.hostMgrConnection = new MessageQueueHostManagerConnectionOfGate(this.Name, this.GenerateRpcId);
         }
 
-        this.hostConnection.RegisterMessageHandler(
+        this.hostMgrConnection.RegisterMessageHandler(
             PackageType.RequireCreateEntityRes,
             this.HandleRequireCreateEntityResFromHost);
-        this.hostConnection.RegisterMessageHandler(PackageType.HostCommand, this.HandleHostCommandFromHost);
+        this.hostMgrConnection.RegisterMessageHandler(PackageType.HostCommand, this.HandleHostCommandFromHost);
+        this.hostMgrConnection.RegisterMessageHandler(PackageType.Ping, this.HandlePing);
+    }
+
+    private void HandlePing(IMessage message)
+    {
+        var pong = new Pong()
+        {
+            SenderMailBox = RpcHelper.RpcMailBoxToPbMailBox(this.entity!.MailBox),
+        };
+
+        this.hostMgrConnection.Send(pong);
     }
 
     private void HandleHostCommandFromHost(IMessage msg)

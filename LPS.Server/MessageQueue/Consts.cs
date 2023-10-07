@@ -37,9 +37,19 @@ public static class Consts
     public const string HostMgrToGateExchangeName = "hostmgrToGate.exchange";
 
     /// <summary>
+    /// The name of the exchange used for communication between the host manager and service manager.
+    /// </summary>
+    public const string HostMgrToServiceMgrExchangeName = "hostmgrToServiceMgr.exchange";
+
+    /// <summary>
     /// Exchange name of server to host manager.
     /// </summary>
     public const string GateToHostExchangeName = "gateToHostMgr.exchange";
+
+    /// <summary>
+    /// The name of the exchange used for communication between the service manager and the host.
+    /// </summary>
+    public const string ServiceMgrToHostExchangeName = "serviceMgrToHost.exchange";
 
     /// <summary>
     /// Exchange name of database manager to server.
@@ -121,6 +131,11 @@ public static class Consts
     public const string RoutingKeyToGate = "#.toGate";
 
     /// <summary>
+    /// The routing key used to send messages to the service manager.
+    /// </summary>
+    public const string RoutingKeyToServiceMgr = "#.toServiceMgr";
+
+    /// <summary>
     /// Routing key from database manager to client.
     /// </summary>
     public const string RoutingKeyDbMgrToClient = "#.dbMgrToClient";
@@ -172,6 +187,11 @@ public static class Consts
     public static string GenerateServerQueueName(string id) => $"srv_que_{id}";
 
     /// <summary>
+    /// The name of the message queue used by the service manager service.
+    /// </summary>
+    public const string ServiceManagerQueueName = "serviceMgr_que";
+
+    /// <summary>
     /// Generate the queue name observed by database client process.
     /// </summary>
     /// <param name="id">Unique id for the message queue.</param>
@@ -191,6 +211,11 @@ public static class Consts
     /// <param name="name">Instance name.</param>
     /// <returns>Routing key.</returns>
     public static string GenerateGateMessagePackage(string name) => $"serverMessagePackage.{name}.gateToHost";
+
+    /// <summary>
+    /// The message package name for messages sent from the service manager to the host manager.
+    /// </summary>
+    public const string ServiceMgrMessagePackage = "serviceMgrMessagePackage.serviceMgrToHost";
 
     /// <summary>
     /// Generates database client message package routing key to database manager.
@@ -229,6 +254,11 @@ public static class Consts
     /// Routing keys of server to host manaer.
     /// </summary>
     public const string RoutingKeyGateToHost = "#.#.gateToHost";
+
+    /// <summary>
+    /// The routing key used for messages sent from the service manager to the host.
+    /// </summary>
+    public const string RoutingKeyServiceMgrToHost = "#.serviceMgrToHost";
 
     /// <summary>
     /// Routing keys of server to database manager.

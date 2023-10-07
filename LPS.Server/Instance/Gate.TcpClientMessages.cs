@@ -109,7 +109,7 @@ public partial class Gate
             conn.ConnectionId = connId;
             this.createEntityMapping[connId] = conn;
 
-            this.hostConnection.Send(createEntityMsg);
+            this.hostMgrConnection.Send(createEntityMsg);
         }
         else
         {

@@ -42,8 +42,10 @@ export interface INavBarProp {
 
 const NavBar: React.FunctionComponent<INavBarProp> = (props: INavBarProp) => {
     const mainMenuDesc: MainMenuItemDesc[] = [
-        { title: "HostManager", onClicked: (index) => { navigate("/hostmanager") } },
-        { title: "ServerManager", onClicked: (index) => { navigate("/server") } },
+        { title: "Manager", onClicked: (index) => { navigate("/manager") } },
+        { title: "Servers", onClicked: (index) => { navigate("/server") } },
+        { title: "Gates", onClicked: (index) => { navigate("/gate") } },
+        { title: "Services", onClicked: (index) => { navigate("/service") } },
     ];
 
     const navigate = useNavigate();

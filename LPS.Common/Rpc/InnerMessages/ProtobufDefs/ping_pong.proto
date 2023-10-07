@@ -1,0 +1,10 @@
+syntax = "proto3";
+import "mailbox.proto";
+package LPS.Common.Rpc.InnerMessages;
+
+message Ping {
+}
+
+message Pong {
+    MailBox SenderMailBox = 1;
+}

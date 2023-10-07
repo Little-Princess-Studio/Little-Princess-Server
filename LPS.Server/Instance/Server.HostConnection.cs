@@ -29,7 +29,7 @@ public partial class Server
     {
         if (!useMqToHostMgr)
         {
-            this.hostConnection = new ImmediateHostManagerConnectionOfServer(
+            this.hostMgrConnection = new ImmediateHostManagerConnectionOfServer(
                 hostManagerIp,
                 hostManagerPort,
                 this.GenerateRpcId,
@@ -37,16 +37,27 @@ public partial class Server
         }
         else
         {
-            this.hostConnection = new MessageQueueHostManagerConnectionOfServer(this.Name, this.GenerateRpcId);
+            this.hostMgrConnection = new MessageQueueHostManagerConnectionOfServer(this.Name, this.GenerateRpcId);
         }
 
-        this.hostConnection.RegisterMessageHandler(
+        this.hostMgrConnection.RegisterMessageHandler(
             PackageType.RequireCreateEntityRes,
             this.HandleRequireCreateEntityResFromHost);
-        this.hostConnection.RegisterMessageHandler(
+        this.hostMgrConnection.RegisterMessageHandler(
             PackageType.CreateDistributeEntity,
             this.HandleCreateDistributeEntityFromHost);
-        this.hostConnection.RegisterMessageHandler(PackageType.HostCommand, this.HandleHostCommand);
+        this.hostMgrConnection.RegisterMessageHandler(PackageType.HostCommand, this.HandleHostCommand);
+        this.hostMgrConnection.RegisterMessageHandler(PackageType.Ping, this.HandlePing);
+    }
+
+    private void HandlePing(IMessage message)
+    {
+        var pong = new Pong()
+        {
+            SenderMailBox = RpcHelper.RpcMailBoxToPbMailBox(this.entity!.MailBox),
+        };
+
+        this.hostMgrConnection.Send(pong);
     }
 
     private void HandleCreateDistributeEntityFromHost(IMessage msg)
@@ -99,7 +110,7 @@ public partial class Server
                 };
 
                 Logger.Debug("Create Entity Anywhere");
-                this.hostConnection.Send(createEntityRes);
+                this.hostMgrConnection.Send(createEntityRes);
             });
     }
 

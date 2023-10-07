@@ -37,6 +37,7 @@ namespace LPS.Server.Instance;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
 using LPS.Common.Debug;
@@ -56,11 +57,10 @@ using Newtonsoft.Json.Linq;
 public enum HostStatus
 {
     None, // init
-    State0,
-    State1,
-    State2,
-    State3, // stopping
-    State4, // stopped
+    Starting, // startup
+    Running, // all instance registered
+    Stopping, // stopping
+    Stopped, // stopped
 }
 #pragma warning restore SA1602
 
@@ -72,7 +72,7 @@ public enum HostStatus
 /// kick this component off from the host, try to create a new component
 /// while writing alert log.
 /// </summary>
-public class HostManager : IInstance
+public partial class HostManager : IInstance
 {
     /// <inheritdoc/>
     public InstanceType InstanceType => InstanceType.HostManager;
@@ -105,7 +105,7 @@ public class HostManager : IInstance
     /// <summary>
     /// Gets status of the hostmanager.
     /// </summary>
-    public HostStatus Status { get; } = HostStatus.None;
+    public HostStatus Status { get; private set; } = HostStatus.None;
 
     private readonly List<Common.Rpc.MailBox> serversMailBoxes = new();
     private readonly List<Common.Rpc.MailBox> gatesMailBoxes = new();
@@ -116,13 +116,17 @@ public class HostManager : IInstance
         createDistEntityAsyncRecord = new();
 
     private readonly MessageQueueClient messageQueueClientToWebMgr;
-    private readonly MessageQueueClient messageQueueClientToServer;
+    private readonly MessageQueueClient messageQueueClientToOtherInstances;
 
     private readonly Dictionary<string, Connection> mailboxIdToConnection = new();
     private readonly Dictionary<string, string> mailboxIdToIdentifier = new();
 
     private readonly Dispatcher<(IMessage Mesage, string TargetIdentifier, InstanceType OriType)> dispatcher =
         new();
+
+    private readonly InstanceStatusManager instanceStatusManager = new();
+
+    private readonly Timer heartBeatTimer;
 
     private (bool ServicManagerReady, Common.Rpc.MailBox ServiceManagerMailBox) serviceManagerInfo = (false, default);
 
@@ -155,45 +159,12 @@ public class HostManager : IInstance
             ServerTickHandler = null,
         };
 
-        this.dispatcher.Register(
-            PackageType.CreateDistributeEntityRes,
-            (arg)
-                =>
-            {
-                var (msg, targetIdentifier, instanceType) = arg;
-                this.CommonHandleCreateDistributeEntityRes(
-                    msg,
-                    bytes => this.messageQueueClientToServer!.Publish(
-                        bytes,
-                        GetExchangeName(instanceType),
-                        GenerateRoutingKey(targetIdentifier, instanceType)));
-            });
-
-        this.dispatcher.Register(
-            PackageType.RequireCreateEntity,
-            (arg)
-                =>
-            {
-                var (msg, targetIdentifier, instanceType) = arg;
-                this.CommonHandleRequireCreateEntity(
-                    msg,
-                    bytes => this.messageQueueClientToServer!.Publish(
-                        bytes,
-                        GetExchangeName(instanceType),
-                        GenerateRoutingKey(targetIdentifier, instanceType)));
-            });
-
-        this.dispatcher.Register(
-            PackageType.Control,
-            (arg)
-                =>
-            {
-                var (msg, targetIdentifier, _) = arg;
-                this.HandleControlCmdForMqConnection(msg, targetIdentifier);
-            });
+        this.InitializeMessageDispatcher();
 
         this.messageQueueClientToWebMgr = new MessageQueueClient();
-        this.messageQueueClientToServer = new MessageQueueClient();
+        this.messageQueueClientToOtherInstances = new MessageQueueClient();
+
+        this.heartBeatTimer = new Timer(_ => this.HeartBeatDetect(), null, Timeout.Infinite, 1000);
     }
 
     /// <inheritdoc/>
@@ -241,32 +212,88 @@ public class HostManager : IInstance
         return exchangeName;
     }
 
+    private void InitializeMessageDispatcher()
+    {
+        this.dispatcher.Register(
+            PackageType.CreateDistributeEntityRes,
+            (arg)
+                =>
+            {
+                var (msg, targetIdentifier, instanceType) = arg;
+                this.CommonHandleCreateDistributeEntityRes(
+                    msg,
+                    bytes => this.messageQueueClientToOtherInstances!.Publish(
+                        bytes,
+                        GetExchangeName(instanceType),
+                        GenerateRoutingKey(targetIdentifier, instanceType)));
+            });
+
+        this.dispatcher.Register(
+            PackageType.RequireCreateEntity,
+            (arg)
+                =>
+            {
+                var (msg, targetIdentifier, instanceType) = arg;
+                this.CommonHandleRequireCreateEntity(
+                    msg,
+                    bytes => this.messageQueueClientToOtherInstances!.Publish(
+                        bytes,
+                        GetExchangeName(instanceType),
+                        GenerateRoutingKey(targetIdentifier, instanceType)));
+            });
+
+        this.dispatcher.Register(
+            PackageType.Control,
+            (arg)
+                =>
+            {
+                var (msg, targetIdentifier, _) = arg;
+                this.HandleControlCmdForMqConnection(msg, targetIdentifier);
+            });
+
+        this.dispatcher.Register(
+            PackageType.Pong,
+            (arg)
+                =>
+            {
+                var (msg, _, _) = arg;
+                this.HandlePongMessage((msg as Pong)!);
+            });
+    }
+
     private void InitMessageQueueClientInternal()
     {
         Logger.Debug("Start mq client for server.");
-        this.messageQueueClientToServer.Init();
-        this.messageQueueClientToServer.AsProducer();
-        this.messageQueueClientToServer.AsConsumer();
+        this.messageQueueClientToOtherInstances.Init();
+        this.messageQueueClientToOtherInstances.AsProducer();
+        this.messageQueueClientToOtherInstances.AsConsumer();
 
-        this.messageQueueClientToServer.DeclareExchange(Consts.HostMgrToServerExchangeName);
-        this.messageQueueClientToServer.DeclareExchange(Consts.HostMgrToGateExchangeName);
+        this.messageQueueClientToOtherInstances.DeclareExchange(Consts.HostMgrToServerExchangeName);
+        this.messageQueueClientToOtherInstances.DeclareExchange(Consts.HostMgrToGateExchangeName);
+        this.messageQueueClientToOtherInstances.DeclareExchange(Consts.HostMgrToServiceMgrExchangeName);
 
-        this.messageQueueClientToServer.DeclareExchange(Consts.ServerToHostExchangeName);
-        this.messageQueueClientToServer.DeclareExchange(Consts.GateToHostExchangeName);
+        this.messageQueueClientToOtherInstances.DeclareExchange(Consts.ServerToHostExchangeName);
+        this.messageQueueClientToOtherInstances.DeclareExchange(Consts.GateToHostExchangeName);
+        this.messageQueueClientToOtherInstances.DeclareExchange(Consts.ServiceMgrToHostExchangeName);
 
         // As consumer for server, we should bind exchange of `Consts.ServerToHostExchangeName` with `Consts.ServerMessageQueueName`
-        this.messageQueueClientToServer.BindQueueAndExchange(
+        this.messageQueueClientToOtherInstances.BindQueueAndExchange(
             Consts.ServerMessageQueueName,
             Consts.ServerToHostExchangeName,
             Consts.RoutingKeyServerToHost);
 
         // As consumer for gate, we should bind exchange of `Consts.GateToHostExchangeName` with `Consts.GateMessageQueueName`
-        this.messageQueueClientToServer.BindQueueAndExchange(
+        this.messageQueueClientToOtherInstances.BindQueueAndExchange(
             Consts.GateMessageQueueName,
             Consts.GateToHostExchangeName,
             Consts.RoutingKeyGateToHost);
 
-        this.messageQueueClientToServer.Observe(
+        this.messageQueueClientToOtherInstances.BindQueueAndExchange(
+            Consts.ServiceManagerQueueName,
+            Consts.ServiceMgrToHostExchangeName,
+            Consts.RoutingKeyServiceMgrToHost);
+
+        this.messageQueueClientToOtherInstances.Observe(
             Consts.ServerMessageQueueName,
             (msg, routingKey) =>
             {
@@ -290,7 +317,7 @@ public class HostManager : IInstance
                 }
             });
 
-        this.messageQueueClientToServer.Observe(
+        this.messageQueueClientToOtherInstances.Observe(
             Consts.GateMessageQueueName,
             (msg, routingKey) =>
             {
@@ -310,46 +337,25 @@ public class HostManager : IInstance
                         break;
                 }
             });
-    }
 
-    private void InitMessageQueueClientToWebManager()
-    {
-        Logger.Debug("Start mq client for web manager.");
-        this.messageQueueClientToWebMgr.Init();
-        this.messageQueueClientToWebMgr.AsProducer();
-        this.messageQueueClientToWebMgr.AsConsumer();
-
-        this.messageQueueClientToWebMgr.DeclareExchange(Consts.WebMgrExchangeName);
-        this.messageQueueClientToWebMgr.DeclareExchange(Consts.ServerExchangeName);
-        this.messageQueueClientToWebMgr.BindQueueAndExchange(
-            Consts.GenerateWebManagerQueueName(this.Name),
-            Consts.WebMgrExchangeName,
-            Consts.RoutingKeyToHostManager);
-
-        this.messageQueueClientToWebMgr.Observe(
-            Consts.GenerateWebManagerQueueName(this.Name),
+        this.messageQueueClientToOtherInstances.Observe(
+            Consts.ServiceManagerQueueName,
             (msg, routingKey) =>
             {
-                if (routingKey == Consts.GetServerBasicInfo)
+                var split = routingKey.Split('.');
+                var msgType = split[0];
+                var targetIdentifier = split[1];
+                switch (msgType)
                 {
-                    var (msgId, _) = MessageQueueJsonBody.From(msg);
-                    var res = MessageQueueJsonBody.Create(
-                        msgId,
-                        new JObject
-                        {
-                            ["serverCnt"] = this.DesiredServerNum,
-                            ["serverMailBoxes"] = new JArray(this.serversMailBoxes.Select(conn => new JObject
-                            {
-                                ["id"] = conn.Id,
-                                ["ip"] = conn.Ip,
-                                ["port"] = conn.Port,
-                                ["hostNum"] = conn.HostNum,
-                            })),
-                        });
-                    this.messageQueueClientToWebMgr.Publish(
-                        res.ToJson(),
-                        Consts.ServerExchangeName,
-                        Consts.ServerBasicInfoRes);
+                    case "serverMessagePackage":
+                        var pkg = PackageHelper.GetPackageFromBytes(msg);
+                        var type = (PackageType)pkg.Header.Type;
+                        var protobuf = PackageHelper.GetProtoBufObjectByType(type, pkg);
+                        this.dispatcher.Dispatch(type, (protobuf, targetIdentifier, InstanceType.Gate));
+                        break;
+                    default:
+                        Logger.Warn($"Unknown message type: {msgType}");
+                        break;
                 }
             });
     }
@@ -517,7 +523,7 @@ public class HostManager : IInstance
                 var targetServer = this.mailboxIdToIdentifier.GetValueOrDefault(serverMailBox.Id);
                 if (targetServer != null)
                 {
-                    this.messageQueueClientToServer.Publish(
+                    this.messageQueueClientToOtherInstances.Publish(
                         pkg.ToBytes(),
                         Consts.HostMgrToServerExchangeName,
                         Consts.GenerateHostMessageToServerPackage(targetServer));
@@ -540,7 +546,7 @@ public class HostManager : IInstance
         switch (hostCmd.Message)
         {
             case ControlMessage.Ready:
-                this.RegisterComponents(
+                this.RegisterInstance(
                     hostCmd.From,
                     RpcHelper.PbMailBoxToRpcMailBox(hostCmd.Args[0]
                         .Unpack<Common.Rpc.InnerMessages.MailBox>()),
@@ -576,188 +582,6 @@ public class HostManager : IInstance
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(hostCmd.Message), hostCmd.Message, null);
-        }
-    }
-
-    private void RegisterComponents(RemoteType hostCmdFrom, Common.Rpc.MailBox mailBox, Connection conn)
-    {
-        conn.MailBox = mailBox;
-        this.mailboxIdToConnection[mailBox.Id] = conn;
-        this.BroadcastSyncMessage(hostCmdFrom, mailBox);
-    }
-
-    private void BroadcastSyncMessage(RemoteType hostCmdFrom, Common.Rpc.MailBox mailBox)
-    {
-        switch (hostCmdFrom)
-        {
-            case RemoteType.Gate:
-                Logger.Info($"gate require sync {mailBox}");
-                lock (this.gatesMailBoxes)
-                {
-                    this.gatesMailBoxes.Add(mailBox);
-                }
-
-                break;
-            case RemoteType.Server:
-                Logger.Info($"server require sync {mailBox}");
-                lock (this.gatesMailBoxes)
-                {
-                    this.serversMailBoxes.Add(mailBox);
-                }
-
-                break;
-            case RemoteType.ServiceManager:
-                this.serviceManagerInfo = (true, mailBox);
-                break;
-            case RemoteType.Dbmanager:
-                break;
-            default:
-                throw new ArgumentOutOfRangeException(nameof(hostCmdFrom), hostCmdFrom, null);
-        }
-
-        if (this.serversMailBoxes.Count != this.DesiredServerNum || this.gatesMailBoxes.Count != this.DesiredGateNum || !this.serviceManagerInfo.ServicManagerReady)
-        {
-            return;
-        }
-
-        Logger.Info("All gates registered, send sync msg");
-        Logger.Info("All servers registered, send sync msg");
-
-        var gateConns = this.mailboxIdToConnection.Values.Where(
-                conn => this.gatesMailBoxes.FindIndex(mb => mb.CompareOnlyID(conn.MailBox)) != -1)
-            .ToList();
-        var serverConns = this.mailboxIdToConnection.Values.Where(
-                conn => this.serversMailBoxes.FindIndex(mb => mb.CompareOnlyID(conn.MailBox)) != -1)
-            .ToList();
-
-        this.NotifySyncGates(gateConns, serverConns);
-        this.NotifySyncServers(gateConns, serverConns);
-        this.NotifySyncServiceManager(gateConns, serverConns);
-    }
-
-    private void NotifySyncGates(List<Connection> gateConns, List<Connection> serverConns)
-    {
-        // send gates mailboxes
-        var syncCmd = new HostCommand
-        {
-            Type = HostCommandType.SyncGates,
-        };
-        foreach (var gateConn in this.gatesMailBoxes)
-        {
-            syncCmd.Args.Add(Any.Pack(RpcHelper.RpcMailBoxToPbMailBox(gateConn)));
-        }
-
-        var pkg = PackageHelper.FromProtoBuf(syncCmd, 0);
-        var bytes = pkg.ToBytes();
-
-        // to gates
-        foreach (var gateConn in gateConns)
-        {
-            gateConn.Socket.Send(bytes);
-        }
-
-        // to server
-        foreach (var serverConn in serverConns)
-        {
-            serverConn.Socket.Send(bytes);
-        }
-
-        if (serverConns.Count != this.DesiredServerNum)
-        {
-            this.messageQueueClientToServer.Publish(
-                bytes,
-                Consts.HostMgrToServerExchangeName,
-                Consts.HostBroadCastMessagePackageToServer,
-                false);
-        }
-
-        if (gateConns.Count != this.DesiredGateNum)
-        {
-            this.messageQueueClientToServer.Publish(
-                bytes,
-                Consts.HostMgrToGateExchangeName,
-                Consts.HostBroadCastMessagePackageToGate,
-                false);
-        }
-    }
-
-    private void NotifySyncServers(List<Connection> gateConns, List<Connection> serverConns)
-    {
-        var syncCmd = new HostCommand
-        {
-            Type = HostCommandType.SyncServers,
-        };
-
-        // send server mailboxes
-        foreach (var serverConn in this.serversMailBoxes)
-        {
-            syncCmd.Args.Add(Any.Pack(RpcHelper.RpcMailBoxToPbMailBox(serverConn)));
-        }
-
-        var pkg = PackageHelper.FromProtoBuf(syncCmd, 0);
-        var bytes = pkg.ToBytes();
-
-        // to gates
-        foreach (var gateConn in gateConns)
-        {
-            gateConn.Socket.Send(bytes);
-        }
-
-        if (gateConns.Count != this.DesiredGateNum)
-        {
-            this.messageQueueClientToServer.Publish(
-                bytes,
-                Consts.HostMgrToGateExchangeName,
-                Consts.HostBroadCastMessagePackageToGate,
-                false);
-        }
-    }
-
-    private void NotifySyncServiceManager(List<Connection> gateConns, List<Connection> serverConns)
-    {
-        Logger.Info("notify to sync service manager");
-
-        var syncCmd = new HostCommand
-        {
-            Type = HostCommandType.SyncServiceManager,
-        };
-
-        syncCmd.Args.Add(Any.Pack(new MailBoxArg()
-        {
-            PayLoad = RpcHelper.RpcMailBoxToPbMailBox(this.serviceManagerInfo.ServiceManagerMailBox),
-        }));
-
-        var pkg = PackageHelper.FromProtoBuf(syncCmd, 0);
-        var bytes = pkg.ToBytes();
-
-        // to gates
-        foreach (var gateConn in gateConns)
-        {
-            gateConn.Socket.Send(bytes);
-        }
-
-        if (gateConns.Count != this.DesiredGateNum)
-        {
-            this.messageQueueClientToServer.Publish(
-                bytes,
-                Consts.HostMgrToGateExchangeName,
-                Consts.HostBroadCastMessagePackageToGate,
-                false);
-        }
-
-        // to server
-        foreach (var serverConn in serverConns)
-        {
-            serverConn.Socket.Send(bytes);
-        }
-
-        if (serverConns.Count != this.DesiredServerNum)
-        {
-            this.messageQueueClientToServer.Publish(
-                bytes,
-                Consts.HostMgrToServerExchangeName,
-                Consts.HostBroadCastMessagePackageToServer,
-                false);
         }
     }
 }

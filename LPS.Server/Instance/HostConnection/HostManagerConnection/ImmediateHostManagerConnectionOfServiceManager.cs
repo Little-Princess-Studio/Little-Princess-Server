@@ -20,7 +20,6 @@ internal class ImmediateHostManagerConnectionOfServiceManager : ImmediateManager
 {
     private readonly string hostManagerIp;
     private readonly int hostManagerPort;
-    private readonly Func<uint> onGenerateAsyncId;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ImmediateHostManagerConnectionOfServiceManager"/> class.
@@ -32,13 +31,11 @@ internal class ImmediateHostManagerConnectionOfServiceManager : ImmediateManager
     public ImmediateHostManagerConnectionOfServiceManager(
         string hostManagerIp,
         int hostManagerPort,
-        Func<uint> onGenerateAsyncId,
         Func<bool> checkServerStopped)
         : base(checkServerStopped)
     {
         this.hostManagerIp = hostManagerIp;
         this.hostManagerPort = hostManagerPort;
-        this.onGenerateAsyncId = onGenerateAsyncId;
     }
 
     /// <inheritdoc/>

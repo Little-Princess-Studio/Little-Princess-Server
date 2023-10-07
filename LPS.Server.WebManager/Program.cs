@@ -1,5 +1,8 @@
 using LPS.Server.WebManager.Services;
 using LPS.Common.Debug;
+using LPS.Server.MessageQueue;
+using Newtonsoft.Json.Linq;
+using Newtonsoft.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,6 +19,9 @@ builder.Services.AddCors(options =>
 });
 
 Logger.Init("web_manager");
+
+var mqConfig = JToken.ReadFrom(new JsonTextReader(new StreamReader("./Config/mq_conf.json"))).ToObject<MessageQueueClient.MqConfig>() !;
+MessageQueueClient.InitConnectionFactory(mqConfig);
 
 var serverService = new ServerService();
 serverService.Init();

@@ -78,7 +78,7 @@ public partial class Gate : IInstance
     private readonly SandBox clientsPumpMsgSandBox;
 
     private readonly TcpServer tcpGateServer;
-    private IManagerConnection hostConnection = null!;
+    private IManagerConnection hostMgrConnection = null!;
     private IManagerConnection serviceMgrConnection = null!;
 
     private GateEntity? entity;
@@ -148,7 +148,7 @@ public partial class Gate : IInstance
     {
         Array.ForEach(this.tcpClientsToServer!, client => client.Stop());
         Array.ForEach(this.tcpClientsToOtherGate!, client => client.Stop());
-        this.hostConnection.ShutDown();
+        this.hostMgrConnection.ShutDown();
         this.tcpGateServer.Stop();
     }
 
@@ -157,7 +157,7 @@ public partial class Gate : IInstance
     {
         Logger.Info($"Start gate at {this.Ip}:{this.Port}");
         this.tcpGateServer.Run();
-        this.hostConnection.Run();
+        this.hostMgrConnection.Run();
 
         Logger.Debug("Host manager connected.");
 
@@ -172,7 +172,7 @@ public partial class Gate : IInstance
         };
 
         registerCtl.Args.Add(Any.Pack(RpcHelper.RpcMailBoxToPbMailBox(this.entity!.MailBox)));
-        this.hostConnection.Send(registerCtl);
+        this.hostMgrConnection.Send(registerCtl);
 
         this.serversMailBoxesReadyEvent.Wait();
         Logger.Info("Servers mailboxes ready.");
@@ -219,7 +219,7 @@ public partial class Gate : IInstance
         // gate main thread will stuck here
         Array.ForEach(this.tcpClientsToOtherGate!, client => client.WaitForExit());
         Array.ForEach(this.tcpClientsToServer!, client => client.WaitForExit());
-        this.hostConnection.WaitForExit();
+        this.hostMgrConnection.WaitForExit();
         this.tcpGateServer.WaitForExit();
         this.clientsPumpMsgSandBox.WaitForExit();
 
