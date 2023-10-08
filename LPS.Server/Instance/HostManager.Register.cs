@@ -42,19 +42,22 @@ public partial class HostManager
                 lock (this.gatesMailBoxes)
                 {
                     this.gatesMailBoxes.Add(mailBox);
+                    this.instanceStatusManager.Register(mailBox, InstanceType.Gate);
                 }
 
                 break;
             case RemoteType.Server:
                 Logger.Info($"server require sync {mailBox}");
-                lock (this.gatesMailBoxes)
+                lock (this.serversMailBoxes)
                 {
                     this.serversMailBoxes.Add(mailBox);
+                    this.instanceStatusManager.Register(mailBox, InstanceType.Server);
                 }
 
                 break;
             case RemoteType.ServiceManager:
                 this.serviceManagerInfo = (true, mailBox);
+                this.instanceStatusManager.Register(mailBox, InstanceType.ServiceManager);
                 break;
             case RemoteType.Dbmanager:
                 break;
@@ -82,6 +85,7 @@ public partial class HostManager
         this.NotifySyncServiceManager(gateConns, serverConns);
 
         this.Status = HostStatus.Running;
+        this.heartBeatTimer.Change(0, 5000);
     }
 
     private void NotifySyncGates(List<Connection> gateConns, List<Connection> serverConns)

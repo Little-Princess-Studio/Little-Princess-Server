@@ -112,6 +112,8 @@ public partial class HostManager
             return;
         }
 
+        Logger.Debug("[Ping] Start ping");
+
         var ping = new Common.Rpc.InnerMessages.Ping();
         var pkg = Common.Rpc.InnerMessages.PackageHelper.FromProtoBuf(ping, 0);
         var bytes = pkg.ToBytes();
@@ -171,6 +173,7 @@ public partial class HostManager
         {
             status.WaitingForPong = true;
             serviceMgrConn.Socket.Send(bytesToSend);
+            Logger.Debug($"[Ping] Send ping to {id}");
         }
         else if (this.mailboxIdToIdentifier.TryGetValue(id, out var identifier))
         {
@@ -179,6 +182,7 @@ public partial class HostManager
                     bytesToSend,
                     exchange,
                     getRoutingKey.Invoke(identifier));
+            Logger.Debug($"[Ping] Send ping to {id}, type {status.InstanceType}");
         }
         else
         {
@@ -194,6 +198,8 @@ public partial class HostManager
             Logger.Warn($"[Pong] Cannot find instance with mailbox {mb}");
             return;
         }
+
+        Logger.Debug($"[Pong] Receive pong from {mb.Id}");
 
         var status = this.instanceStatusManager.GetStatus(mb);
         status.WaitingForPong = false;

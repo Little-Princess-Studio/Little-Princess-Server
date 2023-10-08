@@ -36,10 +36,8 @@ namespace LPS.Server.Instance;
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using Google.Protobuf;
-using Google.Protobuf.WellKnownTypes;
 using LPS.Common.Debug;
 using LPS.Common.Ipc;
 using LPS.Common.Rpc;
@@ -164,7 +162,7 @@ public partial class HostManager : IInstance
         this.messageQueueClientToWebMgr = new MessageQueueClient();
         this.messageQueueClientToOtherInstances = new MessageQueueClient();
 
-        this.heartBeatTimer = new Timer(_ => this.HeartBeatDetect(), null, Timeout.Infinite, 1000);
+        this.heartBeatTimer = new Timer(_ => this.HeartBeatDetect(), null, Timeout.Infinite, 2000);
     }
 
     /// <inheritdoc/>
@@ -173,7 +171,7 @@ public partial class HostManager : IInstance
         Logger.Info($"Start Host Manager at {this.Ip}:{this.Port}");
         this.tcpServer.Run();
 
-        this.InitMessageQueueClientInternal();
+        this.InitMessageQueueClientToInstances();
         this.InitMessageQueueClientToWebManager();
 
         this.tcpServer.WaitForExit();
@@ -182,6 +180,7 @@ public partial class HostManager : IInstance
     /// <inheritdoc/>
     public void Stop()
     {
+        this.heartBeatTimer.Dispose();
         this.tcpServer.Stop();
     }
 
@@ -261,7 +260,7 @@ public partial class HostManager : IInstance
             });
     }
 
-    private void InitMessageQueueClientInternal()
+    private void InitMessageQueueClientToInstances()
     {
         Logger.Debug("Start mq client for server.");
         this.messageQueueClientToOtherInstances.Init();

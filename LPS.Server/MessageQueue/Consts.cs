@@ -215,7 +215,7 @@ public static class Consts
     /// <summary>
     /// The message package name for messages sent from the service manager to the host manager.
     /// </summary>
-    public const string ServiceMgrMessagePackage = "serviceMgrMessagePackage.serviceMgrToHost";
+    public const string ServiceMgrMessagePackage = "serverMessagePackage.serviceMgrToHost";
 
     /// <summary>
     /// Generates database client message package routing key to database manager.
