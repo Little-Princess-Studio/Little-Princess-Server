@@ -83,6 +83,7 @@ public partial class Gate
             case HostCommandType.Open:
                 break;
             case HostCommandType.Stop:
+                this.Stop();
                 break;
             default:
                 throw new ArgumentOutOfRangeException();

@@ -452,6 +452,8 @@ public partial class Gate : IInstance
         {
             Logger.Error(e, "Pump message failed.");
         }
+
+        Logger.Info("Pump message thread exit.");
     }
 
     private TcpClient RandomServerClient()
