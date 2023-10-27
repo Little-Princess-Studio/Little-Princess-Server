@@ -91,6 +91,11 @@ public static class Consts
     public const string GetServerBasicInfo = "getServerBasicInfo.toHostMgr";
 
     /// <summary>
+    /// The message to request server ping-pong information from the host manager.
+    /// </summary>
+    public const string GetServerPingPongInfo = "getServerPingPongInfo.toHostMgr";
+
+    /// <summary>
     /// Request to get server detailed info.
     /// </summary>
     public const string GetServerDetailedInfo = "getServerDetailedInfo.toSrv";
@@ -104,6 +109,11 @@ public static class Consts
     /// Server count result routing key to web manager.
     /// </summary>
     public const string ServerBasicInfoRes = "serverBasicInfoRes.toWebMgr";
+
+    /// <summary>
+    /// The message queue response topic for getting server ping-pong information.
+    /// </summary>
+    public const string GetServerPingPongInfoRes = "getServerPingPongInfoRes.toWebMgr";
 
     /// <summary>
     /// Get all entities of server.

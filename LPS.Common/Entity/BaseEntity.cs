@@ -15,15 +15,22 @@ using LPS.Common.Ipc;
 using LPS.Common.Rpc;
 using LPS.Common.Rpc.InnerMessages;
 using LPS.Common.Rpc.RpcProperty;
+using LPS.Common.Rpc.RpcProperty.Weaving;
 using LPS.Common.Rpc.RpcStub;
 using LPS.Common.Util;
+using Rougamo;
 using MailBox = LPS.Common.Rpc.MailBox;
 
 /// <summary>
 /// BaseEntity class.
 /// </summary>
 [RpcStubGenerator(typeof(RpcStubGenerator))]
-public abstract class BaseEntity : ITypeIdSupport
+public abstract class BaseEntity : ITypeIdSupport,
+    IRougamo<ComplexTypeRpcPropertyGetterMo>,
+    IRougamo<ComplexTypeRpcPropertySetterMo>,
+    IRougamo<PlaintTypeRpcPropertyGetterMo>,
+    IRougamo<PlaintTypeRpcPropertySetterMo>,
+    IPropertyTree
 {
     /// <summary>
     /// Gets or sets the mailbox of the entity.
@@ -81,6 +88,31 @@ public abstract class BaseEntity : ITypeIdSupport
 
     /// <inheritdoc/>
     public uint TypeId { get; private set; }
+
+    /// <inheritdoc/>
+    bool IPropertyTree.IsPropertyTreeBuilt => this.propertyTree != null;
+
+    /// <inheritdoc/>
+    IValueSetable IPropertyTree.GetSetableContainer(string name)
+    {
+        if (this.propertyTree!.ContainsKey(name))
+        {
+            return (IValueSetable)this.propertyTree[name];
+        }
+
+        throw new Exception($"Property {name} not found in entity {this.GetType().Name}.");
+    }
+
+    /// <inheritdoc/>
+    IValueGetable IPropertyTree.GetGetableContainer(string name)
+    {
+        if (this.propertyTree!.ContainsKey(name))
+        {
+            return (IValueGetable)this.propertyTree[name];
+        }
+
+        throw new Exception($"Property {name} not found in entity {this.GetType().Name}.");
+    }
 
     private uint rpcIdCnt;
 

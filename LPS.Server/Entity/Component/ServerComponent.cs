@@ -6,8 +6,6 @@
 
 namespace LPS.Common.Entity.Component;
 
-using System;
-using System.Collections.Generic;
 using System.Threading.Tasks;
 using LPS.Common.Rpc;
 using LPS.Server.Database;
@@ -69,6 +67,11 @@ public class ServerComponent : ComponentBase
     /// <inheritdoc/>
     protected override void OnInitPropertyTree()
     {
-        RpcHelper.BuildPropertyTree(this, RpcServerHelper.AllowedRpcPropertyGenTypes);
+        RpcHelper.BuildPropertyTree(
+            this,
+            RpcServerHelper.AllowedRpcPropertyGenTypes,
+            typeof(RpcPlaintProperty<>),
+            typeof(RpcComplexProperty<>),
+            true);
     }
 }

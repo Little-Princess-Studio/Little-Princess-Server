@@ -67,8 +67,11 @@ public static partial class RpcHelper
 
             if (entry == null)
             {
-                // TODO: use RpcPropertyContainer.CreateSerializedContainer instead of throw exception
-                throw new Exception($"RpcContainerType {entry} not have deserialize entry.");
+                var genericEntry = typeof(RpcPropertyCostumeContainer).GetMethod(
+                    nameof(RpcPropertyCostumeContainer.CreateSerializedContainer),
+                    BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic)!;
+                entry = genericEntry.MakeGenericMethod(containerType);
+                Logger.Warn($"No deserialize entry method found for {containerType}, use generic method");
             }
 
             if (entry.ReturnType != typeof(RpcPropertyContainer)
@@ -350,10 +353,24 @@ public static partial class RpcHelper
     /// </summary>
     /// <param name="entity">The BaseEntity object to build the property tree for.</param>
     /// <param name="allowedRpcPropertyGenTypes">The set of allowed generic types for RPC properties.</param>
-    public static void BuildPropertyTree(BaseEntity entity, HashSet<Type> allowedRpcPropertyGenTypes)
+    /// <param name="rpcPlaintPropertyType">The type of the plain RPC property.</param>
+    /// <param name="rpcComplexPropertyType">The type of the complex RPC property.</param>
+    /// <param name="shouldSetInitRawValue">If should set init raw value to the rpc wrapped property.</param>
+    public static void BuildPropertyTree(
+        BaseEntity entity,
+        HashSet<Type> allowedRpcPropertyGenTypes,
+        Type rpcPlaintPropertyType,
+        Type rpcComplexPropertyType,
+        bool shouldSetInitRawValue)
     {
         var type = entity.GetType();
-        var tree = BuildPropertyTreeInternal(entity, type, allowedRpcPropertyGenTypes);
+        var tree = BuildPropertyTreeInternal(
+            entity,
+            type,
+            allowedRpcPropertyGenTypes,
+            rpcPlaintPropertyType,
+            rpcComplexPropertyType,
+            shouldSetInitRawValue);
 
         foreach (var (_, prop) in tree)
         {
@@ -368,10 +385,24 @@ public static partial class RpcHelper
     /// </summary>
     /// <param name="component">The ComponentBase object to build the property tree for.</param>
     /// <param name="allowedRpcPropertyGenTypes">The set of allowed generic types for RPC properties.</param>
-    public static void BuildPropertyTree(ComponentBase component, HashSet<Type> allowedRpcPropertyGenTypes)
+    /// <param name="rpcPlaintPropertyType">The type of the plain RPC property.</param>
+    /// <param name="rpcComplexPropertyType">The type of the complex RPC property.</param>
+    /// <param name="shouldSetInitRawValue">If should set init raw value to the rpc wrapped property.</param>
+    public static void BuildPropertyTree(
+        ComponentBase component,
+        HashSet<Type> allowedRpcPropertyGenTypes,
+        Type rpcPlaintPropertyType,
+        Type rpcComplexPropertyType,
+        bool shouldSetInitRawValue)
     {
         var type = component.GetType();
-        var tree = BuildPropertyTreeInternal(component, type, allowedRpcPropertyGenTypes);
+        var tree = BuildPropertyTreeInternal(
+            component,
+            type,
+            allowedRpcPropertyGenTypes,
+            rpcPlaintPropertyType,
+            rpcComplexPropertyType,
+            shouldSetInitRawValue);
 
         foreach (var (_, prop) in tree)
         {
@@ -751,14 +782,20 @@ public static partial class RpcHelper
         }
     }
 
-    private static Dictionary<string, RpcProperty.RpcProperty> BuildPropertyTreeInternal(object obj, Type type, HashSet<Type> allowedRpcPropertyGenTypes)
+    private static Dictionary<string, RpcProperty.RpcProperty> BuildPropertyTreeInternal(
+        object obj,
+        Type type,
+        HashSet<Type> allowedRpcPropertyGenTypes,
+        Type rpcPlaintPropertyType,
+        Type rpcComplexPropertyType,
+        bool shouldSetInitRawValue)
     {
-        var tree = type.GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
+        var fieldTree = type.GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
             .Where(field =>
             {
                 var fieldType = field.FieldType;
-
                 var attr = field.GetCustomAttribute<RpcPropertyAttribute>();
+
                 if (attr == null)
                 {
                     return false;
@@ -776,16 +813,92 @@ public static partial class RpcHelper
                     return false;
                 }
 
+                return true;
+            }).Select(field =>
+            {
+                var fieldType = field.FieldType;
+                var attr = field.GetCustomAttribute<RpcPropertyAttribute>()!;
+
                 var rpcProperty = field.GetValue(obj) as RpcProperty.RpcProperty;
 
-                rpcProperty!.Init(attr.Name ?? fieldType.Name, attr.Setting);
+                if (rpcProperty is null)
+                {
+                    throw new Exception($"Field of {field.Name} of {type.FullName} must be init before constructing the property treee.");
+                }
+
+                rpcProperty!.Init(string.IsNullOrEmpty(value: attr.Name) ? fieldType.Name : attr.Name, attr.Setting);
 
                 Logger.Debug($"RpcProperty {rpcProperty.Name} in {obj.GetType().Name} {attr.Setting} {rpcProperty.CanSyncToClient}");
+
+                return rpcProperty;
+            });
+
+        var propertyTree = type.GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
+            .Where(prop =>
+            {
+                var propertyType = prop.PropertyType;
+
+                var attr = prop.GetCustomAttribute<RpcWrappedPropertyAttribute>();
+                if (attr == null)
+                {
+                    return false;
+                }
+
+                if (propertyType != typeof(int)
+                    && propertyType != typeof(string)
+                    && propertyType != typeof(float)
+                    && propertyType != typeof(bool)
+                    && propertyType != typeof(Common.Rpc.MailBox)
+                    && !propertyType.IsSubclassOf(typeof(RpcPropertyContainer)))
+                {
+                    return false;
+                }
+
                 return true;
-            }).ToDictionary(
-                field => (field.GetValue(obj) as RpcProperty.RpcProperty)!.Name,
-                field => (field.GetValue(obj) as RpcProperty.RpcProperty)!);
-        return tree;
+            }).Select(prop =>
+            {
+                var propertyType = prop.PropertyType;
+
+                Type rpcPropertyType;
+                if (!propertyType.IsSubclassOf(typeof(RpcPropertyContainer)))
+                {
+                    rpcPropertyType = rpcPlaintPropertyType.MakeGenericType(propertyType);
+                }
+                else
+                {
+                    rpcPropertyType = rpcComplexPropertyType.MakeGenericType(propertyType);
+                }
+
+                RpcProperty.RpcProperty rpcProperty;
+                if (shouldSetInitRawValue)
+                {
+                    var rawValue = prop.GetValue(obj);
+
+                    if (rawValue is null)
+                    {
+                        throw new Exception($"Property of {propertyType.Name} must be init before constructing the property treee.");
+                    }
+
+                    rpcProperty = (Activator.CreateInstance(rpcPropertyType, rawValue) as RpcProperty.RpcProperty)!;
+                }
+                else
+                {
+                    rpcProperty = (Activator.CreateInstance(rpcPropertyType) as RpcProperty.RpcProperty)!;
+                }
+
+                var attr = prop.GetCustomAttribute<RpcWrappedPropertyAttribute>()!;
+
+                rpcProperty!.Init(string.IsNullOrEmpty(attr.Name) ? propertyType.Name : attr.Name, attr.Setting);
+
+                Logger.Debug($"RpcProperty {rpcProperty.Name} in {obj.GetType().Name} {attr.Setting} {rpcProperty.CanSyncToClient}");
+                return rpcProperty;
+            });
+
+        var res = fieldTree.Concat(propertyTree).ToDictionary(
+                rpcProperty => rpcProperty.Name,
+                rpcProperty => rpcProperty);
+
+        return res;
     }
 
     private static void RegisterRpcPropertyContainerIntern(Type type, RpcPropertyContainerDeserializeEntry entry)

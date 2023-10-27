@@ -22,7 +22,7 @@ using LPS.Common.Rpc.RpcPropertySync.RpcPropertySyncMessage;
 /// 5. Mailbox.
 /// </summary>
 /// <typeparam name="T">Type of the raw value.</typeparam>
-public abstract class RpcPlaintPropertyBase<T> : RpcProperty
+public abstract class RpcPlaintPropertyBase<T> : RpcProperty, IValueGetable, IValueSetable
 {
     static RpcPlaintPropertyBase()
     {
@@ -77,6 +77,18 @@ public abstract class RpcPlaintPropertyBase<T> : RpcProperty
                 content);
         this.Value.Name = this.Name;
         this.Value.IsReferred = true;
+    }
+
+    /// <inheritdoc/>
+    object IValueGetable.GetValue()
+    {
+        return this.Get()!;
+    }
+
+    /// <inheritdoc/>
+    void IValueSetable.SetValue(object value)
+    {
+        this.Set((T)value);
     }
 
     private void Set(T value)

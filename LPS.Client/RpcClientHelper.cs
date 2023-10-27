@@ -44,7 +44,12 @@ public static class RpcClientHelper
             {
                 var obj = (Activator.CreateInstance(entityClass) as ShadowClientEntity)!;
                 await obj.InitComponents();
-                RpcHelper.BuildPropertyTree(obj, AllowedRpcPropertyGenTyeps);
+                RpcHelper.BuildPropertyTree(
+                    obj,
+                    AllowedRpcPropertyGenTyeps,
+                    typeof(RpcShadowPlaintProperty<>),
+                    typeof(RpcShadowComplexProperty<>),
+                    false);
                 return obj;
             }
 

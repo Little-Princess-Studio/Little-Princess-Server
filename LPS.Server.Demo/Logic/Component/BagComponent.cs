@@ -52,14 +52,6 @@ public class Item : RpcPropertyCostumeContainer<Item>
     public readonly RpcPropertyContainer<string> ItemName = new (string.Empty);
 
     /// <summary>
-    /// Creates a new instance of the <see cref="RpcPropertyContainer"/> class from the specified <see cref="Any"/> content.
-    /// </summary>
-    /// <param name="content">The content to deserialize.</param>
-    /// <returns>A new instance of the <see cref="RpcPropertyContainer"/> class.</returns>
-    [RpcPropertyContainerDeserializeEntry]
-    public static RpcPropertyContainer FromRpcArg(Any content) => CreateSerializedContainer<Item>(content);
-
-    /// <summary>
     /// Initializes a new instance of the <see cref="Item"/> class with the specified ID and name.
     /// </summary>
     /// <param name="itemId">The ID of the item.</param>
