@@ -366,7 +366,11 @@ public class ServiceManager : IInstance
 
     private void HandleHostCommand(IMessage message)
     {
-        throw new NotImplementedException();
+        var hostCmd = (HostCommand)message;
+        if (hostCmd.Type == HostCommandType.Stop)
+        {
+            this.Stop();
+        }
     }
 
     private uint GenerateAsyncId()

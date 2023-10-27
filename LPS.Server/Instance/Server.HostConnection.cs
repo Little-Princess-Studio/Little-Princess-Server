@@ -153,6 +153,10 @@ public partial class Server
             this.serviceManagerMailBox = RpcHelper.PbMailBoxToRpcMailBox(hostCmd.Args[0].Unpack<MailBoxArg>().PayLoad);
             this.waitForSyncServiceManagerEvent.Signal(1);
         }
+        else if (hostCmd.Type == HostCommandType.Stop)
+        {
+            this.Stop();
+        }
     }
 
     private async Task OnCreateEntity(Connection? gateConn, string entityClassName, string jsonDesc, Common.Rpc.MailBox mailBox)

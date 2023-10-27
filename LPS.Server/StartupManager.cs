@@ -12,6 +12,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Threading;
 using LPS.Common.Debug;
 using LPS.Common.Rpc;
 using LPS.Common.Rpc.RpcStub;
@@ -28,6 +29,30 @@ using Newtonsoft.Json.Linq;
 /// </summary>
 public static class StartupManager
 {
+    /*
+        private readonly struct SubProcessStartupInfo
+        {
+            public readonly string Type;
+            public readonly string Name;
+            public readonly string ConfFilePath;
+            public readonly string BinaryPath;
+            public readonly bool Hotreload;
+
+            public SubProcessStartupInfo(string type, string name, string confFilePath, string binaryPath, bool hotreload)
+            {
+                this.Type = type;
+                this.Name = name;
+                this.ConfFilePath = confFilePath;
+                this.BinaryPath = binaryPath;
+                this.Hotreload = hotreload;
+            }
+        }
+
+        private static readonly Dictionary<string, SubProcessStartupInfo> SubProcessStartupInfoMap = new();
+    */
+
+    private static readonly HashSet<string> AliveProcesses = new HashSet<string>();
+
     /// <summary>
     /// Startup a process via config file.
     /// </summary>
@@ -100,6 +125,20 @@ public static class StartupManager
             default:
                 throw new Exception($"Wrong Config File {type} {name} {confFilePath}.");
         }
+    }
+
+    /// <summary>
+    /// Watches all sub-processes.
+    /// </summary>
+    public static void WatchAllSubProcesses()
+    {
+        Logger.Info("Start watching all sub processes");
+        while (AliveProcesses.Count > 0)
+        {
+            Thread.Sleep(10000);
+        }
+
+        Logger.Info("All sub processes exited, exit watching process");
     }
 
     private static JObject GetJson(string path)
@@ -225,7 +264,33 @@ public static class StartupManager
             }
         }
 
-        Process.Start(procStartInfo);
+        // var process = Process.Start(procStartInfo);
+        var process = new Process
+        {
+            StartInfo = procStartInfo,
+            EnableRaisingEvents = true,
+        };
+        process.Exited += (sender, e) =>
+        {
+            var exitCode = process.ExitCode;
+            if (exitCode != 0)
+            {
+                Logger.Warn("subprocess exited with unexpected code {0}, restart it", exitCode);
+                StartSubProcess(type, name, confFilePath, binaryPath, hotreload);
+            }
+            else
+            {
+                Logger.Info("subprocess exited with expected code {0}", exitCode);
+                AliveProcesses.Remove(name);
+            }
+        };
+
+        if (!AliveProcesses.Contains(name))
+        {
+            AliveProcesses.Add(name);
+        }
+
+        process.Start();
     }
 
     private static string GetBinPath()

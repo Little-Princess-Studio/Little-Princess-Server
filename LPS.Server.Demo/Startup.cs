@@ -76,6 +76,7 @@ public static class Startup
                     }
 
                     Logger.Info("Start up succ");
+                    StartupManager.WatchAllSubProcesses();
                     return true;
                 },
                 (ByDefaultOptions opts) =>
@@ -117,5 +118,6 @@ public static class Startup
         StartupManager.FromConfig("Config/host0/server.conf.json", hotreload);
         StartupManager.FromConfig("Config/host0/dbmanager.conf.json", hotreload);
         StartupManager.FromConfig("Config/host0/service.conf.json", hotreload);
+        StartupManager.WatchAllSubProcesses();
     }
 }
