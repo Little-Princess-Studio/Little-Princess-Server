@@ -300,23 +300,19 @@ public class RpcPropertyContainer<T> : RpcPropertyContainer, ISyncOpActionSetVal
         {
             container = new RpcPropertyContainer<int>(RpcHelper.GetInt(content));
         }
-
-        if (content.Is(FloatArg.Descriptor) && typeof(T) == typeof(float))
+        else if (content.Is(FloatArg.Descriptor) && typeof(T) == typeof(float))
         {
             container = new RpcPropertyContainer<float>(RpcHelper.GetFloat(content));
         }
-
-        if (content.Is(StringArg.Descriptor) && typeof(T) == typeof(string))
+        else if (content.Is(StringArg.Descriptor) && typeof(T) == typeof(string))
         {
             container = new RpcPropertyContainer<string>(RpcHelper.GetString(content));
         }
-
-        if (content.Is(BoolArg.Descriptor) && typeof(T) == typeof(bool))
+        else if (content.Is(BoolArg.Descriptor) && typeof(T) == typeof(bool))
         {
             container = new RpcPropertyContainer<bool>(RpcHelper.GetBool(content));
         }
-
-        if (content.Is(MailBoxArg.Descriptor) && typeof(T) == typeof(MailBox))
+        else if (content.Is(MailBoxArg.Descriptor) && typeof(T) == typeof(MailBox))
         {
             container = new RpcPropertyContainer<MailBox>(
                 RpcHelper.PbMailBoxToRpcMailBox(RpcHelper.GetMailBox(content)));
