@@ -63,6 +63,9 @@ public static class Startup
     /// <param name="args">Args.</param>
     public static void Main(string[] args)
     {
+        StartupManager.OnGetStartupArgumentsString =
+            info => $"subproc --type {info.Type} --confpath {info.ConfFilePath} --childname {info.InstanceName}";
+
         Parser.Default.ParseArguments<StartUpOptions, ByDefaultOptions, SubProcOptions>(args)
             .MapResult(
                 (StartUpOptions opts) =>

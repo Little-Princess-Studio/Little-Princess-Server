@@ -29,27 +29,51 @@ using Newtonsoft.Json.Linq;
 /// </summary>
 public static class StartupManager
 {
-    /*
-        private readonly struct SubProcessStartupInfo
+    /// <summary>
+    /// Class to store the information of a subprocess.
+    /// </summary>
+    public readonly struct SubProcessStartupInfo
+    {
+        /// <summary>
+        /// The type of the subprocess.
+        /// </summary>
+        public readonly string Type;
+
+        /// <summary>
+        /// The name of the instance of the subprocess.
+        /// </summary>
+        public readonly string InstanceName;
+
+        /// <summary>
+        /// The path to the configuration file for the subprocess.
+        /// </summary>
+        public readonly string ConfFilePath;
+
+        /// <summary>
+        /// The path to the binary file of the subprocess.
+        /// </summary>
+        public readonly string BinaryPath;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="SubProcessStartupInfo"/> struct.
+        /// </summary>
+        /// <param name="type">The type of the subprocess.</param>
+        /// <param name="instanceName">The name of the instance.</param>
+        /// <param name="confFilePath">The path to the configuration file.</param>
+        /// <param name="binaryPath">The path to the binary file.</param>
+        public SubProcessStartupInfo(string type, string instanceName, string confFilePath, string binaryPath)
         {
-            public readonly string Type;
-            public readonly string Name;
-            public readonly string ConfFilePath;
-            public readonly string BinaryPath;
-            public readonly bool Hotreload;
-
-            public SubProcessStartupInfo(string type, string name, string confFilePath, string binaryPath, bool hotreload)
-            {
-                this.Type = type;
-                this.Name = name;
-                this.ConfFilePath = confFilePath;
-                this.BinaryPath = binaryPath;
-                this.Hotreload = hotreload;
-            }
+            this.Type = type;
+            this.InstanceName = instanceName;
+            this.ConfFilePath = confFilePath;
+            this.BinaryPath = binaryPath;
         }
+    }
 
-        private static readonly Dictionary<string, SubProcessStartupInfo> SubProcessStartupInfoMap = new();
-    */
+    /// <summary>
+    /// Gets or sets the function to get the startup arguments string for a subprocess.
+    /// </summary>
+    public static Func<SubProcessStartupInfo, string> OnGetStartupArgumentsString = null!;
 
     private static readonly HashSet<string> AliveProcesses = new HashSet<string>();
 
@@ -102,6 +126,11 @@ public static class StartupManager
     /// <exception cref="Exception">Throw exception if failed to startup the process.</exception>
     public static void StartUp(string type, string name, string confFilePath)
     {
+        if (OnGetStartupArgumentsString is null)
+        {
+            throw new Exception("Method of GetStartupArgumentsString is not set.");
+        }
+
         switch (type)
         {
             case "hostmanager":
@@ -218,24 +247,29 @@ public static class StartupManager
     {
         Logger.Info($"startup {name}");
 
+        var startUpArgumentsString =
+            OnGetStartupArgumentsString(new SubProcessStartupInfo(type, name, confFilePath, binaryPath));
+
+        Logger.Debug($"start up arguments string: {startUpArgumentsString}");
+
         ProcessStartInfo procStartInfo;
         if (Environment.OSVersion.Platform == PlatformID.Unix)
         {
             if (!hotreload)
             {
-                procStartInfo = new ProcessStartInfo()
+                procStartInfo = new ProcessStartInfo
                 {
                     FileName = binaryPath,
-                    Arguments = $"subproc --type {type} --confpath {confFilePath} --childname {name}",
+                    Arguments = $"subproc {startUpArgumentsString}",
                     UseShellExecute = true,
                 };
             }
             else
             {
-                procStartInfo = new ProcessStartInfo()
+                procStartInfo = new ProcessStartInfo
                 {
                     FileName = "dotnet",
-                    Arguments = $"watch run subproc --type {type} --confpath {confFilePath} --childname {name}",
+                    Arguments = $"watch run {startUpArgumentsString}",
                     UseShellExecute = true,
                 };
             }
@@ -244,20 +278,20 @@ public static class StartupManager
         {
             if (!hotreload)
             {
-                procStartInfo = new ProcessStartInfo()
+                procStartInfo = new ProcessStartInfo
                 {
                     FileName = "dotnet",
-                    Arguments = $"{binaryPath} subproc --type {type} --confpath {confFilePath} --childname {name}",
+                    Arguments = $"{binaryPath} {startUpArgumentsString}",
                     UseShellExecute = true,
                     CreateNoWindow = false,
                 };
             }
             else
             {
-                procStartInfo = new ProcessStartInfo()
+                procStartInfo = new ProcessStartInfo
                 {
                     FileName = "dotnet",
-                    Arguments = $"watch run subproc --type {type} --confpath {confFilePath} --childname {name}",
+                    Arguments = $"watch run {startUpArgumentsString}",
                     UseShellExecute = true,
                     CreateNoWindow = false,
                 };
@@ -275,20 +309,17 @@ public static class StartupManager
             var exitCode = process.ExitCode;
             if (exitCode != 0)
             {
-                Logger.Warn("subprocess exited with unexpected code {0}, restart it", exitCode);
+                Logger.Warn("subprocess exited with unexpected code {0}, restart it, exitcode: {exitCode}");
                 StartSubProcess(type, name, confFilePath, binaryPath, hotreload);
             }
             else
             {
-                Logger.Info("subprocess exited with expected code {0}", exitCode);
+                Logger.Info("subprocess exited with expected code {0}, exitcode: {exitCode}");
                 AliveProcesses.Remove(name);
             }
         };
 
-        if (!AliveProcesses.Contains(name))
-        {
-            AliveProcesses.Add(name);
-        }
+        AliveProcesses.Add(name);
 
         process.Start();
     }

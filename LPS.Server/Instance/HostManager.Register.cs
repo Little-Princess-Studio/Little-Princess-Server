@@ -56,6 +56,7 @@ public partial class HostManager
 
                 break;
             case RemoteType.ServiceManager:
+                Logger.Info($"service manager ready {mailBox}");
                 this.serviceManagerInfo = (true, mailBox);
                 this.instanceStatusManager.Register(mailBox, InstanceType.ServiceManager);
                 break;
@@ -67,6 +68,7 @@ public partial class HostManager
 
         if (this.serversMailBoxes.Count != this.DesiredServerNum || this.gatesMailBoxes.Count != this.DesiredGateNum || !this.serviceManagerInfo.ServicManagerReady)
         {
+            Logger.Debug($"server count {this.serversMailBoxes.Count}, gate count {this.gatesMailBoxes.Count}, service manager ready {this.serviceManagerInfo.ServicManagerReady}");
             return;
         }
 
