@@ -76,6 +76,11 @@ public static class Consts
     public static string GenerateHostMessageToGatePackage(string targetName) => $"hostMessagePackage.{targetName}.toGate";
 
     /// <summary>
+    /// Host message package routing key to service manager.
+    /// </summary>
+    public const string HostMessagePackageToServiceMgrPackage = "hostMessagePackage.toServiceMgr";
+
+    /// <summary>
     /// Host manager broadcast message package routing key to server.
     /// </summary>
     public const string HostBroadCastMessagePackageToServer = "hostBroadCastMessagePackage.toSrv";

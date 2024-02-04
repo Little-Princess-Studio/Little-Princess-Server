@@ -90,6 +90,8 @@ internal class TcpClient // : IClient
         this.bus = new Bus(this.msgDispatcher);
 
         this.sandboxIo = SandBox.Create(this.IoHandler);
+
+        // TODO: use a common sandbox to handle all send queue.
         this.clientsSendQueueSandBox = SandBox.Create(this.SendQueueMessageHandler);
     }
 
@@ -264,17 +266,16 @@ internal class TcpClient // : IClient
         while (!this.stopFlag)
         {
             await this.HandleMessage(conn);
-            Thread.Sleep(1);
         }
 
         cancellationTokenSource.Cancel();
         this.OnDispose?.Invoke(this);
     }
 
-    private async Task HandleMessage(Connection conn) =>
-        await RpcHelper.HandleMessage(
+    private Task HandleMessage(Connection conn) =>
+        RpcHelper.HandleMessage(
             conn,
             () => this.stopFlag,
-            (msg) => { this.bus.AppendMessage(msg); },
+            (msg) => this.bus.AppendMessage(msg),
             null);
 }

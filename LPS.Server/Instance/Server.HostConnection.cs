@@ -52,12 +52,13 @@ public partial class Server
 
     private void HandlePing(IMessage message)
     {
-        var pong = new Pong()
+        var pong = new Pong
         {
             SenderMailBox = RpcHelper.RpcMailBoxToPbMailBox(this.entity!.MailBox),
         };
 
         this.hostMgrConnection.Send(pong);
+        Logger.Debug("Ping from host manager");
     }
 
     private void HandleCreateDistributeEntityFromHost(IMessage msg)

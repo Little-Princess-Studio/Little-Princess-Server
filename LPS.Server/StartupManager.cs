@@ -309,12 +309,12 @@ public static class StartupManager
             var exitCode = process.ExitCode;
             if (exitCode != 0)
             {
-                Logger.Warn("subprocess exited with unexpected code {0}, restart it, exitcode: {exitCode}");
+                Logger.Warn("subprocess exited with unexpected code, restart it, exitcode: {exitCode}");
                 StartSubProcess(type, name, confFilePath, binaryPath, hotreload);
             }
             else
             {
-                Logger.Info("subprocess exited with expected code {0}, exitcode: {exitCode}");
+                Logger.Info("subprocess exited with expected code, exitcode: {exitCode}");
                 AliveProcesses.Remove(name);
             }
         };

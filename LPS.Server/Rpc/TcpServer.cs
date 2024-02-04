@@ -324,12 +324,10 @@ internal class TcpServer
         }
     }
 
-    private Task HandleMessage(Connection conn)
-    {
-        return RpcHelper.HandleMessage(
+    private Task HandleMessage(Connection conn) =>
+        RpcHelper.HandleMessage(
             conn,
             () => this.stopFlag,
             (msg) => this.bus.AppendMessage(msg),
             () => this.connections.Remove(conn));
-    }
 }

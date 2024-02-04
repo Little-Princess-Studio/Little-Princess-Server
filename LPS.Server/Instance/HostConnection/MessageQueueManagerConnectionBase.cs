@@ -50,6 +50,8 @@ public abstract class MessageQueueManagerConnectionBase : IManagerConnection
         this.messageQueueClientToHostMgr.DeclareExchange(Consts.HostMgrToGateExchangeName);
         this.messageQueueClientToHostMgr.DeclareExchange(Consts.ServerToHostExchangeName);
         this.messageQueueClientToHostMgr.DeclareExchange(Consts.GateToHostExchangeName);
+        this.messageQueueClientToHostMgr.DeclareExchange(Consts.ServiceMgrToHostExchangeName);
+        this.messageQueueClientToHostMgr.DeclareExchange(Consts.HostMgrToServiceMgrExchangeName);
 
         this.InitializeBinding(this.messageQueueClientToHostMgr);
 
@@ -73,7 +75,7 @@ public abstract class MessageQueueManagerConnectionBase : IManagerConnection
     public void Send(IMessage message)
     {
         var pkg = PackageHelper.FromProtoBuf(message, this.GenerateRpcId());
-        Logger.Debug($"Send message to host manager. {this.GetHostMgrExchangeName()}, {this.GetMessagePackageRoutingKey()}");
+        Logger.Debug($"Send message to host manager. {this.GetHostMgrExchangeName()}, {this.GetMessagePackageRoutingKey()}, {message}");
         this.messageQueueClientToHostMgr.Publish(
             pkg.ToBytes(),
             this.GetHostMgrExchangeName(),
@@ -117,8 +119,10 @@ public abstract class MessageQueueManagerConnectionBase : IManagerConnection
 
     private void HandleHostMgrMqMessage(ReadOnlyMemory<byte> msg, string routingKey)
     {
+        // TODO: customize the check condition in sub classes.
         if (routingKey == Consts.GenerateHostMessageToServerPackage(this.Name) ||
             routingKey == Consts.GenerateHostMessageToGatePackage(this.Name) ||
+            routingKey == Consts.HostMessagePackageToServiceMgrPackage ||
             routingKey == Consts.HostBroadCastMessagePackageToServer ||
             routingKey == Consts.HostBroadCastMessagePackageToGate)
         {
@@ -126,6 +130,10 @@ public abstract class MessageQueueManagerConnectionBase : IManagerConnection
             var type = (PackageType)pkg.Header.Type;
             var protobuf = PackageHelper.GetProtoBufObjectByType(type, pkg);
             this.dispatcher.Dispatch(type, protobuf);
+        }
+        else
+        {
+            Logger.Warn($"Unknown routing key: {routingKey}");
         }
     }
 }

@@ -173,7 +173,7 @@ public class Client
         }
     }
 
-    private async void IoHandler()
+    private async Task IoHandler()
     {
         var ipa = IPAddress.Parse(this.ip!);
         var ipe = new IPEndPoint(ipa, this.port);
@@ -204,18 +204,15 @@ public class Client
         while (!this.exitFlag)
         {
             await this.HandleMessage(conn);
-            Thread.Sleep(1);
         }
 
         cancellationTokenSource.Cancel();
     }
 
-    private async Task HandleMessage(Connection conn)
-    {
-        await RpcHelper.HandleMessage(
+    private Task HandleMessage(Connection conn) =>
+        RpcHelper.HandleMessage(
             conn,
             () => this.exitFlag,
             msg => this.bus.AppendMessage(msg),
             () => this.exitFlag = true);
-    }
 }

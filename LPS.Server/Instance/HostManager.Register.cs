@@ -87,7 +87,7 @@ public partial class HostManager
         this.NotifySyncServiceManager(gateConns, serverConns);
 
         this.Status = HostStatus.Running;
-        this.heartBeatTimer.Change(0, 5000);
+        this.heartBeatTimer.Change(1000, 5000);
     }
 
     private void NotifySyncGates(List<Connection> gateConns, List<Connection> serverConns)

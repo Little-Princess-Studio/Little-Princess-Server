@@ -210,11 +210,10 @@ public partial class Server
         var (msg, connToGate, _) = arg;
         var createDist = (msg as Control)!;
 
-        if (!this.waitForSyncGatesEvent.IsSet)
-        {
-            this.waitForSyncGatesEvent.Wait();
-        }
-
+        // if (!this.waitForSyncGatesEvent.IsSet)
+        // {
+        //     this.waitForSyncGatesEvent.Wait();
+        // }
         var gateMailBox = createDist.Args[0].Unpack<Common.Rpc.InnerMessages.MailBox>();
         connToGate.MailBox = RpcHelper.PbMailBoxToRpcMailBox(gateMailBox);
         Logger.Info($"Register gates' mailbox {connToGate.MailBox}");

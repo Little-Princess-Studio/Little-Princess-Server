@@ -55,6 +55,7 @@ internal class ImmediateHostManagerConnectionOfGate : ImmediateManagerConnection
                     PackageType.RequireCreateEntityRes,
                     this.HandleMessageFromManager<RequireCreateEntityRes>);
                 self.RegisterMessageHandler(PackageType.HostCommand, this.HandleMessageFromManager<HostCommand>);
+                self.RegisterMessageHandler(PackageType.Ping, this.HandleMessageFromManager<Ping>);
             },
             OnConnected = self =>
             {
@@ -77,6 +78,7 @@ internal class ImmediateHostManagerConnectionOfGate : ImmediateManagerConnection
                     PackageType.RequireCreateEntityRes,
                     this.HandleMessageFromManager<RequireCreateEntityRes>);
                 self.UnregisterMessageHandler(PackageType.HostCommand, this.HandleMessageFromManager<HostCommand>);
+                self.UnregisterMessageHandler(PackageType.Ping, this.HandleMessageFromManager<Ping>);
             },
         };
     }

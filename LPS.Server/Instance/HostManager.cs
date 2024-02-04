@@ -256,7 +256,7 @@ public partial class HostManager : IInstance
                 =>
             {
                 var (msg, _, _) = arg;
-                this.HandlePongMessage((msg as Pong)!);
+                this.CommonHandlePong(msg);
             });
     }
 
@@ -350,7 +350,7 @@ public partial class HostManager : IInstance
                         var pkg = PackageHelper.GetPackageFromBytes(msg);
                         var type = (PackageType)pkg.Header.Type;
                         var protobuf = PackageHelper.GetProtoBufObjectByType(type, pkg);
-                        this.dispatcher.Dispatch(type, (protobuf, targetIdentifier, InstanceType.Gate));
+                        this.dispatcher.Dispatch(type, (protobuf, targetIdentifier, InstanceType.ServiceManager));
                         break;
                     default:
                         Logger.Warn($"Unknown message type: {msgType}");
@@ -368,6 +368,7 @@ public partial class HostManager : IInstance
         this.tcpServer.UnregisterMessageHandler(
             PackageType.CreateDistributeEntityRes,
             this.HandleCreateDistributeEntityRes);
+        this.tcpServer.UnregisterMessageHandler(PackageType.Pong, this.HandlePongFromImmediateConnection);
     }
 
     private void RegisterServerMessageHandlers()
@@ -377,6 +378,7 @@ public partial class HostManager : IInstance
         this.tcpServer.RegisterMessageHandler(
             PackageType.CreateDistributeEntityRes,
             this.HandleCreateDistributeEntityRes);
+        this.tcpServer.RegisterMessageHandler(PackageType.Pong, this.HandlePongFromImmediateConnection);
     }
 
     private void HandleCreateDistributeEntityRes((IMessage Message, Connection Connection, uint RpcId) arg)

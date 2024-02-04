@@ -48,10 +48,12 @@ internal class ImmediateHostManagerConnectionOfServiceManager : ImmediateManager
             OnInit = self =>
             {
                 self.RegisterMessageHandler(PackageType.HostCommand, this.HandleMessageFromManager<HostCommand>);
+                self.RegisterMessageHandler(PackageType.Ping, this.HandleMessageFromManager<Ping>);
             },
             OnDispose = self =>
             {
                 self.UnregisterMessageHandler(PackageType.HostCommand, this.HandleMessageFromManager<HostCommand>);
+                self.UnregisterMessageHandler(PackageType.Ping, this.HandleMessageFromManager<Ping>);
                 this.MsgDispatcher.Clear();
             },
             OnConnected = self =>

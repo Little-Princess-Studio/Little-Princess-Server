@@ -57,6 +57,7 @@ internal class ImmediateHostManagerConnectionOfServer : ImmediateManagerConnecti
                     PackageType.CreateDistributeEntity,
                     this.HandleMessageFromManager<CreateDistributeEntity>);
                 self.RegisterMessageHandler(PackageType.HostCommand, this.HandleMessageFromManager<HostCommand>);
+                self.RegisterMessageHandler(PackageType.Ping, this.HandleMessageFromManager<Ping>);
             },
             OnDispose = self =>
             {
@@ -67,6 +68,7 @@ internal class ImmediateHostManagerConnectionOfServer : ImmediateManagerConnecti
                     PackageType.CreateDistributeEntity,
                     this.HandleMessageFromManager<CreateDistributeEntity>);
                 self.UnregisterMessageHandler(PackageType.HostCommand, this.HandleMessageFromManager<HostCommand>);
+                self.UnregisterMessageHandler(PackageType.Ping, this.HandleMessageFromManager<Ping>);
                 this.MsgDispatcher.Clear();
             },
             OnConnected = self =>

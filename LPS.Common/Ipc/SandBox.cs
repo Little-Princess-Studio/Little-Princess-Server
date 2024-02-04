@@ -14,6 +14,7 @@ using LPS.Common.Debug;
 public class SandBox
 {
     private Thread? thread;
+    private Task? asyncTask;
 
     /// <summary>
     /// Gets the thread id of the sandbox.
@@ -22,8 +23,7 @@ public class SandBox
     public int ThreadId => this.thread?.ManagedThreadId ?? throw new Exception("SandBox is empty.");
 
     private object? action;
-
-    private bool isAsyncAction;
+    private bool isAsync;
 
     private SandBox()
     {
@@ -39,23 +39,23 @@ public class SandBox
         var sandbox = new SandBox
         {
             action = action,
-            isAsyncAction = false,
+            isAsync = false,
         };
 
         return sandbox;
     }
 
     /// <summary>
-    /// Create a sandbox with async handler.
+    /// Create a sandbox with long running task.
     /// </summary>
-    /// <param name="action">Async handler.</param>
+    /// <param name="task">Content.</param>
     /// <returns>Sandbox object.</returns>
-    public static SandBox Create(Func<Task> action)
+    public static SandBox Create(Func<Task> task)
     {
         var sandbox = new SandBox
         {
-            action = action,
-            isAsyncAction = true,
+            action = task,
+            isAsync = true,
         };
 
         return sandbox;
@@ -66,30 +66,37 @@ public class SandBox
     /// </summary>
     public void Run()
     {
-        this.thread = new Thread(() =>
+        if (this.isAsync)
         {
-            try
+            // directly run the async action
+            this.asyncTask = (this.action as Func<Task>)!();
+            this.asyncTask.ContinueWith(t =>
             {
-                if (this.isAsyncAction)
+                if (t.Exception != null)
                 {
-                    var promise = (this.action as Func<Task>)!();
-                    promise.Wait();
+                    Logger.Error(t.Exception);
                 }
-                else
+            });
+        }
+        else
+        {
+            this.thread = new Thread(() =>
+            {
+                try
                 {
                     (this.action as Action)!();
                 }
-            }
-            catch (ThreadInterruptedException ex)
-            {
-                Logger.Error(ex, "Sandbox thread interupted.");
-            }
-            catch (Exception ex)
-            {
-                Logger.Error(ex, $"Exception happend in SandBox");
-            }
-        });
-        this.thread.Start();
+                catch (ThreadInterruptedException ex)
+                {
+                    Logger.Error(ex, "Sandbox thread interupted.");
+                }
+                catch (Exception ex)
+                {
+                    Logger.Error(ex, $"Exception happend in SandBox");
+                }
+            });
+            this.thread.Start();
+        }
     }
 
     /// <summary>
@@ -97,14 +104,13 @@ public class SandBox
     /// </summary>
     public void WaitForExit()
     {
-        this.thread!.Join();
-    }
-
-    /// <summary>
-    /// Force to interrupt the thread.
-    /// </summary>
-    public void Interrupt()
-    {
-        this.thread!.Interrupt();
+        if (!this.isAsync)
+        {
+            this.thread!.Join();
+        }
+        else
+        {
+            this.asyncTask!.Wait();
+        }
     }
 }

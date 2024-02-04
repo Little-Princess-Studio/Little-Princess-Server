@@ -208,11 +208,11 @@ public partial class Gate : IInstance
             {
                 if (t.Exception != null)
                 {
-                    Logger.Error(t.Exception, $"Echo Res Callback Error.");
+                    Logger.Error(t.Exception, $"Echo Res Callback Error, target server mailbox: {serverEntityMailBox}");
                     return;
                 }
 
-                Logger.Info($"Echo Res Callback");
+                Logger.Info("Echo Res Callback");
             });
         });
 

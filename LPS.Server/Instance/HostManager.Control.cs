@@ -8,9 +8,12 @@ namespace LPS.Server.Instance;
 
 using System;
 using System.Collections.Generic;
+using Google.Protobuf;
 using LPS.Common.Debug;
 using LPS.Common.Rpc;
+using LPS.Common.Rpc.InnerMessages;
 using LPS.Server.MessageQueue;
+using MailBox = LPS.Common.Rpc.MailBox;
 
 /// <summary>
 /// Status of an instance.
@@ -122,29 +125,29 @@ public partial class HostManager
         foreach (var mb in this.serversMailBoxes)
         {
             this.CheckInstanceByMailBoxAndSendPingMessage(
-            in mb,
-            bytes,
-            Consts.HostMgrToServerExchangeName,
-            identifier => Consts.GenerateHostMessageToServerPackage(identifier));
+                in mb,
+                bytes,
+                Consts.HostMgrToServerExchangeName,
+                identifier => Consts.GenerateHostMessageToServerPackage(identifier));
         }
 
         // broadcast to gates
         foreach (var mb in this.gatesMailBoxes)
         {
             this.CheckInstanceByMailBoxAndSendPingMessage(
-            in mb,
-            bytes,
-            Consts.HostMgrToGateExchangeName,
-            identifier => Consts.GenerateHostMessageToGatePackage(identifier));
+                in mb,
+                bytes,
+                Consts.HostMgrToGateExchangeName,
+                identifier => Consts.GenerateHostMessageToGatePackage(identifier));
         }
 
         // detect service manager
         var serviceMgrMb = this.serviceManagerInfo.ServiceManagerMailBox;
         this.CheckInstanceByMailBoxAndSendPingMessage(
-        in serviceMgrMb,
-        bytes,
-        Consts.HostMgrToServiceMgrExchangeName,
-        _ => Consts.ServiceMgrMessagePackage);
+            in serviceMgrMb,
+            bytes,
+            Consts.HostMgrToServiceMgrExchangeName,
+            _ => Consts.HostMessagePackageToServiceMgrPackage);
     }
 
     private void CheckInstanceByMailBoxAndSendPingMessage(in Common.Rpc.MailBox mailBox, byte[] bytesToSend, string exchange, Func<string, string> getRoutingKey)
@@ -156,7 +159,7 @@ public partial class HostManager
             return;
         }
 
-        InstanceStatus? status = this.instanceStatusManager.GetStatus(mailBox);
+        InstanceStatus status = this.instanceStatusManager.GetStatus(mailBox);
 
         if (status.WaitingForPong)
         {
@@ -173,7 +176,7 @@ public partial class HostManager
         {
             status.WaitingForPong = true;
             serviceMgrConn.Socket.Send(bytesToSend);
-            Logger.Debug($"[Ping] Send ping to {id}");
+            Logger.Debug($"[Ping] Send ping to directly {id}, type {status.InstanceType}");
         }
         else if (this.mailboxIdToIdentifier.TryGetValue(id, out var identifier))
         {
@@ -182,7 +185,7 @@ public partial class HostManager
                     bytesToSend,
                     exchange,
                     getRoutingKey.Invoke(identifier));
-            Logger.Debug($"[Ping] Send ping to {id}, type {status.InstanceType}");
+            Logger.Debug($"[Ping] Send ping to via mq {id}, type {status.InstanceType}");
         }
         else
         {
@@ -190,9 +193,17 @@ public partial class HostManager
         }
     }
 
-    private void HandlePongMessage(Common.Rpc.InnerMessages.Pong pong)
+    private void HandlePongFromImmediateConnection((IMessage Message, Connection Connection, uint RpcId) arg)
     {
-        var mb = RpcHelper.PbMailBoxToRpcMailBox(pong.SenderMailBox);
+        var (msg, _, _) = arg;
+        this.CommonHandlePong(msg);
+    }
+
+    private void CommonHandlePong(IMessage msg)
+    {
+        var pongMsg = (msg as Pong)!;
+        var mb = RpcHelper.PbMailBoxToRpcMailBox(pongMsg.SenderMailBox);
+
         if (!this.instanceStatusManager.HasInstance(mb))
         {
             Logger.Warn($"[Pong] Cannot find instance with mailbox {mb}");

@@ -109,7 +109,7 @@ public class ServiceManager : IInstance
             OnDispose = this.UnregisterServerMessageHandlers,
         };
 
-        this.mailBox = new(string.Empty, this.Ip, this.Port, this.HostNum);
+        this.mailBox = new(this.Name, this.Ip, this.Port, this.HostNum);
 
         this.InitHostManagerConnection(hostManagerIp, hostManagerPort, useMqToHostMgr);
         this.InitConnectionManager();
