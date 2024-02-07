@@ -19,6 +19,7 @@ public class MqGlobalCacheAccessor : IGlobalCache
         throw new System.NotImplementedException();
     }
 
+    /// <inheritdoc/>
     public Task<long> GenerateNewGlobalId()
     {
         throw new System.NotImplementedException();

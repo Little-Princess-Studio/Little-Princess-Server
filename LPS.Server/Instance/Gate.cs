@@ -110,6 +110,7 @@ public partial class Gate : IInstance
     /// <param name="otherGates">All the other servers info.</param>
     /// <param name="useMqToHostMgr">If use message queue to build connection with host manager.</param>
     /// <param name="config">Config of the instance.</param>
+    /// <param name="isRestart">If this instance restarting.</param>
     public Gate(
         string name,
         string ip,
@@ -120,7 +121,8 @@ public partial class Gate : IInstance
         (string IP, int Port)[] servers,
         (string InnerIp, string Ip, int Port)[] otherGates,
         bool useMqToHostMgr,
-        JToken config)
+        JToken config,
+        bool isRestart)
     {
         this.Name = name;
         this.Ip = ip;

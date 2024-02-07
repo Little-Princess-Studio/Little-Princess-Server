@@ -96,6 +96,7 @@ public partial class Server : IInstance
     /// <param name="hostManagerPort">Port of the hostmanager.</param>
     /// <param name="useMqToHostMgr">If use message queue to build connection with host manager.</param>
     /// <param name="config">Config of the instance.</param>
+    /// <param name="isRestart">If this instance restarting.</param>
     public Server(
         string name,
         string ip,
@@ -104,7 +105,8 @@ public partial class Server : IInstance
         string hostManagerIp,
         int hostManagerPort,
         bool useMqToHostMgr,
-        JToken config)
+        JToken config,
+        bool isRestart)
     {
         this.Name = name;
         this.Ip = ip;

@@ -54,6 +54,9 @@ public static class Startup
 
         [Option("childname", Required = true, HelpText = "Set up the child process name in conf")]
         public string ChildName { get; set; }
+
+        [Option("restart", Required = false, HelpText = "If this process is restarting")]
+        public bool Restart { get; set; }
     }
 #pragma warning restore CS8618
 
@@ -64,18 +67,17 @@ public static class Startup
     public static void Main(string[] args)
     {
         StartupManager.OnGetStartupArgumentsString =
-            info => $"subproc --type {info.Type} --confpath {info.ConfFilePath} --childname {info.InstanceName}";
+            info => $"subproc --type {info.Type} --confpath {info.ConfFilePath} --childname {info.InstanceName} --restart {info.IsRestart}"
 
         Parser.Default.ParseArguments<StartUpOptions, ByDefaultOptions, SubProcOptions>(args)
             .MapResult(
                 (StartUpOptions opts) =>
                 {
-                    Logger.Init("startup");
                     Logger.Info("Start up with config files");
                     foreach (var path in opts.Pathes)
                     {
                         Logger.Info($"Parsing Config {path}");
-                        StartupManager.FromConfig(path, opts.HotReload);
+                        StartupManager.FromConfig(path, opts.HotReload, false);
                     }
 
                     Logger.Info("Start up succ");
@@ -84,7 +86,6 @@ public static class Startup
                 },
                 (ByDefaultOptions opts) =>
                 {
-                    Logger.Init("startup");
                     Logger.Info("Start up by default");
                     StartupByDefault(opts.HotReload);
                     Logger.Info("Start up succ");
@@ -97,7 +98,7 @@ public static class Startup
 
                     try
                     {
-                        StartupManager.StartUp(opts.Type, opts.ChildName, opts.ConfPath);
+                        StartupManager.StartUp(opts.Type, opts.ChildName, opts.ConfPath, opts.Restart);
                     }
                     catch (Exception ex)
                     {
@@ -116,11 +117,11 @@ public static class Startup
 
     private static void StartupByDefault(bool hotreload)
     {
-        StartupManager.FromConfig("Config/host0/hostmanager.conf.json", hotreload);
-        StartupManager.FromConfig("Config/host0/gate.conf.json", hotreload);
-        StartupManager.FromConfig("Config/host0/server.conf.json", hotreload);
-        StartupManager.FromConfig("Config/host0/dbmanager.conf.json", hotreload);
-        StartupManager.FromConfig("Config/host0/service.conf.json", hotreload);
+        StartupManager.FromConfig("Config/host0/hostmanager.conf.json", hotreload, false);
+        StartupManager.FromConfig("Config/host0/gate.conf.json", hotreload, false);
+        StartupManager.FromConfig("Config/host0/server.conf.json", hotreload, false);
+        StartupManager.FromConfig("Config/host0/dbmanager.conf.json", hotreload, false);
+        StartupManager.FromConfig("Config/host0/service.conf.json", hotreload, false);
         StartupManager.WatchAllSubProcesses();
     }
 }

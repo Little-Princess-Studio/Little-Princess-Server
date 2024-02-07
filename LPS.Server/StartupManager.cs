@@ -55,18 +55,25 @@ public static class StartupManager
         public readonly string BinaryPath;
 
         /// <summary>
+        /// Is this subprocess restarting.
+        /// </summary>
+        public readonly bool IsRestart;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="SubProcessStartupInfo"/> struct.
         /// </summary>
         /// <param name="type">The type of the subprocess.</param>
         /// <param name="instanceName">The name of the instance.</param>
         /// <param name="confFilePath">The path to the configuration file.</param>
         /// <param name="binaryPath">The path to the binary file.</param>
-        public SubProcessStartupInfo(string type, string instanceName, string confFilePath, string binaryPath)
+        /// <param name="isRestart">Is this subprocess restarting.</param>
+        public SubProcessStartupInfo(string type, string instanceName, string confFilePath, string binaryPath, bool isRestart)
         {
             this.Type = type;
             this.InstanceName = instanceName;
             this.ConfFilePath = confFilePath;
             this.BinaryPath = binaryPath;
+            this.IsRestart = isRestart;
         }
     }
 
@@ -82,8 +89,9 @@ public static class StartupManager
     /// </summary>
     /// <param name="path">Config file path.</param>
     /// <param name="hotreaload">If enable hotreload for process.</param>
+    /// <param name="isRestart">Is this sub process restarting.</param>
     /// <exception cref="Exception">Throw exception if failed to startup a process.</exception>
-    public static void FromConfig(string path, bool hotreaload)
+    public static void FromConfig(string path, bool hotreaload, bool isRestart)
     {
         var json = GetJson(path);
         var type = json["type"]?.ToString();
@@ -99,10 +107,10 @@ public static class StartupManager
                     HandleDbManagerConf(type, path, json, hotreaload);
                     break;
                 case "gate":
-                    HandleGateConf(type, path, json, hotreaload);
+                    HandleGateConf(type, path, json, hotreaload, isRestart);
                     break;
                 case "server":
-                    HandleServerConf(type, path, json, hotreaload);
+                    HandleServerConf(type, path, json, hotreaload, isRestart);
                     break;
                 case "service":
                     HandleServiceConf(type, path, json, hotreaload);
@@ -123,8 +131,9 @@ public static class StartupManager
     /// <param name="type">Process type, one of hostmanager/dbmanager/gate/server.</param>
     /// <param name="name">Name of the process.</param>
     /// <param name="confFilePath">Config file path.</param>
+    /// <param name="restart">Is restart this instance.</param>
     /// <exception cref="Exception">Throw exception if failed to startup the process.</exception>
-    public static void StartUp(string type, string name, string confFilePath)
+    public static void StartUp(string type, string name, string confFilePath, bool restart)
     {
         if (OnGetStartupArgumentsString is null)
         {
@@ -140,10 +149,10 @@ public static class StartupManager
                 StartUpDbManager(name, confFilePath);
                 break;
             case "gate":
-                StartUpGate(name, confFilePath);
+                StartUpGate(name, confFilePath, restart);
                 break;
             case "server":
-                StartUpServer(name, confFilePath);
+                StartUpServer(name, confFilePath, restart);
                 break;
             case "servicemanager":
                 StartUpServiceManager(name, confFilePath);
@@ -188,10 +197,10 @@ public static class StartupManager
 
         var name = "dbmanager";
         var relativePath = GetBinPath();
-        StartSubProcess(type, name, confFilePath, relativePath, hotreload);
+        StartSubProcess(type, name, confFilePath, relativePath, hotreload, false);
     }
 
-    private static void HandleGateConf(string type, string confFilePath, JObject json, bool hotreload)
+    private static void HandleGateConf(string type, string confFilePath, JObject json, bool hotreload, bool isRestart)
     {
         Logger.Info("startup gates");
 
@@ -200,7 +209,7 @@ public static class StartupManager
         var relativePath = GetBinPath();
         foreach (var name in dict!.Keys)
         {
-            StartSubProcess(type, name, confFilePath, relativePath, hotreload);
+            StartSubProcess(type, name, confFilePath, relativePath, hotreload, isRestart);
         }
     }
 
@@ -210,10 +219,10 @@ public static class StartupManager
 
         var name = "hostmanager";
         var relativePath = GetBinPath();
-        StartSubProcess(type, name, confFilePath, relativePath, hotreload);
+        StartSubProcess(type, name, confFilePath, relativePath, hotreload, false);
     }
 
-    private static void HandleServerConf(string type, string confFilePath, JObject json, bool hotreload)
+    private static void HandleServerConf(string type, string confFilePath, JObject json, bool hotreload, bool isRestart)
     {
         Logger.Info("startup servers");
 
@@ -222,7 +231,7 @@ public static class StartupManager
         var relativePath = GetBinPath();
         foreach (var name in dict!.Keys)
         {
-            StartSubProcess(type, name, confFilePath, relativePath, hotreload);
+            StartSubProcess(type, name, confFilePath, relativePath, hotreload, isRestart);
         }
     }
 
@@ -233,22 +242,22 @@ public static class StartupManager
         var relativePath = GetBinPath();
         var name = "servicemanager";
 
-        StartSubProcess("servicemanager", name, confFilePath, relativePath, hotreload);
+        StartSubProcess("servicemanager", name, confFilePath, relativePath, hotreload, false);
 
         var services = json["services"]!.ToObject<Dictionary<string, JToken>>();
         foreach (var serviceName in services!.Keys)
         {
-            StartSubProcess("service", serviceName, confFilePath, relativePath, hotreload);
+            StartSubProcess("service", serviceName, confFilePath, relativePath, hotreload, false);
         }
     }
 
     private static void StartSubProcess(
-        string type, string name, string confFilePath, string binaryPath, bool hotreload)
+        string type, string name, string confFilePath, string binaryPath, bool hotreload, bool isRestart)
     {
         Logger.Info($"startup {name}");
 
         var startUpArgumentsString =
-            OnGetStartupArgumentsString(new SubProcessStartupInfo(type, name, confFilePath, binaryPath));
+            OnGetStartupArgumentsString(new SubProcessStartupInfo(type, name, confFilePath, binaryPath, isRestart));
 
         Logger.Debug($"start up arguments string: {startUpArgumentsString}");
 
@@ -310,7 +319,7 @@ public static class StartupManager
             if (exitCode != 0)
             {
                 Logger.Warn("subprocess exited with unexpected code, restart it, exitcode: {exitCode}");
-                StartSubProcess(type, name, confFilePath, binaryPath, hotreload);
+                StartSubProcess(type, name, confFilePath, binaryPath, hotreload, true);
             }
             else
             {
@@ -423,7 +432,7 @@ public static class StartupManager
         databaseManager.Loop();
     }
 
-    private static void StartUpGate(string name, string confFilePath)
+    private static void StartUpGate(string name, string confFilePath, bool restart)
     {
         RpcProtobufDefs.Initialize();
         var extraAssemblies = new System.Reflection.Assembly[] { typeof(StartupManager).Assembly };
@@ -481,14 +490,15 @@ public static class StartupManager
             servers,
             otherGates,
             useMqToHost,
-            json);
+            json,
+            restart);
 
         ServerGlobal.Init(gate);
 
         gate.Loop();
     }
 
-    private static void StartUpServer(string name, string confFilePath)
+    private static void StartUpServer(string name, string confFilePath, bool restart)
     {
         RpcProtobufDefs.Initialize();
 
@@ -523,7 +533,7 @@ public static class StartupManager
         var hostManagerPort = Convert.ToInt32(hostMgrConf["port"]!.ToString());
 
         Logger.Debug($"Startup Server {name} at {ip}:{port}, use mq: {useMqToHost}");
-        var server = new Server(name, ip, port, hostnum, hostManagerIp, hostManagerPort, useMqToHost, json);
+        var server = new Server(name, ip, port, hostnum, hostManagerIp, hostManagerPort, useMqToHost, json, restart);
 
         ServerGlobal.Init(server);
 
