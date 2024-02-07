@@ -75,7 +75,8 @@ public abstract class MessageQueueManagerConnectionBase : IManagerConnection
     public void Send(IMessage message)
     {
         var pkg = PackageHelper.FromProtoBuf(message, this.GenerateRpcId());
-        Logger.Debug($"Send message to host manager. {this.GetHostMgrExchangeName()}, {this.GetMessagePackageRoutingKey()}, {message}");
+
+        // Logger.Debug($"Send message to host manager. {this.GetHostMgrExchangeName()}, {this.GetMessagePackageRoutingKey()}, {message}");
         this.messageQueueClientToHostMgr.Publish(
             pkg.ToBytes(),
             this.GetHostMgrExchangeName(),

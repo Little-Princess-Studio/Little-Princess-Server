@@ -156,7 +156,6 @@ public partial class Gate : IInstance
     public void Loop()
     {
         Logger.Info($"Start gate at {this.Ip}:{this.Port}");
-        this.tcpGateServer.Run();
         this.hostMgrConnection.Run();
 
         Logger.Debug("Host manager connected.");
@@ -178,6 +177,7 @@ public partial class Gate : IInstance
         Logger.Info("Servers mailboxes ready.");
         this.otherGatesMailBoxesReadyEvent.Wait();
         Logger.Info("Gates mailboxes ready.");
+        this.tcpGateServer.Run();
 
         Array.ForEach(this.tcpClientsToServer!, client => client.Run());
         Array.ForEach(this.tcpClientsToOtherGate!, client => client.Run());

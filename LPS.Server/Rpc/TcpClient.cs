@@ -80,7 +80,10 @@ internal class TcpClient // : IClient
     /// <param name="targetIp">Remote IP.</param>
     /// <param name="targetPort">Remote port.</param>
     /// <param name="sendQueue">Queue to receive and send message to remote server.</param>
-    public TcpClient(string targetIp, int targetPort, ConcurrentQueue<(TcpClient TcpClient, IMessage Message, bool IsReentry)> sendQueue)
+    public TcpClient(
+        string targetIp,
+        int targetPort,
+        ConcurrentQueue<(TcpClient TcpClient, IMessage Message, bool IsReentry)> sendQueue)
     {
         this.targetIp = targetIp;
         this.targetPort = targetPort;
@@ -157,7 +160,9 @@ internal class TcpClient // : IClient
     /// </summary>
     /// <param name="key">Message token.</param>
     /// <param name="callback">Callback to handle the message.</param>
-    public void RegisterMessageHandler(IComparable key, Action<(IMessage Message, Connection Connection, uint RpcId)> callback)
+    public void RegisterMessageHandler(
+        IComparable key,
+        Action<(IMessage Message, Connection Connection, uint RpcId)> callback)
     {
         this.msgDispatcher.Register(key, callback);
     }
@@ -167,7 +172,9 @@ internal class TcpClient // : IClient
     /// </summary>
     /// <param name="key">Message token.</param>
     /// <param name="callback">Callback to handle the message.</param>
-    public void UnregisterMessageHandler(IComparable key, Action<(IMessage Message, Connection Connection, uint RpcId)> callback)
+    public void UnregisterMessageHandler(
+        IComparable key,
+        Action<(IMessage Message, Connection Connection, uint RpcId)> callback)
     {
         this.msgDispatcher.Unregister(key, callback);
     }
@@ -237,8 +244,10 @@ internal class TcpClient // : IClient
                 catch (Exception e)
                 {
                     ++retryTimes;
-                    Logger.Error(e, $"Connect failed, retry for {retryTimes} times...");
-                    Thread.Sleep(1000);
+                    Logger.Error(
+                        e,
+                        $"Connect failed {this.targetIp}:{this.targetPort}, retry for {retryTimes} times...");
+                    await Task.Delay(1000);
                 }
             }
 
@@ -256,12 +265,12 @@ internal class TcpClient // : IClient
             throw;
         }
 
-        Logger.Info("Connect to server succ.");
-        this.OnConnected?.Invoke(this);
-
         var cancellationTokenSource = new CancellationTokenSource();
         var conn = Connection.Create(this.Socket, cancellationTokenSource);
         conn.Connect();
+
+        Logger.Info("Connect to server succ.");
+        this.OnConnected?.Invoke(this);
 
         while (!this.stopFlag)
         {

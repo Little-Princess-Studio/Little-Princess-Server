@@ -82,7 +82,4 @@ internal class ImmediateHostManagerConnectionOfGate : ImmediateManagerConnection
             },
         };
     }
-
-    /// <inheritdoc/>
-    protected override void BeforeStartPumpMessage() => this.managerConnectedEvent.Wait();
 }

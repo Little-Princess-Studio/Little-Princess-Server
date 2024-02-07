@@ -53,7 +53,7 @@ public partial class Gate
 
     private void HandlePing(IMessage message)
     {
-        var pong = new Pong()
+        var pong = new Pong
         {
             SenderMailBox = RpcHelper.RpcMailBoxToPbMailBox(this.entity!.MailBox),
         };

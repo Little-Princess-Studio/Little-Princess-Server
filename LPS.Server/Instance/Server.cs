@@ -82,6 +82,7 @@ public partial class Server : IInstance
     private Connection[] GateConnections => this.tcpServer.AllConnections;
 
     private uint rpcIdCounter;
+
     private CountdownEvent? gatesMailBoxesRegisteredEvent;
 
     /// <summary>
@@ -144,7 +145,6 @@ public partial class Server : IInstance
     public void Loop()
     {
         Logger.Info($"Start server at {this.Ip}:{this.Port}");
-        this.tcpServer.Run();
         this.hostMgrConnection.Run();
 
         Logger.Info("Host manager connected.");
@@ -166,6 +166,9 @@ public partial class Server : IInstance
 
         Logger.Info("wait for sync gates mailboxes");
         this.waitForSyncGatesEvent.Wait();
+
+        Logger.Info("Start server tcp server.");
+        this.tcpServer.Run();
 
         Logger.Info("wait for gate mailbox registered");
         this.gatesMailBoxesRegisteredEvent!.Wait();

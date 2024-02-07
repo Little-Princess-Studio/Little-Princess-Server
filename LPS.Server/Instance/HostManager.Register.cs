@@ -82,6 +82,15 @@ public partial class HostManager
                 conn => this.serversMailBoxes.FindIndex(mb => mb.CompareOnlyID(conn.MailBox)) != -1)
             .ToList();
 
+        // foreach (var (key, value) in this.mailboxIdToConnection)
+        // {
+        //     Logger.Debug("mailbox id to connection: " + key + " " + value.MailBox);
+        // }
+        //
+        // foreach (var serversMailBox in this.serversMailBoxes)
+        // {
+        //     Logger.Debug("servers mailboxes: " + serversMailBox);
+        // }
         this.NotifySyncGates(gateConns, serverConns);
         this.NotifySyncServers(gateConns, serverConns);
         this.NotifySyncServiceManager(gateConns, serverConns);
@@ -114,6 +123,7 @@ public partial class HostManager
         // to server
         foreach (var serverConn in serverConns)
         {
+            Logger.Debug($"Sync gates to server {serverConn.MailBox}");
             serverConn.Socket.Send(bytes);
         }
 

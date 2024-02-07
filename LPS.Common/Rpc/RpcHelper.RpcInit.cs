@@ -700,7 +700,11 @@ public static partial class RpcHelper
             }
 
             // Make the data available to the PipeReader
-            _ = await writer.FlushAsync();
+            var result = await writer.FlushAsync(cancelTokenSource.Token);
+            if (result.IsCompleted)
+            {
+                break;
+            }
         }
 
         Logger.Debug("Writer complete.");
@@ -714,7 +718,7 @@ public static partial class RpcHelper
             var result = await reader.ReadAsync();
             var buffer = result.Buffer;
 
-            while (buffer.Length > PackageHeader.Size)
+            while (buffer.Length >= PackageHeader.Size)
             {
                 var pkgLen = GetPackageLength(ref buffer);
 
@@ -730,18 +734,23 @@ public static partial class RpcHelper
                     var arg = (pb, conn, pkg.Header.ID);
                     var msg = new Message(type, arg);
                     onGotMessage(msg);
-
+                    Logger.Debug($"[Find] message type: {type}");
                     buffer = buffer.Slice(bytesToParse.End);
-                    reader.AdvanceTo(bytesToParse.End);
                 }
                 else
                 {
                     break;
                 }
             }
+
+            reader.AdvanceTo(buffer.Start, buffer.End);
+            if (result.IsCompleted)
+            {
+                break;
+            }
         }
 
-        reader.Complete();
+        await reader.CompleteAsync();
 
         static ushort GetPackageLength(ref ReadOnlySequence<byte> buffer)
         {

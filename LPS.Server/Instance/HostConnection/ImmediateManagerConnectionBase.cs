@@ -100,7 +100,9 @@ internal abstract class ImmediateManagerConnectionBase : IManagerConnection
     /// <summary>
     /// Callback before start pump message.
     /// </summary>
-    protected abstract void BeforeStartPumpMessage();
+    protected virtual void BeforeStartPumpMessage()
+    {
+    }
 
     /// <summary>
     /// Generic method to handle message from host.

@@ -61,7 +61,4 @@ internal class ImmediateHostManagerConnectionOfServiceManager : ImmediateManager
                 this.managerConnectedEvent.Signal();
             },
         };
-
-    /// <inheritdoc/>
-    protected override void BeforeStartPumpMessage() => this.managerConnectedEvent.Wait();
 }

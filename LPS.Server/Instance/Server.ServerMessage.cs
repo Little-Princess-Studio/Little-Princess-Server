@@ -205,15 +205,12 @@ public partial class Server
         }
     }
 
+    // todo: get all gates' mailboxes -> start tcp server -> waiting for connection from gates
     private void HandleControl((IMessage Message, Connection Connection, uint RpcId) arg)
     {
         var (msg, connToGate, _) = arg;
         var createDist = (msg as Control)!;
 
-        // if (!this.waitForSyncGatesEvent.IsSet)
-        // {
-        //     this.waitForSyncGatesEvent.Wait();
-        // }
         var gateMailBox = createDist.Args[0].Unpack<Common.Rpc.InnerMessages.MailBox>();
         connToGate.MailBox = RpcHelper.PbMailBoxToRpcMailBox(gateMailBox);
         Logger.Info($"Register gates' mailbox {connToGate.MailBox}");

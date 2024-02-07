@@ -144,6 +144,7 @@ public partial class Server
     {
         var hostCmd = (msg as HostCommand)!;
 
+        Logger.Debug($"Sync gates or service manager from host manager. {hostCmd.Type} {hostCmd.Args.Count}");
         if (hostCmd.Type == HostCommandType.SyncGates)
         {
             this.gatesMailBoxesRegisteredEvent = new CountdownEvent(hostCmd.Args.Count);

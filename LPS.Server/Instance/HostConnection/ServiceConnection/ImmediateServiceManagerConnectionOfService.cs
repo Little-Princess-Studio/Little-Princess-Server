@@ -40,9 +40,6 @@ internal class ImmediateServiceManagerConnectionOfService : ImmediateManagerConn
     }
 
     /// <inheritdoc/>
-    protected override void BeforeStartPumpMessage() => this.managerConnectedEvent.Wait();
-
-    /// <inheritdoc/>
     protected override TcpClient GetTcpClient() => new(
         this.serviceManagerIp,
         this.serviceManagerPort,
