@@ -28,9 +28,10 @@ namespace LPS.Server.Rpc.InnerMessages {
             "c2FnZXMaGWdvb2dsZS9wcm90b2J1Zi9hbnkucHJvdG8ibgoLSG9zdENvbW1h",
             "bmQSOwoEVHlwZRgBIAEoDjItLkxQUy5TZXJ2ZXIuUnBjLklubmVyTWVzc2Fn",
             "ZXMuSG9zdENvbW1hbmRUeXBlEiIKBEFyZ3MYAiADKAsyFC5nb29nbGUucHJv",
-            "dG9idWYuQW55Kl0KD0hvc3RDb21tYW5kVHlwZRIPCgtTeW5jU2VydmVycxAA",
-            "Eg0KCVN5bmNHYXRlcxABEggKBE9wZW4QAhIICgRTdG9wEAMSFgoSU3luY1Nl",
-            "cnZpY2VNYW5hZ2VyEARiBnByb3RvMw=="));
+            "dG9idWYuQW55KoUBCg9Ib3N0Q29tbWFuZFR5cGUSDwoLU3luY1NlcnZlcnMQ",
+            "ABINCglTeW5jR2F0ZXMQARIICgRPcGVuEAISCAoEU3RvcBADEhYKElN5bmNT",
+            "ZXJ2aWNlTWFuYWdlchAEEhMKD1JlY29ubmVjdFNlcnZlchAFEhEKDVJlY29u",
+            "bmVjdEdhdGUQBmIGcHJvdG8z"));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { global::Google.Protobuf.WellKnownTypes.AnyReflection.Descriptor, },
           new pbr::GeneratedClrTypeInfo(new[] {typeof(global::LPS.Server.Rpc.InnerMessages.HostCommandType), }, null, new pbr::GeneratedClrTypeInfo[] {
@@ -47,6 +48,8 @@ namespace LPS.Server.Rpc.InnerMessages {
     [pbr::OriginalName("Open")] Open = 2,
     [pbr::OriginalName("Stop")] Stop = 3,
     [pbr::OriginalName("SyncServiceManager")] SyncServiceManager = 4,
+    [pbr::OriginalName("ReconnectServer")] ReconnectServer = 5,
+    [pbr::OriginalName("ReconnectGate")] ReconnectGate = 6,
   }
 
   #endregion

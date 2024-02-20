@@ -10,13 +10,11 @@
     "services": {
         "service0" : {
             "ip": "127.0.0.1",
-            "port": 14001,
-            "use_mq_to_host": false
+            "port": 14001
         },
         "service1": {
             "ip": "127.0.0.1",
-            "port": 14011,
-            "use_mq_to_host": true
+            "port": 14011
         }
     },
 

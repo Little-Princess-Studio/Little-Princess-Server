@@ -220,6 +220,14 @@ internal class TcpServer
 
             var cancelTokenSource = new CancellationTokenSource();
             var conn = Connection.Create(clientSocket, cancelTokenSource);
+            conn.OnDisconnected = () =>
+            {
+                Logger.Debug("Client disconnected");
+                clientSocket.Shutdown(SocketShutdown.Both);
+                cancelTokenSource.Cancel();
+                this.socketToConn.Remove(clientSocket);
+                this.connections.Remove(conn);
+            };
 
             this.socketToConn[clientSocket] = conn;
 
@@ -247,6 +255,11 @@ internal class TcpServer
         Logger.Info($"[SOCKET] Close {this.connections.Count} connections");
         foreach (var conn in this.connections)
         {
+            if (conn.Key.Status != ConnectStatus.Connected)
+            {
+                continue;
+            }
+
             conn.Key.TokenSource.Cancel();
             conn.Value.Wait();
         }
@@ -305,6 +318,11 @@ internal class TcpServer
                 if (res)
                 {
                     var (conn, msg) = tp;
+                    if (conn.Status != ConnectStatus.Connected)
+                    {
+                        continue;
+                    }
+
                     var id = this.serverEntityPackageId++;
                     var pkg = PackageHelper.FromProtoBuf(msg, id);
                     var socket = conn.Socket;

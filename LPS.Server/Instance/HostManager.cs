@@ -47,6 +47,7 @@ using LPS.Server.MessageQueue;
 using LPS.Server.Rpc;
 using LPS.Server.Rpc.InnerMessages;
 using Newtonsoft.Json.Linq;
+using MailBox = LPS.Common.Rpc.MailBox;
 
 /// <summary>
 /// Status of the hostmanager.
@@ -544,18 +545,30 @@ public partial class HostManager : IInstance
     {
         var (msg, conn, _) = arg;
         var hostCmd = (msg as Control)!;
+
         switch (hostCmd.Message)
         {
             case ControlMessage.Ready:
-                this.RegisterInstance(
+                this.RegisterInstanceFromImmediateConnection(
                     hostCmd.From,
                     RpcHelper.PbMailBoxToRpcMailBox(hostCmd.Args[0]
                         .Unpack<Common.Rpc.InnerMessages.MailBox>()),
                     conn);
                 break;
             case ControlMessage.Restart:
+                this.RestartInstanceFromImmediateConnection(
+                    hostCmd.From,
+                    RpcHelper.PbMailBoxToRpcMailBox(hostCmd.Args[0]
+                        .Unpack<Common.Rpc.InnerMessages.MailBox>()),
+                    conn);
                 break;
             case ControlMessage.ShutDown:
+                break;
+            case ControlMessage.WaitForReconnect:
+                this.NotifyReconnect(
+                    hostCmd.From,
+                    RpcHelper.PbMailBoxToRpcMailBox(hostCmd.Args[0]
+                        .Unpack<Common.Rpc.InnerMessages.MailBox>()));
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(hostCmd.Message), hostCmd.Message, null);
@@ -566,18 +579,18 @@ public partial class HostManager : IInstance
     {
         var hostCmd = (msg as Control)!;
 
+        MailBox mb;
         switch (hostCmd.Message)
         {
             case ControlMessage.Ready:
-                var mb = RpcHelper.PbMailBoxToRpcMailBox(hostCmd.Args[0]
+                mb = RpcHelper.PbMailBoxToRpcMailBox(hostCmd.Args[0]
                     .Unpack<Common.Rpc.InnerMessages.MailBox>());
-                this.mailboxIdToIdentifier[mb.Id] = targetIdentifier;
-                this.BroadcastSyncMessage(
-                    hostCmd.From,
-                    RpcHelper.PbMailBoxToRpcMailBox(hostCmd.Args[0]
-                        .Unpack<Common.Rpc.InnerMessages.MailBox>()));
+                this.RegisterInstanceFromMq(hostCmd.From, mb, targetIdentifier);
                 break;
             case ControlMessage.Restart:
+                mb = RpcHelper.PbMailBoxToRpcMailBox(hostCmd.Args[0]
+                    .Unpack<Common.Rpc.InnerMessages.MailBox>());
+                this.RestartInstanceFromMq(hostCmd.From, mb, targetIdentifier);
                 break;
             case ControlMessage.ShutDown:
                 break;

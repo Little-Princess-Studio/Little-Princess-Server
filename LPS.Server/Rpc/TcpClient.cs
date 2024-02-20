@@ -73,6 +73,7 @@ internal class TcpClient // : IClient
 
     private bool stopFlag;
     private uint counterOfId;
+    private Connection? connection;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="TcpClient"/> class.
@@ -145,6 +146,7 @@ internal class TcpClient // : IClient
     public void Stop()
     {
         this.stopFlag = true;
+        this.connection?.TokenSource.Cancel();
         try
         {
             this.Socket!.Shutdown(SocketShutdown.Both);
@@ -272,13 +274,18 @@ internal class TcpClient // : IClient
         Logger.Info("Connect to server succ.");
         this.OnConnected?.Invoke(this);
 
-        while (!this.stopFlag)
+        try
         {
-            await this.HandleMessage(conn);
+            while (!this.stopFlag)
+            {
+                await this.HandleMessage(conn);
+            }
         }
-
-        cancellationTokenSource.Cancel();
-        this.OnDispose?.Invoke(this);
+        finally
+        {
+            cancellationTokenSource.Cancel();
+            this.OnDispose?.Invoke(this);
+        }
     }
 
     private Task HandleMessage(Connection conn) =>

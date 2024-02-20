@@ -69,6 +69,8 @@ public partial class Server : IInstance
     private readonly CountdownEvent waitForSyncGatesEvent;
     private readonly CountdownEvent waitForSyncServiceManagerEvent;
 
+    private readonly bool isRestart;
+
     private IManagerConnection hostMgrConnection = null!;
     private IManagerConnection? serviceMgrConnection;
 
@@ -133,6 +135,7 @@ public partial class Server : IInstance
         this.localEntityGeneratedEvent = new CountdownEvent(2);
         this.waitForSyncGatesEvent = new CountdownEvent(1);
         this.waitForSyncServiceManagerEvent = new CountdownEvent(1);
+        this.isRestart = isRestart;
     }
 
     /// <inheritdoc/>
@@ -157,26 +160,33 @@ public partial class Server : IInstance
         this.localEntityGeneratedEvent.Wait();
         Logger.Info($"Local entity generated. {this.entity!.MailBox}");
 
-        // register server and wait for sync ack
-        var regCtl = new Control
+        if (this.isRestart)
         {
-            From = RemoteType.Server,
-            Message = ControlMessage.Ready,
-        };
-        regCtl.Args.Add(Any.Pack(RpcHelper.RpcMailBoxToPbMailBox(this.entity!.MailBox)));
-        this.hostMgrConnection.Send(regCtl);
+            this.HandleRestart();
+        }
+        else
+        {
+            // register server and wait for sync ack
+            var regCtl = new Control
+            {
+                From = RemoteType.Server,
+                Message = ControlMessage.Ready,
+            };
+            regCtl.Args.Add(Any.Pack(RpcHelper.RpcMailBoxToPbMailBox(this.entity!.MailBox)));
+            this.hostMgrConnection.Send(regCtl);
 
-        Logger.Info("wait for sync gates mailboxes");
-        this.waitForSyncGatesEvent.Wait();
+            Logger.Info("wait for sync gates mailboxes");
+            this.waitForSyncGatesEvent.Wait();
 
-        Logger.Info("Start server tcp server.");
-        this.tcpServer.Run();
+            Logger.Info("Start server tcp server.");
+            this.tcpServer.Run();
 
-        Logger.Info("wait for gate mailbox registered");
-        this.gatesMailBoxesRegisteredEvent!.Wait();
+            Logger.Info("wait for gate mailbox registered");
+            this.gatesMailBoxesRegisteredEvent!.Wait();
 
-        Logger.Info("wait for service manager registered");
-        this.waitForSyncServiceManagerEvent.Wait();
+            Logger.Info("wait for service manager registered");
+            this.waitForSyncServiceManagerEvent.Wait();
+        }
 
         Logger.Info("Try to connect to service manager");
         this.ConnectToServiceManager();
@@ -232,6 +242,40 @@ public partial class Server : IInstance
         });
 
         return task;
+    }
+
+    private void HandleRestart()
+    {
+        // register server and wait for sync ack
+        var regCtl = new Control
+        {
+            From = RemoteType.Server,
+            Message = ControlMessage.Restart,
+        };
+        regCtl.Args.Add(Any.Pack(RpcHelper.RpcMailBoxToPbMailBox(this.entity!.MailBox)));
+        this.hostMgrConnection.Send(regCtl);
+
+        Logger.Info("wait for sync gates mailboxes at restarting");
+        this.waitForSyncGatesEvent.Wait();
+
+        Logger.Info("Start server tcp server.");
+        this.tcpServer.Run();
+
+        // wait for reconnecting from gate
+        Logger.Info("Send wait for reconnect to host manager");
+        regCtl = new Control
+        {
+            From = RemoteType.Server,
+            Message = ControlMessage.WaitForReconnect,
+        };
+        regCtl.Args.Add(Any.Pack(RpcHelper.RpcMailBoxToPbMailBox(this.entity!.MailBox)));
+        this.hostMgrConnection.Send(regCtl);
+
+        Logger.Info("wait for gate mailbox registered");
+        this.gatesMailBoxesRegisteredEvent!.Wait();
+
+        Logger.Info("wait for service manager registered");
+        this.waitForSyncServiceManagerEvent.Wait();
     }
 
     private uint GenerateRpcId() => this.rpcIdCounter++;

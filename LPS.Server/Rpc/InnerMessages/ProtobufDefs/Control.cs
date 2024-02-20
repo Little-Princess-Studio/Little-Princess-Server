@@ -29,10 +29,11 @@ namespace LPS.Server.Rpc.InnerMessages {
             "b20YASABKA4yKC5MUFMuU2VydmVyLlJwYy5Jbm5lck1lc3NhZ2VzLlJlbW90",
             "ZVR5cGUSPQoHTWVzc2FnZRgCIAEoDjIsLkxQUy5TZXJ2ZXIuUnBjLklubmVy",
             "TWVzc2FnZXMuQ29udHJvbE1lc3NhZ2USIgoEQXJncxgDIAMoCzIULmdvb2ds",
-            "ZS5wcm90b2J1Zi5BbnkqNgoOQ29udHJvbE1lc3NhZ2USCQoFUmVhZHkQABIL",
-            "CgdSZXN0YXJ0EAESDAoIU2h1dERvd24QAipFCgpSZW1vdGVUeXBlEg0KCURC",
-            "TWFuYWdlchAAEgoKBlNlcnZlchABEggKBEdhdGUQAhISCg5TZXJ2aWNlTWFu",
-            "YWdlchADYgZwcm90bzM="));
+            "ZS5wcm90b2J1Zi5BbnkqYAoOQ29udHJvbE1lc3NhZ2USCQoFUmVhZHkQABIL",
+            "CgdSZXN0YXJ0EAESDAoIU2h1dERvd24QAhIUChBXYWl0Rm9yUmVjb25uZWN0",
+            "EAMSEgoOUmVjb25uZWN0UmVhZHkQBCpFCgpSZW1vdGVUeXBlEg0KCURCTWFu",
+            "YWdlchAAEgoKBlNlcnZlchABEggKBEdhdGUQAhISCg5TZXJ2aWNlTWFuYWdl",
+            "chADYgZwcm90bzM="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { global::Google.Protobuf.WellKnownTypes.AnyReflection.Descriptor, },
           new pbr::GeneratedClrTypeInfo(new[] {typeof(global::LPS.Server.Rpc.InnerMessages.ControlMessage), typeof(global::LPS.Server.Rpc.InnerMessages.RemoteType), }, null, new pbr::GeneratedClrTypeInfo[] {
@@ -47,6 +48,8 @@ namespace LPS.Server.Rpc.InnerMessages {
     [pbr::OriginalName("Ready")] Ready = 0,
     [pbr::OriginalName("Restart")] Restart = 1,
     [pbr::OriginalName("ShutDown")] ShutDown = 2,
+    [pbr::OriginalName("WaitForReconnect")] WaitForReconnect = 3,
+    [pbr::OriginalName("ReconnectReady")] ReconnectReady = 4,
   }
 
   public enum RemoteType {

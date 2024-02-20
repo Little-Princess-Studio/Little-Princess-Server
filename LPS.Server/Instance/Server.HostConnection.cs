@@ -145,19 +145,19 @@ public partial class Server
         var hostCmd = (msg as HostCommand)!;
 
         Logger.Debug($"Sync gates or service manager from host manager. {hostCmd.Type} {hostCmd.Args.Count}");
-        if (hostCmd.Type == HostCommandType.SyncGates)
+        switch (hostCmd.Type)
         {
-            this.gatesMailBoxesRegisteredEvent = new CountdownEvent(hostCmd.Args.Count);
-            this.waitForSyncGatesEvent.Signal(1);
-        }
-        else if (hostCmd.Type == HostCommandType.SyncServiceManager)
-        {
-            this.serviceManagerMailBox = RpcHelper.PbMailBoxToRpcMailBox(hostCmd.Args[0].Unpack<MailBoxArg>().PayLoad);
-            this.waitForSyncServiceManagerEvent.Signal(1);
-        }
-        else if (hostCmd.Type == HostCommandType.Stop)
-        {
-            this.Stop();
+            case HostCommandType.SyncGates:
+                this.gatesMailBoxesRegisteredEvent = new CountdownEvent(hostCmd.Args.Count);
+                this.waitForSyncGatesEvent.Signal(1);
+                break;
+            case HostCommandType.SyncServiceManager:
+                this.serviceManagerMailBox = RpcHelper.PbMailBoxToRpcMailBox(hostCmd.Args[0].Unpack<MailBoxArg>().PayLoad);
+                this.waitForSyncServiceManagerEvent.Signal(1);
+                break;
+            case HostCommandType.Stop:
+                this.Stop();
+                break;
         }
     }
 
@@ -186,7 +186,7 @@ public partial class Server
         }
 
         entity.OnSendEntityRpc = entityRpc => this.SendEntityRpc(entity, entityRpc);
-        entity.OnSendServiceRpc = serviceRpc => this.SendServiceRpc(serviceRpc);
+        entity.OnSendServiceRpc = this.SendServiceRpc;
         entity.OnSendEntityRpcCallback = callback => this.SendEntityRpcCallBack(entity, callback);
         entity.MailBox = mailBox;
 
@@ -218,13 +218,13 @@ public partial class Server
         {
             MailBox = new Common.Rpc.MailBox(newId, this.Ip, this.Port, this.HostNum),
             OnSendEntityRpc = entityRpc => this.SendEntityRpc(this.defaultCell!, entityRpc),
-            OnSendServiceRpc = serviceRpc => this.SendServiceRpc(serviceRpc),
+            OnSendServiceRpc = this.SendServiceRpc,
             OnSendEntityRpcCallback = callback => this.SendEntityRpcCallBack(this.defaultCell!, callback),
             EntityLeaveCallBack = entity => this.localEntityDict.Remove(entity.MailBox.Id),
             EntityEnterCallBack = (entity, gateMailBox) =>
             {
                 entity.OnSendEntityRpc = entityRpc => this.SendEntityRpc(entity, entityRpc);
-                entity.OnSendServiceRpc = serviceRpc => this.SendServiceRpc(serviceRpc);
+                entity.OnSendServiceRpc = this.SendServiceRpc;
                 entity.OnSendEntityRpcCallback = callback => this.SendEntityRpcCallBack(entity, callback);
                 if (entity is ServerClientEntity serverClientEntity)
                 {
@@ -251,7 +251,7 @@ public partial class Server
         {
             // todo: insert local rpc call operation to pump queue, instead of directly calling local entity rpc here.
             OnSendEntityRpc = entityRpc => this.SendEntityRpc(this.entity!, entityRpc),
-            OnSendServiceRpc = serviceRpc => this.SendServiceRpc(serviceRpc),
+            OnSendServiceRpc = this.SendServiceRpc,
             OnSendEntityRpcCallback = callback => this.SendEntityRpcCallBack(this.entity!, callback),
         };
 

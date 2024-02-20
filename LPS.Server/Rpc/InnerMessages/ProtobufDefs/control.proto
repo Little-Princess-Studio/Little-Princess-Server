@@ -6,6 +6,8 @@ enum ControlMessage {
     Ready = 0;
     Restart = 1;
     ShutDown = 2;
+    WaitForReconnect = 3;
+    ReconnectReady = 4;
 }
 
 enum RemoteType {

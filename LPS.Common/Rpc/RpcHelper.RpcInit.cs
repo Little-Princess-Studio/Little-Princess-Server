@@ -708,14 +708,16 @@ public static partial class RpcHelper
         }
 
         Logger.Debug("Writer complete.");
-        writer.Complete();
+        await writer.CompleteAsync();
     }
 
     private static async Task ReadPipeAsync(PipeReader reader, Connection conn, Action<Message> onGotMessage, Func<bool> stopCondition)
     {
+        var cancelTokenSource = conn.TokenSource;
+
         while (conn.Status == ConnectStatus.Connected && !stopCondition.Invoke())
         {
-            var result = await reader.ReadAsync();
+            var result = await reader.ReadAsync(cancelTokenSource.Token);
             var buffer = result.Buffer;
 
             while (buffer.Length >= PackageHeader.Size)

@@ -7,6 +7,7 @@
 namespace LPS.Common.Rpc;
 
 using System.Net.Sockets;
+using LPS.Common.Debug;
 
 /// <summary>
 /// Connection status of the remote connection.
@@ -22,11 +23,6 @@ public enum ConnectStatus
     /// Already connected.
     /// </summary>
     Connected,
-
-    /// <summary>
-    /// Trying to reconnect.
-    /// </summary>
-    Reconnecting,
 
     /// <summary>
     /// Already disconnected.
@@ -64,6 +60,11 @@ public class Connection
     /// </summary>
     public uint ConnectionId { get; set; } = uint.MaxValue;
 
+    /// <summary>
+    /// Gets or sets the handler when the connection disconnected.
+    /// </summary>
+    public Action? OnDisconnected { get; set; }
+
     private Connection()
     {
     }
@@ -98,6 +99,14 @@ public class Connection
     /// </summary>
     public void Disconnect()
     {
-        this.Status = ConnectStatus.Disconnected;
+        try
+        {
+            this.Status = ConnectStatus.Disconnected;
+            this.OnDisconnected?.Invoke();
+        }
+        catch (Exception e)
+        {
+            Logger.Error(e, "OnDisconnected handler exception.");
+        }
     }
 }

@@ -9,7 +9,6 @@ namespace LPS.Server.Instance;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
 using LPS.Common.Debug;
@@ -18,6 +17,7 @@ using LPS.Common.Rpc.InnerMessages;
 using LPS.Server.Instance.HostConnection.HostManagerConnection;
 using LPS.Server.Rpc;
 using LPS.Server.Rpc.InnerMessages;
+using MailBox = LPS.Common.Rpc.MailBox;
 
 /// <summary>
 /// Each gate need maintain multiple connections from remote clients
@@ -80,6 +80,12 @@ public partial class Gate
             case HostCommandType.SyncServiceManager:
                 this.SyncServiceManagerMailBox(RpcHelper.PbMailBoxToRpcMailBox(hostCmd.Args[0].Unpack<MailBoxArg>().PayLoad));
                 break;
+            case HostCommandType.ReconnectServer:
+                this.ReconnectServer(RpcHelper.PbMailBoxToRpcMailBox(hostCmd.Args[0].Unpack<MailBoxArg>().PayLoad));
+                break;
+            case HostCommandType.ReconnectGate:
+                this.ReconnectGate(RpcHelper.PbMailBoxToRpcMailBox(hostCmd.Args[0].Unpack<MailBoxArg>().PayLoad));
+                break;
             case HostCommandType.Open:
                 break;
             case HostCommandType.Stop:
@@ -88,6 +94,75 @@ public partial class Gate
             default:
                 throw new ArgumentOutOfRangeException();
         }
+    }
+
+    private void ReconnectServer(MailBox serverMailBox)
+    {
+        Logger.Info($"ReconnectServer: {serverMailBox}");
+        this.serverClientsExitEvent!.AddCount();
+
+        var oldClient = this.tcpClientsToServer!.Find(
+            tcpClient => tcpClient.MailBox.CompareOnlyAddress(serverMailBox));
+
+        if (oldClient is not null)
+        {
+            oldClient.Stop();
+            this.serverClientsExitEvent.Signal();
+            this.tcpClientsToServer.Remove(oldClient);
+        }
+
+        var serverIp = serverMailBox.Ip;
+        var serverPort = serverMailBox.Port;
+        Logger.Debug($"Reconnect to server: {serverIp}:{serverPort}");
+
+        var idx = this.tcpClientsToServer.Count;
+        var client = new TcpClient(serverIp, serverPort, this.sendQueue)
+        {
+            OnInit = _ => this.RegisterGateMessageHandlers(idx),
+            OnDispose = _ =>
+            {
+                this.UnregisterGateMessageHandlers(idx);
+            },
+            OnConnected = this.NotifyServerReady,
+            MailBox = serverMailBox,
+        };
+
+        this.tcpClientsToServer.Add(client);
+        client.Run();
+    }
+
+    private void ReconnectGate(MailBox gateMailBox)
+    {
+        Logger.Info($"ReconnectGate: {gateMailBox}");
+        this.gateClientsExitEvent!.AddCount();
+        var oldClient = this.tcpClientsToOtherGate!.Find(
+            tcpClient => tcpClient.MailBox.CompareOnlyAddress(gateMailBox));
+
+        if (oldClient is not null)
+        {
+            oldClient.Stop();
+
+            // this.gateClientsExitEvent.Signal();
+            // this.tcpClientsToOtherGate.Remove(oldClient);
+        }
+
+        var gateIp = gateMailBox.Ip;
+        var gatePort = gateMailBox.Port;
+        Logger.Info($"Reconnect to gate: {gateIp}:{gatePort}");
+
+        var client = new TcpClient(gateIp, gatePort, this.sendQueue)
+        {
+            OnConnected = _ => this.allOtherGatesConnectedEvent!.Signal(),
+            OnDispose = self =>
+            {
+                this.tcpClientsToOtherGate.Remove(self);
+                this.gateClientsExitEvent.Signal();
+            },
+            MailBox = gateMailBox,
+        };
+
+        this.tcpClientsToOtherGate.Add(client);
+        client.Run();
     }
 
     private void HandleRequireCreateEntityResFromHost(IMessage msg)
@@ -165,8 +240,9 @@ public partial class Gate
         // connect to each gate
         // tcp gate to other gate only send msg to other gate's server
         Logger.Info($"Sync gates, cnt: {otherGatesMailBoxes.Length}");
-        this.allOtherGatesConnectedEvent = new CountdownEvent(otherGatesMailBoxes.Length - 1);
-        this.tcpClientsToOtherGate = new Rpc.TcpClient[otherGatesMailBoxes.Length - 1];
+        this.allOtherGatesConnectedEvent = new(otherGatesMailBoxes.Length - 1);
+        this.gateClientsExitEvent = new(otherGatesMailBoxes.Length - 1);
+        this.tcpClientsToOtherGate = new(otherGatesMailBoxes.Length - 1);
         var idx = 0;
         foreach (var mb in otherGatesMailBoxes)
         {
@@ -175,12 +251,16 @@ public partial class Gate
                 continue;
             }
 
-            var tmpIdx = idx;
             var otherGateInnerIp = mb.Ip;
             var otherGatePort = mb.Port;
             var client = new TcpClient(otherGateInnerIp, otherGatePort, this.sendQueue)
             {
                 OnConnected = _ => this.allOtherGatesConnectedEvent.Signal(),
+                OnDispose = self =>
+                {
+                    this.tcpClientsToOtherGate.Remove(self);
+                    this.gateClientsExitEvent.Signal();
+                },
                 MailBox = mb,
             };
 
@@ -197,7 +277,8 @@ public partial class Gate
         // tcp gate to server handlers msg from server
         Logger.Info($"Sync servers, cnt: {serverMailBoxes.Length}");
         this.allServersConnectedEvent = new(serverMailBoxes.Length);
-        this.tcpClientsToServer = new TcpClient[serverMailBoxes.Length];
+        this.serverClientsExitEvent = new(serverMailBoxes.Length);
+        this.tcpClientsToServer = new List<TcpClient>(serverMailBoxes.Length);
         var idx = 0;
         foreach (var mb in serverMailBoxes)
         {
@@ -208,7 +289,12 @@ public partial class Gate
             var client = new TcpClient(serverIp, serverPort, this.sendQueue)
             {
                 OnInit = _ => this.RegisterGateMessageHandlers(tmpIdx),
-                OnDispose = _ => this.UnregisterGateMessageHandlers(tmpIdx),
+                OnDispose = self =>
+                {
+                    this.UnregisterGateMessageHandlers(tmpIdx);
+                    this.tcpClientsToServer.Remove(self);
+                    this.serverClientsExitEvent.Signal();
+                },
                 OnConnected = self =>
                 {
                     this.NotifyServerReady(self);
@@ -225,19 +311,19 @@ public partial class Gate
 
     private void NotifyServerReady(TcpClient clientToServer)
     {
-        var ctl = new Control()
+        var ctl = new Control
         {
             From = RemoteType.Gate,
-            Message = ControlMessage.Ready,
+            Message = ControlMessage.ReconnectReady,
         };
 
         ctl.Args.Add(Any.Pack(RpcHelper.RpcMailBoxToPbMailBox(this.entity!.MailBox)));
         clientToServer.Send(ctl, false);
     }
 
-    private void SyncServiceManagerMailBox(Common.Rpc.MailBox serviceManagerMailBox)
+    private void SyncServiceManagerMailBox(Common.Rpc.MailBox serviceMgrMailBox)
     {
         this.waitForSyncServiceManagerEvent.Signal();
-        this.serviceManagerMailBox = serviceManagerMailBox;
+        this.serviceManagerMailBox = serviceMgrMailBox;
     }
 }

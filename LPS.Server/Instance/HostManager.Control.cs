@@ -7,6 +7,7 @@
 namespace LPS.Server.Instance;
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using Google.Protobuf;
 using LPS.Common.Debug;
@@ -48,16 +49,16 @@ public partial class HostManager
 {
     private sealed class InstanceStatusManager
     {
-        private readonly Dictionary<MailBox, InstanceStatus> instanceMap = new();
+        private readonly ConcurrentDictionary<MailBox, InstanceStatus> instanceMap = new();
 
         public void Register(MailBox mailBox, InstanceType instanceType)
         {
-            this.instanceMap.Add(mailBox, new InstanceStatus(instanceType, mailBox));
+            this.instanceMap.TryAdd(mailBox, new InstanceStatus(instanceType, mailBox));
         }
 
         public void Unregister(MailBox mailBox)
         {
-            this.instanceMap.Remove(mailBox);
+            this.instanceMap.Remove(mailBox, out _);
         }
 
         public void UpdateStatus(MailBox mailBox, InstanceStatusType type)

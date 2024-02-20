@@ -22,7 +22,6 @@ using LPS.Common.Rpc;
 using LPS.Common.Rpc.InnerMessages;
 using LPS.Server.Entity;
 using LPS.Server.Instance.HostConnection;
-using LPS.Server.Instance.HostConnection.HostManagerConnection;
 using LPS.Server.Rpc;
 using LPS.Server.Rpc.InnerMessages;
 using Newtonsoft.Json.Linq;
@@ -72,12 +71,14 @@ public partial class Gate : IInstance
 
     private readonly CountdownEvent serversMailBoxesReadyEvent = new CountdownEvent(1);
     private readonly CountdownEvent otherGatesMailBoxesReadyEvent = new CountdownEvent(1);
+    private readonly CountdownEvent waitForSyncServiceManagerEvent;
 
     private readonly CountdownEvent localEntityGeneratedEvent;
 
     private readonly SandBox clientsPumpMsgSandBox;
 
     private readonly TcpServer tcpGateServer;
+
     private IManagerConnection hostMgrConnection = null!;
     private IManagerConnection serviceMgrConnection = null!;
 
@@ -86,14 +87,16 @@ public partial class Gate : IInstance
     // if all the tcp clients have connected to server/other gate, countdownEvent_ will down to 0
     private CountdownEvent? allServersConnectedEvent;
     private CountdownEvent? allOtherGatesConnectedEvent;
-    private CountdownEvent waitForSyncServiceManagerEvent;
+
+    private CountdownEvent? gateClientsExitEvent;
+    private CountdownEvent? serverClientsExitEvent;
 
     private Common.Rpc.MailBox serviceManagerMailBox;
 
     private uint createEntityCounter;
 
-    private TcpClient[]? tcpClientsToServer;
-    private TcpClient[]? tcpClientsToOtherGate;
+    private List<TcpClient>? tcpClientsToServer;
+    private List<TcpClient>? tcpClientsToOtherGate;
 
     private bool readyToPumpClients;
 
@@ -148,8 +151,16 @@ public partial class Gate : IInstance
     /// <inheritdoc/>
     public void Stop()
     {
-        Array.ForEach(this.tcpClientsToServer!, client => client.Stop());
-        Array.ForEach(this.tcpClientsToOtherGate!, client => client.Stop());
+        this.tcpClientsToServer!.ForEach(client =>
+        {
+            client.Stop();
+            client.WaitForExit();
+        });
+        this.tcpClientsToOtherGate!.ForEach(client =>
+        {
+            client.Stop();
+            client.WaitForExit();
+        });
         this.hostMgrConnection.ShutDown();
         this.tcpGateServer.Stop();
     }
@@ -181,8 +192,8 @@ public partial class Gate : IInstance
         Logger.Info("Gates mailboxes ready.");
         this.tcpGateServer.Run();
 
-        Array.ForEach(this.tcpClientsToServer!, client => client.Run());
-        Array.ForEach(this.tcpClientsToOtherGate!, client => client.Run());
+        this.tcpClientsToServer!.ForEach(client => client.Run());
+        this.tcpClientsToOtherGate!.ForEach(client => client.Run());
 
         this.allServersConnectedEvent!.Wait();
         Logger.Info("All servers connected.");
@@ -202,7 +213,7 @@ public partial class Gate : IInstance
         // NOTE: if tcpClient hash successfully connected to remote, it means remote is already
         // ready to pump message. (tcpServer's OnInit is invoked before tcpServers' Listen)
         Logger.Debug("Try to call Echo method by mailbox");
-        Array.ForEach(this.tcpClientsToServer!, client =>
+        this.tcpClientsToServer!.ForEach(client =>
         {
             var serverEntityMailBox = client.MailBox;
             var res = this.entity!.Call(serverEntityMailBox, "Echo", "Hello");
@@ -219,8 +230,12 @@ public partial class Gate : IInstance
         });
 
         // gate main thread will stuck here
-        Array.ForEach(this.tcpClientsToOtherGate!, client => client.WaitForExit());
-        Array.ForEach(this.tcpClientsToServer!, client => client.WaitForExit());
+        // Array.ForEach(this.tcpClientsToOtherGate!, client => client.WaitForExit());
+        this.gateClientsExitEvent!.Wait();
+
+        // Array.ForEach(this.tcpClientsToServer!, client => client.WaitForExit());
+        this.serverClientsExitEvent!.Wait();
+
         this.hostMgrConnection.WaitForExit();
         this.tcpGateServer.WaitForExit();
         this.clientsPumpMsgSandBox.WaitForExit();
@@ -460,7 +475,7 @@ public partial class Gate : IInstance
 
     private TcpClient RandomServerClient()
     {
-        Logger.Debug($"client cnt: {this.tcpClientsToServer!.Length}");
-        return this.tcpClientsToServer![this.random.Next(this.tcpClientsToServer.Length)];
+        Logger.Debug($"client cnt: {this.tcpClientsToServer!.Count}");
+        return this.tcpClientsToServer![this.random.Next(this.tcpClientsToServer.Count)];
     }
 }

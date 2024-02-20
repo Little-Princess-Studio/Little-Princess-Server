@@ -7,6 +7,7 @@
 namespace LPS.Server.Instance;
 
 using System;
+using System.Linq;
 using Google.Protobuf;
 using LPS.Common.Debug;
 using LPS.Common.Rpc;
@@ -184,7 +185,7 @@ public partial class Server
         if (this.localEntityDict.ContainsKey(entityId))
         {
             Logger.Debug("Prepare for component sync");
-            DistributeEntity? entity = this.localEntityDict[entityId];
+            DistributeEntity entity = this.localEntityDict[entityId];
             entity.ComponentSync(componentName, (_, content) =>
             {
                 Logger.Debug("Component sync send back");
@@ -209,12 +210,26 @@ public partial class Server
     private void HandleControl((IMessage Message, Connection Connection, uint RpcId) arg)
     {
         var (msg, connToGate, _) = arg;
-        var createDist = (msg as Control)!;
+        var ctlMsg = (msg as Control)!;
 
-        var gateMailBox = createDist.Args[0].Unpack<Common.Rpc.InnerMessages.MailBox>();
+        var gateMailBox = ctlMsg.Args[0].Unpack<Common.Rpc.InnerMessages.MailBox>();
         connToGate.MailBox = RpcHelper.PbMailBoxToRpcMailBox(gateMailBox);
         Logger.Info($"Register gates' mailbox {connToGate.MailBox}");
 
-        this.gatesMailBoxesRegisteredEvent!.Signal(1);
+        if (ctlMsg.Message == ControlMessage.Ready)
+        {
+            this.gatesMailBoxesRegisteredEvent!.Signal(1);
+        }
+
+        // remove old connection
+        else if (ctlMsg.Message == ControlMessage.ReconnectReady)
+        {
+            var oldConn = this.tcpServer.AllConnections.FirstOrDefault(
+                conn => conn.MailBox.CompareOnlyAddress(gateMailBox));
+            if (oldConn != null)
+            {
+                oldConn.Disconnect();
+            }
+        }
     }
 }

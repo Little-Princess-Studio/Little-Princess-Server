@@ -8,6 +8,8 @@ enum HostCommandType {
     Open = 2;
     Stop = 3;
     SyncServiceManager = 4;
+    ReconnectServer = 5;
+    ReconnectGate = 6;
 }
 
 message HostCommand {
