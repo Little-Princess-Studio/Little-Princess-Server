@@ -695,7 +695,7 @@ public static partial class RpcHelper
             }
             catch (Exception ex)
             {
-                Logger.Error(ex, "Read socket data failed, socket will close.");
+                Logger.Error(ex, $"Read socket data failed, socket will close. {conn.MailBox}");
                 break;
             }
 
@@ -703,6 +703,7 @@ public static partial class RpcHelper
             var result = await writer.FlushAsync(cancelTokenSource.Token);
             if (result.IsCompleted)
             {
+                Logger.Info("Writer completed");
                 break;
             }
         }

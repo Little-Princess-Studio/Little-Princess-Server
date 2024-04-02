@@ -70,6 +70,8 @@ public static class Startup
             info =>
                 $"subproc --type {info.Type} --confpath {info.ConfFilePath} --childname {info.InstanceName} --restart {info.IsRestart}";
 
+        Logger.Init("startup");
+
         Parser.Default.ParseArguments<StartUpOptions, ByDefaultOptions, SubProcOptions>(args)
             .MapResult(
                 (StartUpOptions opts) =>
@@ -95,11 +97,11 @@ public static class Startup
                 (SubProcOptions opts) =>
                 {
                     Logger.Init(opts.ChildName);
-                    Logger.Info($"start {opts.ChildName} {opts.Type} {opts.ConfPath}");
+                    Logger.Info($"start {opts.ChildName} {opts.Type} {opts.ConfPath} {opts.Restart}");
 
                     try
                     {
-                        StartupManager.StartUp(opts.Type, opts.ChildName, opts.ConfPath, opts.Restart);
+                        StartupManager.StartUp(opts.Type, opts.ChildName, opts.ConfPath, false);
                     }
                     catch (Exception ex)
                     {

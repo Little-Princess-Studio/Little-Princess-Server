@@ -269,7 +269,7 @@ public static class StartupManager
                 procStartInfo = new ProcessStartInfo
                 {
                     FileName = binaryPath,
-                    Arguments = $"subproc {startUpArgumentsString}",
+                    Arguments = $"{startUpArgumentsString}",
                     UseShellExecute = true,
                 };
             }
@@ -318,12 +318,12 @@ public static class StartupManager
             var exitCode = process.ExitCode;
             if (exitCode != 0)
             {
-                Logger.Warn("subprocess exited with unexpected code, restart it, exitcode: {exitCode}");
-                StartSubProcess(type, name, confFilePath, binaryPath, hotreload, true);
+                // Logger.Warn("subprocess exited with unexpected code, restart it, exitcode: {exitCode}");
+                // StartSubProcess(type, name, confFilePath, binaryPath, hotreload, true);
             }
             else
             {
-                Logger.Info("subprocess exited with expected code, exitcode: {exitCode}");
+                Logger.Info($"subprocess {name} exited with expected code, exitcode: {exitCode}");
                 AliveProcesses.Remove(name);
             }
         };
@@ -532,7 +532,7 @@ public static class StartupManager
         var hostManagerIp = hostMgrConf["ip"]!.ToString();
         var hostManagerPort = Convert.ToInt32(hostMgrConf["port"]!.ToString());
 
-        Logger.Debug($"Startup Server {name} at {ip}:{port}, use mq: {useMqToHost}");
+        Logger.Debug($"Startup Server {name} at {ip}:{port}, use mq: {useMqToHost} restart: {restart}");
         var server = new Server(name, ip, port, hostnum, hostManagerIp, hostManagerPort, useMqToHost, json, restart);
 
         ServerGlobal.Init(server);
@@ -612,7 +612,6 @@ public static class StartupManager
         var serviceConf = json["services"]![name]!;
         var ip = serviceConf["ip"]!.ToString();
         var port = Convert.ToInt32(serviceConf["port"]!.ToString());
-        var useMqToHost = Convert.ToBoolean(serviceConf["use_mq_to_host"]!.ToString());
 
         var hostMgrConf = GetJson(path: json["hostmanager_conf"]!.ToString())!;
         var hostnum = Convert.ToInt32(hostMgrConf["hostnum"]!.ToString());
@@ -624,7 +623,7 @@ public static class StartupManager
             type => type.GetCustomAttribute<ServiceAttribute>()!.ServiceName,
             extraAssemblies);
 
-        Logger.Debug($"Start up Service {name} at {ip}:{port}, use mq: {useMqToHost}");
+        Logger.Debug($"Start up Service {name} at {ip}:{port}");
 
         var service = new LPS.Service.Instance.Service(
             serviceMgrIp,

@@ -305,7 +305,7 @@ public partial class HostManager
         }
     }
 
-    private void SendSyncCmdToToConnection(
+    private void SendSyncCmdToConnection(
         HostCommandType hostCommandType,
         Connection conn,
         List<MailBox> syncMailBoxes)
@@ -332,20 +332,20 @@ public partial class HostManager
             // sync gates to restarting server
             case RemoteType.Server:
                 // send gates mailboxes
-                this.SendSyncCmdToToConnection(HostCommandType.SyncGates, conn, this.gatesMailBoxes);
+                this.SendSyncCmdToConnection(HostCommandType.SyncGates, conn, this.gatesMailBoxes);
                 break;
 
             // sync servers and gates to restarting gate
             case RemoteType.Gate:
             {
                 // sync gates
-                this.SendSyncCmdToToConnection(HostCommandType.SyncGates, conn, this.gatesMailBoxes);
+                this.SendSyncCmdToConnection(HostCommandType.SyncGates, conn, this.gatesMailBoxes);
 
                 // sync servers
-                this.SendSyncCmdToToConnection(HostCommandType.SyncServers, conn, this.serversMailBoxes);
+                this.SendSyncCmdToConnection(HostCommandType.SyncServers, conn, this.serversMailBoxes);
 
                 // sync service manager
-                this.SendSyncCmdToToConnection(
+                this.SendSyncCmdToConnection(
                     HostCommandType.SyncServiceManager,
                     conn,
                     new List<MailBox> { this.serviceManagerInfo.ServiceManagerMailBox });

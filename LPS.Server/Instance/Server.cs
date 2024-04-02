@@ -162,6 +162,7 @@ public partial class Server : IInstance
 
         if (this.isRestart)
         {
+            Logger.Info($"Restart server");
             this.HandleRestart();
         }
         else
