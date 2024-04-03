@@ -347,6 +347,7 @@ public class ServiceManager : IInstance
         }
         else
         {
+            Logger.Debug("Init Use Mq to Host");
             this.hostMgrConnection = new MessageQueueHostManagerConnectionOfServiceManager();
         }
 
@@ -403,7 +404,10 @@ public class ServiceManager : IInstance
 
                     hostMsg.Args.Add(Any.Pack(RpcHelper.RpcMailBoxToPbMailBox(this.mailBox)));
 
-                    this.hostMgrConnection.Send(hostMsg);
+                    for (int i = 0; i < 1000; ++i)
+                    {
+                        this.hostMgrConnection.Send(hostMsg);
+                    }
 
                     var readyMsg = new ServiceManagerCommand()
                     {

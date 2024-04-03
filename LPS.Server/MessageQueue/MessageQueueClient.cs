@@ -134,10 +134,14 @@ public class MessageQueueClient : IDisposable
         ReadOnlyMemory<byte> message, string exchange, string routingKey, bool mandatory = false, int expireTime = -1)
     {
         IBasicProperties? properties = null;
+        properties = this.producerChannel!.CreateBasicProperties();
         if (expireTime > 0)
         {
-            properties = this.producerChannel!.CreateBasicProperties();
             properties.Expiration = expireTime.ToString();
+        }
+        else
+        {
+            properties.Persistent = true;
         }
 
         this.producerChannel!.BasicPublish(

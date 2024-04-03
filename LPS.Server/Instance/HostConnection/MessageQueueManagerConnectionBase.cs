@@ -48,10 +48,10 @@ public abstract class MessageQueueManagerConnectionBase : IManagerConnection
 
         this.messageQueueClientToHostMgr.DeclareExchange(Consts.HostMgrToServerExchangeName);
         this.messageQueueClientToHostMgr.DeclareExchange(Consts.HostMgrToGateExchangeName);
+        this.messageQueueClientToHostMgr.DeclareExchange(Consts.HostMgrToServiceMgrExchangeName);
         this.messageQueueClientToHostMgr.DeclareExchange(Consts.ServerToHostExchangeName);
         this.messageQueueClientToHostMgr.DeclareExchange(Consts.GateToHostExchangeName);
         this.messageQueueClientToHostMgr.DeclareExchange(Consts.ServiceMgrToHostExchangeName);
-        this.messageQueueClientToHostMgr.DeclareExchange(Consts.HostMgrToServiceMgrExchangeName);
 
         this.InitializeBinding(this.messageQueueClientToHostMgr);
 
@@ -76,7 +76,7 @@ public abstract class MessageQueueManagerConnectionBase : IManagerConnection
     {
         var pkg = PackageHelper.FromProtoBuf(message, this.GenerateRpcId());
 
-        // Logger.Debug($"Send message to host manager. {this.GetHostMgrExchangeName()}, {this.GetMessagePackageRoutingKey()}, {message}");
+        Logger.Debug($"Send message to host manager. {this.GetHostMgrExchangeName()}, {this.GetMessagePackageRoutingKey()}, {message}");
         this.messageQueueClientToHostMgr.Publish(
             pkg.ToBytes(),
             this.GetHostMgrExchangeName(),

@@ -247,6 +247,7 @@ public partial class Gate
         var idx = 0;
         foreach (var mb in otherGatesMailBoxes)
         {
+            Logger.Debug($"Sync gate, ip: {mb.Ip} gate port: {mb.Port}");
             if (mb.CompareOnlyAddress(this.entity!.MailBox))
             {
                 continue;

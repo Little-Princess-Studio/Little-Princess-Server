@@ -300,7 +300,6 @@ public partial class HostManager : IInstance
                 var split = routingKey.Split('.');
                 var msgType = split[0];
                 var targetIdentifier = split[1];
-                Logger.Debug($"Message recieved from server. {msgType} {targetIdentifier} {routingKey}");
 
                 switch (msgType)
                 {
@@ -348,6 +347,7 @@ public partial class HostManager : IInstance
                 switch (msgType)
                 {
                     case "serverMessagePackage":
+                        Logger.Debug("[MqMsg] ServiceManager message package got");
                         var pkg = PackageHelper.GetPackageFromBytes(msg);
                         var type = (PackageType)pkg.Header.Type;
                         var protobuf = PackageHelper.GetProtoBufObjectByType(type, pkg);
