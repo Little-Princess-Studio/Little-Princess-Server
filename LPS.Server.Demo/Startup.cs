@@ -104,7 +104,7 @@ public static class Startup
 
                     try
                     {
-                        StartupManager.StartUp(opts.Type, opts.ChildName, opts.ConfPath, opts.Restart == 0);
+                        StartupManager.StartUp(opts.Type, opts.ChildName, opts.ConfPath, opts.Restart == 1);
                     }
                     catch (Exception ex)
                     {
