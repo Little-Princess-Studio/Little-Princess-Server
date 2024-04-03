@@ -318,8 +318,8 @@ public static class StartupManager
             var exitCode = process.ExitCode;
             if (exitCode != 0)
             {
-                // Logger.Warn("subprocess exited with unexpected code, restart it, exitcode: {exitCode}");
-                // StartSubProcess(type, name, confFilePath, binaryPath, hotreload, true);
+                Logger.Warn("subprocess exited with unexpected code, restart it, exitcode: {exitCode}");
+                StartSubProcess(type, name, confFilePath, binaryPath, hotreload, true);
             }
             else
             {

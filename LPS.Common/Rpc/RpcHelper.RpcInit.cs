@@ -737,7 +737,6 @@ public static partial class RpcHelper
                     var arg = (pb, conn, pkg.Header.ID);
                     var msg = new Message(type, arg);
                     onGotMessage(msg);
-                    Logger.Debug($"[Find] message type: {type}");
                     buffer = buffer.Slice(bytesToParse.End);
                 }
                 else

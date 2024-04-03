@@ -37,7 +37,7 @@ public static class Startup
     private class ByDefaultOptions
     {
         [Option('h', "hotreload", Required = false, HelpText = "Set if hot reload enabled.")]
-        public bool HotReload { get; set; }
+        public int HotReload { get; set; }
     }
 
     /// <summary>
@@ -55,8 +55,8 @@ public static class Startup
         [Option("childname", Required = true, HelpText = "Set up the child process name in conf")]
         public string ChildName { get; set; }
 
-        [Option("restart", Required = false, HelpText = "If this process is restarting")]
-        public bool Restart { get; set; }
+        [Option("restart", Required = false, HelpText = "Set If this process is restarting")]
+        public int Restart { get; set; }
     }
 #pragma warning restore CS8618
 
@@ -68,14 +68,16 @@ public static class Startup
     {
         StartupManager.OnGetStartupArgumentsString =
             info =>
-                $"subproc --type {info.Type} --confpath {info.ConfFilePath} --childname {info.InstanceName} --restart {info.IsRestart}";
-
-        Logger.Init("startup");
+                $"subproc --type {info.Type}" +
+                $" --confpath {info.ConfFilePath}" +
+                $" --childname {info.InstanceName}" +
+                $" --restart {(info.IsRestart ? 1 : 0)}";
 
         Parser.Default.ParseArguments<StartUpOptions, ByDefaultOptions, SubProcOptions>(args)
             .MapResult(
                 (StartUpOptions opts) =>
                 {
+                    Logger.Init("startup");
                     Logger.Info("Start up with config files");
                     foreach (var path in opts.Pathes)
                     {
@@ -89,8 +91,9 @@ public static class Startup
                 },
                 (ByDefaultOptions opts) =>
                 {
-                    Logger.Info("Start up by default");
-                    StartupByDefault(opts.HotReload);
+                    Logger.Init("startup");
+                    Logger.Info($"Start up by default, hotreload = {opts.HotReload}");
+                    StartupByDefault(opts.HotReload == 1);
                     Logger.Info("Start up succ");
                     return true;
                 },
@@ -101,7 +104,7 @@ public static class Startup
 
                     try
                     {
-                        StartupManager.StartUp(opts.Type, opts.ChildName, opts.ConfPath, false);
+                        StartupManager.StartUp(opts.Type, opts.ChildName, opts.ConfPath, opts.Restart == 0);
                     }
                     catch (Exception ex)
                     {

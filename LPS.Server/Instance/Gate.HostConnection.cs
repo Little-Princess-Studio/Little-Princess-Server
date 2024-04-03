@@ -107,8 +107,9 @@ public partial class Gate
         if (oldClient is not null)
         {
             oldClient.Stop();
-            this.serverClientsExitEvent.Signal();
-            this.tcpClientsToServer.Remove(oldClient);
+
+            // this.serverClientsExitEvent.Signal();
+            // this.tcpClientsToServer.Remove(oldClient);
         }
 
         var serverIp = serverMailBox.Ip;
