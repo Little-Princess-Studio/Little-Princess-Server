@@ -168,9 +168,8 @@ public partial class Gate : IInstance
     /// <inheritdoc/>
     public void Loop()
     {
-        Logger.Info($"Start gate at {this.Ip}:{this.Port}");
+        Logger.Info("[Startup] STEP 1: connect to host manager.");
         this.hostMgrConnection.Run();
-
         Logger.Debug("Host manager connected.");
 
         this.clientsPumpMsgSandBox.Run();
@@ -190,6 +189,8 @@ public partial class Gate : IInstance
         Logger.Info("Servers mailboxes ready.");
         this.otherGatesMailBoxesReadyEvent.Wait();
         Logger.Info("Gates mailboxes ready.");
+
+        Logger.Info($"Start gate at {this.Ip}:{this.Port}");
         this.tcpGateServer.Run();
 
         this.tcpClientsToServer!.ForEach(client => client.Run());

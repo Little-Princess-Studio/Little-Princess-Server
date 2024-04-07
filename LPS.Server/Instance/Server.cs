@@ -9,10 +9,8 @@ namespace LPS.Server.Instance;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
 using LPS.Common.Debug;
 using LPS.Common.Entity;
@@ -149,10 +147,10 @@ public partial class Server : IInstance
     /// <inheritdoc/>
     public void Loop()
     {
-        Logger.Info($"Start server at {this.Ip}:{this.Port}");
+        Logger.Info("[Startup] STEP 1: connect to host manager.");
         this.hostMgrConnection.Run();
-
         Logger.Info("Host manager connected.");
+
         Logger.Info("Start time circle pump.");
         var sendQueueSandBox = SandBox.Create(this.TimeCircleSyncMessageEnqueueHandler);
         sendQueueSandBox.Run();
@@ -179,7 +177,7 @@ public partial class Server : IInstance
             Logger.Info("wait for sync gates mailboxes");
             this.waitForSyncGatesEvent.Wait();
 
-            Logger.Info("Start server tcp server.");
+            Logger.Info($"Start server at {this.Ip}:{this.Port}");
             this.tcpServer.Run();
 
             Logger.Info("wait for gate mailbox registered");
@@ -258,9 +256,6 @@ public partial class Server : IInstance
 
         Logger.Info("wait for sync gates mailboxes at restarting");
         this.waitForSyncGatesEvent.Wait();
-
-        Logger.Info("Start server tcp server.");
-        this.tcpServer.Run();
 
         // wait for reconnecting from gate
         Logger.Info("Send wait for reconnect to host manager");
@@ -427,9 +422,9 @@ public partial class Server : IInstance
             try
             {
                 // Migrate notification
-                if (callback.RpcType == RpcType.ServerToClient && baseEntity is ServerClientEntity)
+                if (callback.RpcType == RpcType.ServerToClient && baseEntity is ServerClientEntity clientEntity)
                 {
-                    var gateConn = (baseEntity as ServerClientEntity)!.Client.GateConn;
+                    var gateConn = clientEntity.Client.GateConn;
                     Logger.Info($"serverToClient rpc send to gate {gateConn.MailBox}");
                     this.tcpServer.Send(callback, gateConn);
                 }

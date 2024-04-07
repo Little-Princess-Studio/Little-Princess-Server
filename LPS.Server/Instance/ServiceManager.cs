@@ -11,6 +11,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
@@ -119,8 +120,8 @@ public class ServiceManager : IInstance
     public void Loop()
     {
         this.state = State.WaitForServiceInstanceRegister;
-        this.tcpServer.Run();
         this.hostMgrConnection.Run();
+        this.tcpServer.Run();
 
         this.tcpServer.WaitForExit();
         this.hostMgrConnection.WaitForExit();
@@ -404,10 +405,7 @@ public class ServiceManager : IInstance
 
                     hostMsg.Args.Add(Any.Pack(RpcHelper.RpcMailBoxToPbMailBox(this.mailBox)));
 
-                    for (int i = 0; i < 1000; ++i)
-                    {
-                        this.hostMgrConnection.Send(hostMsg);
-                    }
+                    this.hostMgrConnection.Send(hostMsg);
 
                     var readyMsg = new ServiceManagerCommand()
                     {
@@ -556,6 +554,7 @@ public class ServiceManager : IInstance
         {
             var e = new Exception($"Service manager is not in state {string.Join(',', states.Select(s => s.ToString()))}, but {this.state}");
             Logger.Warn(e);
+            Logger.Warn(System.Environment.StackTrace);
             return false;
         }
 

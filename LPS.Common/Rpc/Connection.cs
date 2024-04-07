@@ -101,6 +101,8 @@ public class Connection
     {
         try
         {
+            Logger.Debug($"connect disconnect invoked.");
+            Logger.Debug($"Stack Trace: {System.Environment.StackTrace}");
             this.Status = ConnectStatus.Disconnected;
             this.OnDisconnected?.Invoke();
         }

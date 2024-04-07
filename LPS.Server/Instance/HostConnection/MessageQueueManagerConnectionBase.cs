@@ -7,6 +7,7 @@
 namespace LPS.Server.Instance.HostConnection;
 
 using System;
+using System.Threading.Tasks;
 using Google.Protobuf;
 using LPS.Common.Debug;
 using LPS.Common.Ipc;
@@ -27,6 +28,7 @@ public abstract class MessageQueueManagerConnectionBase : IManagerConnection
     private readonly Dispatcher<IMessage> dispatcher = new();
 
     private uint rpcId;
+    private bool remoteConsumerReady;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="MessageQueueManagerConnectionBase"/> class.
@@ -74,14 +76,41 @@ public abstract class MessageQueueManagerConnectionBase : IManagerConnection
     /// <inheritdoc/>
     public void Send(IMessage message)
     {
-        var pkg = PackageHelper.FromProtoBuf(message, this.GenerateRpcId());
+        if (!this.remoteConsumerReady)
+        {
+            this.EnsureRemoteConsumerReady().ContinueWith(t =>
+            {
+                if (t.Exception is not null)
+                {
+                    Logger.Error(t.Exception, "Failed to ensure remote consumer ready.");
+                    return;
+                }
 
-        Logger.Debug($"Send message to host manager. {this.GetHostMgrExchangeName()}, {this.GetMessagePackageRoutingKey()}, {message}");
-        this.messageQueueClientToHostMgr.Publish(
-            pkg.ToBytes(),
-            this.GetHostMgrExchangeName(),
-            this.GetMessagePackageRoutingKey(),
-            true);
+                this.remoteConsumerReady = true;
+                this.SendInternal(message);
+            });
+        }
+        else
+        {
+            this.SendInternal(message);
+        }
+    }
+
+    /// <summary>
+    /// Ensures that the remote consumer is ready before proceeding.
+    /// </summary>
+    /// <remarks>
+    /// This method continuously checks if the remote consumer is ready by querying the number of consumers for the message queue.
+    /// If the remote consumer is not ready, it waits for a second before checking again.
+    /// </remarks>
+    /// <returns>A task that represents the asynchronous operation.</returns>
+    public async Task EnsureRemoteConsumerReady()
+    {
+        while (this.messageQueueClientToHostMgr.QueryQueueConsumerCount(this.GetMessageQueueName()) == 0)
+        {
+            Logger.Info("Remote consumer is not ready, waiting...");
+            await Task.Delay(1000);
+        }
     }
 
     /// <inheritdoc/>
@@ -117,6 +146,18 @@ public abstract class MessageQueueManagerConnectionBase : IManagerConnection
     protected abstract string GetMessagePackageRoutingKey();
 
     private uint GenerateRpcId() => this.rpcId++;
+
+    private void SendInternal(IMessage message)
+    {
+        var pkg = PackageHelper.FromProtoBuf(message, this.GenerateRpcId());
+
+        Logger.Debug($"Send message to host manager. {this.GetHostMgrExchangeName()}, {this.GetMessagePackageRoutingKey()}, {message}");
+        this.messageQueueClientToHostMgr.Publish(
+            pkg.ToBytes(),
+            this.GetHostMgrExchangeName(),
+            this.GetMessagePackageRoutingKey(),
+            true);
+    }
 
     private void HandleHostMgrMqMessage(ReadOnlyMemory<byte> msg, string routingKey)
     {

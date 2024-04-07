@@ -65,6 +65,7 @@ public static class DbHelper
     /// </summary>
     public static IGlobalCache FastGlobalCache { get; private set; } = null!;
 
+    /*
     /// <summary>
     /// Gets the slow global cache client.
     /// Slow* client posts the access operation message to remote DbManager process.
@@ -72,6 +73,7 @@ public static class DbHelper
     /// User should use this api in most cases.
     /// </summary>
     public static readonly IGlobalCache SlowGlobalCache = new MqGlobalCacheAccessor();
+    */
 
     private static DbClient databaseClient = null!;
 
@@ -84,6 +86,8 @@ public static class DbHelper
     public static async Task Initialize(DbHelper.DbInfo globalCacheInitParam, string databaseClientIdentifier)
     {
         Logger.Info("Start initialize database...");
+
+        // TODO: Initial global cache dynamically
         FastGlobalCache = Redis.Instance;
         string connectString =
          $"{globalCacheInitParam.DbConfig.Ip}:{globalCacheInitParam.DbConfig.Port}," +

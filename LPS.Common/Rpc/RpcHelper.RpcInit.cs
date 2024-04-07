@@ -10,6 +10,7 @@ namespace LPS.Common.Rpc;
 using System.Buffers;
 using System.Collections.ObjectModel;
 using System.IO.Pipelines;
+using System.Net;
 using System.Net.Sockets;
 using System.Reflection;
 using Google.Protobuf.WellKnownTypes;
@@ -674,15 +675,19 @@ public static partial class RpcHelper
         var socket = conn.Socket;
         var cancelTokenSource = conn.TokenSource;
 
+        var ipsPoint = socket.RemoteEndPoint as IPEndPoint;
+
+        Logger.Debug($"conn status: {conn.Status} {ipsPoint.Address} {ipsPoint.Port}, should stop: {stopCondition.Invoke()}");
         while (conn.Status == ConnectStatus.Connected && !stopCondition.Invoke())
         {
             var memory = writer.GetMemory(minimumBufferSize);
             try
             {
                 var bytesRead = await socket.ReceiveAsync(memory, SocketFlags.None, cancelTokenSource.Token);
+
                 if (bytesRead == 0)
                 {
-                    Logger.Info("Remote close the connection.");
+                    Logger.Info($"Remote close the connection. {ipsPoint.Address} {ipsPoint.Port}");
                     break;
                 }
 
@@ -690,12 +695,12 @@ public static partial class RpcHelper
             }
             catch (OperationCanceledException ex)
             {
-                Logger.Error(ex, "IO Task canceled, socket will close.");
+                Logger.Error(ex, $"IO Task canceled, socket will close. {ipsPoint.Address} {ipsPoint.Port}");
                 break;
             }
             catch (Exception ex)
             {
-                Logger.Error(ex, $"Read socket data failed, socket will close. {conn.MailBox}");
+                Logger.Error(ex, $"Read socket data failed, socket will close. {ipsPoint.Address} {ipsPoint.Port}");
                 break;
             }
 

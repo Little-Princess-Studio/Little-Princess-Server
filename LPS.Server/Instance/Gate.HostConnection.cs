@@ -108,8 +108,8 @@ public partial class Gate
         {
             oldClient.Stop();
 
-            // this.serverClientsExitEvent.Signal();
-            // this.tcpClientsToServer.Remove(oldClient);
+            this.serverClientsExitEvent.Signal();
+            this.tcpClientsToServer.Remove(oldClient);
         }
 
         var serverIp = serverMailBox.Ip;
@@ -244,10 +244,10 @@ public partial class Gate
         this.allOtherGatesConnectedEvent = new(otherGatesMailBoxes.Length - 1);
         this.gateClientsExitEvent = new(otherGatesMailBoxes.Length - 1);
         this.tcpClientsToOtherGate = new(otherGatesMailBoxes.Length - 1);
-        var idx = 0;
+
         foreach (var mb in otherGatesMailBoxes)
         {
-            Logger.Debug($"Sync gate, ip: {mb.Ip} gate port: {mb.Port}");
+            Logger.Debug($"Sync gate, {mb} {this.entity!.MailBox} {mb.CompareOnlyAddress(this.entity!.MailBox)}");
             if (mb.CompareOnlyAddress(this.entity!.MailBox))
             {
                 continue;
@@ -266,8 +266,7 @@ public partial class Gate
                 MailBox = mb,
             };
 
-            this.tcpClientsToOtherGate[idx] = client;
-            ++idx;
+            this.tcpClientsToOtherGate.Add(client);
         }
 
         this.otherGatesMailBoxesReadyEvent.Signal();
@@ -304,7 +303,7 @@ public partial class Gate
                 },
                 MailBox = mb,
             };
-            this.tcpClientsToServer[idx] = client;
+            this.tcpClientsToServer.Add(client);
             ++idx;
         }
 
@@ -316,7 +315,7 @@ public partial class Gate
         var ctl = new Control
         {
             From = RemoteType.Gate,
-            Message = ControlMessage.ReconnectReady,
+            Message = ControlMessage.Ready,
         };
 
         ctl.Args.Add(Any.Pack(RpcHelper.RpcMailBoxToPbMailBox(this.entity!.MailBox)));

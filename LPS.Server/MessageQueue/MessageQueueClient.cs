@@ -216,4 +216,14 @@ public class MessageQueueClient : IDisposable
         this.consumerChannel?.Dispose();
         this.connection?.Dispose();
     }
+
+    /// <summary>
+    /// Queries the number of consumers for a given queue in the RabbitMQ.
+    /// </summary>
+    /// <param name="queueName">The name of the queue to query.</param>
+    /// <returns>The number of consumers for the specified queue.</returns>
+    /// <exception cref="Exception">Thrown when the producer channel is not initialized.</exception>
+    public uint QueryQueueConsumerCount(string queueName) =>
+        this.producerChannel?.ConsumerCount(queueName) ??
+        throw new Exception("Producer channel is not initialized");
 }
