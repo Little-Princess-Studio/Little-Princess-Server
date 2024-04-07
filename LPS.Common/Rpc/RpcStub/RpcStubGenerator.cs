@@ -40,7 +40,7 @@ public class RpcStubGenerator
     /// <param name="entity">The shadow client entity.</param>
     /// <returns>The server-side implementation <see cref="Type"/> of the specified RPC interface <typeparamref name="T"/>.</returns>
     /// <exception cref="KeyNotFoundException">Thrown when the specified RPC interface <typeparamref name="T"/> is not found in the dictionary.</exception>
-    public virtual T GetRpcStubImpl<T>(BaseEntity entity)
+    public T GetRpcStubImpl<T>(BaseEntity entity)
         where T : class, IRpcStub
     {
         if (this.RpcStubInterfaceIdToStubType.TryGetValue(

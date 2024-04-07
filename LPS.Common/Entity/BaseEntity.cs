@@ -194,7 +194,7 @@ public abstract class BaseEntity : ITypeIdSupport
     /// <typeparam name="T">The type of the RPC interface.</typeparam>
     /// <returns>A stub for the specified RPC interface.</returns>
     /// <exception cref="Exception">Thrown when the specified type is not an interface.</exception>
-    protected virtual T GetRpcStub<T>()
+    protected T GetRpcStub<T>()
         where T : class, IRpcStub
     {
         var generator = RpcStubGeneratorManager.GetRpcStubGenerator(this.GetType());

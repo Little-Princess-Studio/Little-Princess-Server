@@ -40,7 +40,7 @@ public class Player : ServerClientEntity
     [RpcProperty(nameof(Player.AccountId), RpcPropertySetting.Permanent)]
     public RpcPlaintProperty<string> AccountId = new (string.Empty);
 
-    private readonly IPlayerStub playerStub = null!;
+    private readonly IPlayerStub playerStub;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Player"/> class.
