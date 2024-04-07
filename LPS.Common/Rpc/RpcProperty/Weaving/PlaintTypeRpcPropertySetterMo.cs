@@ -28,6 +28,9 @@ public class PlaintTypeRpcPropertySetterMo : IMo
     public double Order => 1.0;
 
     /// <inheritdoc/>
+    public Omit MethodContextOmits { get; } = Omit.None;
+
+    /// <inheritdoc/>
     public void OnEntry(MethodContext context)
     {
         var caller = (context.Target as IPropertyTree)!;
