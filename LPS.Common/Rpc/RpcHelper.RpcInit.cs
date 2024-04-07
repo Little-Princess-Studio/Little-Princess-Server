@@ -677,7 +677,6 @@ public static partial class RpcHelper
 
         var ipsPoint = socket.RemoteEndPoint as IPEndPoint;
 
-        Logger.Debug($"conn status: {conn.Status} {ipsPoint.Address} {ipsPoint.Port}, should stop: {stopCondition.Invoke()}");
         while (conn.Status == ConnectStatus.Connected && !stopCondition.Invoke())
         {
             var memory = writer.GetMemory(minimumBufferSize);

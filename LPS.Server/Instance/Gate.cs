@@ -173,6 +173,7 @@ public partial class Gate : IInstance
         Logger.Debug("Host manager connected.");
 
         this.clientsPumpMsgSandBox.Run();
+        Logger.Info("[Startup] STEP 2: create gate entity.");
         this.localEntityGeneratedEvent.Wait();
         Logger.Debug($"Gate entity created. {this.entity!.MailBox}");
 
@@ -181,18 +182,21 @@ public partial class Gate : IInstance
             From = RemoteType.Gate,
             Message = ControlMessage.Ready,
         };
-
         registerCtl.Args.Add(Any.Pack(RpcHelper.RpcMailBoxToPbMailBox(this.entity!.MailBox)));
+        Logger.Info("[Startup] STEP 3: notify host manager ready.");
         this.hostMgrConnection.Send(registerCtl);
 
+        Logger.Info("[Startup] STEP 4: waiting for synchronizing mailboxes.");
         this.serversMailBoxesReadyEvent.Wait();
         Logger.Info("Servers mailboxes ready.");
         this.otherGatesMailBoxesReadyEvent.Wait();
         Logger.Info("Gates mailboxes ready.");
 
+        Logger.Info("[Startup] STEP 5: Startup gate's tcp server.");
         Logger.Info($"Start gate at {this.Ip}:{this.Port}");
         this.tcpGateServer.Run();
 
+        Logger.Info("[Startup] STEP 6: Start tcp clients to connect to servers and other gates.");
         this.tcpClientsToServer!.ForEach(client => client.Run());
         this.tcpClientsToOtherGate!.ForEach(client => client.Run());
 
@@ -202,12 +206,14 @@ public partial class Gate : IInstance
         this.allOtherGatesConnectedEvent!.Wait();
         Logger.Info("All other gates connected.");
 
+        Logger.Info("[Startup] STEP 7: Synchronizing service manager mailbox.");
         this.waitForSyncServiceManagerEvent.Wait();
-        Logger.Info("Service manager connected.");
 
+        Logger.Info("Service manager mailbox got.");
         Logger.Info("Try to connect to service manager");
         this.ConnectToServiceManager();
 
+        Logger.Info("[Startup] STEP 8: Start pumping messages from remote clients.");
         this.readyToPumpClients = true;
         Logger.Info("Waiting completed");
 

@@ -151,10 +151,12 @@ public partial class Server : IInstance
         this.hostMgrConnection.Run();
         Logger.Info("Host manager connected.");
 
+        Logger.Info("[Startup] STEP 2: startup time circle pump.");
         Logger.Info("Start time circle pump.");
         var sendQueueSandBox = SandBox.Create(this.TimeCircleSyncMessageEnqueueHandler);
         sendQueueSandBox.Run();
 
+        Logger.Info("[Startup] STEP 3: create server entity.");
         this.localEntityGeneratedEvent.Wait();
         Logger.Info($"Local entity generated. {this.entity!.MailBox}");
 
@@ -172,24 +174,31 @@ public partial class Server : IInstance
                 Message = ControlMessage.Ready,
             };
             regCtl.Args.Add(Any.Pack(RpcHelper.RpcMailBoxToPbMailBox(this.entity!.MailBox)));
+            Logger.Info("[Startup] STEP 4: notify host manager ready.");
             this.hostMgrConnection.Send(regCtl);
 
+            Logger.Info("[Startup] STEP 5: Synchronizing gates' mailboxes.");
             Logger.Info("wait for sync gates mailboxes");
             this.waitForSyncGatesEvent.Wait();
 
+            Logger.Info("[Startup] STEP 6: Startup server's tcp server.");
             Logger.Info($"Start server at {this.Ip}:{this.Port}");
             this.tcpServer.Run();
 
+            Logger.Info("[Startup] STEP 7: register gates' connections with there mailboxes.");
             Logger.Info("wait for gate mailbox registered");
             this.gatesMailBoxesRegisteredEvent!.Wait();
 
+            Logger.Info("[Startup] STEP 8: Synchronizing service manager mailbox.");
             Logger.Info("wait for service manager registered");
             this.waitForSyncServiceManagerEvent.Wait();
         }
 
+        Logger.Info("Service manager mailbox got.");
         Logger.Info("Try to connect to service manager");
         this.ConnectToServiceManager();
 
+        Logger.Info("[Startup] STEP 9: Connect to web manager.");
         Logger.Info("Try to connect to web manager");
         this.InitWebManagerMessageQueueClient();
 

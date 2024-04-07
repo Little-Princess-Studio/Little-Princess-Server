@@ -347,7 +347,6 @@ public partial class HostManager : IInstance
                 switch (msgType)
                 {
                     case "serverMessagePackage":
-                        Logger.Debug("[MqMsg] ServiceManager message package got");
                         var pkg = PackageHelper.GetPackageFromBytes(msg);
                         var type = (PackageType)pkg.Header.Type;
                         var protobuf = PackageHelper.GetProtoBufObjectByType(type, pkg);
