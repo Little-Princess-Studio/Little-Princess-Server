@@ -19,7 +19,7 @@ public class PlaintTypeRpcPropertyGetterMo : IMo
     public AccessFlags Flags => AccessFlags.Instance | AccessFlags.PropertyGetter;
 
     /// <inheritdoc/>
-    public string? Pattern => "getter(int||string||float||bool||LPS.Common.Rpc.MailBox *)";
+    public string? Pattern => "getter(int||string||float||bool||LPS.Common.Rpc.MailBox *) && attr(exec RpcWrappedPropertyAttribute)";
 
     /// <inheritdoc/>
     public Feature Features => Feature.EntryReplace;
@@ -35,12 +35,8 @@ public class PlaintTypeRpcPropertyGetterMo : IMo
     {
         var caller = (context.Target as IPropertyTree)!;
         var propName = context.Method.Name[4..];
-        var isRpcProperty = context.Target
-            .GetType()
-            .GetProperty(propName)?
-            .IsDefined(typeof(RpcWrappedPropertyAttribute), false) ?? false;
 
-        if (isRpcProperty && caller.IsPropertyTreeBuilt)
+        if (caller.IsPropertyTreeBuilt)
         {
             var rpcProp = caller.GetGetableContainer(propName);
             context.ReplaceReturnValue(this, rpcProp.GetValue());

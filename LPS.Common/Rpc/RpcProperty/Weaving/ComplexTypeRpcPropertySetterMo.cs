@@ -19,7 +19,7 @@ public class ComplexTypeRpcPropertySetterMo : IMo
     public AccessFlags Flags => AccessFlags.Instance | AccessFlags.PropertySetter;
 
     /// <inheritdoc/>
-    public string? Pattern => "setter(LPS.Common.Rpc.RpcProperty.RpcContainer.RpcPropertyContainer+ *)";
+    public string? Pattern => "setter(LPS.Common.Rpc.RpcProperty.RpcContainer.RpcPropertyContainer+ *) && attr(exec RpcWrappedPropertyAttribute)";
 
     /// <inheritdoc/>
     public Feature Features => Feature.EntryReplace;
@@ -35,12 +35,8 @@ public class ComplexTypeRpcPropertySetterMo : IMo
     {
         var caller = (context.Target as IPropertyTree)!;
         var propName = context.Method.Name[4..];
-        var isRpcProperty = context.Target
-            .GetType()
-            .GetProperty(propName)?
-            .IsDefined(typeof(RpcWrappedPropertyAttribute), false) ?? false;
 
-        if (isRpcProperty && caller.IsPropertyTreeBuilt)
+        if (caller.IsPropertyTreeBuilt)
         {
             var rpcProp = caller.GetSetableContainer(propName);
             var newValue = context.Arguments[0];
