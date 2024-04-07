@@ -8,11 +8,9 @@ namespace LPS.Common.Rpc.RpcProperty.RpcContainer;
 
 using System.Reflection;
 using Google.Protobuf.Collections;
-using Google.Protobuf.WellKnownTypes;
 using LPS.Common.Rpc.InnerMessages;
 using LPS.Common.Rpc.RpcPropertySync.RpcPropertySyncInfo;
 using LPS.Common.Rpc.RpcPropertySync.RpcPropertySyncMessage;
-using LPS.Common.Util;
 using MailBox = LPS.Common.Rpc.MailBox;
 
 /// <summary>
@@ -112,7 +110,7 @@ public abstract class RpcPropertyContainer
     /// Serialize the prop tree to protobuf Any object with this node being the root.
     /// </summary>
     /// <returns>Serialized protobuf Any object.</returns>
-    public virtual Any ToRpcArg()
+    public virtual Google.Protobuf.WellKnownTypes.Any ToRpcArg()
     {
         DictWithStringKeyArg? protobufChildren = null;
 
@@ -126,7 +124,7 @@ public abstract class RpcPropertyContainer
             }
         }
 
-        return Any.Pack(protobufChildren != null ? protobufChildren : new NullArg());
+        return Google.Protobuf.WellKnownTypes.Any.Pack(protobufChildren != null ? protobufChildren : new NullArg());
     }
 
     /// <summary>
@@ -173,23 +171,79 @@ public abstract class RpcPropertyContainer
             var rpcFields = this.GetType()
                 .GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
                 .Where(field => field.IsDefined(typeof(RpcPropertyAttribute))
-                                && field.FieldType.IsSubclassOf(typeof(RpcPropertyContainer)));
+                                && field.FieldType.IsSubclassOf(typeof(RpcPropertyContainer)))
+                .Select(fieldInfo =>
+                {
+                    if (!fieldInfo.IsInitOnly)
+                    {
+                        throw new Exception($"Rpc property field {fieldInfo.Name} must be init-only.");
+                    }
+
+                    var prop = (fieldInfo.GetValue(this) as RpcPropertyContainer)!
+                        ?? throw new Exception(message: "Rpc property must be initialized with a non-null value.");
+
+                    var attr = fieldInfo.GetCustomAttribute<RpcPropertyAttribute>()!;
+                    prop.Name = string.IsNullOrEmpty(attr.Name) ? fieldInfo.Name : attr.Name;
+
+                    return prop;
+                });
+
+            var rpcProps = this.GetType()
+                .GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
+                .Where(propInfo =>
+                {
+                    var propertyType = propInfo.PropertyType;
+
+                    var attr = propInfo.GetCustomAttribute<RpcWrappedPropertyAttribute>();
+                    if (attr == null)
+                    {
+                        return false;
+                    }
+
+                    if (propertyType != typeof(int)
+                        && propertyType != typeof(string)
+                        && propertyType != typeof(float)
+                        && propertyType != typeof(bool)
+                        && propertyType != typeof(Common.Rpc.MailBox)
+                        && !propertyType.IsSubclassOf(typeof(RpcPropertyContainer)))
+                    {
+                        return false;
+                    }
+
+                    return true;
+                })
+                .Select(propInfo =>
+                {
+                    var propertyType = propInfo.PropertyType;
+
+                    RpcPropertyContainer rpcPropertyContainer;
+                    var rawValue = propInfo.GetValue(this);
+                    if (!propertyType.IsSubclassOf(typeof(RpcPropertyContainer)))
+                    {
+                        var rpcPropertyType = typeof(RpcPropertyContainer<>).MakeGenericType(propertyType);
+                        rpcPropertyContainer = (Activator.CreateInstance(rpcPropertyType, rawValue) as RpcPropertyContainer)!;
+                    }
+                    else
+                    {
+                        rpcPropertyContainer = rawValue as RpcPropertyContainer
+                            ?? throw new Exception(message: $"Rpc property {propInfo.Name} must be initialized with a non-null value.");
+                    }
+
+                    var attr = propInfo.GetCustomAttribute<RpcWrappedPropertyAttribute>()!;
+                    rpcPropertyContainer.Name = string.IsNullOrEmpty(attr.Name) ? propInfo.Name : attr.Name;
+
+                    return rpcPropertyContainer;
+                });
+
+            var res = rpcFields.Concat(rpcProps).ToArray();
 
             // build children
             this.Children = new Dictionary<string, RpcPropertyContainer>();
 
-            foreach (var fieldInfo in rpcFields)
+            foreach (var rpcProp in res)
             {
-                if (!fieldInfo.IsInitOnly)
-                {
-                    throw new Exception("Rpc property must be init-only.");
-                }
-
-                var prop = (fieldInfo.GetValue(this) as RpcPropertyContainer)!
-                    ?? throw new Exception("Rpc property must be initialized with a non-null value.");
-                prop.IsReferred = true;
-                prop.Name = fieldInfo.Name;
-                this.Children.Add(prop.Name, prop);
+                rpcProp.IsReferred = true;
+                this.Children.Add(rpcProp.Name!, rpcProp);
             }
         }
     }
@@ -219,7 +273,7 @@ public abstract class RpcPropertyContainer
 /// <typeparam name="T">Type of the raw value.</typeparam>
 [RpcPropertyContainer]
 #pragma warning disable SA1402
-public class RpcPropertyContainer<T> : RpcPropertyContainer, ISyncOpActionSetValue
+public class RpcPropertyContainer<T> : RpcPropertyContainer, ISyncOpActionSetValue, IValueGetable, IValueSetable
 #pragma warning restore SA1402
 {
     /// <summary>
@@ -238,7 +292,7 @@ public class RpcPropertyContainer<T> : RpcPropertyContainer, ISyncOpActionSetVal
     /// <returns>Deserialized RpcPropertyContainer object.</returns>
     /// <exception cref="Exception">Throw exception if failed to deserialize.</exception>
     [RpcPropertyContainerDeserializeEntry]
-    public static RpcPropertyContainer FromRpcArg(Any content)
+    public static RpcPropertyContainer FromRpcArg(Google.Protobuf.WellKnownTypes.Any content)
     {
         RpcPropertyContainer? container = null;
 
@@ -246,23 +300,19 @@ public class RpcPropertyContainer<T> : RpcPropertyContainer, ISyncOpActionSetVal
         {
             container = new RpcPropertyContainer<int>(RpcHelper.GetInt(content));
         }
-
-        if (content.Is(FloatArg.Descriptor) && typeof(T) == typeof(float))
+        else if (content.Is(FloatArg.Descriptor) && typeof(T) == typeof(float))
         {
             container = new RpcPropertyContainer<float>(RpcHelper.GetFloat(content));
         }
-
-        if (content.Is(StringArg.Descriptor) && typeof(T) == typeof(string))
+        else if (content.Is(StringArg.Descriptor) && typeof(T) == typeof(string))
         {
             container = new RpcPropertyContainer<string>(RpcHelper.GetString(content));
         }
-
-        if (content.Is(BoolArg.Descriptor) && typeof(T) == typeof(bool))
+        else if (content.Is(BoolArg.Descriptor) && typeof(T) == typeof(bool))
         {
             container = new RpcPropertyContainer<bool>(RpcHelper.GetBool(content));
         }
-
-        if (content.Is(MailBoxArg.Descriptor) && typeof(T) == typeof(MailBox))
+        else if (content.Is(MailBoxArg.Descriptor) && typeof(T) == typeof(MailBox))
         {
             container = new RpcPropertyContainer<MailBox>(
                 RpcHelper.PbMailBoxToRpcMailBox(RpcHelper.GetMailBox(content)));
@@ -373,15 +423,27 @@ public class RpcPropertyContainer<T> : RpcPropertyContainer, ISyncOpActionSetVal
     }
 
     /// <inheritdoc/>
-    public override Any ToRpcArg()
+    public override Google.Protobuf.WellKnownTypes.Any ToRpcArg()
     {
-        return Any.Pack(RpcHelper.RpcArgToProtoBuf(this.value));
+        return Google.Protobuf.WellKnownTypes.Any.Pack(RpcHelper.RpcArgToProtoBuf(this.value));
     }
 
     /// <inheritdoc/>
-    void ISyncOpActionSetValue.Apply(RepeatedField<Any> args)
+    void ISyncOpActionSetValue.Apply(RepeatedField<Google.Protobuf.WellKnownTypes.Any> args)
     {
         var value = RpcHelper.CreateRpcPropertyContainerByType(typeof(RpcPropertyContainer<T>), args[0]);
         this.Set((value as RpcPropertyContainer<T>)!.value, false, true);
+    }
+
+    /// <inheritdoc/>
+    object IValueGetable.GetValue()
+    {
+        return this.value;
+    }
+
+    /// <inheritdoc/>
+    void IValueSetable.SetValue(object value)
+    {
+        this.Set((T)value, true, false);
     }
 }

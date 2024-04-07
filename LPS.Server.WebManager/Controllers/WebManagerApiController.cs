@@ -56,4 +56,18 @@ public class WebManagerApiController : Controller
         
         return this.Content(res.ToString());
     }
+
+    [HttpGet("all-server-ping-ping-info")]
+    public async Task<IActionResult> AllServerPingPingInfo()
+    {
+        var pingPingInfo = await this.serverService.GetAllServerPingPongInfo();
+
+        var res = new JObject
+        {
+            ["res"] = "Ok",
+            ["srvPingPongInfo"] = pingPingInfo["srvPingPongInfo"],
+        };
+
+        return this.Content(res.ToString());
+    }
 }

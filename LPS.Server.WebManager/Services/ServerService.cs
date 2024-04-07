@@ -64,6 +64,14 @@ public class ServerService
             Consts.GetAllEntitiesOfServer,
             this.asyncTaskGeneratorForJObjectRes);
     }
+
+    public Task<JToken> GetAllServerPingPongInfo()
+    {
+        return this.SendMessageWithReplay(
+            new JObject(),
+            Consts.GetServerPingPongInfo,
+            this.asyncTaskGeneratorForJObjectRes);
+    }
     
     private void HandleMqMessage(string msg, string routingKey)
     {

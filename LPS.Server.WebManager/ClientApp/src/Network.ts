@@ -71,3 +71,21 @@ export const queryEntities = (serverId: string, hostNum: number): Promise<Entity
         throw new Error('queryEntities failed');
     });
 }
+
+export type ServerPingPingInfo = {
+    srvPingPongInfo: {id: string, status: number}[]
+}
+
+export const queryAllServerPingPongInfo = (): Promise<ServerPingPingInfo> => {
+    return fetch(`${BaseApi}/all-server-ping-ping-info`, {
+        method: 'get',
+    }).then(res => {
+        return res.json();
+    }).then(data => {
+        console.log(data);
+        if (data['res'] === 'Ok') {
+            return data['srvPingPongInfo'] as ServerPingPingInfo;
+        }
+        throw new Error('queryAllServerPingPongInfo failed');
+    });
+}

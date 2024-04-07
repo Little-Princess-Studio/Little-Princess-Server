@@ -41,7 +41,12 @@ public static class RpcServerHelper
             {
                 var obj = (Activator.CreateInstance(entityClass, desc) as DistributeEntity)!;
                 await obj.InitComponents();
-                RpcHelper.BuildPropertyTree(obj, AllowedRpcPropertyGenTypes);
+                RpcHelper.BuildPropertyTree(
+                    obj,
+                    AllowedRpcPropertyGenTypes,
+                    typeof(RpcPlaintProperty<>),
+                    typeof(RpcComplexProperty<>),
+                    true);
                 return obj;
             }
 
@@ -101,7 +106,12 @@ public static class RpcServerHelper
             {
                 var obj = (Activator.CreateInstance(entityClass, null) as DistributeEntity)!;
                 obj.MailBox = entityMailBox;
-                RpcHelper.BuildPropertyTree(obj, AllowedRpcPropertyGenTypes);
+                RpcHelper.BuildPropertyTree(
+                    obj,
+                    AllowedRpcPropertyGenTypes,
+                    typeof(RpcPlaintProperty<>),
+                    typeof(RpcComplexProperty<>),
+                    true);
                 return obj;
             }
 

@@ -10,16 +10,62 @@ using System.Reflection;
 using Google.Protobuf.Collections;
 using Google.Protobuf.WellKnownTypes;
 using LPS.Common.Rpc.InnerMessages;
+using LPS.Common.Rpc.RpcProperty.Weaving;
 using LPS.Common.Rpc.RpcPropertySync.RpcPropertySyncInfo;
 using LPS.Common.Rpc.RpcPropertySync.RpcPropertySyncMessage;
+using Rougamo;
 
 #pragma warning disable SA1629
 
 /// <summary>
 /// Base Rpc property class for implementing costume container.
 /// </summary>
-public abstract class RpcPropertyCostumeContainer : RpcPropertyContainer
+public abstract class RpcPropertyCostumeContainer : RpcPropertyContainer,
+    IRougamo<ComplexTypeRpcPropertyGetterMo>,
+    IRougamo<ComplexTypeRpcPropertySetterMo>,
+    IRougamo<PlaintTypeRpcPropertyGetterMo>,
+    IRougamo<PlaintTypeRpcPropertySetterMo>,
+    IPropertyTree
 {
+    /// <summary>
+    /// Create a container with protobuf object.
+    /// </summary>
+    /// <param name="content">Protobuf object.</param>
+    /// <typeparam name="T">Typeof the container.</typeparam>
+    /// <returns>Rpc container.</returns>
+    public static RpcPropertyContainer CreateSerializedContainer<T>(Any content)
+        where T : RpcPropertyCostumeContainer<T>, new()
+    {
+        var obj = new T();
+        obj.Deserialize(content);
+        return obj;
+    }
+
+    /// <inheritdoc/>
+    bool IPropertyTree.IsPropertyTreeBuilt => this.Children != null;
+
+    /// <inheritdoc/>
+    IValueGetable IPropertyTree.GetGetableContainer(string name)
+    {
+        if (this.Children!.ContainsKey(name))
+        {
+            return (IValueGetable)this.Children[name];
+        }
+
+        throw new Exception($"Property {name} not found in entity {this.GetType().Name}.");
+    }
+
+    /// <inheritdoc/>
+    IValueSetable IPropertyTree.GetSetableContainer(string name)
+    {
+        if (this.Children!.ContainsKey(name))
+        {
+            return (IValueSetable)this.Children[name];
+        }
+
+        throw new Exception($"Property {name} not found in entity {this.GetType().Name}.");
+    }
+
     /// <summary>
     /// Deserialize content from protobuf any object.
     /// </summary>
@@ -28,16 +74,21 @@ public abstract class RpcPropertyCostumeContainer : RpcPropertyContainer
     {
         if (content.Is(DictWithStringKeyArg.Descriptor))
         {
+            var newChildren = new Dictionary<string, RpcPropertyContainer>();
+
             var dict = content.Unpack<DictWithStringKeyArg>();
-            var props = this.GetType()
+            var fields = this.GetType()
                 .GetFields(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public)
                 .Where(field => field.IsDefined(typeof(RpcPropertyAttribute)));
 
-            this.Children!.Clear();
-
-            foreach (var fieldInfo in props)
+            foreach (var fieldInfo in fields)
             {
-                var rpcProperty = (fieldInfo.GetValue(this) as RpcPropertyContainer)!;
+                var attr = fieldInfo.GetCustomAttribute<RpcPropertyAttribute>()!;
+                var propName = string.IsNullOrEmpty(attr.Name) ? fieldInfo.Name : attr.Name;
+                if (!this.Children!.TryGetValue(propName, out var rpcProperty))
+                {
+                    continue;
+                }
 
                 if (dict.PayLoad.ContainsKey(rpcProperty.Name!))
                 {
@@ -48,9 +99,39 @@ public abstract class RpcPropertyCostumeContainer : RpcPropertyContainer
                     fieldValue.Name = rpcProperty.Name!;
                     fieldValue.IsReferred = true;
                     fieldInfo.SetValue(this, fieldValue);
-                    this.Children.Add(rpcProperty.Name!, fieldValue);
+                    newChildren.Add(rpcProperty.Name!, fieldValue);
                 }
             }
+
+            var props = this.GetType()
+                .GetProperties(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public)
+                .Where(prop => prop.IsDefined(typeof(RpcWrappedPropertyAttribute)));
+
+            foreach (var propInfo in props)
+            {
+                var attr = propInfo.GetCustomAttribute<RpcWrappedPropertyAttribute>()!;
+
+                var propName = string.IsNullOrEmpty(attr.Name) ? propInfo.Name : attr.Name;
+                if (!this.Children!.TryGetValue(propName, out var rpcProperty))
+                {
+                    continue;
+                }
+
+                if (dict.PayLoad.ContainsKey(rpcProperty.Name!))
+                {
+                    var makeGenericType = typeof(RpcPropertyContainer<>).MakeGenericType(propInfo.PropertyType);
+                    var fieldValue = RpcHelper.CreateRpcPropertyContainerByType(
+                        makeGenericType,
+                        dict.PayLoad[rpcProperty.Name!]);
+
+                    fieldValue.Name = rpcProperty.Name!;
+                    fieldValue.IsReferred = true;
+                    propInfo.SetValue(this, fieldValue.GetRawValue());
+                    newChildren.Add(rpcProperty.Name!, fieldValue);
+                }
+            }
+
+            this.Children = newChildren;
         }
     }
 }
@@ -77,20 +158,6 @@ public abstract class RpcPropertyCostumeContainer<TSub> : RpcPropertyCostumeCont
     /// Gets or sets the callback when setting value.
     /// </summary>
     public OnSetValueCallBack<TSub>? OnSetValue { get; set; }
-
-    /// <summary>
-    /// Create a container with protobuf object.
-    /// </summary>
-    /// <param name="content">Protobuf object.</param>
-    /// <typeparam name="T">Typeof the container.</typeparam>
-    /// <returns>Rpc container.</returns>
-    public static RpcPropertyContainer CreateSerializedContainer<T>(Any content)
-        where T : RpcPropertyCostumeContainer<T>, new()
-    {
-        var obj = new T();
-        obj.Deserialize(content);
-        return obj;
-    }
 
     /// <summary>
     /// Create a container with protobuf object.
@@ -132,14 +199,29 @@ public abstract class RpcPropertyCostumeContainer<TSub> : RpcPropertyCostumeCont
         }
 
         target.RemoveFromPropTree();
-        var props = this.GetType()
+        var fields = this.GetType()
             .GetFields(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public)
             .Where(field => field.IsDefined(typeof(RpcPropertyAttribute)));
 
-        foreach (var fieldInfo in props)
+        foreach (var fieldInfo in fields)
         {
             var rpcPropertyOld = (fieldInfo.GetValue(this) as RpcPropertyContainer)!;
             var rpcPropertyNew = (fieldInfo.GetValue(target) as RpcPropertyContainer)!;
+
+            if (this.Children!.ContainsKey(rpcPropertyOld.Name!))
+            {
+                rpcPropertyOld.AssignInternal(rpcPropertyNew);
+            }
+        }
+
+        var props = this.GetType()
+            .GetProperties(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public)
+            .Where(prop => prop.IsDefined(typeof(RpcWrappedPropertyAttribute)));
+
+        foreach (PropertyInfo propInfo in props)
+        {
+            var rpcPropertyOld = (propInfo.GetValue(this) as RpcPropertyContainer)!;
+            var rpcPropertyNew = (propInfo.GetValue(target) as RpcPropertyContainer)!;
 
             if (this.Children!.ContainsKey(rpcPropertyOld.Name!))
             {

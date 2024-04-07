@@ -60,6 +60,29 @@ public partial class HostManager : IInstance
                         Consts.ServerExchangeName,
                         Consts.ServerBasicInfoRes);
                 }
+                else if (routingKey == Consts.GetServerPingPongInfo)
+                {
+                    var (msgId, _) = MessageQueueJsonBody.From(msg);
+
+                    var res = new JObject
+                    {
+                        ["srvPingPongInfo"] = new JArray(
+                            this.serversMailBoxes
+                            .Where(mb => this.instanceStatusManager.HasInstance(mb))
+                            .Select(mb => this.instanceStatusManager.GetStatus(mb))
+                            .Select(status => new JObject
+                            {
+                                ["id"] = status.MailBox.Id,
+                                ["status"] = (int)status.Status,
+                            })),
+                    };
+
+                    var body = MessageQueueJsonBody.Create(msgId, res);
+                    this.messageQueueClientToWebMgr.Publish(
+                        body.ToJson(),
+                        Consts.ServerExchangeName,
+                        Consts.GetServerPingPongInfoRes);
+                }
             });
     }
 }

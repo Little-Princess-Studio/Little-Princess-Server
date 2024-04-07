@@ -38,5 +38,10 @@ public class ClientComponent : ComponentBase
 
     /// <inheritdoc/>
     protected override void OnInitPropertyTree() =>
-        RpcHelper.BuildPropertyTree(this, AllowedRpcPropertyGenTypes);
+        RpcHelper.BuildPropertyTree(
+            this,
+            AllowedRpcPropertyGenTypes,
+            typeof(RpcShadowPlaintProperty<>),
+            typeof(RpcShadowComplexProperty<>),
+            false);
 }

@@ -24,17 +24,17 @@ internal enum InstanceStatusType
     /// <summary>
     /// The instance is initializing.
     /// </summary>
-    Initializing,
+    Initializing = 0,
 
     /// <summary>
     /// The instance is running.
     /// </summary>
-    Running,
+    Running = 1,
 
     /// <summary>
     /// The instance is dead.
     /// </summary>
-    Dead,
+    Dead = 2,
 }
 
 /// <summary>
@@ -167,7 +167,7 @@ public partial class HostManager
             // if the instance is still waiting for pong and no pong has been received, tagged as dead.
             if (status.CouldBeTaggedAsDead())
             {
-                status.Status = InstanceStatusType.Dead;
+                this.instanceStatusManager.UpdateStatus(mailBox, InstanceStatusType.Dead);
             }
 
             return;
@@ -211,9 +211,12 @@ public partial class HostManager
             return;
         }
 
-        Logger.Debug($"[Pong] Receive pong from {mb.Id}");
-
         var status = this.instanceStatusManager.GetStatus(mb);
+        if (status.Status == InstanceStatusType.Initializing)
+        {
+            this.instanceStatusManager.UpdateStatus(mb, InstanceStatusType.Running);
+        }
+
         status.WaitingForPong = false;
         status.LastHeartBeat = DateTime.UtcNow;
     }

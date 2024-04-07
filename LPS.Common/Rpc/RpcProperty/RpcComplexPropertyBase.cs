@@ -16,7 +16,7 @@ using LPS.Common.Rpc.RpcPropertySync.RpcPropertySyncMessage;
 /// the RpcPropertyContainer's sub type value as the raw value.
 /// </summary>
 /// <typeparam name="T">Type of the raw value.</typeparam>
-public class RpcComplexPropertyBase<T> : RpcProperty
+public class RpcComplexPropertyBase<T> : RpcProperty, IValueGetable, IValueSetable
     where T : RpcPropertyContainer
 {
     /// <summary>
@@ -76,6 +76,18 @@ public class RpcComplexPropertyBase<T> : RpcProperty
 
             this.Value.UpdateTopOwner(this);
         }
+    }
+
+    /// <inheritdoc/>
+    object IValueGetable.GetValue()
+    {
+        return this.Get();
+    }
+
+    /// <inheritdoc/>
+    void IValueSetable.SetValue(object value)
+    {
+        this.Set((value as T)!);
     }
 
     private void Set(T value)
