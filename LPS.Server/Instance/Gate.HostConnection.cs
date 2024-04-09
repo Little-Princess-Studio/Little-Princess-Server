@@ -81,10 +81,10 @@ public partial class Gate
                 this.SyncServiceManagerMailBox(RpcHelper.PbMailBoxToRpcMailBox(hostCmd.Args[0].Unpack<MailBoxArg>().PayLoad));
                 break;
             case HostCommandType.ReconnectServer:
-                this.ReconnectServer(RpcHelper.PbMailBoxToRpcMailBox(hostCmd.Args[0].Unpack<MailBoxArg>().PayLoad));
+                this.ReconnectServer(RpcHelper.PbMailBoxToRpcMailBox(hostCmd.Args[0].Unpack<Common.Rpc.InnerMessages.MailBox>()));
                 break;
             case HostCommandType.ReconnectGate:
-                this.ReconnectGate(RpcHelper.PbMailBoxToRpcMailBox(hostCmd.Args[0].Unpack<MailBoxArg>().PayLoad));
+                this.ReconnectGate(RpcHelper.PbMailBoxToRpcMailBox(hostCmd.Args[0].Unpack<Common.Rpc.InnerMessages.MailBox>()));
                 break;
             case HostCommandType.Open:
                 break;
@@ -106,6 +106,7 @@ public partial class Gate
 
         if (oldClient is not null)
         {
+            Logger.Debug("Stop old client");
             oldClient.Stop();
 
             this.serverClientsExitEvent.Signal();
@@ -128,6 +129,7 @@ public partial class Gate
             MailBox = serverMailBox,
         };
 
+        Logger.Debug("Start new client to server");
         this.tcpClientsToServer.Add(client);
         client.Run();
     }

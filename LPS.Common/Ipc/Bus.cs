@@ -8,6 +8,7 @@ namespace LPS.Common.Ipc;
 
 using System.Collections.Concurrent;
 using Google.Protobuf;
+using LPS.Common.Debug;
 using LPS.Common.Rpc;
 
 /// <summary>
@@ -57,8 +58,15 @@ public class Bus
 
         do
         {
-            this.dispatcher.Dispatch(msg.Key, msg.Arg);
-            succ = this.TryDeque(out msg);
+            try
+            {
+                this.dispatcher.Dispatch(msg.Key, msg.Arg);
+                succ = this.TryDeque(out msg);
+            }
+            catch (System.Exception e)
+            {
+                Logger.Error(e, "Error when dispatch message.");
+            }
         }
         while (succ);
     }

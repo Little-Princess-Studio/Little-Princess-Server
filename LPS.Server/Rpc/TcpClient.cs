@@ -145,15 +145,21 @@ internal class TcpClient // : IClient
     /// </summary>
     public void Stop()
     {
-        this.stopFlag = true;
-        this.connection?.TokenSource.Cancel();
         try
         {
-            this.Socket!.Shutdown(SocketShutdown.Both);
+            this.stopFlag = true;
+            Logger.Debug("Cancel connection.");
+            this.connection?.TokenSource.Cancel();
+            Logger.Debug("Shut down socket.");
+            this.Socket?.Shutdown(SocketShutdown.Both);
+        }
+        catch (Exception e)
+        {
+            Logger.Error(e, "Stop client failed.");
         }
         finally
         {
-            this.Socket!.Close();
+            this.Socket?.Close();
         }
     }
 
@@ -283,7 +289,7 @@ internal class TcpClient // : IClient
         }
         finally
         {
-            cancellationTokenSource.Cancel();
+            await cancellationTokenSource.CancelAsync();
             this.OnDispose?.Invoke(this);
         }
     }

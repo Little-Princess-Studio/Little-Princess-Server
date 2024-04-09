@@ -563,6 +563,7 @@ public partial class HostManager : IInstance
             case ControlMessage.ShutDown:
                 break;
             case ControlMessage.WaitForReconnect:
+                Logger.Debug($"Remote {hostCmd.From} is waiting for reconnect.");
                 this.NotifyReconnect(
                     hostCmd.From,
                     RpcHelper.PbMailBoxToRpcMailBox(hostCmd.Args[0]
@@ -591,6 +592,13 @@ public partial class HostManager : IInstance
                 this.RestartInstanceFromMq(hostCmd.From, mb, targetIdentifier);
                 break;
             case ControlMessage.ShutDown:
+                break;
+            case ControlMessage.WaitForReconnect:
+                Logger.Debug($"Remote {hostCmd.From} is waiting for reconnect.");
+                this.NotifyReconnect(
+                    hostCmd.From,
+                    RpcHelper.PbMailBoxToRpcMailBox(hostCmd.Args[0]
+                        .Unpack<Common.Rpc.InnerMessages.MailBox>()));
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(hostCmd.Message), hostCmd.Message, null);

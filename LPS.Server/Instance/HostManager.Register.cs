@@ -255,6 +255,7 @@ public partial class HostManager
             hostCmdFrom,
             mailBox,
             (mb) => this.mailboxIdToIdentifier.Remove(mb.Id));
+        this.NotifyRestartForMqConn(hostCmdFrom, mailBox, identifier);
     }
 
     private void RemoveOldInstanceInfoAndUpdateNewInstanceInfo(
@@ -320,12 +321,37 @@ public partial class HostManager
 
         foreach (var connMailBox in syncMailBoxes)
         {
-            syncCmd.Args.Add(Any.Pack(RpcHelper.RpcMailBoxToPbMailBox(connMailBox)));
+            syncCmd.Args.Add(Any.Pack(new MailBoxArg { PayLoad = RpcHelper.RpcMailBoxToPbMailBox(connMailBox) }));
         }
 
         var pkg = PackageHelper.FromProtoBuf(syncCmd, 0);
         var bytes = pkg.ToBytes();
         conn.Socket.Send(bytes);
+    }
+
+    private void SendSyncCmdToMq(
+        HostCommandType hostCommandType,
+        string identifier,
+        List<MailBox> syncMailBoxes)
+    {
+        var syncCmd = new HostCommand
+        {
+            Type = hostCommandType,
+        };
+
+        foreach (var connMailBox in syncMailBoxes)
+        {
+            syncCmd.Args.Add(Any.Pack(new MailBoxArg { PayLoad = RpcHelper.RpcMailBoxToPbMailBox(connMailBox) }));
+        }
+
+        var pkg = PackageHelper.FromProtoBuf(syncCmd, 0);
+        var bytes = pkg.ToBytes();
+
+        this.messageQueueClientToOtherInstances.Publish(
+            bytes,
+            Consts.HostMgrToServerExchangeName,
+            Consts.GenerateHostMessageToServerPackage(identifier),
+            true);
     }
 
     private void NotifyRestartForImmediateConn(RemoteType hostCmdFrom, Common.Rpc.MailBox mailBox, Connection conn)
@@ -336,27 +362,53 @@ public partial class HostManager
             case RemoteType.Server:
                 // send gates mailboxes
                 this.SendSyncCmdToConnection(HostCommandType.SyncGates, conn, this.gatesMailBoxes);
+                this.SendSyncCmdToConnection(
+                    HostCommandType.SyncServiceManager,
+                    conn,
+                    [this.serviceManagerInfo.ServiceManagerMailBox]);
                 break;
 
             // sync servers and gates to restarting gate
             case RemoteType.Gate:
             {
-                // sync gates
                 this.SendSyncCmdToConnection(HostCommandType.SyncGates, conn, this.gatesMailBoxes);
-
-                // sync servers
                 this.SendSyncCmdToConnection(HostCommandType.SyncServers, conn, this.serversMailBoxes);
-
-                // sync service manager
                 this.SendSyncCmdToConnection(
                     HostCommandType.SyncServiceManager,
                     conn,
-                    new List<MailBox> { this.serviceManagerInfo.ServiceManagerMailBox });
+                    [this.serviceManagerInfo.ServiceManagerMailBox]);
                 break;
             }
 
             default:
                 Logger.Warn($"Unsupported restarting type: {hostCmdFrom}");
+                break;
+        }
+    }
+
+    private void NotifyRestartForMqConn(RemoteType hostCmdFrom, Common.Rpc.MailBox mailBox, string identifier)
+    {
+        switch (hostCmdFrom)
+        {
+            case RemoteType.Server:
+                this.SendSyncCmdToMq(HostCommandType.SyncGates, identifier, this.gatesMailBoxes);
+                this.SendSyncCmdToMq(
+                    HostCommandType.SyncServiceManager,
+                    identifier,
+                    [this.serviceManagerInfo.ServiceManagerMailBox]);
+                break;
+
+            case RemoteType.Gate:
+                this.SendSyncCmdToMq(HostCommandType.SyncGates, identifier, this.gatesMailBoxes);
+                this.SendSyncCmdToMq(HostCommandType.SyncServers, identifier, this.serversMailBoxes);
+                this.SendSyncCmdToMq(
+                    HostCommandType.SyncServiceManager,
+                    identifier,
+                    [this.serviceManagerInfo.ServiceManagerMailBox]);
+                break;
+
+            default:
+                Logger.Warn($"Unknown hostCmdFrom: {hostCmdFrom}");
                 break;
         }
     }
@@ -379,12 +431,12 @@ public partial class HostManager
     }
 
     private void NotifyGatesReconnect(Common.Rpc.MailBox excludedMailBox, HostCommandType hostCommandType)
-        => this.NotifyReconnect(excludedMailBox, hostCommandType, this.gatesMailBoxes);
+        => this.NotifyReconnect(excludedMailBox, hostCommandType, this.gatesMailBoxes, RemoteType.Gate);
 
     private void NotifyServersReconnect(Common.Rpc.MailBox excludedMailBox, HostCommandType hostCommandType)
-        => this.NotifyReconnect(excludedMailBox, hostCommandType, this.serversMailBoxes);
+        => this.NotifyReconnect(excludedMailBox, hostCommandType, this.serversMailBoxes, RemoteType.Server);
 
-    private void NotifyReconnect(Common.Rpc.MailBox excludedMailBox, HostCommandType hostCommandType, List<MailBox> mailBoxes)
+    private void NotifyReconnect(Common.Rpc.MailBox excludedMailBox, HostCommandType hostCommandType, List<MailBox> mailBoxes, RemoteType remoteType)
     {
         var syncCmd = new HostCommand
         {
@@ -403,8 +455,31 @@ public partial class HostManager
                 continue;
             }
 
-            var conn = this.mailboxIdToConnection[mb.Id];
-            conn.Socket.Send(bytes);
+            if (this.mailboxIdToConnection.TryGetValue(mb.Id, out var conn))
+            {
+                conn.Socket.Send(bytes);
+                Logger.Info($"NotifyReconnect {hostCommandType} {excludedMailBox} directly to : {mb}");
+            }
+            else if (this.mailboxIdToIdentifier.TryGetValue(mb.Id, out var identifier))
+            {
+                var pair = remoteType switch
+                {
+                    RemoteType.Server => (RoutingKey: Consts.GenerateHostMessageToServerPackage(identifier), ExchangeName: Consts.HostMgrToServerExchangeName),
+                    RemoteType.Gate => (RoutingKey: Consts.GenerateHostMessageToGatePackage(identifier), ExchangeName: Consts.HostMgrToGateExchangeName),
+                    _ => throw new ArgumentOutOfRangeException(nameof(remoteType), remoteType, null),
+                };
+
+                this.messageQueueClientToOtherInstances.Publish(
+                    bytes,
+                    pair.ExchangeName,
+                    pair.RoutingKey,
+                    true);
+                Logger.Info($"NotifyReconnect {hostCommandType} {excludedMailBox} via mq with {pair} to : {mb}");
+            }
+            else
+            {
+                Logger.Warn($"Unknown mailbox {mb}: no connection or identifier is related to it");
+            }
         }
     }
 }

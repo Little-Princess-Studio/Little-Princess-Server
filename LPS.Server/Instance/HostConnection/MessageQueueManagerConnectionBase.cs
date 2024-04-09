@@ -78,23 +78,6 @@ public abstract class MessageQueueManagerConnectionBase : IManagerConnection
         this.SendInternal(message);
     }
 
-    /// <summary>
-    /// Ensures that the remote consumer is ready before proceeding.
-    /// </summary>
-    /// <remarks>
-    /// This method continuously checks if the remote consumer is ready by querying the number of consumers for the message queue.
-    /// If the remote consumer is not ready, it waits for a second before checking again.
-    /// </remarks>
-    /// <returns>A task that represents the asynchronous operation.</returns>
-    public async Task EnsureRemoteConsumerReady()
-    {
-        while (this.messageQueueClientToHostMgr.QueryQueueConsumerCount(this.GetMessageQueueNameToReceiveMessageFromHostMgr()) == 0)
-        {
-            Logger.Info("Remote consumer is not ready, waiting...");
-            await Task.Delay(1000);
-        }
-    }
-
     /// <inheritdoc/>
     public void RegisterMessageHandler(PackageType packageType, Action<IMessage> handler) =>
         this.dispatcher.Register(packageType, handler);

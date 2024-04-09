@@ -116,8 +116,6 @@ public partial class HostManager
             return;
         }
 
-        Logger.Debug("[Ping] Start ping");
-
         var ping = new Common.Rpc.InnerMessages.Ping();
         var pkg = Common.Rpc.InnerMessages.PackageHelper.FromProtoBuf(ping, 0);
         var bytes = pkg.ToBytes();

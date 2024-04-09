@@ -267,7 +267,7 @@ public partial class Server : IInstance
         Logger.Info("[Restart] STEP 2: Synchronizing gates mailboxes.");
         this.waitForSyncGatesEvent.Wait();
 
-        Logger.Info("[Startup] STEP 3: Startup server's tcp server.");
+        Logger.Info("[Restart] STEP 3: Startup server's tcp server.");
         Logger.Info($"Start server at {this.Ip}:{this.Port}");
         this.tcpServer.Run();
 

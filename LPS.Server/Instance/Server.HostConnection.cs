@@ -58,7 +58,6 @@ public partial class Server
         };
 
         this.hostMgrConnection.Send(pong);
-        Logger.Debug("Ping from host manager");
     }
 
     private void HandleCreateDistributeEntityFromHost(IMessage msg)
@@ -152,7 +151,9 @@ public partial class Server
                 this.waitForSyncGatesEvent.Signal(1);
                 break;
             case HostCommandType.SyncServiceManager:
+                Logger.Debug("Sync service manager from host manager START.");
                 this.serviceManagerMailBox = RpcHelper.PbMailBoxToRpcMailBox(hostCmd.Args[0].Unpack<MailBoxArg>().PayLoad);
+                Logger.Debug("Sync service manager from host manager END.");
                 this.waitForSyncServiceManagerEvent.Signal(1);
                 break;
             case HostCommandType.Stop:
