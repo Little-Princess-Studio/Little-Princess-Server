@@ -162,7 +162,7 @@ public partial class Server : IInstance
 
         if (this.isRestart)
         {
-            Logger.Info($"Restart server");
+            Logger.Info($"[Restart] Restart server");
             this.HandleRestart();
         }
         else
@@ -261,25 +261,30 @@ public partial class Server : IInstance
             Message = ControlMessage.Restart,
         };
         regCtl.Args.Add(Any.Pack(RpcHelper.RpcMailBoxToPbMailBox(this.entity!.MailBox)));
+        Logger.Info("[Restart] STEP 1: Notify host manager to restart.");
         this.hostMgrConnection.Send(regCtl);
 
-        Logger.Info("wait for sync gates mailboxes at restarting");
+        Logger.Info("[Restart] STEP 2: Synchronizing gates mailboxes.");
         this.waitForSyncGatesEvent.Wait();
 
+        Logger.Info("[Startup] STEP 3: Startup server's tcp server.");
+        Logger.Info($"Start server at {this.Ip}:{this.Port}");
+        this.tcpServer.Run();
+
         // wait for reconnecting from gate
-        Logger.Info("Send wait for reconnect to host manager");
         regCtl = new Control
         {
             From = RemoteType.Server,
             Message = ControlMessage.WaitForReconnect,
         };
         regCtl.Args.Add(Any.Pack(RpcHelper.RpcMailBoxToPbMailBox(this.entity!.MailBox)));
+        Logger.Info("[Restart] STEP 4: Notify host manager server is ready to reconnect.");
         this.hostMgrConnection.Send(regCtl);
 
-        Logger.Info("wait for gate mailbox registered");
+        Logger.Info("[Restart] STEP 5: Synchronizing gate mailbox.");
         this.gatesMailBoxesRegisteredEvent!.Wait();
 
-        Logger.Info("wait for service manager registered");
+        Logger.Info("[Restart] STEP 6: Synchronizing service manager.");
         this.waitForSyncServiceManagerEvent.Wait();
     }
 

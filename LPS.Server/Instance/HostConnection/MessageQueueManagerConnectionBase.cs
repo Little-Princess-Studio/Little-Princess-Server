@@ -28,7 +28,6 @@ public abstract class MessageQueueManagerConnectionBase : IManagerConnection
     private readonly Dispatcher<IMessage> dispatcher = new();
 
     private uint rpcId;
-    private bool remoteConsumerReady;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="MessageQueueManagerConnectionBase"/> class.
@@ -58,7 +57,7 @@ public abstract class MessageQueueManagerConnectionBase : IManagerConnection
         this.InitializeBinding(this.messageQueueClientToHostMgr);
 
         this.messageQueueClientToHostMgr.Observe(
-            this.GetMessageQueueName(),
+            this.GetMessageQueueNameToReceiveMessageFromHostMgr(),
             this.HandleHostMgrMqMessage);
     }
 
@@ -76,24 +75,7 @@ public abstract class MessageQueueManagerConnectionBase : IManagerConnection
     /// <inheritdoc/>
     public void Send(IMessage message)
     {
-        if (!this.remoteConsumerReady)
-        {
-            this.EnsureRemoteConsumerReady().ContinueWith(t =>
-            {
-                if (t.Exception is not null)
-                {
-                    Logger.Error(t.Exception, "Failed to ensure remote consumer ready.");
-                    return;
-                }
-
-                this.remoteConsumerReady = true;
-                this.SendInternal(message);
-            });
-        }
-        else
-        {
-            this.SendInternal(message);
-        }
+        this.SendInternal(message);
     }
 
     /// <summary>
@@ -106,7 +88,7 @@ public abstract class MessageQueueManagerConnectionBase : IManagerConnection
     /// <returns>A task that represents the asynchronous operation.</returns>
     public async Task EnsureRemoteConsumerReady()
     {
-        while (this.messageQueueClientToHostMgr.QueryQueueConsumerCount(this.GetMessageQueueName()) == 0)
+        while (this.messageQueueClientToHostMgr.QueryQueueConsumerCount(this.GetMessageQueueNameToReceiveMessageFromHostMgr()) == 0)
         {
             Logger.Info("Remote consumer is not ready, waiting...");
             await Task.Delay(1000);
@@ -131,7 +113,7 @@ public abstract class MessageQueueManagerConnectionBase : IManagerConnection
     /// Get message queue name to observe.
     /// </summary>
     /// <returns>Name of the message queue name.</returns>
-    protected abstract string GetMessageQueueName();
+    protected abstract string GetMessageQueueNameToReceiveMessageFromHostMgr();
 
     /// <summary>
     /// Exchange name to send message.
@@ -143,7 +125,7 @@ public abstract class MessageQueueManagerConnectionBase : IManagerConnection
     /// Get routing key of the message package.
     /// </summary>
     /// <returns>Routing key.</returns>
-    protected abstract string GetMessagePackageRoutingKey();
+    protected abstract string GetMessagePackageRoutingKeyToHostMgr();
 
     private uint GenerateRpcId() => this.rpcId++;
 
@@ -154,7 +136,7 @@ public abstract class MessageQueueManagerConnectionBase : IManagerConnection
         this.messageQueueClientToHostMgr.Publish(
             pkg.ToBytes(),
             this.GetHostMgrExchangeName(),
-            this.GetMessagePackageRoutingKey(),
+            this.GetMessagePackageRoutingKeyToHostMgr(),
             true);
     }
 

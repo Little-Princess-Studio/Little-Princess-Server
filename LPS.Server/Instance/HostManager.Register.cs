@@ -234,6 +234,7 @@ public partial class HostManager
         Common.Rpc.MailBox mailBox,
         Connection conn)
     {
+        Logger.Info($"Restarting instance {hostCmdFrom} {mailBox} from immediate connection");
         conn.MailBox = mailBox;
         this.mailboxIdToConnection[mailBox.Id] = conn;
 
@@ -246,6 +247,8 @@ public partial class HostManager
 
     private void RestartInstanceFromMq(RemoteType hostCmdFrom, Common.Rpc.MailBox mailBox, string identifier)
     {
+        Logger.Info($"Restarting instance {hostCmdFrom} {mailBox} from mq");
+
         this.mailboxIdToIdentifier[mailBox.Id] = identifier;
 
         this.RemoveOldInstanceInfoAndUpdateNewInstanceInfo(

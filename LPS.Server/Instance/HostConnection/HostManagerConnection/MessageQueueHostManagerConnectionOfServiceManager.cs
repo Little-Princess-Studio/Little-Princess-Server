@@ -26,10 +26,10 @@ public class MessageQueueHostManagerConnectionOfServiceManager : MessageQueueMan
     protected override string GetHostMgrExchangeName() => Consts.ServiceMgrToHostExchangeName;
 
     /// <inheritdoc/>
-    protected override string GetMessagePackageRoutingKey() => Consts.ServiceMgrMessagePackage;
+    protected override string GetMessagePackageRoutingKeyToHostMgr() => Consts.ServiceMgrMessagePackage;
 
     /// <inheritdoc/>
-    protected override string GetMessageQueueName() => Consts.ServiceManagerQueueName;
+    protected override string GetMessageQueueNameToReceiveMessageFromHostMgr() => Consts.ServiceManagerQueueName;
 
     /// <inheritdoc/>
     protected override void InitializeBinding(MessageQueueClient client)
@@ -40,7 +40,7 @@ public class MessageQueueHostManagerConnectionOfServiceManager : MessageQueueMan
         */
 
         client.BindQueueAndExchange(
-            this.GetMessageQueueName(),
+            this.GetMessageQueueNameToReceiveMessageFromHostMgr(),
             Consts.HostMgrToServiceMgrExchangeName,
             Consts.RoutingKeyToServiceMgr);
     }

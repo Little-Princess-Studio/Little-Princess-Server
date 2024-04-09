@@ -207,6 +207,11 @@ public static class Consts
     public const string ServiceManagerQueueName = "serviceMgr_que";
 
     /// <summary>
+    /// The name of the message queue used to send message from service manager to host manager.
+    /// </summary>
+    public const string ServiceManagerMessageQueueName = "serviceMgrMsg_que";
+
+    /// <summary>
     /// Generate the queue name observed by database client process.
     /// </summary>
     /// <param name="id">Unique id for the message queue.</param>

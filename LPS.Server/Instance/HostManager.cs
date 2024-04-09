@@ -289,7 +289,7 @@ public partial class HostManager : IInstance
             Consts.RoutingKeyGateToHost);
 
         this.messageQueueClientToOtherInstances.BindQueueAndExchange(
-            Consts.ServiceManagerQueueName,
+            Consts.ServiceManagerMessageQueueName,
             Consts.ServiceMgrToHostExchangeName,
             Consts.RoutingKeyServiceMgrToHost);
 
@@ -307,7 +307,6 @@ public partial class HostManager : IInstance
                         var pkg = PackageHelper.GetPackageFromBytes(msg);
                         var type = (PackageType)pkg.Header.Type;
                         var protobuf = PackageHelper.GetProtoBufObjectByType(type, pkg);
-                        Logger.Debug($"Message package type: {type}");
                         this.dispatcher.Dispatch(type, (protobuf, targetIdentifier, InstanceType.Server));
                         break;
                     default:
@@ -338,7 +337,7 @@ public partial class HostManager : IInstance
             });
 
         this.messageQueueClientToOtherInstances.Observe(
-            Consts.ServiceManagerQueueName,
+            Consts.ServiceManagerMessageQueueName,
             (msg, routingKey) =>
             {
                 var split = routingKey.Split('.');

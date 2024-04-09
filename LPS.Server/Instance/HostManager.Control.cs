@@ -177,7 +177,6 @@ public partial class HostManager
         {
             status.WaitingForPong = true;
             serviceMgrConn.Socket.Send(bytesToSend);
-            Logger.Debug($"[Ping] Send ping to directly {id}, type {status.InstanceType}");
         }
         else if (this.mailboxIdToIdentifier.TryGetValue(id, out var identifier))
         {
@@ -186,7 +185,6 @@ public partial class HostManager
                     bytesToSend,
                     exchange,
                     getRoutingKey.Invoke(identifier));
-            Logger.Debug($"[Ping] Send ping to via mq {id}, type {status.InstanceType}");
         }
         else
         {

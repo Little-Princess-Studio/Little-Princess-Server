@@ -30,13 +30,13 @@ public class MessageQueueServiceManagerConnectionOfService : MessageQueueManager
     }
 
     /// <inheritdoc/>
-    protected override string GetMessagePackageRoutingKey()
+    protected override string GetMessagePackageRoutingKeyToHostMgr()
     {
         throw new System.NotImplementedException();
     }
 
     /// <inheritdoc/>
-    protected override string GetMessageQueueName()
+    protected override string GetMessageQueueNameToReceiveMessageFromHostMgr()
     {
         throw new System.NotImplementedException();
     }
