@@ -202,6 +202,21 @@ public partial class Server : IInstance
         Logger.Info("Try to connect to web manager");
         this.InitWebManagerMessageQueueClient();
 
+        Logger.Info("Server start success.");
+
+        if (this.isRestart)
+        {
+            // register server and wait for sync ack
+            var regCtl = new Control
+            {
+                From = RemoteType.Server,
+                Message = ControlMessage.ReconnectEnd,
+            };
+            regCtl.Args.Add(Any.Pack(RpcHelper.RpcMailBoxToPbMailBox(this.entity!.MailBox)));
+            Logger.Info("[Restart] STEP 10: notify host manager restart ending.");
+            this.hostMgrConnection.Send(regCtl);
+        }
+
         // gate main thread will stuck here
         this.hostMgrConnection.WaitForExit();
         this.tcpServer.WaitForExit();
