@@ -127,9 +127,12 @@ public partial class HostManager : IInstance
 
     private readonly Timer heartBeatTimer;
 
+    private readonly Queue<Action> restartQueue = new();
+
     private (bool ServicManagerReady, Common.Rpc.MailBox ServiceManagerMailBox) serviceManagerInfo = (false, default);
 
     private uint createEntityCnt;
+    private bool isInstanceRestarting;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="HostManager"/> class.
@@ -236,10 +239,14 @@ public partial class HostManager : IInstance
                 var (msg, targetIdentifier, instanceType) = arg;
                 this.CommonHandleRequireCreateEntity(
                     msg,
-                    bytes => this.messageQueueClientToOtherInstances!.Publish(
-                        bytes,
-                        GetExchangeName(instanceType),
-                        GenerateRoutingKey(targetIdentifier, instanceType)));
+                    bytes =>
+                    {
+                        Logger.Debug($"send: {instanceType} {targetIdentifier} {GetExchangeName(instanceType)} {GenerateRoutingKey(targetIdentifier, instanceType)}");
+                        this.messageQueueClientToOtherInstances!.Publish(
+                            bytes,
+                            GetExchangeName(instanceType),
+                            GenerateRoutingKey(targetIdentifier, instanceType));
+                    });
             });
 
         this.dispatcher.Register(
@@ -467,6 +474,8 @@ public partial class HostManager : IInstance
                 EntityClassName = createEntity.EntityClassName,
             };
             var pkg = PackageHelper.FromProtoBuf(entityMailBox, id);
+
+            Logger.Debug($"Send CreateEntityRes to origin instance. {entityMailBox} {id} {createEntity.ConnectionID}");
             send.Invoke(pkg.ToBytes());
         });
     }
@@ -554,13 +563,30 @@ public partial class HostManager : IInstance
                     conn);
                 break;
             case ControlMessage.Restart:
-                this.RestartInstanceFromImmediateConnection(
-                    hostCmd.From,
-                    RpcHelper.PbMailBoxToRpcMailBox(hostCmd.Args[0]
-                        .Unpack<Common.Rpc.InnerMessages.MailBox>()),
-                    conn);
+                if (!this.isInstanceRestarting)
+                {
+                    this.isInstanceRestarting = true;
+                    this.RestartInstanceFromImmediateConnection(
+                        hostCmd.From,
+                        RpcHelper.PbMailBoxToRpcMailBox(hostCmd.Args[0]
+                            .Unpack<Common.Rpc.InnerMessages.MailBox>()),
+                        conn);
+                    Logger.Info("Restating instance from immediate connection.");
+                }
+                else
+                {
+                    this.restartQueue.Enqueue(() =>
+                    {
+                        this.HandleControlCmdForImmediateConnection(arg);
+                    });
+                    Logger.Info("Already restarting instance, enqueue the command handler.");
+                }
+
                 break;
             case ControlMessage.ShutDown:
+                break;
+            case ControlMessage.ReconnectEnd:
+                this.HandleReconnectEnd();
                 break;
             case ControlMessage.WaitForReconnect:
                 Logger.Debug($"Remote {hostCmd.From} is waiting for reconnect.");
@@ -587,11 +613,28 @@ public partial class HostManager : IInstance
                 this.RegisterInstanceFromMq(hostCmd.From, mb, targetIdentifier);
                 break;
             case ControlMessage.Restart:
-                mb = RpcHelper.PbMailBoxToRpcMailBox(hostCmd.Args[0]
-                    .Unpack<Common.Rpc.InnerMessages.MailBox>());
-                this.RestartInstanceFromMq(hostCmd.From, mb, targetIdentifier);
+                if (!this.isInstanceRestarting)
+                {
+                    this.isInstanceRestarting = true;
+                    mb = RpcHelper.PbMailBoxToRpcMailBox(hostCmd.Args[0]
+                        .Unpack<Common.Rpc.InnerMessages.MailBox>());
+                    this.RestartInstanceFromMq(hostCmd.From, mb, targetIdentifier);
+                    Logger.Info("Restating instance from mq.");
+                }
+                else
+                {
+                    this.restartQueue.Enqueue(() =>
+                    {
+                        this.HandleControlCmdForMqConnection(msg, targetIdentifier);
+                    });
+                    Logger.Info("Already restarting instance, enqueue the command handler.");
+                }
+
                 break;
             case ControlMessage.ShutDown:
+                break;
+            case ControlMessage.ReconnectEnd:
+                this.HandleReconnectEnd();
                 break;
             case ControlMessage.WaitForReconnect:
                 Logger.Debug($"Remote {hostCmd.From} is waiting for reconnect.");
@@ -602,6 +645,26 @@ public partial class HostManager : IInstance
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(hostCmd.Message), hostCmd.Message, null);
+        }
+    }
+
+    private void HandleReconnectEnd()
+    {
+        if (this.isInstanceRestarting)
+        {
+            if (this.restartQueue.Count == 0)
+            {
+                this.isInstanceRestarting = false;
+            }
+            else
+            {
+                var handler = this.restartQueue.Dequeue();
+                handler.Invoke();
+            }
+        }
+        else
+        {
+            Logger.Warn("ReconnectEnd received but no instance is restarting.");
         }
     }
 }

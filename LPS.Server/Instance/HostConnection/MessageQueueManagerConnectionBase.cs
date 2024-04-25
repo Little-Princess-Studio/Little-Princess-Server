@@ -139,8 +139,7 @@ public abstract class MessageQueueManagerConnectionBase : IManagerConnection
         }
         else
         {
-            // Logger.Warn();
-            throw new Exception($"Unknown routing key: {routingKey}");
+            Logger.Warn($"Invalid routing key: {routingKey}");
         }
     }
 }

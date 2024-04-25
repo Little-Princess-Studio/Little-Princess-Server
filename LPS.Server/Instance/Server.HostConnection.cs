@@ -134,7 +134,7 @@ public partial class Server
                 break;
             case EntityType.GateEntity:
             default:
-                Logger.Warn($"Invalid Create Entity Res Type: {createRes.EntityType}");
+                Logger.Warn($"Invalid Type: {createRes.EntityType}");
                 break;
         }
     }
@@ -151,9 +151,7 @@ public partial class Server
                 this.waitForSyncGatesEvent.Signal(1);
                 break;
             case HostCommandType.SyncServiceManager:
-                Logger.Debug("Sync service manager from host manager START.");
                 this.serviceManagerMailBox = RpcHelper.PbMailBoxToRpcMailBox(hostCmd.Args[0].Unpack<MailBoxArg>().PayLoad);
-                Logger.Debug("Sync service manager from host manager END.");
                 this.waitForSyncServiceManagerEvent.Signal(1);
                 break;
             case HostCommandType.Stop:
@@ -238,10 +236,10 @@ public partial class Server
             },
         };
 
-        Logger.Info($"default cell generated, {this.defaultCell.MailBox}.");
         this.cells.Add(newId, this.defaultCell);
 
         this.localEntityGeneratedEvent.Signal(1);
+        Logger.Info($"default cell generated, {this.defaultCell.MailBox}.");
     }
 
     private void CreateServerEntity(RequireCreateEntityRes createRes)

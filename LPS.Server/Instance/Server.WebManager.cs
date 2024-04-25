@@ -29,7 +29,7 @@ public partial class Server
         this.messageQueueClientToWebMgr.BindQueueAndExchange(
             Consts.GenerateWebManagerQueueName(this.Name),
             Consts.WebMgrExchangeName,
-            Consts.RoutingKeyToServer);
+            Consts.RoutingKeyWebManagerToServer);
         this.messageQueueClientToWebMgr.Observe(
             Consts.GenerateWebManagerQueueName(this.Name),
             this.HandleWebMgrMqMessage);

@@ -103,7 +103,7 @@ public static class Consts
     /// <summary>
     /// Request to get server detailed info.
     /// </summary>
-    public const string GetServerDetailedInfo = "getServerDetailedInfo.toSrv";
+    public const string GetServerDetailedInfo = "getServerDetailedInfo.webmgr.toSrv";
 
     /// <summary>
     /// Server detailed info res.
@@ -123,7 +123,7 @@ public static class Consts
     /// <summary>
     /// Get all entities of server.
     /// </summary>
-    public const string GetAllEntitiesOfServer = "getAllEntitiesOfServer.toSrv";
+    public const string GetAllEntitiesOfServer = "getAllEntitiesOfServer.webmgr.toSrv";
 
     /// <summary>
     /// Result of all entities of server.
@@ -136,14 +136,23 @@ public static class Consts
     public const string RoutingKeyToHostManager = "#.toHostMgr";
 
     /// <summary>
-    /// Routing keys to server.
+    /// Routing keys of web manager to server.
     /// </summary>
-    public const string RoutingKeyToServer = "#.toSrv";
+    public const string RoutingKeyWebManagerToServer = "#.webmgr.toSrv";
 
     /// <summary>
-    /// Routing keys to server.
+    /// Get routing key of server to observe.
     /// </summary>
-    public const string RoutingKeyToGate = "#.toGate";
+    /// <param name="targetName">Server name.</param>
+    /// <returns>Routing key of server to observe.</returns>
+    public static string GetRoutingKeyToServer(string targetName) => $"*.{targetName}.toSrv";
+
+    /// <summary>
+    /// Get routing key of Gate to observe.
+    /// </summary>
+    /// <param name="targetName">Gate name.</param>
+    /// <returns>Routing key of server to observe.</returns>
+    public static string GetRoutingKeyToGate(string targetName) => $"*.{targetName}.toGate";
 
     /// <summary>
     /// The routing key used to send messages to the service manager.

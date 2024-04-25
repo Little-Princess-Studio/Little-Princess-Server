@@ -56,7 +56,12 @@ public class MessageQueueHostManagerConnectionOfGate : MessageQueueManagerConnec
         client.BindQueueAndExchange(
             this.GetMessageQueueNameToReceiveMessageFromHostMgr(),
             Consts.HostMgrToGateExchangeName,
-            Consts.RoutingKeyToGate);
+            Consts.GetRoutingKeyToGate(this.Name));
+
+        client.BindQueueAndExchange(
+            this.GetMessageQueueNameToReceiveMessageFromHostMgr(),
+            Consts.HostMgrToGateExchangeName,
+            Consts.HostBroadCastMessagePackageToGate);
     }
 
     /// <inheritdoc/>

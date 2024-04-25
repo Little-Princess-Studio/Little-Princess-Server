@@ -217,7 +217,7 @@ public partial class Server : IInstance
             this.hostMgrConnection.Send(regCtl);
         }
 
-        // gate main thread will stuck here
+        // gate main thread will be stuck here
         this.hostMgrConnection.WaitForExit();
         this.tcpServer.WaitForExit();
         this.serviceMgrConnection?.WaitForExit();

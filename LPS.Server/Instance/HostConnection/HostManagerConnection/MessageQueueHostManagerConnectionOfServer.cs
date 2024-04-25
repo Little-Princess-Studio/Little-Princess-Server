@@ -37,7 +37,7 @@ public class MessageQueueHostManagerConnectionOfServer : MessageQueueManagerConn
         Logger.Debug("Send request to host");
         this.Send(new RequireCreateEntity
         {
-            EntityType = EntityType.ServerEntity,
+            EntityType = EntityType.ServerDefaultCellEntity,
             CreateType = CreateType.Manual,
             EntityClassName = string.Empty,
             Description = string.Empty,
@@ -46,7 +46,7 @@ public class MessageQueueHostManagerConnectionOfServer : MessageQueueManagerConn
 
         this.Send(new RequireCreateEntity
         {
-            EntityType = EntityType.ServerDefaultCellEntity,
+            EntityType = EntityType.ServerEntity,
             CreateType = CreateType.Manual,
             EntityClassName = string.Empty,
             Description = string.Empty,
@@ -64,7 +64,12 @@ public class MessageQueueHostManagerConnectionOfServer : MessageQueueManagerConn
         client.BindQueueAndExchange(
             this.GetMessageQueueNameToReceiveMessageFromHostMgr(),
             Consts.HostMgrToServerExchangeName,
-            Consts.RoutingKeyToServer);
+            Consts.GetRoutingKeyToServer(this.Name));
+
+        client.BindQueueAndExchange(
+            this.GetMessageQueueNameToReceiveMessageFromHostMgr(),
+            Consts.HostMgrToServerExchangeName,
+            Consts.HostBroadCastMessagePackageToServer);
     }
 
     /// <inheritdoc/>
