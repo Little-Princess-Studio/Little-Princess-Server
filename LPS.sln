@@ -21,8 +21,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LPS.Server.WebManager", "LP
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LPS.Common.Demo", "LPS.Common.Demo\LPS.Common.Demo.csproj", "{78B80042-6BB8-41CF-B695-9EB12D3BBB84}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LPS.SourceGenerator", "LPS.SourceGenerator\LPS.SourceGenerator.csproj", "{F0C7A190-12E8-4C7B-A077-C41DFC0A3D0B}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -68,9 +66,5 @@ Global
 		{78B80042-6BB8-41CF-B695-9EB12D3BBB84}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{78B80042-6BB8-41CF-B695-9EB12D3BBB84}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{78B80042-6BB8-41CF-B695-9EB12D3BBB84}.Release|Any CPU.Build.0 = Release|Any CPU
-		{F0C7A190-12E8-4C7B-A077-C41DFC0A3D0B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{F0C7A190-12E8-4C7B-A077-C41DFC0A3D0B}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{F0C7A190-12E8-4C7B-A077-C41DFC0A3D0B}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{F0C7A190-12E8-4C7B-A077-C41DFC0A3D0B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

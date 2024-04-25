@@ -33,8 +33,7 @@ public class RpcStubForShadowClientEntityGenerator : RpcStubGenerator
         var parameterTypes = method.GetParameters().Select(p => p.ParameterType).ToArray();
         var callMethod = typeof(ShadowClientEntity.ServerProxy)
             .GetMethods()
-            .Where(method => method.IsGenericMethod && method.Name.Split("`")[0] == "Call")
-            .First()!;
+            .First(method => method.IsGenericMethod && method.Name.Split("`")[0] == "Call")!;
 
         var generated = callMethod.MakeGenericMethod(returnType);
         this.GenerateRpcCall(entityField, ilgenerator, methodName, parameterTypes, generated);

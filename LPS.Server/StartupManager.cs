@@ -511,7 +511,6 @@ public static class StartupManager
         RpcHelper.ScanRpcMethods(new[] { "LPS.Server.Entity", entityNamespace }, extraAssemblies);
         RpcHelper.ScanRpcPropertyContainer(rpcPropertyNamespace, extraAssemblies);
         RpcStubGeneratorManager.ScanAndBuildGenerator(
-            new[] { "LPS.Common.Entity", "LPS.Server.Entity", entityNamespace },
             new[] { rpcStubInterfaceNamespace },
             extraAssemblies);
 

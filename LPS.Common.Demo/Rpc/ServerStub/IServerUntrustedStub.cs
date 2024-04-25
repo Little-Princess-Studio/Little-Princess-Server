@@ -6,11 +6,13 @@
 
 namespace LPS.Common.Demo.Rpc.ServerStub;
 
+using LPS.Client.Rpc;
 using LPS.Common.Rpc.RpcStub;
 
 /// <summary>
 /// Represents an interface for an rpc stub for Utrusted entity.
 /// </summary>
+[RpcStubGenerator(typeof(RpcStubForServerClientEntityGenerator))]
 public interface IServerUntrustedStub : IRpcStub
 {
     /// <summary>

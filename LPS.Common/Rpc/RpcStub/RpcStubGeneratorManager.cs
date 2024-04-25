@@ -22,44 +22,41 @@ public static class RpcStubGeneratorManager
     /// <summary>
     /// Scans the specified namespace for types decorated with the <see cref="RpcStubGeneratorAttribute"/> attribute and builds a generator for each type found.
     /// </summary>
-    /// <param name="entityClassNamespaces">The namespaces to scan for entity class types.</param>
     /// <param name="rpcStubInterfaceNamespaces">The namespaces to scan rpc stub interfaces.</param>
     /// <param name="extraAssemblies">Optional extra assemblies to include in the scan.</param>
     public static void ScanAndBuildGenerator(
-        string[] entityClassNamespaces,
         string[] rpcStubInterfaceNamespaces,
         Assembly[]? extraAssemblies = null)
     {
         var dict = new Dictionary<uint, RpcStubGenerator>();
 
-        foreach (var @namespace in entityClassNamespaces)
+        foreach (var @namespace in rpcStubInterfaceNamespaces)
         {
-            Logger.Info($"Scanning {@namespace} for stub generators...");
+            Logger.Info($"Scanning {@namespace} for RPC stub generators...");
 
             var stubGeneratorAttrs = AttributeHelper.ScanTypeWithNamespaceAndAttribute(
                 @namespace,
                 typeof(RpcStubGeneratorAttribute),
                 true,
-                type => type.IsClass,
+                type => type.IsInterface,
                 extraAssemblies);
 
-            foreach (var entityClassType in stubGeneratorAttrs)
+            foreach (var interfaceType in stubGeneratorAttrs)
             {
-                var attr = entityClassType.GetCustomAttribute<RpcStubGeneratorAttribute>()!;
+                var attr = interfaceType.GetCustomAttribute<RpcStubGeneratorAttribute>()!;
                 var generatorType = attr.GeneratorType;
                 if (generatorType == typeof(RpcStubGenerator) || generatorType.IsSubclassOf(typeof(RpcStubGenerator)))
                 {
-                    var generator = Activator.CreateInstance(generatorType) as RpcStubGenerator;
-                    if (generator is not null)
+                    if (Activator.CreateInstance(generatorType) is RpcStubGenerator generator)
                     {
                         generator.ScanRpcServerStubInterfacesAndGenerateStubType(rpcStubInterfaceNamespaces, extraAssemblies);
-                        dict.Add(TypeIdHelper.GetId(entityClassType), generator);
+                        dict.Add(TypeIdHelper.GetId(interfaceType), generator);
 
-                        Logger.Info($"Generated stub generator {generatorType.FullName} for {entityClassType.FullName}");
+                        Logger.Info($"Generated stub generator {generatorType.FullName} for {interfaceType.FullName}");
                     }
                     else
                     {
-                        throw new Exception($"Failed to create stub generator with {generatorType.FullName} for {entityClassType.FullName}");
+                        throw new Exception($"Failed to create stub generator with {generatorType.FullName} for {interfaceType.FullName}");
                     }
                 }
                 else
@@ -73,21 +70,21 @@ public static class RpcStubGeneratorManager
     }
 
     /// <summary>
-    /// Gets the RPC stub generator for the specified entity class type.
+    /// Gets the RPC stub generator for the specified interface type.
     /// </summary>
-    /// <param name="entityClassType">The type of the entity class for which to get the RPC stub generator.</param>
-    /// <returns>The RPC stub generator for the specified entity class type.</returns>
-    /// <exception cref="Exception">Thrown when the RPC stub generator for the specified entity class type cannot be found.</exception>
-    public static RpcStubGenerator GetRpcStubGenerator(Type entityClassType)
+    /// <param name="interfaceType">The type of the stub interface for which to get the RPC stub generator.</param>
+    /// <returns>The RPC stub generator for the specified interface class type.</returns>
+    /// <exception cref="Exception">Thrown when the RPC stub generator for the specified interface type cannot be found.</exception>
+    public static RpcStubGenerator GetRpcStubGenerator(Type interfaceType)
     {
-        var id = TypeIdHelper.GetId(entityClassType);
+        var id = TypeIdHelper.GetId(interfaceType);
         if (generatorMap.TryGetValue(id, out var generator))
         {
             return generator;
         }
         else
         {
-            throw new Exception($"Failed to find stub generator for {entityClassType.FullName}");
+            throw new Exception($"Failed to find stub generator for {interfaceType.FullName}");
         }
     }
 
@@ -98,7 +95,7 @@ public static class RpcStubGeneratorManager
     /// <returns>The RPC stub generator of the specified type.</returns>
     /// <exception cref="Exception">Thrown when the RPC stub generator for the specified type cannot be found.</exception>
     public static RpcStubGenerator GetRpcStubGenerator<T>()
-        where T : BaseEntity
+        where T : IRpcStub
     {
         var id = TypeIdHelper.GetId<T>();
         if (generatorMap.TryGetValue(id, out var generator))

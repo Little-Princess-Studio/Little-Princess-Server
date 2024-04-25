@@ -16,7 +16,7 @@ using LPS.Common.Util;
 /// <summary>
 /// Generates RPC stubs.
 /// </summary>
-public class RpcStubGenerator
+public abstract class RpcStubGenerator
 {
     /// <summary>
     /// Gets the type of the entity that the generated RPC stubs will operate on.
@@ -219,8 +219,9 @@ public class RpcStubGenerator
         var parameterTypes = method.GetParameters().Select(p => p.ParameterType).ToArray();
         var callMethod = this.EntityType
             .GetMethods()
-            .Where(method => method.IsGenericMethod && method.Name.Split("`")[0] == "Call")
-            .First()!;
+            .First(method => method.IsGenericMethod && method.Name.Split("`")[0] == "Call")!;
+
+        AssertFirstParameterIsMailBox(parameterTypes);
 
         this.GenerateRpcCall(entityField, ilgenerator, methodName, parameterTypes, callMethod);
     }
@@ -239,6 +240,8 @@ public class RpcStubGenerator
         var callMethod = this.EntityType
             .GetMethod("Notify")!;
 
+        AssertFirstParameterIsMailBox(parameterTypes);
+
         this.GenerateRpcCall(entityField, ilgenerator, methodName, parameterTypes, callMethod);
     }
 
@@ -255,8 +258,9 @@ public class RpcStubGenerator
         var parameterTypes = method.GetParameters().Select(p => p.ParameterType).ToArray();
         var callMethod = this.EntityType
             .GetMethods()
-            .Where(method => !method.IsGenericMethod && method.Name.Split("`")[0] == "Call")
-            .First()!;
+            .First(method => !method.IsGenericMethod && method.Name.Split("`")[0] == "Call")!;
+
+        AssertFirstParameterIsMailBox(parameterTypes);
 
         this.GenerateRpcCall(entityField, ilgenerator, methodName, parameterTypes, callMethod);
     }
@@ -271,22 +275,22 @@ public class RpcStubGenerator
     /// <param name="callMethod">The <see cref="MethodInfo"/> for the BaseEntity.Call method to use for the RPC call.</param>
     protected virtual void GenerateRpcCall(FieldBuilder entityField, ILGenerator ilgenerator, string methodName, Type[] parameterTypes, MethodInfo callMethod)
     {
-        // var [proxy] = this.entity.Client
+        // var [proxy] = this.entity
         ilgenerator.DeclareLocal(typeof(object[]));
 
         ilgenerator.Emit(OpCodes.Ldarg_0);
         ilgenerator.Emit(OpCodes.Ldfld, entityField);
-        ilgenerator.Emit(
-            OpCodes.Callvirt,
-            this.EntityType.GetProperty("Client")!.GetGetMethod()!);
 
-        // return proxy.Call<T>(methodName, arg0, arg1, arg2, ...);
+        // load targetMailBox
+        ilgenerator.Emit(OpCodes.Ldarg_1);
+
+        // return proxy.Call<T>(targetMailBox, methodName, arg0, arg1, arg2, ...);
         ilgenerator.Emit(OpCodes.Ldstr, methodName);
 
-        ilgenerator.Emit(OpCodes.Ldc_I4, parameterTypes.Length);
+        ilgenerator.Emit(OpCodes.Ldc_I4, parameterTypes.Length - 1);
         ilgenerator.Emit(OpCodes.Newarr, typeof(object));
 
-        for (int i = 0; i < parameterTypes.Length; i++)
+        for (int i = 1; i < parameterTypes.Length; i++)
         {
             ilgenerator.Emit(OpCodes.Dup);
             ilgenerator.Emit(OpCodes.Ldc_I4, i);
@@ -339,5 +343,18 @@ public class RpcStubGenerator
         }
 
         return methods;
+    }
+
+    private static void AssertFirstParameterIsMailBox(Type[] parameterTypes)
+    {
+        if (parameterTypes.Length == 0)
+        {
+            throw new Exception("ParameterTypes is empty, at least one parameter `targetMailBox` is required.");
+        }
+
+        if (parameterTypes[0] != typeof(MailBox))
+        {
+            throw new Exception("First parameter's type must be `MailBox`.");
+        }
     }
 }

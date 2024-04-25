@@ -6,11 +6,13 @@
 
 namespace LPS.Common.Demo.Rpc.ClientStub;
 
+using LPS.Client.Rpc;
 using LPS.Common.Rpc.RpcStub;
 
 /// <summary>
 /// Represents a client player stub.
 /// </summary>
+[RpcStubGenerator(typeof(RpcStubForShadowClientEntityGenerator))]
 public interface IClientPlayerStub : IRpcStub
 {
     /// <summary>

@@ -24,7 +24,6 @@ using MailBox = LPS.Common.Rpc.MailBox;
 /// <summary>
 /// BaseEntity class.
 /// </summary>
-[RpcStubGenerator(typeof(RpcStubGenerator))]
 public abstract class BaseEntity : ITypeIdSupport,
     IRougamo<ComplexTypeRpcPropertyGetterMo>,
     IRougamo<ComplexTypeRpcPropertySetterMo>,
@@ -229,7 +228,7 @@ public abstract class BaseEntity : ITypeIdSupport,
     protected T GetRpcStub<T>()
         where T : class, IRpcStub
     {
-        var generator = RpcStubGeneratorManager.GetRpcStubGenerator(this.GetType());
+        var generator = RpcStubGeneratorManager.GetRpcStubGenerator(typeof(T));
         return generator.GetRpcStubImpl<T>(this);
     }
 

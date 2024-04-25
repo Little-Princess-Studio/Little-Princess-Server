@@ -50,7 +50,6 @@ public static class StartUpManager
         RpcHelper.ScanRpcMethods(new[] { "LPS.Common.Entity", "LPS.Client.Entity", entityNamespace }, extraAssemblies);
         RpcHelper.ScanRpcPropertyContainer(rpcPropertyNamespace, extraAssemblies);
         RpcStubGeneratorManager.ScanAndBuildGenerator(
-            new[] { "LPS.Common.Entity", "LPS.Client.Entity", entityNamespace },
             new[] { rpcStubInterfaceNamespace },
             extraAssemblies);
 

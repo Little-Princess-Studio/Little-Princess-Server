@@ -7,15 +7,15 @@
 namespace LPS.Common.Rpc.RpcStub;
 
 /// <summary>
-/// Attribute used to mark classes that generate RPC stubs.
+/// Attribute used to mark interface that generate RPC stub interface.
 /// </summary>
-[System.AttributeUsage(System.AttributeTargets.Class, AllowMultiple = false, Inherited = true)]
+[System.AttributeUsage(System.AttributeTargets.Interface, AllowMultiple = false, Inherited = true)]
 public class RpcStubGeneratorAttribute : System.Attribute
 {
     /// <summary>
     /// Gets the type of the generator.
     /// </summary>
-    public Type GeneratorType { get; } = null!;
+    public readonly Type GeneratorType;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="RpcStubGeneratorAttribute"/> class.

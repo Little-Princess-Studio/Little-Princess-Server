@@ -23,7 +23,6 @@ using MailBox = LPS.Common.Rpc.MailBox;
 /// has communication where they can call each other and sync properties.
 /// </summary>
 [EntityClass]
-[RpcStubGenerator(typeof(RpcStubForShadowClientEntityGenerator))]
 public class ShadowClientEntity : ShadowEntity
 {
     /// <summary>

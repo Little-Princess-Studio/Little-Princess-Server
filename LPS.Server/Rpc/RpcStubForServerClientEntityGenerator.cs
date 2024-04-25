@@ -35,8 +35,7 @@ public class RpcStubForServerClientEntityGenerator : RpcStubGenerator
         var parameterTypes = method.GetParameters().Select(p => p.ParameterType).ToArray();
         var callMethod = typeof(ServerClientEntity.ClientProxy)
             .GetMethods()
-            .Where(method => !method.IsGenericMethod && method.Name.Split("`")[0] == "Call")
-            .First()!;
+            .First(method => !method.IsGenericMethod && method.Name.Split("`")[0] == "Call")!;
 
         var generated = callMethod.MakeGenericMethod(returnType);
 
@@ -51,8 +50,7 @@ public class RpcStubForServerClientEntityGenerator : RpcStubGenerator
         var parameterTypes = method.GetParameters().Select(p => p.ParameterType).ToArray();
         var callMethod = typeof(ServerClientEntity.ClientProxy)
             .GetMethods()
-            .Where(method => !method.IsGenericMethod && method.Name.Split("`")[0] == "Call")
-            .First()!;
+            .First(method => !method.IsGenericMethod && method.Name.Split("`")[0] == "Call")!;
 
         this.GenerateRpcCall(entityField, ilgenerator, methodName, parameterTypes, callMethod);
     }
@@ -65,8 +63,7 @@ public class RpcStubForServerClientEntityGenerator : RpcStubGenerator
         var parameterTypes = method.GetParameters().Select(p => p.ParameterType).ToArray();
         var callMethod = typeof(ServerClientEntity.ClientProxy)
             .GetMethods()
-            .Where(method => method.IsGenericMethod && method.Name.Split("`")[0] == "Call")
-            .First()!;
+            .First(method => method.IsGenericMethod && method.Name.Split("`")[0] == "Call")!;
 
         this.GenerateRpcCall(entityField, ilgenerator, methodName, parameterTypes, callMethod);
     }
