@@ -16,7 +16,7 @@ using LPS.Common.Util;
 /// <summary>
 /// Generates RPC stubs.
 /// </summary>
-public abstract class RpcStubGenerator
+public class RpcStubGenerator
 {
     /// <summary>
     /// Gets the type of the entity that the generated RPC stubs will operate on.
