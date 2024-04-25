@@ -1,19 +1,17 @@
 // -----------------------------------------------------------------------
-// <copyright file="IServerUntrustedStub.cs" company="Little Princess Studio">
+// <copyright file="IUntrustedServerStub.cs" company="Little Princess Studio">
 // Copyright (c) Little Princess Studio. All rights reserved.
 // </copyright>
 // -----------------------------------------------------------------------
 
 namespace LPS.Common.Demo.Rpc.ServerStub;
 
-using LPS.Client.Rpc;
 using LPS.Common.Rpc.RpcStub;
 
 /// <summary>
-/// Represents an interface for an rpc stub for Utrusted entity.
+/// Represents an interface for rpc stub for Untrusted entity.
 /// </summary>
-[RpcStubGenerator(typeof(RpcStubForServerClientEntityGenerator))]
-public interface IServerUntrustedStub : IRpcStub
+public interface IUntrustedServerStub : IRpcStub
 {
     /// <summary>
     /// Test change property.

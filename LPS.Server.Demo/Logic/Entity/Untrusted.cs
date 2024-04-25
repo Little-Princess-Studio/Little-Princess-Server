@@ -22,7 +22,7 @@ using LPS.Server.Demo.Logic.Service;
 /// Untrusted class is the first created entity between client and server.
 /// </summary>
 [EntityClass]
-public class Untrusted : ServerClientEntity, IServerUntrustedStub
+public class Untrusted : ServerClientEntity, IUntrustedServerStub
 {
     /// <summary>
     /// TestRpcProp.

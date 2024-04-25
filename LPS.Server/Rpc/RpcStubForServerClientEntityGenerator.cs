@@ -4,7 +4,7 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
-namespace LPS.Client.Rpc;
+namespace LPS.Server.Rpc;
 
 using System;
 using System.Linq;
@@ -22,9 +22,6 @@ public class RpcStubForServerClientEntityGenerator : RpcStubGenerator
 {
     /// <inheritdoc/>
     protected override Type EntityType => typeof(ServerClientEntity);
-
-    /// <inheritdoc/>
-    protected override Type AttributeType => typeof(RpcClientStubAttribute);
 
     /// <inheritdoc/>
     protected override void ImplementRpcCallWithResult(FieldBuilder entityField, ILGenerator ilgenerator, MethodInfo method)

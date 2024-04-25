@@ -6,21 +6,21 @@
 
 namespace LPS.Client.Demo.Entity.RpcStub;
 
+using LPS.Client.Rpc;
 using LPS.Common.Demo.Rpc.ServerStub;
 using LPS.Common.Rpc.RpcStub;
 
 /// <summary>
 /// Defines methods for communicating with an untrusted server.
 /// </summary>
-///
-[RpcServerStub]
-public interface IUntrustedStub : IServerUntrustedStub
+[RpcStubForShadowClient]
+public interface IUntrustedStub : IUntrustedServerStub
 {
     /// <summary>
     /// Notifies the server that a user has logged in.
     /// </summary>
     /// <param name="userName">User name.</param>
     /// <param name="passWord">Password.</param>
-    [RpcStubNotifyOnly(nameof(IServerUntrustedStub.LogIn))]
+    [RpcStubNotifyOnly(nameof(IUntrustedServerStub.LogIn))]
     void NotifyLogIn(string userName, string passWord);
 }

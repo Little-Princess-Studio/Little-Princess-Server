@@ -24,11 +24,6 @@ public class RpcStubGenerator
     protected virtual Type EntityType => typeof(BaseEntity);
 
     /// <summary>
-    /// Gets the type of the attribute used to mark RPC interfaces that should be generated as server-side implementations.
-    /// </summary>
-    protected virtual Type AttributeType => typeof(RpcStubAttribute);
-
-    /// <summary>
     /// Gets or sets a read-only dictionary that maps RPC interface IDs to their corresponding server-side implementation types.
     /// </summary>
     protected ReadOnlyDictionary<uint, Type> RpcStubInterfaceIdToStubType { get; set; } = null!;
@@ -55,12 +50,16 @@ public class RpcStubGenerator
     }
 
     /// <summary>
-    /// Scans the assembly for RPC interfaces marked with RpcServerStubAttribute in the specified namespace and generates server-side implementations for them.
+    /// Generates server-side implementation types for a list of RPC stub interfaces.
     /// </summary>
-    /// <param name="namespaces">The namespaces to scan for RPC interfaces.</param>
-    /// <param name="extraAssemblies">Optional extra assemblies to include in the scan.</param>
-    /// <exception cref="InvalidOperationException">Thrown when there are duplicate interface IDs.</exception>
-    public virtual void ScanRpcServerStubInterfacesAndGenerateStubType(string[] namespaces, Assembly[]? extraAssemblies = null)
+    /// <param name="stubInterfaceList">A list of stub interfaces for which the RPC stub types need to be generated.</param>
+    /// <remarks>
+    /// This method creates a new dictionary to map RPC interface IDs to their corresponding server-side implementation types.
+    /// It defines a dynamic assembly and module using AssemblyBuilder and ModuleBuilder.
+    /// For each type in the stubInterfaceList, it generates a server-side implementation of the specified RPC interface and adds it to the dictionary.
+    /// After generating all the stub types, it assigns the dictionary to the RpcStubInterfaceIdToStubType property.
+    /// </remarks>
+    public void GenerateStubTypeWithRpcStubList(IEnumerable<Type> stubInterfaceList)
     {
         var rpcStubInterfaceIdToStubTypeBuilder = new Dictionary<uint, Type>();
 
@@ -68,28 +67,18 @@ public class RpcStubGenerator
         var assemblyBuilder = AssemblyBuilder.DefineDynamicAssembly(assemblyName, AssemblyBuilderAccess.Run);
         var moduleBuilder = assemblyBuilder.DefineDynamicModule("RpcStubImplModule");
 
-        foreach (var @namespace in namespaces)
+        foreach (var type in stubInterfaceList)
         {
-            var allInterfaces = AttributeHelper.ScanTypeWithNamespaceAndAttribute(
-                @namespace,
-                this.AttributeType,
-                true,
-                type => type.IsInterface,
-                extraAssemblies);
-
-            foreach (var type in allInterfaces)
+            var interfaceId = TypeIdHelper.GetId(type);
+            if (rpcStubInterfaceIdToStubTypeBuilder.ContainsKey(interfaceId))
             {
-                var interfaceId = TypeIdHelper.GetId(type);
-                if (rpcStubInterfaceIdToStubTypeBuilder.ContainsKey(interfaceId))
-                {
-                    throw new InvalidOperationException($"Duplicate interface ID {interfaceId}.");
-                }
-
-                var stubType = this.Generate(type, moduleBuilder);
-                rpcStubInterfaceIdToStubTypeBuilder.Add(interfaceId, stubType);
-
-                Logger.Info($"[RpcStubGenerator] Generated {stubType} for {type}.");
+                throw new InvalidOperationException($"Duplicate interface ID {interfaceId}.");
             }
+
+            var stubType = this.Generate(type, moduleBuilder);
+            rpcStubInterfaceIdToStubTypeBuilder.Add(interfaceId, stubType);
+
+            Logger.Info($"[RpcStubGenerator] Generated {stubType} for {type}.");
         }
 
         this.RpcStubInterfaceIdToStubType = new ReadOnlyDictionary<uint, Type>(rpcStubInterfaceIdToStubTypeBuilder);
@@ -107,11 +96,6 @@ public class RpcStubGenerator
         if (!interfaceType.IsInterface)
         {
             throw new ArgumentException("T must be an interface type.");
-        }
-
-        if (!interfaceType.IsDefined(this.AttributeType, false))
-        {
-            throw new ArgumentException("T must be marked with RpcStubAttribute.");
         }
 
         var typeBuilder = moduleBuilder.DefineType(interfaceType.Name + "Impl", TypeAttributes.Public | TypeAttributes.Class);

@@ -49,7 +49,7 @@ public class Player : ServerClientEntity
     public Player(string desc)
         : base(desc)
     {
-        // cache the stub
+        // cache the playerStub
         this.playerStub = this.GetRpcStub<IPlayerStub>();
     }
 

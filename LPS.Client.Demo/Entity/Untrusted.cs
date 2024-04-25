@@ -33,7 +33,7 @@ public class Untrusted : ShadowClientEntity
     [RpcProperty(nameof(TestRpcPlaintPropStr))]
     public readonly RpcShadowPlaintProperty<string> TestRpcPlaintPropStr = new ();
 
-    private readonly IUntrustedStub serverUntrustedRpc;
+    private readonly IUntrustedStub serverRpc;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Untrusted"/> class.
@@ -41,7 +41,7 @@ public class Untrusted : ShadowClientEntity
     public Untrusted()
     {
         // cache rpc stub object
-        this.serverUntrustedRpc = this.GetRpcStub<IUntrustedStub>();
+        this.serverRpc = this.GetRpcStub<IUntrustedStub>();
     }
 
     /// <summary>
@@ -50,7 +50,7 @@ public class Untrusted : ShadowClientEntity
     /// <returns>If succeed to login.</returns>
     public Task Login()
     {
-        this.serverUntrustedRpc.NotifyLogIn("demo", "123456");
+        this.serverRpc.NotifyLogIn("demo", "123456");
         return Task.FromResult(true);
     }
 
@@ -76,7 +76,7 @@ public class Untrusted : ShadowClientEntity
     /// </summary>
     /// <returns>Async value task.</returns>
     public ValueTask TestChange() =>
-        this.serverUntrustedRpc.TestChange();
+        this.serverRpc.TestChange();
 
     /// <summary>
     /// Test change prop.
@@ -84,7 +84,7 @@ public class Untrusted : ShadowClientEntity
     /// <param name="prop">Value to change.</param>
     /// <returns>Async value task.</returns>
     public ValueTask ChangeProp(string prop) =>
-        this.serverUntrustedRpc.ChangeProp(prop);
+        this.serverRpc.ChangeProp(prop);
 
     /// <summary>
     /// Calls the service echo method with the specified message and logs the response.
@@ -93,7 +93,7 @@ public class Untrusted : ShadowClientEntity
     /// <returns>A task that represents the asynchronous operation.</returns>
     public async Task CallServiceEcho(string msg)
     {
-        var res = await this.serverUntrustedRpc.CallServiceEcho(msg);
+        var res = await this.serverRpc.CallServiceEcho(msg);
         Logger.Debug($"[CallServiceEcho]: {res}");
     }
 
@@ -105,7 +105,7 @@ public class Untrusted : ShadowClientEntity
     public async Task CallServiceEchoWithCallBack(string msg)
     {
         Logger.Info("[CallServiceEchoWithCallBack]: waiting for server response...");
-        await this.serverUntrustedRpc.CallServiceEchoWithCallBack(msg);
+        await this.serverRpc.CallServiceEchoWithCallBack(msg);
         Logger.Info("[CallServiceEchoWithCallBack]: server response received.");
     }
 }

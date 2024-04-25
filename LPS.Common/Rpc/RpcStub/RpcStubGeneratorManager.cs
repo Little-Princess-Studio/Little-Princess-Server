@@ -20,12 +20,14 @@ public static class RpcStubGeneratorManager
     private static ReadOnlyDictionary<uint, RpcStubGenerator> generatorMap = null!;
 
     /// <summary>
-    /// Scans the specified namespace for types decorated with the <see cref="RpcStubGeneratorAttribute"/> attribute and builds a generator for each type found.
+    /// Scans the specified namespace for types decorated with the <see cref="RpcStubAttribute"/> attribute and builds a generator for each type found.
     /// </summary>
     /// <param name="rpcStubInterfaceNamespaces">The namespaces to scan rpc stub interfaces.</param>
+    /// <param name="costumeRpcStubAttributes">The custom rpc stub attributes to scan.</param>
     /// <param name="extraAssemblies">Optional extra assemblies to include in the scan.</param>
     public static void ScanAndBuildGenerator(
         string[] rpcStubInterfaceNamespaces,
+        Type[] costumeRpcStubAttributes,
         Assembly[]? extraAssemblies = null)
     {
         var dict = new Dictionary<uint, RpcStubGenerator>();
@@ -34,25 +36,49 @@ public static class RpcStubGeneratorManager
         {
             Logger.Info($"Scanning {@namespace} for RPC stub generators...");
 
-            var stubGeneratorAttrs = AttributeHelper.ScanTypeWithNamespaceAndAttribute(
+            var stubInterfaces = AttributeHelper.ScanTypeWithNamespaceAndAttribute(
                 @namespace,
-                typeof(RpcStubGeneratorAttribute),
+                typeof(RpcStubAttribute),
                 true,
                 type => type.IsInterface,
                 extraAssemblies);
 
-            foreach (var interfaceType in stubGeneratorAttrs)
+            foreach (var costumeRpcStubAttr in costumeRpcStubAttributes)
             {
-                var attr = interfaceType.GetCustomAttribute<RpcStubGeneratorAttribute>()!;
+                if (!costumeRpcStubAttr.IsSubclassOf(typeof(RpcStubAttribute)))
+                {
+                    throw new Exception(
+                        $"The specified attribute type {costumeRpcStubAttr.FullName} must be a subclass of RpcStubAttribute");
+                }
+
+                var found = AttributeHelper.ScanTypeWithNamespaceAndAttribute(
+                    @namespace,
+                    costumeRpcStubAttr,
+                    true,
+                    type => type.IsInterface,
+                    extraAssemblies);
+                stubInterfaces = stubInterfaces.Concat(found);
+            }
+
+            Dictionary<Type, List<Type>> dictGeneratorTypeToStubInterfaces = new();
+
+            foreach (var interfaceType in stubInterfaces)
+            {
+                var attr = interfaceType.GetCustomAttribute<RpcStubAttribute>()!;
                 var generatorType = attr.GeneratorType;
                 if (generatorType == typeof(RpcStubGenerator) || generatorType.IsSubclassOf(typeof(RpcStubGenerator)))
                 {
-                    if (Activator.CreateInstance(generatorType) is RpcStubGenerator generator)
+                    if (!dictGeneratorTypeToStubInterfaces.ContainsKey(generatorType))
                     {
-                        generator.ScanRpcServerStubInterfacesAndGenerateStubType(rpcStubInterfaceNamespaces, extraAssemblies);
-                        dict.Add(TypeIdHelper.GetId(interfaceType), generator);
-
-                        Logger.Info($"Generated stub generator {generatorType.FullName} for {interfaceType.FullName}");
+                        if (!dictGeneratorTypeToStubInterfaces.TryGetValue(generatorType, out var list))
+                        {
+                            list = new List<Type>() { interfaceType };
+                            dictGeneratorTypeToStubInterfaces.Add(generatorType, list);
+                        }
+                        else
+                        {
+                            list.Add(interfaceType);
+                        }
                     }
                     else
                     {
@@ -62,6 +88,20 @@ public static class RpcStubGeneratorManager
                 else
                 {
                     throw new Exception($"The specified generator type {generatorType.FullName} must be a subclass of RpcStubGenerator");
+                }
+            }
+
+            foreach (var (generatorType, rpcStubInterfaceTypeList) in dictGeneratorTypeToStubInterfaces)
+            {
+                Logger.Info(
+                    $"Generated stub generator {generatorType.FullName} for" +
+                    $" {string.Join(",", rpcStubInterfaceTypeList.Select(t => t.FullName))}");
+
+                var generator = (Activator.CreateInstance(generatorType) as RpcStubGenerator)!;
+                generator.GenerateStubTypeWithRpcStubList(rpcStubInterfaceTypeList);
+                foreach (var rpcStubInterfaceType in rpcStubInterfaceTypeList)
+                {
+                    dict.Add(TypeIdHelper.GetId(rpcStubInterfaceType), generator);
                 }
             }
         }
@@ -82,10 +122,8 @@ public static class RpcStubGeneratorManager
         {
             return generator;
         }
-        else
-        {
-            throw new Exception($"Failed to find stub generator for {interfaceType.FullName}");
-        }
+
+        throw new Exception($"Failed to find stub generator for {interfaceType.FullName}");
     }
 
     /// <summary>
@@ -102,9 +140,7 @@ public static class RpcStubGeneratorManager
         {
             return generator;
         }
-        else
-        {
-            throw new Exception($"Failed to find stub generator for {typeof(T).FullName}");
-        }
+
+        throw new Exception($"Failed to find stub generator for {typeof(T).FullName}");
     }
 }

@@ -51,6 +51,7 @@ public static class StartUpManager
         RpcHelper.ScanRpcPropertyContainer(rpcPropertyNamespace, extraAssemblies);
         RpcStubGeneratorManager.ScanAndBuildGenerator(
             new[] { rpcStubInterfaceNamespace },
+            new[] { typeof(RpcStubForShadowClientAttribute) },
             extraAssemblies);
 
         Client.Instance.Init(ip, port);

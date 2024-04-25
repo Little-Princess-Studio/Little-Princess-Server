@@ -8,17 +8,18 @@ namespace LPS.Server.Demo.Logic.RpcStub;
 
 using LPS.Common.Demo.Rpc.ClientStub;
 using LPS.Common.Rpc.RpcStub;
+using LPS.Server.Rpc;
 
 /// <summary>
 /// Represents a stub for a player client.
 /// </summary>
-[RpcClientStub]
-public interface IPlayerStub : IClientPlayerStub
+[RpcStubForServerClient]
+public interface IPlayerStub : IPlayerClientStub
 {
     /// <summary>
     /// Notifies the client that a message has been received from the server.
     /// </summary>
     /// <param name="msg">The message to print.</param>
-    [RpcStubNotifyOnly(nameof(IClientPlayerStub.PrintMessageFromServer))]
+    [RpcStubNotifyOnly(nameof(IPlayerClientStub.PrintMessageFromServer))]
     void NotifyPrintMessageFromServer(string msg);
 }

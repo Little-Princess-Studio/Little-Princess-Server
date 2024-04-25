@@ -21,7 +21,7 @@ using LPS.Common.Demo.Rpc.ClientStub;
 [EntityClass]
 [ClientComponent(typeof(GamePropertyComponent))]
 [ClientComponent(typeof(BagComponent))]
-public class Player : ShadowClientEntity, IClientPlayerStub
+public class Player : ShadowClientEntity, IPlayerClientStub
 {
     /// <summary>
     /// Player name.

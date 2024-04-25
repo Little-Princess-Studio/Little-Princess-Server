@@ -22,9 +22,6 @@ public class RpcStubForShadowClientEntityGenerator : RpcStubGenerator
     protected override Type EntityType => typeof(ShadowClientEntity);
 
     /// <inheritdoc/>
-    protected override Type AttributeType => typeof(RpcServerStubAttribute);
-
-    /// <inheritdoc/>
     protected override void ImplementRpcCallWithResult(FieldBuilder entityField, ILGenerator ilgenerator, MethodInfo method)
     {
         // Task<T>/ValueTask<T>
