@@ -512,7 +512,6 @@ public static class StartupManager
         RpcHelper.ScanRpcPropertyContainer(rpcPropertyNamespace, extraAssemblies);
         RpcStubGeneratorManager.ScanAndBuildGenerator(
             new[] { rpcStubInterfaceNamespace },
-            new[] { typeof(RpcStubForServerClientAttribute) },
             extraAssemblies);
 
         var messageQueueConf = GetJson(json["mq_conf"]!.ToString()).ToObject<MessageQueueClient.MqConfig>()!;

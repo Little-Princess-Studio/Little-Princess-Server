@@ -23,11 +23,9 @@ public static class RpcStubGeneratorManager
     /// Scans the specified namespace for types decorated with the <see cref="RpcStubAttribute"/> attribute and builds a generator for each type found.
     /// </summary>
     /// <param name="rpcStubInterfaceNamespaces">The namespaces to scan rpc stub interfaces.</param>
-    /// <param name="costumeRpcStubAttributes">The custom rpc stub attributes to scan.</param>
     /// <param name="extraAssemblies">Optional extra assemblies to include in the scan.</param>
     public static void ScanAndBuildGenerator(
         string[] rpcStubInterfaceNamespaces,
-        Type[] costumeRpcStubAttributes,
         Assembly[]? extraAssemblies = null)
     {
         var dict = new Dictionary<uint, RpcStubGenerator>();
@@ -43,23 +41,6 @@ public static class RpcStubGeneratorManager
                 type => type.IsInterface,
                 extraAssemblies);
 
-            foreach (var costumeRpcStubAttr in costumeRpcStubAttributes)
-            {
-                if (!costumeRpcStubAttr.IsSubclassOf(typeof(RpcStubAttribute)))
-                {
-                    throw new Exception(
-                        $"The specified attribute type {costumeRpcStubAttr.FullName} must be a subclass of RpcStubAttribute");
-                }
-
-                var found = AttributeHelper.ScanTypeWithNamespaceAndAttribute(
-                    @namespace,
-                    costumeRpcStubAttr,
-                    true,
-                    type => type.IsInterface,
-                    extraAssemblies);
-                stubInterfaces = stubInterfaces.Concat(found);
-            }
-
             Dictionary<Type, List<Type>> dictGeneratorTypeToStubInterfaces = new();
 
             foreach (var interfaceType in stubInterfaces)
@@ -68,21 +49,14 @@ public static class RpcStubGeneratorManager
                 var generatorType = attr.GeneratorType;
                 if (generatorType == typeof(RpcStubGenerator) || generatorType.IsSubclassOf(typeof(RpcStubGenerator)))
                 {
-                    if (!dictGeneratorTypeToStubInterfaces.ContainsKey(generatorType))
+                    if (!dictGeneratorTypeToStubInterfaces.TryGetValue(generatorType, out var list))
                     {
-                        if (!dictGeneratorTypeToStubInterfaces.TryGetValue(generatorType, out var list))
-                        {
-                            list = new List<Type>() { interfaceType };
-                            dictGeneratorTypeToStubInterfaces.Add(generatorType, list);
-                        }
-                        else
-                        {
-                            list.Add(interfaceType);
-                        }
+                        list = new List<Type>() { interfaceType };
+                        dictGeneratorTypeToStubInterfaces.Add(generatorType, list);
                     }
                     else
                     {
-                        throw new Exception($"Failed to create stub generator with {generatorType.FullName} for {interfaceType.FullName}");
+                        list.Add(interfaceType);
                     }
                 }
                 else

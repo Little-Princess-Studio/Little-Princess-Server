@@ -90,13 +90,12 @@ public class ShadowClientEntity : ShadowEntity
                 component.InitComponent(this, componentName);
                 var componentTypeId = TypeIdHelper.GetId(componentType);
 
-                if (components.ContainsKey(componentTypeId))
+                if (!components.TryAdd(componentTypeId, component))
                 {
                     Logger.Warn($"Component {componentType.Name} is already added to entity {this.GetType().Name}.");
                     continue;
                 }
 
-                components.Add(componentTypeId, component);
                 componentNameToComponentTypeId.Add(componentName, componentTypeId);
             }
             catch (Exception e)
@@ -143,28 +142,25 @@ public class ShadowClientEntity : ShadowEntity
     /// <returns>The component with the specified name.</returns>
     public override async ValueTask<ComponentBase> GetComponent(string componentName)
     {
-        if (!this.ComponentNameToComponentTypeId.ContainsKey(componentName))
+        if (!this.ComponentNameToComponentTypeId.TryGetValue(componentName, out var typeId))
         {
             var e = new Exception($"Component {componentName} not found.");
             Logger.Error(e);
             throw e;
         }
 
-        var typeId = this.ComponentNameToComponentTypeId[componentName];
         var component = await this.GetComponentInternal(typeId);
         return component;
     }
 
     private async ValueTask<ComponentBase> GetComponentInternal(uint typeId)
     {
-        if (!this.Components.ContainsKey(typeId))
+        if (!this.Components.TryGetValue(typeId, out var component))
         {
             var e = new Exception($"Component not found.");
             Logger.Error(e);
             throw e;
         }
-
-        var component = this.Components[typeId];
 
         if (!component.IsLoaded)
         {
