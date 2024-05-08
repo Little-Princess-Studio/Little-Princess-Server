@@ -145,8 +145,8 @@ public partial class Gate
         {
             oldClient.Stop();
 
-            // this.gateClientsExitEvent.Signal();
-            // this.tcpClientsToOtherGate.Remove(oldClient);
+            this.gateClientsExitEvent.Signal();
+            this.tcpClientsToOtherGate.Remove(oldClient);
         }
 
         var gateIp = gateMailBox.Ip;

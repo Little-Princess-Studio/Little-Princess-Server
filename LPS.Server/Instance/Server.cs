@@ -206,7 +206,6 @@ public partial class Server : IInstance
 
         if (this.isRestart)
         {
-            // register server and wait for sync ack
             var regCtl = new Control
             {
                 From = RemoteType.Server,

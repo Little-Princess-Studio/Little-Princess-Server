@@ -19,13 +19,13 @@ public class GamePropertyComponent : ServerComponent
     /// Represents the Hp of the <see cref="Player"/> entity.
     /// </summary>
     [RpcProperty(nameof(GamePropertyComponent.Hp), RpcPropertySetting.Permanent | RpcPropertySetting.ServerToShadow)]
-    public readonly RpcPlaintProperty<int> Hp = new (0);
+    public readonly RpcPlaintProperty<int> Hp = new(0);
 
     /// <summary>
     /// Represents the Sp of the <see cref="Player"/> entity.
     /// </summary>
     [RpcProperty(nameof(GamePropertyComponent.Sp), RpcPropertySetting.Permanent | RpcPropertySetting.ServerToShadow)]
-    public readonly RpcPlaintProperty<int> Sp = new (0);
+    public readonly RpcPlaintProperty<int> Sp = new(0);
 
     /// <inheritdoc/>
     public override void OnInit()

@@ -422,7 +422,6 @@ public partial class HostManager
                 break;
             case RemoteType.Gate:
                 this.NotifyGatesReconnect(mailBox, HostCommandType.ReconnectGate);
-                this.NotifyServersReconnect(mailBox, HostCommandType.ReconnectGate);
                 break;
             default:
                 Logger.Warn($"Unknown hostCmdFrom: {hostCmdFrom}");

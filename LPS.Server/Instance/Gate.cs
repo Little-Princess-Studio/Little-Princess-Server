@@ -79,6 +79,8 @@ public partial class Gate : IInstance
 
     private readonly TcpServer tcpGateServer;
 
+    private readonly bool isRestart;
+
     private IManagerConnection hostMgrConnection = null!;
     private IManagerConnection serviceMgrConnection = null!;
 
@@ -132,6 +134,7 @@ public partial class Gate : IInstance
         this.Port = port;
         this.HostNum = hostNum;
         this.Config = config;
+        this.isRestart = isRestart;
 
         // tcp gate server handles msg from server/other gates
         this.tcpGateServer = new TcpServer(ip, port)
@@ -177,24 +180,32 @@ public partial class Gate : IInstance
         this.localEntityGeneratedEvent.Wait();
         Logger.Debug($"Gate entity created. {this.entity!.MailBox}");
 
-        var registerCtl = new Control
+        if (this.isRestart)
         {
-            From = RemoteType.Gate,
-            Message = ControlMessage.Ready,
-        };
-        registerCtl.Args.Add(Any.Pack(RpcHelper.RpcMailBoxToPbMailBox(this.entity!.MailBox)));
-        Logger.Info("[Startup] STEP 3: notify host manager ready.");
-        this.hostMgrConnection.Send(registerCtl);
+            Logger.Info($"[Restart] Restart server");
+            this.HandleRestart();
+        }
+        else
+        {
+            var registerCtl = new Control
+            {
+                From = RemoteType.Gate,
+                Message = ControlMessage.Ready,
+            };
+            registerCtl.Args.Add(Any.Pack(RpcHelper.RpcMailBoxToPbMailBox(this.entity!.MailBox)));
+            Logger.Info("[Startup] STEP 3: notify host manager ready.");
+            this.hostMgrConnection.Send(registerCtl);
 
-        Logger.Info("[Startup] STEP 4: waiting for synchronizing mailboxes.");
-        this.serversMailBoxesReadyEvent.Wait();
-        Logger.Info("Servers mailboxes ready.");
-        this.otherGatesMailBoxesReadyEvent.Wait();
-        Logger.Info("Gates mailboxes ready.");
+            Logger.Info("[Startup] STEP 4: waiting for synchronizing mailboxes.");
+            this.serversMailBoxesReadyEvent.Wait();
+            Logger.Info("Servers mailboxes ready.");
+            this.otherGatesMailBoxesReadyEvent.Wait();
+            Logger.Info("Gates mailboxes ready.");
 
-        Logger.Info("[Startup] STEP 5: Startup gate's tcp server.");
-        Logger.Info($"Start gate at {this.Ip}:{this.Port}");
-        this.tcpGateServer.Run();
+            Logger.Info("[Startup] STEP 5: Startup gate's tcp server.");
+            Logger.Info($"Start gate at {this.Ip}:{this.Port}");
+            this.tcpGateServer.Run();
+        }
 
         Logger.Info("[Startup] STEP 6: Start tcp clients to connect to servers and other gates.");
         this.tcpClientsToServer!.ForEach(client => client.Run());
@@ -215,7 +226,19 @@ public partial class Gate : IInstance
 
         Logger.Info("[Startup] STEP 8: Start pumping messages from remote clients.");
         this.readyToPumpClients = true;
-        Logger.Info("Waiting completed");
+        Logger.Info("Get start success");
+
+        if (this.isRestart)
+        {
+            var regCtl = new Control
+            {
+                From = RemoteType.Gate,
+                Message = ControlMessage.ReconnectEnd,
+            };
+            regCtl.Args.Add(Any.Pack(RpcHelper.RpcMailBoxToPbMailBox(this.entity!.MailBox)));
+            Logger.Info("[Restart] STEP 6: notify host manager restart ending.");
+            this.hostMgrConnection.Send(regCtl);
+        }
 
         // NOTE: if tcpClient hash successfully connected to remote, it means remote is already
         // ready to pump message. (tcpServer's OnInit is invoked before tcpServers' Listen)
@@ -237,10 +260,7 @@ public partial class Gate : IInstance
         });
 
         // gate main thread will stuck here
-        // Array.ForEach(this.tcpClientsToOtherGate!, client => client.WaitForExit());
         this.gateClientsExitEvent!.Wait();
-
-        // Array.ForEach(this.tcpClientsToServer!, client => client.WaitForExit());
         this.serverClientsExitEvent!.Wait();
 
         this.hostMgrConnection.WaitForExit();
@@ -283,9 +303,39 @@ public partial class Gate : IInstance
         return decryptedData;
     }
 
-    private uint GenerateConnectionId()
+    private void HandleRestart()
     {
-        return this.createEntityCounter++;
+        var regCtl = new Control
+        {
+            From = RemoteType.Gate,
+            Message = ControlMessage.Restart,
+        };
+        regCtl.Args.Add(Any.Pack(RpcHelper.RpcMailBoxToPbMailBox(this.entity!.MailBox)));
+        Logger.Info("[Restart] STEP 1: Notify host manager to restart.");
+        this.hostMgrConnection.Send(regCtl);
+
+        Logger.Info("[Restart] STEP 2: Synchronizing server/other gates mailboxes.");
+        this.serversMailBoxesReadyEvent.Wait();
+        Logger.Info("Servers mailboxes ready.");
+        this.otherGatesMailBoxesReadyEvent.Wait();
+        Logger.Info("Gates mailboxes ready.");
+
+        Logger.Info("[Restart] STEP 3: Startup gate's tcp server.");
+        Logger.Info($"Start gate at {this.Ip}:{this.Port}");
+        this.tcpGateServer.Run();
+
+        // wait for reconnecting from gate
+        regCtl = new Control
+        {
+            From = RemoteType.Gate,
+            Message = ControlMessage.WaitForReconnect,
+        };
+        regCtl.Args.Add(Any.Pack(RpcHelper.RpcMailBoxToPbMailBox(this.entity!.MailBox)));
+        Logger.Info("[Restart] STEP 4: Notify host manager gate is ready to reconnect.");
+        this.hostMgrConnection.Send(regCtl);
+
+        Logger.Info("[Restart] STEP 5: Synchronizing service manager.");
+        this.waitForSyncServiceManagerEvent.Wait();
     }
 
     private uint GenerateRpcId()

@@ -9,7 +9,7 @@ namespace LPS.Server.Demo;
 using System;
 using System.Collections.Generic;
 using CommandLine;
-using Common.Debug;
+using LPS.Common.Debug;
 
 /// <summary>
 /// Entry class.

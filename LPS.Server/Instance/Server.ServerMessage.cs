@@ -220,16 +220,9 @@ public partial class Server
         {
             this.gatesMailBoxesRegisteredEvent!.Signal(1);
         }
-
-        // remove old connection
-        else if (ctlMsg.Message == ControlMessage.ReconnectReady)
+        else
         {
-            var oldConn = this.tcpServer.AllConnections.FirstOrDefault(
-                conn => conn.MailBox.CompareOnlyAddress(gateMailBox));
-            if (oldConn != null)
-            {
-                oldConn.Disconnect();
-            }
+            throw new Exception($"Unknown control message: {ctlMsg.Message}");
         }
     }
 }
