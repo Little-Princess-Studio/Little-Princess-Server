@@ -216,7 +216,8 @@ public partial class Server
         connToGate.MailBox = RpcHelper.PbMailBoxToRpcMailBox(gateMailBox);
         Logger.Info($"Register gates' mailbox {connToGate.MailBox}");
 
-        if (ctlMsg.Message == ControlMessage.Ready)
+        // when gate reconnect to server, the gatesMailBoxesRegisteredEvent must have been set, ignore it
+        if (ctlMsg.Message == ControlMessage.Ready && !this.gatesMailBoxesRegisteredEvent!.IsSet)
         {
             this.gatesMailBoxesRegisteredEvent!.Signal(1);
         }
