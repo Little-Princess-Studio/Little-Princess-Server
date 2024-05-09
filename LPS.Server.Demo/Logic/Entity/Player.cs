@@ -6,10 +6,10 @@
 
 namespace LPS.Server.Demo.Logic.Entity;
 
-using Common.Debug;
-using Common.Rpc.RpcStub;
+using LPS.Common.Debug;
 using LPS.Common.Rpc;
 using LPS.Common.Rpc.RpcProperty;
+using LPS.Common.Rpc.RpcStub;
 using LPS.Server.Database;
 using LPS.Server.Demo.Entity.Component;
 using LPS.Server.Demo.Logic.RpcStub;
@@ -31,14 +31,14 @@ public class Player : ServerClientEntity
     /// </summary>
     /// <returns>Name of the player.</returns>
     [RpcProperty(nameof(Player.Name), RpcPropertySetting.Permanent | RpcPropertySetting.ServerToShadow)]
-    public RpcPlaintProperty<string> Name = new (string.Empty);
+    public RpcPlaintProperty<string> Name = new(string.Empty);
 
     /// <summary>
     /// Id of the player.
     /// </summary>
     /// <returns>Account id of the player in database.</returns>
     [RpcProperty(nameof(Player.AccountId), RpcPropertySetting.Permanent)]
-    public RpcPlaintProperty<string> AccountId = new (string.Empty);
+    public RpcPlaintProperty<string> AccountId = new(string.Empty);
 
     private readonly IPlayerStub playerStub;
 

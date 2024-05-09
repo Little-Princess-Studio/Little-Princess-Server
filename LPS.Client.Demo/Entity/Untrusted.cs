@@ -6,14 +6,14 @@
 
 namespace LPS.Client.Demo.Entity;
 
+using LPS.Client.Demo.Entity.RpcStub;
+using LPS.Client.Entity;
+using LPS.Client.Rpc.RpcProperty;
 using LPS.Common.Debug;
 using LPS.Common.Rpc;
 using LPS.Common.Rpc.RpcProperty;
-using LPS.Client.Entity;
-using LPS.Client.Rpc.RpcProperty;
-using LPS.Common.Rpc.RpcStub;
 using LPS.Common.Rpc.RpcProperty.RpcContainer;
-using LPS.Client.Demo.Entity.RpcStub;
+using LPS.Common.Rpc.RpcStub;
 
 /// <summary>
 /// Untrusted class, entry of the connection between server and client.
@@ -25,13 +25,13 @@ public class Untrusted : ShadowClientEntity
     /// Test property.
     /// </summary>
     [RpcProperty(nameof(TestRpcProp))]
-    public readonly RpcShadowComplexProperty<RpcList<string>> TestRpcProp = new ();
+    public readonly RpcShadowComplexProperty<RpcList<string>> TestRpcProp = new();
 
     /// <summary>
     /// Test property.
     /// </summary>
     [RpcProperty(nameof(TestRpcPlaintPropStr))]
-    public readonly RpcShadowPlaintProperty<string> TestRpcPlaintPropStr = new ();
+    public readonly RpcShadowPlaintProperty<string> TestRpcPlaintPropStr = new();
 
     private readonly IUntrustedStub serverRpc;
 

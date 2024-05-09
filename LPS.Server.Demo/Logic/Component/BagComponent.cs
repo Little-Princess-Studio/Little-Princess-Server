@@ -21,7 +21,7 @@ public class BagComponent : ServerComponent
     /// Represents the item list in the bag of the <see cref="Player"/> entity.
     /// </summary>
     [RpcProperty(nameof(BagComponent.Items), RpcPropertySetting.Permanent | RpcPropertySetting.ServerToShadow)]
-    public readonly RpcComplexProperty<RpcList<Item>> Items = new (new ());
+    public readonly RpcComplexProperty<RpcList<Item>> Items = new(new());
 
     /// <inheritdoc/>
     public override void OnInit()
@@ -43,13 +43,13 @@ public class Item : RpcPropertyCostumeContainer<Item>
     /// Represents the ID of the item in the <see cref="BagComponent"/>.
     /// </summary>
     [RpcProperty]
-    public readonly RpcPropertyContainer<int> ItemId = new (0);
+    public readonly RpcPropertyContainer<int> ItemId = new(0);
 
     /// <summary>
     /// Represents the name of the item/>.
     /// </summary>
     [RpcProperty]
-    public readonly RpcPropertyContainer<string> ItemName = new (string.Empty);
+    public readonly RpcPropertyContainer<string> ItemName = new(string.Empty);
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Item"/> class with the specified ID and name.

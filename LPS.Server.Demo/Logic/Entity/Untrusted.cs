@@ -7,16 +7,16 @@
 namespace LPS.Server.Demo.Logic.Entity;
 
 using System.Threading.Tasks;
-using Common.Debug;
-using Common.Rpc.RpcStub;
-using Common.Rpc.RpcProperty;
-using Common.Rpc.RpcProperty.RpcContainer;
+using LPS.Common.Debug;
 using LPS.Common.Demo.Rpc.ServerStub;
+using LPS.Common.Rpc.RpcProperty;
+using LPS.Common.Rpc.RpcProperty.RpcContainer;
+using LPS.Common.Rpc.RpcStub;
 using LPS.Server.Database;
+using LPS.Server.Demo.Logic.Service;
 using LPS.Server.Entity;
 using LPS.Server.Rpc;
 using LPS.Server.Rpc.RpcProperty;
-using LPS.Server.Demo.Logic.Service;
 
 /// <summary>
 /// Untrusted class is the first created entity between client and server.
@@ -28,7 +28,7 @@ public class Untrusted : ServerClientEntity, IUntrustedServerStub
     /// TestRpcProp.
     /// </summary>
     [RpcProperty(nameof(Untrusted.TestRpcProp), RpcPropertySetting.Permanent | RpcPropertySetting.ServerToShadow)]
-    public readonly RpcComplexProperty<RpcList<string>> TestRpcProp = new (new RpcList<string>(3, "111"));
+    public readonly RpcComplexProperty<RpcList<string>> TestRpcProp = new(new RpcList<string>(3, "111"));
 
     /// <summary>
     /// TestRpcPlaintPropStr.
@@ -36,7 +36,7 @@ public class Untrusted : ServerClientEntity, IUntrustedServerStub
     [RpcProperty(
         nameof(Untrusted.TestRpcPlaintPropStr),
         RpcPropertySetting.Permanent | RpcPropertySetting.ServerToShadow)]
-    public readonly RpcPlaintProperty<string> TestRpcPlaintPropStr = new ("Hello, LPS");
+    public readonly RpcPlaintProperty<string> TestRpcPlaintPropStr = new("Hello, LPS");
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Untrusted"/> class.

@@ -6,9 +6,9 @@
 
 namespace LPS.Client.Demo.Entity.Component;
 
-using LPS.Common.Rpc.RpcProperty;
 using LPS.Client.Rpc.RpcProperty;
 using LPS.Common.Entity.Component;
+using LPS.Common.Rpc.RpcProperty;
 
 /// <summary>
 /// Represents a component that manages game properties of the <see cref="Player"/> entity.
@@ -19,13 +19,13 @@ public class GamePropertyComponent : ClientComponent
     /// Represents the Hp of the <see cref="Player"/> entity.
     /// </summary>
     [RpcProperty(nameof(GamePropertyComponent.Hp))]
-    public readonly RpcShadowPlaintProperty<int> Hp = new ();
+    public readonly RpcShadowPlaintProperty<int> Hp = new();
 
     /// <summary>
     /// Represents the Sp of the <see cref="Player"/> entity.
     /// </summary>
     [RpcProperty(nameof(GamePropertyComponent.Sp))]
-    public readonly RpcShadowPlaintProperty<int> Sp = new ();
+    public readonly RpcShadowPlaintProperty<int> Sp = new();
 
     /// <inheritdoc/>
     public override void OnInit()

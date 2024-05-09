@@ -6,14 +6,14 @@
 
 namespace LPS.Client.Demo.Entity;
 
-using Common.Debug;
-using Common.Rpc.RpcProperty;
-using Common.Rpc.RpcStub;
-using LPS.Client.Entity;
-using LPS.Client.Rpc.RpcProperty;
-using LPS.Client.Entity.Component;
 using LPS.Client.Demo.Entity.Component;
+using LPS.Client.Entity;
+using LPS.Client.Entity.Component;
+using LPS.Client.Rpc.RpcProperty;
+using LPS.Common.Debug;
 using LPS.Common.Demo.Rpc.ClientStub;
+using LPS.Common.Rpc.RpcProperty;
+using LPS.Common.Rpc.RpcStub;
 
 /// <summary>
 /// Player class, from Untrusted.
@@ -28,7 +28,7 @@ public class Player : ShadowClientEntity, IPlayerClientStub
     /// </summary>
     /// <returns>Name of the player.</returns>
     [RpcProperty(nameof(Player.Name))]
-    public RpcShadowPlaintProperty<string> Name = new ();
+    public RpcShadowPlaintProperty<string> Name = new();
 
     private GamePropertyComponent gameProperty = null!;
     private BagComponent bag = null!;

@@ -15,7 +15,7 @@ using LPS.Common.Debug;
 /// </summary>
 public static class CommandParser
 {
-    private static readonly Dictionary<string, (MethodInfo, string[])> CmdMapping = new ();
+    private static readonly Dictionary<string, (MethodInfo, string[])> CmdMapping = new();
 
     /// <summary>
     /// Scan commands.
@@ -24,7 +24,7 @@ public static class CommandParser
     /// <exception cref="Exception">Throw exception if failed to scan.</exception>
     public static void ScanCommands(string @namespace)
     {
-        var cmdMethods = Assembly.GetEntryAssembly() !.GetTypes()
+        var cmdMethods = Assembly.GetEntryAssembly()!.GetTypes()
             .Select(type => type.GetMethods()
                 .Where(method => method.IsStatic && Attribute.IsDefined(method, typeof(ConsoleCommandAttribute))))
             .SelectMany(method => method);
@@ -38,7 +38,7 @@ public static class CommandParser
                                     $"({string.Join(',', method.GetParameters().Select(param => param.ParameterType.Name))})");
             }
 
-            var cmdAttr = method.GetCustomAttribute<ConsoleCommandAttribute>() !;
+            var cmdAttr = method.GetCustomAttribute<ConsoleCommandAttribute>()!;
             var args = method.GetParameters()
                 .Select(param => $"({param.ParameterType.Name}){param.Name}")
                 .ToArray();

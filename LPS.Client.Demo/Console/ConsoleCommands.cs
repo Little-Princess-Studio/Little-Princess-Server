@@ -95,7 +95,7 @@ public static class ConsoleCommands
     [ConsoleCommand("local.check_player_property")]
     public static void CheckPlayerProperty()
     {
-        var player = (ClientGlobal.ShadowClientEntity as Player) !;
+        var player = (ClientGlobal.ShadowClientEntity as Player)!;
         Logger.Debug($"Name: {player.Name.Val}");
     }
 
@@ -105,7 +105,7 @@ public static class ConsoleCommands
     [ConsoleCommand("local.print_player_components")]
     public static void PrintPlayerComponents()
     {
-        var player = (ClientGlobal.ShadowClientEntity as Player) !;
+        var player = (ClientGlobal.ShadowClientEntity as Player)!;
         player.PrintComponents().AsTask().Wait();
     }
 
@@ -116,7 +116,7 @@ public static class ConsoleCommands
     [ConsoleCommand("send.change_prop")]
     public static async void ChangeProp(string prop)
     {
-        var untrusted = (ClientGlobal.ShadowClientEntity as Untrusted) !;
+        var untrusted = (ClientGlobal.ShadowClientEntity as Untrusted)!;
         await untrusted.ChangeProp(prop);
         Logger.Debug($"Call to change prop");
     }
@@ -160,7 +160,7 @@ public static class ConsoleCommands
     [ConsoleCommand("send.login")]
     public static async void LogIn()
     {
-        await (ClientGlobal.ShadowClientEntity as Untrusted) !.Login();
+        await (ClientGlobal.ShadowClientEntity as Untrusted)!.Login();
         Logger.Debug($"Start login...");
     }
 
@@ -171,7 +171,7 @@ public static class ConsoleCommands
     [ConsoleCommand("send.player_ping")]
     public static async void Ping(string content)
     {
-        await (ClientGlobal.ShadowClientEntity as Player) !.Ping(content);
+        await (ClientGlobal.ShadowClientEntity as Player)!.Ping(content);
     }
 
     /// <summary>
@@ -181,7 +181,7 @@ public static class ConsoleCommands
     [ConsoleCommand("send.call_service_echo")]
     public static async void CallServiceEcho(string msg)
     {
-        await (ClientGlobal.ShadowClientEntity as Untrusted) !.CallServiceEcho(msg);
+        await (ClientGlobal.ShadowClientEntity as Untrusted)!.CallServiceEcho(msg);
     }
 
     /// <summary>
@@ -191,6 +191,6 @@ public static class ConsoleCommands
     [ConsoleCommand("send.call_service_echo_with_callback")]
     public static async void CallServiceEchoWithCallBack(string msg)
     {
-        await (ClientGlobal.ShadowClientEntity as Untrusted) !.CallServiceEchoWithCallBack(msg);
+        await (ClientGlobal.ShadowClientEntity as Untrusted)!.CallServiceEchoWithCallBack(msg);
     }
 }
