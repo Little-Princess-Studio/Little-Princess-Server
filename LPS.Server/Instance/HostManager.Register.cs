@@ -110,7 +110,7 @@ public partial class HostManager
         };
         foreach (var gateConn in this.gatesMailBoxes)
         {
-            syncCmd.Args.Add(Any.Pack(RpcHelper.RpcMailBoxToPbMailBox(gateConn)));
+            syncCmd.Args.Add(RpcHelper.GetRpcAny(RpcHelper.RpcMailBoxToPbMailBox(gateConn)));
         }
 
         var pkg = PackageHelper.FromProtoBuf(syncCmd, 0);
@@ -158,7 +158,7 @@ public partial class HostManager
         // send server mailboxes
         foreach (var serverConn in this.serversMailBoxes)
         {
-            syncCmd.Args.Add(Any.Pack(RpcHelper.RpcMailBoxToPbMailBox(serverConn)));
+            syncCmd.Args.Add(RpcHelper.GetRpcAny(RpcHelper.RpcMailBoxToPbMailBox(serverConn)));
         }
 
         var pkg = PackageHelper.FromProtoBuf(syncCmd, 0);
@@ -189,10 +189,7 @@ public partial class HostManager
             Type = HostCommandType.SyncServiceManager,
         };
 
-        syncCmd.Args.Add(Any.Pack(new MailBoxArg()
-        {
-            PayLoad = RpcHelper.RpcMailBoxToPbMailBox(this.serviceManagerInfo.ServiceManagerMailBox),
-        }));
+        syncCmd.Args.Add(RpcHelper.GetRpcAny(RpcHelper.RpcMailBoxToPbMailBox(this.serviceManagerInfo.ServiceManagerMailBox)));
 
         var pkg = PackageHelper.FromProtoBuf(syncCmd, 0);
         var bytes = pkg.ToBytes();
@@ -321,7 +318,7 @@ public partial class HostManager
 
         foreach (var connMailBox in syncMailBoxes)
         {
-            syncCmd.Args.Add(Any.Pack(new MailBoxArg { PayLoad = RpcHelper.RpcMailBoxToPbMailBox(connMailBox) }));
+            syncCmd.Args.Add(RpcHelper.GetRpcAny(RpcHelper.RpcMailBoxToPbMailBox(connMailBox)));
         }
 
         var pkg = PackageHelper.FromProtoBuf(syncCmd, 0);
@@ -332,7 +329,9 @@ public partial class HostManager
     private void SendSyncCmdToMq(
         HostCommandType hostCommandType,
         string identifier,
-        List<MailBox> syncMailBoxes)
+        List<MailBox> syncMailBoxes,
+        string exchangeName,
+        Func<string, string> onGenerateRoutingKey)
     {
         var syncCmd = new HostCommand
         {
@@ -341,7 +340,7 @@ public partial class HostManager
 
         foreach (var connMailBox in syncMailBoxes)
         {
-            syncCmd.Args.Add(Any.Pack(new MailBoxArg { PayLoad = RpcHelper.RpcMailBoxToPbMailBox(connMailBox) }));
+            syncCmd.Args.Add(RpcHelper.GetRpcAny(RpcHelper.RpcMailBoxToPbMailBox(connMailBox)));
         }
 
         var pkg = PackageHelper.FromProtoBuf(syncCmd, 0);
@@ -349,8 +348,8 @@ public partial class HostManager
 
         this.messageQueueClientToOtherInstances.Publish(
             bytes,
-            Consts.HostMgrToServerExchangeName,
-            Consts.GenerateHostMessageToServerPackage(identifier),
+            exchangeName,
+            onGenerateRoutingKey(identifier),
             true);
     }
 
@@ -391,20 +390,24 @@ public partial class HostManager
         switch (hostCmdFrom)
         {
             case RemoteType.Server:
-                this.SendSyncCmdToMq(HostCommandType.SyncGates, identifier, this.gatesMailBoxes);
+                this.SendSyncCmdToMq(HostCommandType.SyncGates, identifier, this.gatesMailBoxes, Consts.HostMgrToServerExchangeName, Consts.GenerateHostMessageToServerPackage);
                 this.SendSyncCmdToMq(
                     HostCommandType.SyncServiceManager,
                     identifier,
-                    [this.serviceManagerInfo.ServiceManagerMailBox]);
+                    [this.serviceManagerInfo.ServiceManagerMailBox],
+                    Consts.HostMgrToServerExchangeName,
+                    Consts.GenerateHostMessageToServerPackage);
                 break;
 
             case RemoteType.Gate:
-                this.SendSyncCmdToMq(HostCommandType.SyncGates, identifier, this.gatesMailBoxes);
-                this.SendSyncCmdToMq(HostCommandType.SyncServers, identifier, this.serversMailBoxes);
+                this.SendSyncCmdToMq(HostCommandType.SyncGates, identifier, this.gatesMailBoxes, Consts.HostMgrToGateExchangeName, Consts.GenerateHostMessageToGatePackage);
+                this.SendSyncCmdToMq(HostCommandType.SyncServers, identifier, this.serversMailBoxes, Consts.HostMgrToGateExchangeName, Consts.GenerateHostMessageToGatePackage);
                 this.SendSyncCmdToMq(
                     HostCommandType.SyncServiceManager,
                     identifier,
-                    [this.serviceManagerInfo.ServiceManagerMailBox]);
+                    [this.serviceManagerInfo.ServiceManagerMailBox],
+                    Consts.HostMgrToGateExchangeName,
+                    Consts.GenerateHostMessageToGatePackage);
                 break;
 
             default:
@@ -442,8 +445,7 @@ public partial class HostManager
             Type = hostCommandType,
         };
 
-        syncCmd.Args.Add(Any.Pack(RpcHelper.RpcMailBoxToPbMailBox(excludedMailBox)));
-
+        syncCmd.Args.Add(RpcHelper.GetRpcAny(RpcHelper.RpcMailBoxToPbMailBox(excludedMailBox)));
         var pkg = PackageHelper.FromProtoBuf(syncCmd, 0);
         var bytes = pkg.ToBytes();
 

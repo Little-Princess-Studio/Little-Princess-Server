@@ -151,7 +151,7 @@ public partial class Server
                 this.waitForSyncGatesEvent.Signal(1);
                 break;
             case HostCommandType.SyncServiceManager:
-                this.serviceManagerMailBox = RpcHelper.PbMailBoxToRpcMailBox(hostCmd.Args[0].Unpack<MailBoxArg>().PayLoad);
+                this.serviceManagerMailBox = RpcHelper.PbMailBoxToRpcMailBox(RpcHelper.GetMailBox(hostCmd.Args[0]));
                 this.waitForSyncServiceManagerEvent.Signal(1);
                 break;
             case HostCommandType.Stop:

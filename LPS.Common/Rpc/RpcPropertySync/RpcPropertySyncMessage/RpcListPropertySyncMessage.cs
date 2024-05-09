@@ -463,10 +463,7 @@ public class RpcListPropertySyncMessage : RpcPropertySyncMessage
 
             foreach (var index in this.removeElemInfo)
             {
-                cmd.Args.Add(Any.Pack(new IntArg
-                {
-                    PayLoad = index,
-                }));
+                cmd.Args.Add(RpcHelper.GetRpcAny(index));
             }
 
             return cmd;

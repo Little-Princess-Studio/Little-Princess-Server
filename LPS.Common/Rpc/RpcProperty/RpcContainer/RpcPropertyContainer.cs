@@ -312,7 +312,7 @@ public class RpcPropertyContainer<T> : RpcPropertyContainer, ISyncOpActionSetVal
         {
             container = new RpcPropertyContainer<bool>(RpcHelper.GetBool(content));
         }
-        else if (content.Is(MailBoxArg.Descriptor) && typeof(T) == typeof(MailBox))
+        else if (content.Is(InnerMessages.MailBox.Descriptor) && typeof(T) == typeof(MailBox))
         {
             container = new RpcPropertyContainer<MailBox>(
                 RpcHelper.PbMailBoxToRpcMailBox(RpcHelper.GetMailBox(content)));

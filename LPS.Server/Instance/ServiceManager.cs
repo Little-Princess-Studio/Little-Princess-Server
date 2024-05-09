@@ -382,7 +382,7 @@ public class ServiceManager : IInstance
 
     private void RegisterServiceRoute(ServiceControl ctlMsg)
     {
-        var mb = RpcHelper.PbMailBoxToRpcMailBox(ctlMsg.Args[0].Unpack<MailBoxArg>().PayLoad);
+        var mb = RpcHelper.PbMailBoxToRpcMailBox(RpcHelper.GetMailBox(ctlMsg.Args[0]));
         var serviceName = RpcHelper.GetString(ctlMsg.Args[1]);
         var shard = (uint)RpcHelper.GetInt(ctlMsg.Args[2]);
 
@@ -403,7 +403,7 @@ public class ServiceManager : IInstance
                         From = RemoteType.ServiceManager,
                     };
 
-                    hostMsg.Args.Add(Any.Pack(RpcHelper.RpcMailBoxToPbMailBox(this.mailBox)));
+                    hostMsg.Args.Add(RpcHelper.GetRpcAny(RpcHelper.RpcMailBoxToPbMailBox(this.mailBox)));
 
                     this.hostMgrConnection.Send(hostMsg);
 
@@ -488,10 +488,7 @@ public class ServiceManager : IInstance
                     int i = 0;
                     foreach (var shard in serviceShards)
                     {
-                        shardRpcDict.PayLoad.Add(shard, Any.Pack(new StringArg()
-                        {
-                            PayLoad = ids[i],
-                        }));
+                        shardRpcDict.PayLoad.Add(shard, RpcHelper.GetRpcAny(ids[i]));
                         ++i; // increment i
                     }
 
@@ -529,10 +526,7 @@ public class ServiceManager : IInstance
                 Type = ServiceManagerCommandType.Start,
             };
 
-            cmd.Args.Add(Any.Pack(new MailBoxArg()
-            {
-                PayLoad = RpcHelper.RpcMailBoxToPbMailBox(mailBox),
-            }));
+            cmd.Args.Add(RpcHelper.GetRpcAny(RpcHelper.RpcMailBoxToPbMailBox(mailBox)));
 
             var pkg = PackageHelper.FromProtoBuf(cmd, 0);
             var bytes = pkg.ToBytes();

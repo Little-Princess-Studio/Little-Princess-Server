@@ -441,7 +441,7 @@ public static partial class RpcHelper
     /// </summary>
     /// <param name="value">The <see cref="Mailbox"/> value to convert.</param>
     /// <returns>A protobuf Any object.</returns>
-    public static Any GetRpcAny(in InnerMessages.MailBox value) => Any.Pack(new MailBoxArg() { PayLoad = value });
+    public static Any GetRpcAny(in InnerMessages.MailBox value) => Any.Pack(value);
 
     /// <summary>
     /// Converts a boolean value to a protobuf Any object.
@@ -460,6 +460,12 @@ public static partial class RpcHelper
         var str = any.Unpack<StringArg>();
         return str.PayLoad;
     }
+
+    /// <summary>
+    /// Extracts a protobuf null object from a protobuf Any object.
+    /// </summary>
+    /// <returns>The extracted null value.</returns>
+    public static Any GetRpcNullAny() => Any.Pack(new NullArg());
 
     /// <summary>
     /// Extracts an integer value from a protobuf Any object.
@@ -501,8 +507,8 @@ public static partial class RpcHelper
     /// <returns>The extracted <see cref="Mailbox"/> value.</returns>
     public static InnerMessages.MailBox GetMailBox(Any any)
     {
-        var str = any.Unpack<MailBoxArg>();
-        return str.PayLoad;
+        var str = any.Unpack<InnerMessages.MailBox>();
+        return str;
     }
 
     /// <summary>

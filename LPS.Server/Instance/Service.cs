@@ -142,7 +142,7 @@ public class Service : IInstance
     private void StartServiceInstance(ServiceManagerCommand serviceMgrCmd)
     {
         var arg = serviceMgrCmd.Args[0];
-        var mb = arg.Unpack<MailBoxArg>().PayLoad;
+        var mb = RpcHelper.GetMailBox(arg);
         this.mailBox = RpcHelper.PbMailBoxToRpcMailBox(mb);
         Logger.Info($"Service {this.Name} is ready with mailbox {this.mailBox}.");
         this.waitForMailBox.Signal();
@@ -189,10 +189,7 @@ public class Service : IInstance
                         Message = ServiceControlMessage.ServiceReady,
                     };
 
-                    msg.Args.Add(Any.Pack(new MailBoxArg()
-                    {
-                        PayLoad = RpcHelper.RpcMailBoxToPbMailBox(this.mailBox),
-                    }));
+                    msg.Args.Add(RpcHelper.GetRpcAny(RpcHelper.RpcMailBoxToPbMailBox(this.mailBox)));
                     msg.Args.Add(RpcHelper.GetRpcAny(serviceName));
                     msg.Args.Add(RpcHelper.GetRpcAny((int)shardNum));
 

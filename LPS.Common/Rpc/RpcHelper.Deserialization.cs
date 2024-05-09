@@ -33,7 +33,7 @@ public static partial class RpcHelper
             _ when arg.Is(IntArg.Descriptor) => GetInt(arg),
             _ when arg.Is(FloatArg.Descriptor) => GetFloat(arg),
             _ when arg.Is(StringArg.Descriptor) => GetString(arg),
-            _ when arg.Is(MailBoxArg.Descriptor) => PbMailBoxToRpcMailBox(GetMailBox(arg)),
+            _ when arg.Is(InnerMessages.MailBox.Descriptor) => PbMailBoxToRpcMailBox(GetMailBox(arg)),
             _ when arg.Is(JsonArg.Descriptor) => JsonConvert.DeserializeObject(
                 arg.Unpack<JsonArg>().PayLoad,
                 argType),

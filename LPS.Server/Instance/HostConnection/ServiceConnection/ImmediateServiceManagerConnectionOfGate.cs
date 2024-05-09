@@ -67,7 +67,7 @@ internal class ImmediateServiceManagerConnectionOfGate : ImmediateManagerConnect
                 };
 
                 serviceCtl.Args.Add(
-                    Any.Pack(RpcHelper.RpcMailBoxToPbMailBox(this.gateMailBox)));
+                    RpcHelper.GetRpcAny(RpcHelper.RpcMailBoxToPbMailBox(this.gateMailBox)));
                 this.Send(serviceCtl);
             },
             OnDispose = self =>

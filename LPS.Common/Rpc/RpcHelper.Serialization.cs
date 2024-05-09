@@ -264,7 +264,7 @@ public static partial class RpcHelper
             int i => new IntArg { PayLoad = i },
             float f => new FloatArg { PayLoad = f },
             string s => new StringArg { PayLoad = s },
-            MailBox m => new MailBoxArg { PayLoad = RpcMailBoxToPbMailBox(m) },
+            MailBox m => RpcMailBoxToPbMailBox(m),
             _ when type.IsDefined(typeof(RpcJsonTypeAttribute)) => new JsonArg
             { PayLoad = JsonConvert.SerializeObject(obj) },
             _ when type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Dictionary<,>) =>

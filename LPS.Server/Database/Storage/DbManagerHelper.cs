@@ -214,7 +214,7 @@ public static class DbManagerHelper
         if (!DatabaseInnerApiStore.TryGetValue(innerApiName, out var method))
         {
             Logger.Warn($"Database API method not found: {innerApiName}");
-            return Task.FromResult<Any>(Any.Pack(new NullArg()));
+            return Task.FromResult<Any>(RpcHelper.GetRpcNullAny());
         }
 
         var arguments = new object[2] { currentDatabase, args };
@@ -227,7 +227,7 @@ public static class DbManagerHelper
         catch (Exception ex)
         {
             Logger.Error(ex);
-            return Task.FromResult<Any>(Any.Pack(new NullArg()));
+            return Task.FromResult<Any>(RpcHelper.GetRpcNullAny());
         }
     }
 

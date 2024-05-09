@@ -71,20 +71,20 @@ public partial class Gate
         {
             case HostCommandType.SyncServers:
                 this.SyncServersMailBoxes(hostCmd.Args
-                    .Select(mb => RpcHelper.PbMailBoxToRpcMailBox(mb.Unpack<Common.Rpc.InnerMessages.MailBox>())).ToArray());
+                    .Select(mb => RpcHelper.PbMailBoxToRpcMailBox(RpcHelper.GetMailBox(mb))).ToArray());
                 break;
             case HostCommandType.SyncGates:
                 this.SyncOtherGatesMailBoxes(hostCmd.Args
-                    .Select(mb => RpcHelper.PbMailBoxToRpcMailBox(mb.Unpack<Common.Rpc.InnerMessages.MailBox>())).ToArray());
+                    .Select(mb => RpcHelper.PbMailBoxToRpcMailBox(RpcHelper.GetMailBox(mb))).ToArray());
                 break;
             case HostCommandType.SyncServiceManager:
-                this.SyncServiceManagerMailBox(RpcHelper.PbMailBoxToRpcMailBox(hostCmd.Args[0].Unpack<MailBoxArg>().PayLoad));
+                this.SyncServiceManagerMailBox(RpcHelper.PbMailBoxToRpcMailBox(RpcHelper.GetMailBox(hostCmd.Args[0])));
                 break;
             case HostCommandType.ReconnectServer:
-                this.ReconnectServer(RpcHelper.PbMailBoxToRpcMailBox(hostCmd.Args[0].Unpack<Common.Rpc.InnerMessages.MailBox>()));
+                this.ReconnectServer(RpcHelper.PbMailBoxToRpcMailBox(RpcHelper.GetMailBox(hostCmd.Args[0])));
                 break;
             case HostCommandType.ReconnectGate:
-                this.ReconnectGate(RpcHelper.PbMailBoxToRpcMailBox(hostCmd.Args[0].Unpack<Common.Rpc.InnerMessages.MailBox>()));
+                this.ReconnectGate(RpcHelper.PbMailBoxToRpcMailBox(RpcHelper.GetMailBox(hostCmd.Args[0])));
                 break;
             case HostCommandType.Open:
                 break;
@@ -138,11 +138,13 @@ public partial class Gate
     {
         Logger.Info($"ReconnectGate: {gateMailBox}");
         this.gateClientsExitEvent!.AddCount();
+        Logger.Info($"Try to get clients to other gate: {this.tcpClientsToOtherGate.Count}");
         var oldClient = this.tcpClientsToOtherGate!.Find(
             tcpClient => tcpClient.MailBox.CompareOnlyAddress(gateMailBox));
 
         if (oldClient is not null)
         {
+            Logger.Debug("Stop old client");
             oldClient.Stop();
 
             this.gateClientsExitEvent.Signal();
@@ -320,7 +322,7 @@ public partial class Gate
             Message = ControlMessage.Ready,
         };
 
-        ctl.Args.Add(Any.Pack(RpcHelper.RpcMailBoxToPbMailBox(this.entity!.MailBox)));
+        ctl.Args.Add(RpcHelper.GetRpcAny(RpcHelper.RpcMailBoxToPbMailBox(this.entity!.MailBox)));
         clientToServer.Send(ctl, false);
     }
 

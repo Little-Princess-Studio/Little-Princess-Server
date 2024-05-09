@@ -23,11 +23,6 @@ message StringArg
     string PayLoad = 1;
 }
 
-message MailBoxArg
-{
-    MailBox PayLoad = 1;
-}
-
 message ListArg
 {
     repeated google.protobuf.Any PayLoad = 1;

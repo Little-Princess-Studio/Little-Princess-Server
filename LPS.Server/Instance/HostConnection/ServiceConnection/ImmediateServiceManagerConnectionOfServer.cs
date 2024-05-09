@@ -66,7 +66,7 @@ internal class ImmediateServiceManagerConnectionOfServer : ImmediateManagerConne
                 };
 
                 serviceCtl.Args.Add(
-                    Any.Pack(RpcHelper.RpcMailBoxToPbMailBox(this.serverMailBox)));
+                    RpcHelper.GetRpcAny(RpcHelper.RpcMailBoxToPbMailBox(this.serverMailBox)));
                 this.Send(serviceCtl);
             },
             OnDispose = self =>

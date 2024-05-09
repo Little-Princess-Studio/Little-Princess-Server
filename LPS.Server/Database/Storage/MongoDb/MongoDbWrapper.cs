@@ -96,7 +96,7 @@ public class MongoDbWrapper : IDatabase
         }
 
         Logger.Debug($"LoadEntity of {keyName} failed.");
-        return Any.Pack(new NullArg());
+        return RpcHelper.GetRpcNullAny();
     }
 
     /// <inheritdoc/>
@@ -136,7 +136,7 @@ public class MongoDbWrapper : IDatabase
             }
         }
 
-        return Any.Pack(new NullArg());
+        return RpcHelper.GetRpcNullAny();
     }
 
     /// <inheritdoc/>
@@ -179,7 +179,7 @@ public class MongoDbWrapper : IDatabase
             }
         }
 
-        return Any.Pack(new NullArg());
+        return RpcHelper.GetRpcNullAny();
     }
 
     /// <inheritdoc/>
@@ -261,7 +261,7 @@ public class MongoDbWrapper : IDatabase
             {
                 bsonDoc.Add(fieldName, new BsonInt32(RpcHelper.GetInt(value)));
             }
-            else if (value.Is(MailBoxArg.Descriptor))
+            else if (value.Is(Common.Rpc.InnerMessages.MailBox.Descriptor))
             {
                 var mbox = RpcHelper.GetMailBox(value);
                 bsonDoc.Add(fieldName, PbMailBoxToBsonDocument(mbox));
@@ -413,7 +413,7 @@ public class MongoDbWrapper : IDatabase
             }
         }
 
-        anyValue ??= Any.Pack(new NullArg());
+        anyValue ??= RpcHelper.GetRpcNullAny();
         return anyValue;
     }
 
@@ -427,15 +427,12 @@ public class MongoDbWrapper : IDatabase
             var port = doc.GetValue("port").AsInt32;
             var hostNum = doc.GetValue("hostnum").AsInt32;
 
-            anyValue = Any.Pack(new MailBoxArg
+            anyValue = RpcHelper.GetRpcAny(new Common.Rpc.InnerMessages.MailBox
             {
-                PayLoad = new Common.Rpc.InnerMessages.MailBox
-                {
-                    ID = id,
-                    IP = ip,
-                    Port = (uint)port,
-                    HostNum = (uint)hostNum,
-                },
+                ID = id,
+                IP = ip,
+                Port = (uint)port,
+                HostNum = (uint)hostNum,
             });
         }
         else if (complexType == (uint)ComplexValueType.Dict)

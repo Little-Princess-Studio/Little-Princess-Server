@@ -192,7 +192,7 @@ public partial class Gate : IInstance
                 From = RemoteType.Gate,
                 Message = ControlMessage.Ready,
             };
-            registerCtl.Args.Add(Any.Pack(RpcHelper.RpcMailBoxToPbMailBox(this.entity!.MailBox)));
+            registerCtl.Args.Add(RpcHelper.GetRpcAny(RpcHelper.RpcMailBoxToPbMailBox(this.entity!.MailBox)));
             Logger.Info("[Startup] STEP 3: notify host manager ready.");
             this.hostMgrConnection.Send(registerCtl);
 
@@ -235,7 +235,7 @@ public partial class Gate : IInstance
                 From = RemoteType.Gate,
                 Message = ControlMessage.ReconnectEnd,
             };
-            regCtl.Args.Add(Any.Pack(RpcHelper.RpcMailBoxToPbMailBox(this.entity!.MailBox)));
+            regCtl.Args.Add(RpcHelper.GetRpcAny(RpcHelper.RpcMailBoxToPbMailBox(this.entity!.MailBox)));
             Logger.Info("[Restart] STEP 6: notify host manager restart ending.");
             this.hostMgrConnection.Send(regCtl);
         }
@@ -310,7 +310,7 @@ public partial class Gate : IInstance
             From = RemoteType.Gate,
             Message = ControlMessage.Restart,
         };
-        regCtl.Args.Add(Any.Pack(RpcHelper.RpcMailBoxToPbMailBox(this.entity!.MailBox)));
+        regCtl.Args.Add(RpcHelper.GetRpcAny(RpcHelper.RpcMailBoxToPbMailBox(this.entity!.MailBox)));
         Logger.Info("[Restart] STEP 1: Notify host manager to restart.");
         this.hostMgrConnection.Send(regCtl);
 
@@ -330,7 +330,7 @@ public partial class Gate : IInstance
             From = RemoteType.Gate,
             Message = ControlMessage.WaitForReconnect,
         };
-        regCtl.Args.Add(Any.Pack(RpcHelper.RpcMailBoxToPbMailBox(this.entity!.MailBox)));
+        regCtl.Args.Add(RpcHelper.GetRpcAny(RpcHelper.RpcMailBoxToPbMailBox(this.entity!.MailBox)));
         Logger.Info("[Restart] STEP 4: Notify host manager gate is ready to reconnect.");
         this.hostMgrConnection.Send(regCtl);
 
@@ -338,10 +338,7 @@ public partial class Gate : IInstance
         this.waitForSyncServiceManagerEvent.Wait();
     }
 
-    private uint GenerateRpcId()
-    {
-        return this.createEntityCounter++;
-    }
+    private uint GenerateRpcId() => this.createEntityCounter++;
 
     private TcpClient? FindServerTcpClientFromMailBox(MailBox targetMailBox)
     {
