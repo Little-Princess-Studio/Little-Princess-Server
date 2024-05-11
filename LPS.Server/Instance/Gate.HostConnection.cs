@@ -157,7 +157,16 @@ public partial class Gate
 
         var client = new TcpClient(gateIp, gatePort, this.sendQueue)
         {
-            OnConnected = _ => this.allOtherGatesConnectedEvent!.Signal(),
+            OnConnected = self =>
+            {
+                var regCtl = new Control
+                {
+                    From = RemoteType.Gate,
+                    Message = ControlMessage.Ready,
+                };
+                regCtl.Args.Add(RpcHelper.GetRpcAny(RpcHelper.RpcMailBoxToPbMailBox(this.entity!.MailBox)));
+                self.Send(regCtl);
+            },
             OnDispose = self =>
             {
                 this.tcpClientsToOtherGate.Remove(self);
@@ -246,6 +255,7 @@ public partial class Gate
         // tcp gate to other gate only send msg to other gate's server
         Logger.Info($"Sync gates, cnt: {otherGatesMailBoxes.Length}");
         this.allOtherGatesConnectedEvent = new(otherGatesMailBoxes.Length - 1);
+        this.remoteGatesReadyEvent = new(otherGatesMailBoxes.Length - 1);
         this.gateClientsExitEvent = new(otherGatesMailBoxes.Length - 1);
         this.tcpClientsToOtherGate = new(otherGatesMailBoxes.Length - 1);
 

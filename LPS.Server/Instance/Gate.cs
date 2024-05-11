@@ -90,6 +90,8 @@ public partial class Gate : IInstance
     private CountdownEvent? allServersConnectedEvent;
     private CountdownEvent? allOtherGatesConnectedEvent;
 
+    private CountdownEvent? remoteGatesReadyEvent;
+
     private CountdownEvent? gateClientsExitEvent;
     private CountdownEvent? serverClientsExitEvent;
 
@@ -216,6 +218,19 @@ public partial class Gate : IInstance
 
         this.allOtherGatesConnectedEvent!.Wait();
         Logger.Info("All other gates connected.");
+
+        Logger.Info("Notify remote gates the connection is ready.");
+        this.tcpClientsToOtherGate.ForEach(client =>
+        {
+            var regCtl = new Control
+            {
+                From = RemoteType.Gate,
+                Message = ControlMessage.Ready,
+            };
+            regCtl.Args.Add(RpcHelper.GetRpcAny(RpcHelper.RpcMailBoxToPbMailBox(this.entity!.MailBox)));
+            client.Send(regCtl);
+        });
+        this.remoteGatesReadyEvent!.Wait();
 
         Logger.Info("[Startup] STEP 7: Synchronizing service manager mailbox.");
         this.waitForSyncServiceManagerEvent.Wait();

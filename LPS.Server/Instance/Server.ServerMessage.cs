@@ -212,14 +212,35 @@ public partial class Server
         var (msg, connToGate, _) = arg;
         var ctlMsg = (msg as Control)!;
 
-        var gateMailBox = ctlMsg.Args[0].Unpack<Common.Rpc.InnerMessages.MailBox>();
+        var gateMailBox = RpcHelper.GetMailBox(ctlMsg.Args[0]);
         connToGate.MailBox = RpcHelper.PbMailBoxToRpcMailBox(gateMailBox);
         Logger.Info($"Register gates' mailbox {connToGate.MailBox}");
 
         // when gate reconnect to server, the gatesMailBoxesRegisteredEvent must have been set, ignore it
-        if (ctlMsg.Message == ControlMessage.Ready && !this.gatesMailBoxesRegisteredEvent!.IsSet)
+        if (ctlMsg.Message == ControlMessage.Ready)
         {
-            this.gatesMailBoxesRegisteredEvent!.Signal(1);
+            if (!this.gatesMailBoxesRegisteredEvent!.IsSet)
+            {
+                this.gatesMailBoxesRegisteredEvent!.Signal(1);
+            }
+            else
+            {
+                Logger.Debug($"Current connection count: {this.tcpServer.AllConnections.Length}");
+                var connToGateIp = (System.Net.IPEndPoint)connToGate.Socket.RemoteEndPoint;
+                Logger.Debug($"Incoming Ip: {connToGateIp.Address}: {connToGateIp.Port} {gateMailBox}");
+                foreach (var conn in this.tcpServer.AllConnections)
+                {
+                    var ip = (System.Net.IPEndPoint)conn.Socket.RemoteEndPoint;
+                    Logger.Debug($"Ip: {ip.Address}: {ip.Port} {conn.MailBox}");
+                }
+
+                var oldConn = this.tcpServer.AllConnections.FirstOrDefault(conn2 => conn2.MailBox.CompareOnlyAddress(gateMailBox) && conn2 != connToGate);
+                if (oldConn is not null)
+                {
+                    Logger.Info("Close old connection to gate.");
+                    oldConn.Disconnect();
+                }
+            }
         }
         else
         {

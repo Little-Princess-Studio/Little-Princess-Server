@@ -223,7 +223,6 @@ internal class TcpServer
             conn.OnDisconnected = () =>
             {
                 Logger.Debug("Client disconnected");
-                clientSocket.Shutdown(SocketShutdown.Both);
                 cancelTokenSource.Cancel();
                 this.socketToConn.Remove(clientSocket);
                 this.connections.Remove(conn);
@@ -245,6 +244,15 @@ internal class TcpServer
                     }
 
                     Logger.Debug("Client Io Handler Exist");
+
+                    try
+                    {
+                        conn.Disconnect();
+                    }
+                    catch (Exception e)
+                    {
+                        Logger.Error(e, "Error when close socket.");
+                    }
                 },
                 cancelTokenSource.Token);
         }

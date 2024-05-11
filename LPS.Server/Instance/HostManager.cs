@@ -575,6 +575,7 @@ public partial class HostManager : IInstance
                 }
                 else
                 {
+                    // todo: filter duplicate restart instance by mailbox
                     this.restartQueue.Enqueue(() =>
                     {
                         this.HandleControlCmdForImmediateConnection(arg);
@@ -623,6 +624,7 @@ public partial class HostManager : IInstance
                 }
                 else
                 {
+                    // todo: filter duplicate restart instance by mailbox
                     this.restartQueue.Enqueue(() =>
                     {
                         this.HandleControlCmdForMqConnection(msg, targetIdentifier);

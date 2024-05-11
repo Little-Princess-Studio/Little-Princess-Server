@@ -468,7 +468,9 @@ public partial class Server : IInstance
         }
         else
         {
-            Logger.Debug("[Server] SendEntityRpcCallBack redirect to gate");
+            var conn = this.GateConnections[0];
+            var ipsPoint = conn.Socket.RemoteEndPoint as System.Net.IPEndPoint;
+            Logger.Debug($"[Server] SendEntityRpcCallBack redirect to gate {ipsPoint.Address}:{ipsPoint.Port}");
 
             // redirect to gate
             this.tcpServer.Send(callback, this.GateConnections[0]);

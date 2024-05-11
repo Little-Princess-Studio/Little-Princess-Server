@@ -66,6 +66,7 @@ public class Bus
             catch (System.Exception e)
             {
                 Logger.Error(e, "Error when dispatch message.");
+                break;
             }
         }
         while (succ);

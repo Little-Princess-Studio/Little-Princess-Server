@@ -27,15 +27,11 @@ public partial class Gate
     {
         this.tcpGateServer.RegisterMessageHandler(PackageType.Authentication, this.HandleAuthenticationFromTcpClient);
 
-        // tcpGateServer_.RegisterMessageHandler(PackageType.Control, this.HandleControlMessage);
         this.tcpGateServer.RegisterMessageHandler(PackageType.EntityRpc, this.HandleEntityRpcFromTcpClient);
         this.tcpGateServer.RegisterMessageHandler(PackageType.EntityRpcCallBack, callback: this.HandleEntityRpcCallBackFromTcpClient);
-        this.tcpGateServer.RegisterMessageHandler(
-            PackageType.RequirePropertyFullSync,
-            this.HandleRequireFullSyncFromTcpClient);
-        this.tcpGateServer.RegisterMessageHandler(
-            PackageType.RequireComponentSync,
-            this.HandleRequireComponentSyncFromTcpClient);
+        this.tcpGateServer.RegisterMessageHandler(PackageType.RequirePropertyFullSync, this.HandleRequireFullSyncFromTcpClient);
+        this.tcpGateServer.RegisterMessageHandler(PackageType.RequireComponentSync, this.HandleRequireComponentSyncFromTcpClient);
+        this.tcpGateServer.RegisterMessageHandler(PackageType.Control, this.HandleControlMessageFromTcpClient);
     }
 
     private void UnregisterMessageFromServerAndOtherGateHandlers()
@@ -44,15 +40,19 @@ public partial class Gate
             PackageType.Authentication,
             this.HandleAuthenticationFromTcpClient);
 
-        // tcpGateServer_.UnregisterMessageHandler(PackageType.Control, this.HandleControlMessage);
         this.tcpGateServer.UnregisterMessageHandler(PackageType.EntityRpc, this.HandleEntityRpcFromTcpClient);
         this.tcpGateServer.UnregisterMessageHandler(PackageType.EntityRpcCallBack, callback: this.HandleEntityRpcCallBackFromTcpClient);
-        this.tcpGateServer.UnregisterMessageHandler(
-            PackageType.RequirePropertyFullSync,
-            this.HandleRequireFullSyncFromTcpClient);
-        this.tcpGateServer.UnregisterMessageHandler(
-            PackageType.RequireComponentSync,
-            this.HandleRequireComponentSyncFromTcpClient);
+        this.tcpGateServer.UnregisterMessageHandler(PackageType.RequirePropertyFullSync, this.HandleRequireFullSyncFromTcpClient);
+        this.tcpGateServer.UnregisterMessageHandler(PackageType.RequireComponentSync, this.HandleRequireComponentSyncFromTcpClient);
+        this.tcpGateServer.UnregisterMessageHandler(PackageType.Control, this.HandleControlMessageFromTcpClient);
+    }
+
+    private void HandleControlMessageFromTcpClient((IMessage Message, Connection Connection, uint RpcId) obj)
+    {
+        if (!this.remoteGatesReadyEvent!.IsSet)
+        {
+            this.remoteGatesReadyEvent!.Signal();
+        }
     }
 
     private void HandleEntityRpcFromTcpClient((IMessage Message, Connection Connection, uint RpcId) arg)
