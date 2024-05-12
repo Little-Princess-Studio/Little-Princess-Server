@@ -52,6 +52,16 @@ public static class Consts
     public const string ServiceMgrToHostExchangeName = "serviceMgrToHost.exchange";
 
     /// <summary>
+    /// The name of the exchange used for communication between the service manager and service.
+    /// </summary>
+    public const string ServiceMgrToServiceExchangeName = "serviceMgrToService.exchange";
+
+    /// <summary>
+    /// The name of the exchange used for communication between the service manager and service.
+    /// </summary>
+    public const string ServiceMgrToServerExchangeName = "serviceMgrToServer.exchange";
+
+    /// <summary>
     /// Exchange name of database manager to server.
     /// </summary>
     public const string DbMgrToDbClientExchangeName = "dbmgrToDbClient.exchange";
@@ -60,6 +70,16 @@ public static class Consts
     /// Exchange name of server to database manager.
     /// </summary>
     public const string DbClientToDbMgrExchangeName = "dbClientToDbmgr.exchange";
+
+    /// <summary>
+    /// Exchange name of service to service manager.
+    /// </summary>
+    public const string ServiceToServiceMgrExchangeName = "serviceToServiceMgr.exchange";
+
+    /// <summary>
+    /// Exchange name of server to service manager.
+    /// </summary>
+    public const string ServerToServiceMgrExchangeName = "serverToServiceMgr.exchange";
 
     /// <summary>
     /// Host message package routing key to server.
@@ -155,6 +175,20 @@ public static class Consts
     public static string GetRoutingKeyToGate(string targetName) => $"*.{targetName}.toGate";
 
     /// <summary>
+    /// Get routing key of Gate to observe.
+    /// </summary>
+    /// <param name="targetName">Gate name.</param>
+    /// <returns>Routing key of service to observe.</returns>
+    public static string GetRoutingKeyFromServiceManagerToService(string targetName) => $"*.{targetName}.toService";
+
+    /// <summary>
+    /// Get routing key of Server to observe.
+    /// </summary>
+    /// <param name="targetName">Gate name.</param>
+    /// <returns>Routing key of service to observe.</returns>
+    public static string GetRoutingKeyFromServiceManagerToServer(string targetName) => $"*.{targetName}.serviceMgrToSrv";
+
+    /// <summary>
     /// The routing key used to send messages to the service manager.
     /// </summary>
     public const string RoutingKeyToServiceMgr = "#.toServiceMgr";
@@ -219,6 +253,27 @@ public static class Consts
     /// The name of the message queue used to send message from service manager to host manager.
     /// </summary>
     public const string ServiceManagerMessageQueueName = "serviceMgrMsg_que";
+
+    /// <summary>
+    /// Generate the queue name observed by service.
+    /// </summary>
+    /// <param name="id">Unique id for the message queue.</param>
+    /// <returns>Name.</returns>
+    public static string GenerateServiceQueueName(string id) => $"service_Queue_{id}";
+
+    /// <summary>
+    /// Generate service message package routing key to service manager.
+    /// </summary>
+    /// <param name="name">Instance name.</param>
+    /// <returns>Name.</returns>
+    public static string GenerateServiceMessagePackage(string name) => $"serviceMessagePackage.{name}.serviceToServiceMgr";
+
+    /// <summary>
+    /// Generate server message package routing key to service manager.
+    /// </summary>
+    /// <param name="name">Instance name.</param>
+    /// <returns>Name.</returns>
+    public static string GenerateServerToServiceMgrMessagePackage(string name) => $"serverMessagePackage.{name}.srvToServiceMgr";
 
     /// <summary>
     /// Generate the queue name observed by database client process.
@@ -293,4 +348,9 @@ public static class Consts
     /// Routing keys of server to database manager.
     /// </summary>
     public const string RoutingKeyDbClientToDbMgr = "#.#.dbClientToDbMgr";
+
+    /// <summary>
+    /// Routing keys of service to service manager.
+    /// </summary>
+    public const string RoutingKeyServiceToServiceMgr = "#.#.serviceToServiceMgr";
 }

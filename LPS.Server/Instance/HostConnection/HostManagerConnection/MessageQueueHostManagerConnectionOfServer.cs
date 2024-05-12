@@ -62,22 +62,22 @@ public class MessageQueueHostManagerConnectionOfServer : MessageQueueManagerConn
          and message queue of `Consts.HostToServerQueueName`.
         */
         client.BindQueueAndExchange(
-            this.GetMessageQueueNameToReceiveMessageFromHostMgr(),
+            this.GetMessageQueueNameToReceiveMessageFromMgr(),
             Consts.HostMgrToServerExchangeName,
             Consts.GetRoutingKeyToServer(this.Name));
 
         client.BindQueueAndExchange(
-            this.GetMessageQueueNameToReceiveMessageFromHostMgr(),
+            this.GetMessageQueueNameToReceiveMessageFromMgr(),
             Consts.HostMgrToServerExchangeName,
             Consts.HostBroadCastMessagePackageToServer);
     }
 
     /// <inheritdoc/>
-    protected override string GetMessageQueueNameToReceiveMessageFromHostMgr() => Consts.GenerateServerQueueName(this.Name);
+    protected override string GetMessageQueueNameToReceiveMessageFromMgr() => Consts.GenerateServerQueueName(this.Name);
 
     /// <inheritdoc/>
-    protected override string GetHostMgrExchangeName() => Consts.ServerToHostExchangeName;
+    protected override string GetMgrExchangeName() => Consts.ServerToHostExchangeName;
 
     /// <inheritdoc/>
-    protected override string GetMessagePackageRoutingKeyToHostMgr() => Consts.GenerateServerMessagePackage(this.Name);
+    protected override string GetMessagePackageRoutingKeyToMgr() => Consts.GenerateServerMessagePackage(this.Name);
 }

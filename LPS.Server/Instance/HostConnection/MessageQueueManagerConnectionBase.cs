@@ -57,7 +57,7 @@ public abstract class MessageQueueManagerConnectionBase : IManagerConnection
         this.InitializeBinding(this.messageQueueClientToHostMgr);
 
         this.messageQueueClientToHostMgr.Observe(
-            this.GetMessageQueueNameToReceiveMessageFromHostMgr(),
+            this.GetMessageQueueNameToReceiveMessageFromMgr(),
             this.HandleHostMgrMqMessage);
     }
 
@@ -96,19 +96,19 @@ public abstract class MessageQueueManagerConnectionBase : IManagerConnection
     /// Get message queue name to observe.
     /// </summary>
     /// <returns>Name of the message queue name.</returns>
-    protected abstract string GetMessageQueueNameToReceiveMessageFromHostMgr();
+    protected abstract string GetMessageQueueNameToReceiveMessageFromMgr();
 
     /// <summary>
     /// Exchange name to send message.
     /// </summary>
     /// <returns>Name of the host exchange name.</returns>
-    protected abstract string GetHostMgrExchangeName();
+    protected abstract string GetMgrExchangeName();
 
     /// <summary>
     /// Get routing key of the message package.
     /// </summary>
     /// <returns>Routing key.</returns>
-    protected abstract string GetMessagePackageRoutingKeyToHostMgr();
+    protected abstract string GetMessagePackageRoutingKeyToMgr();
 
     private uint GenerateRpcId() => this.rpcId++;
 
@@ -118,8 +118,8 @@ public abstract class MessageQueueManagerConnectionBase : IManagerConnection
 
         this.messageQueueClientToHostMgr.Publish(
             pkg.ToBytes(),
-            this.GetHostMgrExchangeName(),
-            this.GetMessagePackageRoutingKeyToHostMgr(),
+            this.GetMgrExchangeName(),
+            this.GetMessagePackageRoutingKeyToMgr(),
             true);
     }
 

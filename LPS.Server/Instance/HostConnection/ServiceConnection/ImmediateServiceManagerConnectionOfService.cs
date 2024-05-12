@@ -18,25 +18,21 @@ internal class ImmediateServiceManagerConnectionOfService : ImmediateManagerConn
 {
     private readonly string serviceManagerIp;
     private readonly int serviceManagerPort;
-    private readonly Func<uint> onGenerateAsyncId;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ImmediateServiceManagerConnectionOfService"/> class.
     /// </summary>
     /// <param name="serviceManagerIp">The IP address of the service manager.</param>
     /// <param name="serviceManagerPort">The port number of the service manager.</param>
-    /// <param name="onGenerateAsyncId">A function that generates an asynchronous ID.</param>
     /// <param name="checkServerStopped">A function that returns a value indicating whether the server is stopped.</param>
     public ImmediateServiceManagerConnectionOfService(
         string serviceManagerIp,
         int serviceManagerPort,
-        Func<uint> onGenerateAsyncId,
         Func<bool> checkServerStopped)
         : base(checkServerStopped)
     {
         this.serviceManagerIp = serviceManagerIp;
         this.serviceManagerPort = serviceManagerPort;
-        this.onGenerateAsyncId = onGenerateAsyncId;
     }
 
     /// <inheritdoc/>

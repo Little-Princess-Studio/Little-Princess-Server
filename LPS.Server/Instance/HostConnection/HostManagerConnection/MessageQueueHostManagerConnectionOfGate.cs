@@ -54,22 +54,22 @@ public class MessageQueueHostManagerConnectionOfGate : MessageQueueManagerConnec
          and message queue of `Consts.HostToGateQueueName`.
         */
         client.BindQueueAndExchange(
-            this.GetMessageQueueNameToReceiveMessageFromHostMgr(),
+            this.GetMessageQueueNameToReceiveMessageFromMgr(),
             Consts.HostMgrToGateExchangeName,
             Consts.GetRoutingKeyToGate(this.Name));
 
         client.BindQueueAndExchange(
-            this.GetMessageQueueNameToReceiveMessageFromHostMgr(),
+            this.GetMessageQueueNameToReceiveMessageFromMgr(),
             Consts.HostMgrToGateExchangeName,
             Consts.HostBroadCastMessagePackageToGate);
     }
 
     /// <inheritdoc/>
-    protected override string GetMessageQueueNameToReceiveMessageFromHostMgr() => Consts.GenerateGateQueueName(this.Name);
+    protected override string GetMessageQueueNameToReceiveMessageFromMgr() => Consts.GenerateGateQueueName(this.Name);
 
     /// <inheritdoc/>
-    protected override string GetHostMgrExchangeName() => Consts.GateToHostExchangeName;
+    protected override string GetMgrExchangeName() => Consts.GateToHostExchangeName;
 
     /// <inheritdoc/>
-    protected override string GetMessagePackageRoutingKeyToHostMgr() => Consts.GenerateGateMessagePackage(this.Name);
+    protected override string GetMessagePackageRoutingKeyToMgr() => Consts.GenerateGateMessagePackage(this.Name);
 }

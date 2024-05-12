@@ -75,7 +75,6 @@ public class Service : IInstance
         this.serviceMgrConnection = new ImmediateServiceManagerConnectionOfService(
             serviceMgrIp,
             serviceMgrPort,
-            this.GenerateConnectionId,
             checkServerStopped: () => this.stopFlag);
 
         this.serviceMgrConnection.RegisterMessageHandler(PackageType.ServiceManagerCommand, this.ServiceManagerCommandHandler);
