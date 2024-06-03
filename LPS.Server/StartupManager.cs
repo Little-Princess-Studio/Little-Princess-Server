@@ -21,7 +21,6 @@ using LPS.Server.Instance;
 using LPS.Server.MessageQueue;
 using LPS.Server.Rpc;
 using LPS.Server.Service;
-using LPS.Service.Instance;
 using Newtonsoft.Json.Linq;
 
 /// <summary>
@@ -624,7 +623,7 @@ public static class StartupManager
 
         Logger.Debug($"Start up Service {name} at {ip}:{port}");
 
-        var service = new LPS.Service.Instance.Service(
+        var service = new LPS.Server.Instance.Service(
             serviceMgrIp,
             serviceMgrPort,
             name,

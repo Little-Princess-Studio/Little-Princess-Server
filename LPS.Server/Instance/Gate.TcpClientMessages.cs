@@ -77,8 +77,10 @@ public partial class Gate
 
     private void HandleAuthenticationFromTcpClient((IMessage Message, Connection Connection, uint RpcId) arg)
     {
-        var (msg, conn, _) = arg;
+        var (msg, conn0, _) = arg;
         var auth = (msg as Authentication)!;
+
+        var conn = (conn0 as SocketConnection)!;
 
         // TODO: Cache the rsa object
         var decryptedData = DecryptedCiphertext(auth);

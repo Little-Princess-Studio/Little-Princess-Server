@@ -7,6 +7,7 @@
 namespace LPS.Common.Rpc;
 
 using System.Net.Sockets;
+using Google.Protobuf;
 using LPS.Common.Debug;
 
 /// <summary>
@@ -33,27 +34,12 @@ public enum ConnectStatus
 /// <summary>
 /// Connection object represents a remote connection.
 /// </summary>
-public class Connection
+public abstract class Connection
 {
     /// <summary>
-    /// Gets the status of the connection status.
+    /// Gets or sets the status of the connection status.
     /// </summary>
-    public ConnectStatus Status { get; private set; }
-
-    /// <summary>
-    /// Gets the socket of the connection.
-    /// </summary>
-    public Socket Socket { get; private init; } = null!;
-
-    /// <summary>
-    /// Gets the cancellationTokenSource of the connection.
-    /// </summary>
-    public CancellationTokenSource TokenSource { get; private init; } = null!;
-
-    /// <summary>
-    /// Gets or sets the MailBox of remote.
-    /// </summary>
-    public MailBox MailBox { get; set; }
+    public ConnectStatus Status { get; protected set; }
 
     /// <summary>
     /// Gets or sets the connection id of this connection, internal usage.
@@ -61,29 +47,20 @@ public class Connection
     public uint ConnectionId { get; set; } = uint.MaxValue;
 
     /// <summary>
+    /// Gets or sets the MailBox of remote.
+    /// </summary>
+    public MailBox MailBox { get; set; }
+
+    /// <summary>
     /// Gets or sets the handler when the connection disconnected.
     /// </summary>
     public Action? OnDisconnected { get; set; }
 
-    private Connection()
-    {
-    }
-
     /// <summary>
-    /// Create a connection.
+    /// Initializes a new instance of the <see cref="Connection"/> class.
     /// </summary>
-    /// <param name="socket">Socket of the connection.</param>
-    /// <param name="tokenSource">CancellationTokenSource of the connection used to disconnect the connection.</param>
-    /// <returns>Connection.</returns>
-    public static Connection Create(Socket socket, CancellationTokenSource tokenSource)
+    protected Connection()
     {
-        var newConnection = new Connection
-        {
-            Status = ConnectStatus.Init,
-            Socket = socket,
-            TokenSource = tokenSource,
-        };
-        return newConnection;
     }
 
     /// <summary>
@@ -97,18 +74,17 @@ public class Connection
     /// <summary>
     /// Set connection status to Disconnected.
     /// </summary>
-    public void Disconnect()
-    {
-        try
-        {
-            Logger.Debug($"connect disconnect invoked.");
-            Logger.Debug($"Stack Trace: {System.Environment.StackTrace}");
-            this.Status = ConnectStatus.Disconnected;
-            this.OnDisconnected?.Invoke();
-        }
-        catch (Exception e)
-        {
-            Logger.Error(e, "OnDisconnected handler exception.");
-        }
-    }
+    public abstract void Disconnect();
+
+    /// <summary>
+    /// Send bytes to the remote.
+    /// </summary>
+    /// <param name="message">Message to send.</param>
+    public abstract void Send(IMessage message);
+
+    /// <summary>
+    /// Send bytes to the remote.
+    /// </summary>
+    /// <param name="message">Message to send.</param>
+    public abstract void Send(byte[] message);
 }

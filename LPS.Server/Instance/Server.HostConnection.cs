@@ -176,7 +176,7 @@ public partial class Server
         if (entity is ServerClientEntity serverClientEntity)
         {
             // bind gate conn to client entity
-            serverClientEntity.BindGateConn(gateConn!);
+            serverClientEntity.BindGateConn((gateConn as SocketConnection)!);
         }
         else if (gateConn != null)
         {

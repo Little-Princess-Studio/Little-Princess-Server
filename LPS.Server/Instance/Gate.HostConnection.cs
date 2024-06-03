@@ -244,8 +244,7 @@ public partial class Gate
                 EntityClassName = createEntityRes.EntityClassName,
                 ServerClientMailBox = createEntityRes.Mailbox,
             };
-            var pkg = PackageHelper.FromProtoBuf(clientCreateEntity, 0);
-            connToClient!.Socket.Send(pkg.ToBytes());
+            connToClient!.Send(clientCreateEntity);
         }
     }
 

@@ -174,7 +174,7 @@ public partial class HostManager
         if (this.mailboxIdToConnection.TryGetValue(id, out var serviceMgrConn))
         {
             status.WaitingForPong = true;
-            serviceMgrConn.Socket.Send(bytesToSend);
+            serviceMgrConn.Send(bytesToSend);
         }
         else if (this.mailboxIdToIdentifier.TryGetValue(id, out var identifier))
         {

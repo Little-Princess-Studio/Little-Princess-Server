@@ -73,7 +73,7 @@ internal class TcpClient // : IClient
 
     private bool stopFlag;
     private uint counterOfId;
-    private Connection? connection;
+    private SocketConnection? connection;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="TcpClient"/> class.
@@ -274,7 +274,7 @@ internal class TcpClient // : IClient
         }
 
         var cancellationTokenSource = new CancellationTokenSource();
-        var conn = Connection.Create(this.Socket, cancellationTokenSource);
+        var conn = SocketConnection.Create(this.Socket, cancellationTokenSource);
         conn.Connect();
 
         Logger.Info("Connect to server succ.");
@@ -294,7 +294,7 @@ internal class TcpClient // : IClient
         }
     }
 
-    private Task HandleMessage(Connection conn) =>
+    private Task HandleMessage(SocketConnection conn) =>
         RpcHelper.HandleMessage(
             conn,
             () => this.stopFlag,

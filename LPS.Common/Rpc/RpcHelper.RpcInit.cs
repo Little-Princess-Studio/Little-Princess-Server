@@ -173,7 +173,7 @@ public static partial class RpcHelper
     /// <param name="onExitLoop">Handler when exiting.</param>
     /// <returns>Task.</returns>
     public static async Task HandleMessage(
-        Connection conn,
+        SocketConnection conn,
         Func<bool> stopCondition,
         Action<Message> onGotMessage,
         Action? onExitLoop)
@@ -667,7 +667,7 @@ public static partial class RpcHelper
     /// <param name="onExitLoop">Handler when exiting.</param>
     /// <returns>Task.</returns>
     private static async Task HandleMessageWithPipe(
-        Connection conn,
+        SocketConnection conn,
         Func<bool> stopCondition,
         Action<Message> onGotMessage,
         Action? onExitLoop)
@@ -705,7 +705,7 @@ public static partial class RpcHelper
         }
     }
 
-    private static async Task FillPipeAsync(PipeWriter writer, Connection conn, Func<bool> stopCondition)
+    private static async Task FillPipeAsync(PipeWriter writer, SocketConnection conn, Func<bool> stopCondition)
     {
         const int minimumBufferSize = 512;
 
@@ -753,7 +753,7 @@ public static partial class RpcHelper
         await writer.CompleteAsync();
     }
 
-    private static async Task ReadPipeAsync(PipeReader reader, Connection conn, Action<Message> onGotMessage, Func<bool> stopCondition)
+    private static async Task ReadPipeAsync(PipeReader reader, SocketConnection conn, Action<Message> onGotMessage, Func<bool> stopCondition)
     {
         var cancelTokenSource = conn.TokenSource;
 

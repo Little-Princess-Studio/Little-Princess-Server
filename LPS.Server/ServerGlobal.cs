@@ -8,7 +8,6 @@ namespace LPS.Server;
 
 using System;
 using LPS.Server.Instance;
-using LPS.Service.Instance;
 using Newtonsoft.Json.Linq;
 
 /// <summary>
@@ -94,7 +93,7 @@ public static class ServerGlobal
     /// <summary>
     /// Gets the instance of the Little Princess Server service.
     /// </summary>
-    public static LPS.Service.Instance.Service Service
+    public static LPS.Server.Instance.Service Service
     {
         get
         {
@@ -103,14 +102,14 @@ public static class ServerGlobal
                 throw new Exception("Instance is not Server");
             }
 
-            return (instance as LPS.Service.Instance.Service)!;
+            return (instance as LPS.Server.Instance.Service)!;
         }
     }
 
     /// <summary>
     /// Gets the <see cref="ServiceManager"/> instance.
     /// </summary>
-    public static LPS.Service.Instance.ServiceManager ServiceManager
+    public static LPS.Server.Instance.ServiceManager ServiceManager
     {
         get
         {
@@ -119,7 +118,7 @@ public static class ServerGlobal
                 throw new Exception("Instance is not Server");
             }
 
-            return (instance as LPS.Service.Instance.ServiceManager)!;
+            return (instance as LPS.Server.Instance.ServiceManager)!;
         }
     }
 

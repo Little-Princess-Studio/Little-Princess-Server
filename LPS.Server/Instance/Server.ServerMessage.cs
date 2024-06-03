@@ -165,7 +165,7 @@ public partial class Server
                     PropertyTree = content,
                 };
                 var pkg = PackageHelper.FromProtoBuf(fullSync, id);
-                conn.Socket.Send(pkg.ToBytes());
+                conn.Send(pkg.ToBytes());
             });
         }
         else
@@ -197,7 +197,7 @@ public partial class Server
                     PropertyTree = content,
                 };
                 var pkg = PackageHelper.FromProtoBuf(compSync, id);
-                conn.Socket.Send(pkg.ToBytes());
+                conn.Send(pkg.ToBytes());
             });
         }
         else
@@ -209,8 +209,10 @@ public partial class Server
     // todo: get all gates' mailboxes -> start tcp server -> waiting for connection from gates
     private void HandleControl((IMessage Message, Connection Connection, uint RpcId) arg)
     {
-        var (msg, connToGate, _) = arg;
+        var (msg, conn0, _) = arg;
         var ctlMsg = (msg as Control)!;
+
+        var connToGate = (conn0 as SocketConnection)!;
 
         var gateMailBox = RpcHelper.GetMailBox(ctlMsg.Args[0]);
         connToGate.MailBox = RpcHelper.PbMailBoxToRpcMailBox(gateMailBox);
@@ -226,11 +228,12 @@ public partial class Server
             else
             {
                 Logger.Debug($"Current connection count: {this.tcpServer.AllConnections.Length}");
-                var connToGateIp = (System.Net.IPEndPoint)connToGate.Socket.RemoteEndPoint;
+                var connToGateIp = (System.Net.IPEndPoint)connToGate.Socket.RemoteEndPoint!;
                 Logger.Debug($"Incoming Ip: {connToGateIp.Address}: {connToGateIp.Port} {gateMailBox}");
-                foreach (var conn in this.tcpServer.AllConnections)
+                foreach (var conn1 in this.tcpServer.AllConnections)
                 {
-                    var ip = (System.Net.IPEndPoint)conn.Socket.RemoteEndPoint;
+                    var conn = (conn1 as SocketConnection)!;
+                    var ip = (System.Net.IPEndPoint)conn.Socket.RemoteEndPoint!;
                     Logger.Debug($"Ip: {ip.Address}: {ip.Port} {conn.MailBox}");
                 }
 

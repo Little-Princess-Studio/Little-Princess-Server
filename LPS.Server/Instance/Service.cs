@@ -4,7 +4,7 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
-namespace LPS.Service.Instance;
+namespace LPS.Server.Instance;
 
 using System;
 using System.Collections.Generic;

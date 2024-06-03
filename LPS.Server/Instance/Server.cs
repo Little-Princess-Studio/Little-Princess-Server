@@ -79,7 +79,7 @@ public partial class Server : IInstance
 
     private Common.Rpc.MailBox serviceManagerMailBox;
 
-    private Connection[] GateConnections => this.tcpServer.AllConnections;
+    private SocketConnection[] GateConnections => this.tcpServer.AllConnections;
 
     private uint rpcIdCounter;
 
@@ -310,7 +310,7 @@ public partial class Server : IInstance
     {
         var entityId = command.EntityId;
         var entity = this.localEntityDict[entityId];
-        Connection gateConn;
+        SocketConnection gateConn;
 
         // todo: handle sync to local shadow entity
         if (entity is ServerClientEntity serverClientEntity)
@@ -468,7 +468,7 @@ public partial class Server : IInstance
         }
         else
         {
-            var conn = this.GateConnections[0];
+            var conn = (this.GateConnections[0] as SocketConnection)!;
             var ipsPoint = conn.Socket.RemoteEndPoint as System.Net.IPEndPoint;
             Logger.Debug($"[Server] SendEntityRpcCallBack redirect to gate {ipsPoint.Address}:{ipsPoint.Port}");
 

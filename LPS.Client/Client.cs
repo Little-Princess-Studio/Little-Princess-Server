@@ -198,7 +198,7 @@ public class Client
         this.pumpSandBox.Run();
 
         var cancellationTokenSource = new CancellationTokenSource();
-        var conn = Connection.Create(this.socket, cancellationTokenSource);
+        var conn = SocketConnection.Create(this.socket, cancellationTokenSource);
         conn.Connect();
 
         while (!this.exitFlag)
@@ -209,7 +209,7 @@ public class Client
         cancellationTokenSource.Cancel();
     }
 
-    private Task HandleMessage(Connection conn) =>
+    private Task HandleMessage(SocketConnection conn) =>
         RpcHelper.HandleMessage(
             conn,
             () => this.exitFlag,

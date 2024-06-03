@@ -119,14 +119,14 @@ public partial class HostManager
         // to gates
         foreach (var gateConn in gateConns)
         {
-            gateConn.Socket.Send(bytes);
+            gateConn.Send(bytes);
         }
 
         // to server
         foreach (var serverConn in serverConns)
         {
             Logger.Debug($"Sync gates to server {serverConn.MailBox}");
-            serverConn.Socket.Send(bytes);
+            serverConn.Send(bytes);
         }
 
         if (serverConns.Count != this.DesiredServerNum)
@@ -167,7 +167,7 @@ public partial class HostManager
         // to gates
         foreach (var gateConn in gateConns)
         {
-            gateConn.Socket.Send(bytes);
+            gateConn.Send(bytes);
         }
 
         if (gateConns.Count != this.DesiredGateNum)
@@ -197,7 +197,7 @@ public partial class HostManager
         // to gates
         foreach (var gateConn in gateConns)
         {
-            gateConn.Socket.Send(bytes);
+            gateConn.Send(bytes);
         }
 
         if (gateConns.Count != this.DesiredGateNum)
@@ -212,7 +212,7 @@ public partial class HostManager
         // to server
         foreach (var serverConn in serverConns)
         {
-            serverConn.Socket.Send(bytes);
+            serverConn.Send(bytes);
         }
 
         if (serverConns.Count != this.DesiredServerNum)
@@ -323,7 +323,7 @@ public partial class HostManager
 
         var pkg = PackageHelper.FromProtoBuf(syncCmd, 0);
         var bytes = pkg.ToBytes();
-        conn.Socket.Send(bytes);
+        conn.Send(bytes);
     }
 
     private void SendSyncCmdToMq(
@@ -458,7 +458,7 @@ public partial class HostManager
 
             if (this.mailboxIdToConnection.TryGetValue(mb.Id, out var conn))
             {
-                conn.Socket.Send(bytes);
+                conn.Send(bytes);
                 Logger.Info($"NotifyReconnect {hostCommandType} {excludedMailBox} directly to : {mb}");
             }
             else if (this.mailboxIdToIdentifier.TryGetValue(mb.Id, out var identifier))

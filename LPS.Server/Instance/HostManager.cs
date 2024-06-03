@@ -390,7 +390,7 @@ public partial class HostManager : IInstance
     private void HandleCreateDistributeEntityRes((IMessage Message, Connection Connection, uint RpcId) arg)
     {
         var (msg, conn, _) = arg;
-        this.CommonHandleCreateDistributeEntityRes(msg, (bytes) => { conn.Socket.Send(bytes); });
+        this.CommonHandleCreateDistributeEntityRes(msg, (bytes) => { conn.Send(bytes); });
     }
 
     private void CommonHandleCreateDistributeEntityRes(IMessage msg, Action<byte[]> send)
@@ -423,7 +423,7 @@ public partial class HostManager : IInstance
     private void HandleRequireCreateEntity((IMessage Message, Connection Connection, uint RpcId) arg)
     {
         var (msg, conn, id) = arg;
-        this.CommonHandleRequireCreateEntity(msg, (bytes) => { conn.Socket.Send(bytes); });
+        this.CommonHandleRequireCreateEntity(msg, (bytes) => { conn.Send(bytes); });
     }
 
     private void CommonHandleRequireCreateEntity(IMessage msg, Action<byte[]> send)
@@ -525,7 +525,7 @@ public partial class HostManager : IInstance
             var serverConn = this.mailboxIdToConnection.GetValueOrDefault(serverMailBox.Id);
             if (serverConn != null)
             {
-                serverConn.Socket.Send(pkg.ToBytes());
+                serverConn.Send(pkg.ToBytes());
             }
             else
             {

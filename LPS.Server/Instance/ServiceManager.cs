@@ -4,14 +4,13 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
-namespace LPS.Service.Instance;
+namespace LPS.Server.Instance;
 
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
@@ -25,11 +24,11 @@ using LPS.Server.Database;
 using LPS.Server.Instance.ConnectionManager;
 using LPS.Server.Instance.HostConnection;
 using LPS.Server.Instance.HostConnection.HostManagerConnection;
+using LPS.Server.MessageQueue;
 using LPS.Server.Rpc;
 using LPS.Server.Rpc.InnerMessages;
 using LPS.Server.Service;
 using Newtonsoft.Json.Linq;
-using static LPS.Server.Instance.ConnectionManager.ServiceManagerConnectionManager;
 
 /// <summary>
 /// Represents a service instance, which contains multiple LPS service instance.
@@ -62,8 +61,11 @@ public class ServiceManager : IInstance
     private readonly AsyncTaskGenerator<(ServiceRpcCallBack Callback, Connection Connection), Connection> serviceRpcCallbackAsyncTaskGenerator = new();
     private readonly AsyncTaskGenerator<(EntityRpcCallBack Callback, string Identifier), string> entityRpcCallBackAsyncTaskGenerator = new();
     private readonly Dictionary<Common.Rpc.MailBox, Connection> mailBoxToServiceConn = new();
-    private readonly Dispatcher<(IMessage Mesage, string TargetIdentifier, InstanceType OriType)> dispatcher = new();
     private readonly Common.Rpc.MailBox mailBox;
+    private readonly Dictionary<string, MqConnection> identifierToMqConnection = new();
+
+    private readonly Dispatcher<(IMessage Message, Connection Connection)> dispatcher = new();
+    private readonly MessageQueueClient messageQueueClientToOtherInstances;
 
     private IManagerConnection hostMgrConnection = null!;
 
@@ -112,6 +114,9 @@ public class ServiceManager : IInstance
 
         this.mailBox = new(this.Name, this.Ip, this.Port, this.HostNum);
 
+        this.messageQueueClientToOtherInstances = new MessageQueueClient();
+
+        this.InitializeMessageDispatcher();
         this.InitHostManagerConnection(hostManagerIp, hostManagerPort, useMqToHostMgr);
         this.InitConnectionManager();
     }
@@ -123,6 +128,8 @@ public class ServiceManager : IInstance
         this.hostMgrConnection.Run();
         this.tcpServer.Run();
 
+        this.InitMessageQueueClientToInstances();
+
         this.tcpServer.WaitForExit();
         this.hostMgrConnection.WaitForExit();
     }
@@ -132,6 +139,159 @@ public class ServiceManager : IInstance
     {
         this.tcpServer.Stop();
         this.hostMgrConnection.ShutDown();
+    }
+
+    private void InitializeMessageDispatcher()
+    {
+        this.dispatcher.Register(PackageType.ServiceRpc, arg
+            => this.HandleServiceRpc((arg.Message, arg.Connection, 0)));
+        this.dispatcher.Register(PackageType.ServiceRpcCallBack, arg
+            => this.HandleServiceRpcCallBack((arg.Message, arg.Connection, 0)));
+        this.dispatcher.Register(PackageType.ServiceControl, arg
+            => this.HandleServiceControl((arg.Message, arg.Connection, 0)));
+        this.dispatcher.Register(PackageType.EntityRpc, arg
+            => this.HandleEntityRpc((arg.Message, arg.Connection, 0)));
+        this.dispatcher.Register(PackageType.EntityRpcCallBack, (arg)
+            => this.HandleEntityRpcCallBack((arg.Message, arg.Connection, 0)));
+    }
+
+    private void InitMessageQueueClientToInstances()
+    {
+        this.messageQueueClientToOtherInstances.Init();
+        this.messageQueueClientToOtherInstances.AsConsumer();
+        this.messageQueueClientToOtherInstances.AsProducer();
+
+        this.messageQueueClientToOtherInstances.DeclareExchange(Consts.ServiceMgrToServerExchangeName);
+        this.messageQueueClientToOtherInstances.DeclareExchange(Consts.ServiceMgrToGateExchangeName);
+        this.messageQueueClientToOtherInstances.DeclareExchange(Consts.ServiceMgrToServiceExchangeName);
+
+        this.messageQueueClientToOtherInstances.DeclareExchange(Consts.ServiceToServiceMgrExchangeName);
+        this.messageQueueClientToOtherInstances.DeclareExchange(Consts.GateToServiceMgrExchangeName);
+        this.messageQueueClientToOtherInstances.DeclareExchange(Consts.ServerToServiceMgrExchangeName);
+
+        this.messageQueueClientToOtherInstances.BindQueueAndExchange(
+            Consts.ServiceOfServiceManagerQueueName,
+            Consts.ServiceToServiceMgrExchangeName,
+            Consts.RoutingKeyServiceToServiceMgr);
+        this.messageQueueClientToOtherInstances.BindQueueAndExchange(
+            Consts.GateOfServiceManagerQueueName,
+            Consts.GateToServiceMgrExchangeName,
+            Consts.RoutingKeyGateToServiceMgr);
+        this.messageQueueClientToOtherInstances.BindQueueAndExchange(
+            Consts.ServerOfServiceManagerQueueName,
+            Consts.ServerToServiceMgrExchangeName,
+            Consts.RoutingKeyServerToServiceMgr);
+
+        this.messageQueueClientToOtherInstances.Observe(
+            Consts.ServerOfServiceManagerQueueName,
+            (ReadOnlyMemory<byte> msg, string routingKey) =>
+            {
+                var split = routingKey.Split('.');
+                var msgType = split[0];
+                var targetIdentifier = split[1];
+
+                switch (msgType)
+                {
+                    case "serverMessagePackage":
+                        var pkg = PackageHelper.GetPackageFromBytes(msg);
+                        var type = (PackageType)pkg.Header.Type;
+                        var protobuf = PackageHelper.GetProtoBufObjectByType(type, pkg);
+
+                        MqConnection conn;
+                        if (this.identifierToMqConnection.TryGetValue(targetIdentifier, out var value))
+                        {
+                            conn = value;
+                        }
+                        else
+                        {
+                            conn = MqConnection.Create(
+                                this.messageQueueClientToOtherInstances,
+                                Consts.ServiceMgrToServerExchangeName,
+                                Consts.GenerateServiceManagerMessageToServerPackage(targetIdentifier));
+                            this.identifierToMqConnection[targetIdentifier] = conn;
+                        }
+
+                        this.dispatcher.Dispatch(type, (protobuf, conn));
+                        break;
+                    default:
+                        Logger.Warn($"Unknown message type: {msgType}");
+                        break;
+                }
+            });
+
+        this.messageQueueClientToOtherInstances.Observe(
+            Consts.ServiceOfServiceManagerQueueName,
+            (ReadOnlyMemory<byte> msg, string routingKey) =>
+            {
+                var split = routingKey.Split('.');
+                var msgType = split[0];
+                var targetIdentifier = split[1];
+
+                switch (msgType)
+                {
+                    case "serverMessagePackage":
+                        var pkg = PackageHelper.GetPackageFromBytes(msg);
+                        var type = (PackageType)pkg.Header.Type;
+                        var protobuf = PackageHelper.GetProtoBufObjectByType(type, pkg);
+
+                        MqConnection conn;
+                        if (this.identifierToMqConnection.TryGetValue(targetIdentifier, out var value))
+                        {
+                            conn = value;
+                        }
+                        else
+                        {
+                            conn = MqConnection.Create(
+                                this.messageQueueClientToOtherInstances,
+                                Consts.ServiceMgrToServerExchangeName,
+                                Consts.GenerateServiceManagerMessageToServicePackage(targetIdentifier));
+                            this.identifierToMqConnection[targetIdentifier] = conn;
+                        }
+
+                        this.dispatcher.Dispatch(type, (protobuf, conn));
+                        break;
+                    default:
+                        Logger.Warn($"Unknown message type: {msgType}");
+                        break;
+                }
+            });
+
+        this.messageQueueClientToOtherInstances.Observe(
+            Consts.GateOfServiceManagerQueueName,
+            (ReadOnlyMemory<byte> msg, string routingKey) =>
+            {
+                var split = routingKey.Split('.');
+                var msgType = split[0];
+                var targetIdentifier = split[1];
+
+                switch (msgType)
+                {
+                    case "serverMessagePackage":
+                        var pkg = PackageHelper.GetPackageFromBytes(msg);
+                        var type = (PackageType)pkg.Header.Type;
+                        var protobuf = PackageHelper.GetProtoBufObjectByType(type, pkg);
+
+                        MqConnection conn;
+                        if (this.identifierToMqConnection.TryGetValue(targetIdentifier, out var value))
+                        {
+                            conn = value;
+                        }
+                        else
+                        {
+                            conn = MqConnection.Create(
+                                this.messageQueueClientToOtherInstances,
+                                Consts.ServiceMgrToServerExchangeName,
+                                Consts.GenerateServiceManagerMessageToGatePackage(targetIdentifier));
+                            this.identifierToMqConnection[targetIdentifier] = conn;
+                        }
+
+                        this.dispatcher.Dispatch(type, (protobuf, conn));
+                        break;
+                    default:
+                        Logger.Warn($"Unknown message type: {msgType}");
+                        break;
+                }
+            });
     }
 
     private void RegisterServerMessageHandlers()
@@ -156,8 +316,6 @@ public class ServiceManager : IInstance
     {
         Logger.Info("EntityRpc received.");
         var entityRpc = (EntityRpc)arg.Message;
-        var senderId = entityRpc.SenderMailBox.ID;
-
         var (task, id) =
             this.entityRpcCallBackAsyncTaskGenerator.GenerateAsyncTask(
                 entityRpc.ServiceInstanceId,
@@ -173,7 +331,7 @@ public class ServiceManager : IInstance
             }
 
             var (callback, identifier) = t.Result;
-            this.connectionManager.SendMessage(identifier, callback, ConnectionType.Service);
+            this.connectionManager.SendMessage(identifier, callback, ServiceManagerConnectionManager.ConnectionType.Service);
         });
 
         Logger.Debug($"Entity RPC sent to gate");
@@ -223,7 +381,7 @@ public class ServiceManager : IInstance
             {
                 var (task, id) =
                     this.serviceRpcCallbackAsyncTaskGenerator.GenerateAsyncTask(
-                        senderConn,
+                        serviceConn,
                         5000,
                         (rpcId) => new RpcTimeOutException($"Service RPC timeout: {serviceName}:{serviceRpc.MethodName}."));
                 serviceRpc.ServiceManagerRpcId = id;
@@ -236,13 +394,11 @@ public class ServiceManager : IInstance
                     }
 
                     var (callback, conn) = t.Result;
-                    var pkg = PackageHelper.FromProtoBuf(callback, 0).ToBytes();
-                    conn.Socket.Send(pkg);
+                    conn.Send(callback);
                 });
 
                 Logger.Debug($"Servce RPC {serviceName}:{serviceRpc.MethodName} sent to {serviceName}:{shard}");
-                var pkg = PackageHelper.FromProtoBuf(serviceRpc, 0);
-                serviceConn.Socket.Send(pkg.ToBytes());
+                serviceConn.Send(serviceRpc);
             }
             else
             {
@@ -260,19 +416,17 @@ public class ServiceManager : IInstance
     private void HandleServiceRpcCallBack((IMessage Message, Connection Connection, uint RpcId) arg)
     {
         Logger.Info($"ServiceRpcCallBack received.");
-
         var callback = (arg.Message as ServiceRpcCallBack)!;
         var serviceMgrRpcId = callback.ServiceManagerRpcId;
         Logger.Debug($"service manager rpc id recieved: {callback.ServiceManagerRpcId}");
-        var conn = this.serviceRpcCallbackAsyncTaskGenerator.GetDataByAsyncTaskId(callback.ServiceManagerRpcId);
-        this.serviceRpcCallbackAsyncTaskGenerator.ResolveAsyncTask(serviceMgrRpcId, (callback, conn));
+        var send = this.serviceRpcCallbackAsyncTaskGenerator.GetDataByAsyncTaskId(callback.ServiceManagerRpcId);
+        this.serviceRpcCallbackAsyncTaskGenerator.ResolveAsyncTask(serviceMgrRpcId, (callback, send));
     }
 
     private void HandleServiceControl((IMessage Message, Connection Connection, uint RpcId) tuple)
     {
         var (msg, conn, _) = tuple;
         var ctl = (ServiceControl)msg;
-
         switch (ctl.Message)
         {
             case ServiceControlMessage.Ready:
@@ -304,31 +458,31 @@ public class ServiceManager : IInstance
 
             _ = this.GenerateMailBoxForService(ctlMsg, conn)
                 .ContinueWith(t =>
-            {
-                if (t.Exception != null)
                 {
-                    Logger.Error(t.Exception, $"Failed to generate mailbox for service.");
-                    return;
-                }
+                    if (t.Exception != null)
+                    {
+                        Logger.Error(t.Exception, $"Failed to generate mailbox for service.");
+                        return;
+                    }
 
-                if (this.mailBoxToServiceConn.Count == this.desiredServiceNum)
-                {
-                    this.state = State.WaitForServicesRegister;
-                    this.NotifyServiceInstancesToStartServices();
-                }
-            });
+                    if (this.mailBoxToServiceConn.Count == this.desiredServiceNum)
+                    {
+                        this.state = State.WaitForServicesRegister;
+                        this.NotifyServiceInstancesToStartServices();
+                    }
+                });
         }
         else if (ctlMsg.From == ServiceRemoteType.Gate)
         {
             Logger.Info($"Gate {ctlMsg.Args[0].Unpack<Common.Rpc.InnerMessages.MailBox>()} is ready.");
             var mb = ctlMsg.Args[0].Unpack<Common.Rpc.InnerMessages.MailBox>();
-            this.connectionManager.RegisterImmediateConnection(conn, ConnectionType.Gate, mb.ID);
+            this.connectionManager.RegisterConnection(conn, ServiceManagerConnectionManager.ConnectionType.Gate, mb.ID);
         }
         else if (ctlMsg.From == ServiceRemoteType.Server)
         {
             Logger.Info($"Server {ctlMsg.Args[0].Unpack<Common.Rpc.InnerMessages.MailBox>()} is ready.");
             var mb = ctlMsg.Args[0].Unpack<Common.Rpc.InnerMessages.MailBox>();
-            this.connectionManager.RegisterImmediateConnection(conn, ConnectionType.Server, mb.ID);
+            this.connectionManager.RegisterConnection(conn, ServiceManagerConnectionManager.ConnectionType.Server, mb.ID);
         }
         else
         {
@@ -412,10 +566,9 @@ public class ServiceManager : IInstance
                         Type = ServiceManagerCommandType.AllServicesReady,
                     };
 
-                    var pkg = PackageHelper.FromProtoBuf(readyMsg, 0);
                     foreach (var conn in this.mailBoxToServiceConn.Values)
                     {
-                        conn.Socket.Send(pkg.ToBytes());
+                        conn.Send(readyMsg);
                     }
                 }
             }
@@ -474,26 +627,26 @@ public class ServiceManager : IInstance
                 // wait for generating ids.
                 var generateTaskForService = Task.WhenAll(serviceShardIdTasks)
                     .ContinueWith(t =>
-                {
-                    if (t.Exception != null)
                     {
-                        Logger.Error(t.Exception, $"Failed to generate ids for service {serviceName}.");
-                        return;
-                    }
+                        if (t.Exception != null)
+                        {
+                            Logger.Error(t.Exception, $"Failed to generate ids for service {serviceName}.");
+                            return;
+                        }
 
-                    var ids = t.Result;
-                    var shardRpcDict = new DictWithIntKeyArg();
-                    Logger.Debug($"Service {serviceName} ids: {string.Join(',', ids)}");
+                        var ids = t.Result;
+                        var shardRpcDict = new DictWithIntKeyArg();
+                        Logger.Debug($"Service {serviceName} ids: {string.Join(',', ids)}");
 
-                    int i = 0;
-                    foreach (var shard in serviceShards)
-                    {
-                        shardRpcDict.PayLoad.Add(shard, RpcHelper.GetRpcAny(ids[i]));
-                        ++i; // increment i
-                    }
+                        int i = 0;
+                        foreach (var shard in serviceShards)
+                        {
+                            shardRpcDict.PayLoad.Add(shard, RpcHelper.GetRpcAny(ids[i]));
+                            ++i; // increment i
+                        }
 
-                    serviceDict.PayLoad.Add(serviceName, Any.Pack(message: shardRpcDict));
-                });
+                        serviceDict.PayLoad.Add(serviceName, Any.Pack(message: shardRpcDict));
+                    });
 
                 generateTaskList.Add(generateTaskForService);
             }
@@ -502,9 +655,7 @@ public class ServiceManager : IInstance
 
             cmd.Args.Add(Any.Pack(serviceDict));
 
-            var pkg = PackageHelper.FromProtoBuf(cmd, 0);
-            var bytes = pkg.ToBytes();
-            conn.Socket.Send(bytes);
+            conn.Send(cmd);
             Logger.Info($"Send command {cmd.Type} to service instance");
         }
     }
@@ -528,16 +679,13 @@ public class ServiceManager : IInstance
 
             cmd.Args.Add(RpcHelper.GetRpcAny(RpcHelper.RpcMailBoxToPbMailBox(mailBox)));
 
-            var pkg = PackageHelper.FromProtoBuf(cmd, 0);
-            var bytes = pkg.ToBytes();
-
-            conn.Socket.Send(bytes);
+            conn.Send(cmd);
 
             lock (this.mailBoxToServiceConn)
             {
                 this.mailBoxToServiceConn.Add(mailBox, conn);
-                this.connectionManager.RegisterImmediateConnection(
-                    conn, ConnectionType.Service, id);
+                this.connectionManager.RegisterConnection(
+                    conn, ServiceManagerConnectionManager.ConnectionType.Service, id);
             }
         });
     }
@@ -557,43 +705,7 @@ public class ServiceManager : IInstance
 
     private void InitConnectionManager()
     {
-        var gateConnectionMap = new ConnectionMap(
-            sendImmediateMessage: (conn, msg) =>
-            {
-                var pkg = PackageHelper.FromProtoBuf(msg, 0);
-                conn.Socket.Send(pkg.ToBytes());
-            },
-            sendMessageQueueMessage: (conn, msg) =>
-            {
-                throw new NotImplementedException();
-            });
-
-        var serverConnectionMap = new ConnectionMap(
-            sendImmediateMessage: (conn, msg) =>
-            {
-                var pkg = PackageHelper.FromProtoBuf(msg, 0);
-                conn.Socket.Send(pkg.ToBytes());
-            },
-            sendMessageQueueMessage: (conn, msg) =>
-            {
-                throw new NotImplementedException();
-            });
-
-        var serviceConnectionMap = new ConnectionMap(
-            sendImmediateMessage: (conn, msg) =>
-            {
-                var pkg = PackageHelper.FromProtoBuf(msg, 0);
-                conn.Socket.Send(pkg.ToBytes());
-            },
-            sendMessageQueueMessage: (conn, msg) =>
-            {
-                throw new NotImplementedException();
-            });
-
-        this.connectionManager = new ServiceManagerConnectionManager(
-            gateConnectionMap: gateConnectionMap,
-            serviceConnectionMap: serviceConnectionMap,
-            serverConnectionMap: serverConnectionMap);
+        this.connectionManager = new ServiceManagerConnectionManager();
     }
 
     private enum State

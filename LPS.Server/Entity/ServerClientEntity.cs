@@ -82,7 +82,7 @@ public class ServerClientEntity : DistributeEntity
     /// Bind the gate connection related to the client.
     /// </summary>
     /// <param name="gateConnection">Connection of the gate.</param>
-    public void BindGateConn(Connection gateConnection)
+    public void BindGateConn(SocketConnection gateConnection)
     {
         this.Client = new ClientProxy(gateConnection, this);
     }
@@ -132,14 +132,14 @@ public class ServerClientEntity : DistributeEntity
         /// <summary>
         /// Gets the gate connection of the client.
         /// </summary>
-        public Connection GateConn { get; }
+        public SocketConnection GateConn { get; }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ClientProxy"/> class.
         /// </summary>
         /// <param name="gateConnection">Connection to the gate related to the client.</param>
         /// <param name="owner">Owner of the gate.</param>
-        public ClientProxy(Connection gateConnection, ServerClientEntity owner)
+        public ClientProxy(SocketConnection gateConnection, ServerClientEntity owner)
         {
             this.GateConn = gateConnection;
             this.Owner = owner;

@@ -386,8 +386,7 @@ public partial class Gate : IInstance
         }
 
         var conn = this.entityIdToClientConnMapping[entityId].Connection;
-        var pkg = PackageHelper.FromProtoBuf(msg, 0);
-        conn.Socket.Send(pkg.ToBytes());
+        conn.Send(msg);
     }
 
     private void HandleEntityRpcMessageOnGate(EntityRpc entityRpc)

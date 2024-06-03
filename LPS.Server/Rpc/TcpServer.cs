@@ -53,7 +53,7 @@ internal class TcpServer
     /// <summary>
     /// Gets all the connections on this server.
     /// </summary>
-    public Connection[] AllConnections => this.socketToConn.Values.ToArray();
+    public SocketConnection[] AllConnections => this.socketToConn.Values.ToArray();
 
     /// <summary>
     /// Gets the handler invoked every tick of the server.
@@ -65,12 +65,12 @@ internal class TcpServer
     /// </summary>
     public bool Stopped => this.stopFlag;
 
-    private readonly Dictionary<Connection, Task> connections = new();
+    private readonly Dictionary<SocketConnection, Task> connections = new();
     private readonly SandBox sandboxIo;
     private readonly Bus bus;
     private readonly Dispatcher<(IMessage, Connection, uint)> msgDispatcher;
-    private readonly Dictionary<Socket, Connection> socketToConn = new();
-    private readonly ConcurrentQueue<(Connection, IMessage)> sendQueue = new();
+    private readonly Dictionary<Socket, SocketConnection> socketToConn = new();
+    private readonly ConcurrentQueue<(SocketConnection, IMessage)> sendQueue = new();
     private bool stopFlag;
     private uint serverEntityPackageId;
 
@@ -126,7 +126,7 @@ internal class TcpServer
     /// </summary>
     /// <param name="msg">Message send to client.</param>
     /// <param name="conn">Connection to a client.</param>
-    public void Send(IMessage msg, Connection conn)
+    public void Send(IMessage msg, SocketConnection conn)
     {
         try
         {
@@ -219,7 +219,7 @@ internal class TcpServer
             Logger.Debug($"New socket got {ipEndPoint.Address}:{ipEndPoint.Port}");
 
             var cancelTokenSource = new CancellationTokenSource();
-            var conn = Connection.Create(clientSocket, cancelTokenSource);
+            var conn = SocketConnection.Create(clientSocket, cancelTokenSource);
             conn.OnDisconnected = () =>
             {
                 Logger.Debug("Client disconnected");
@@ -268,7 +268,7 @@ internal class TcpServer
                 continue;
             }
 
-            conn.Key.TokenSource.Cancel();
+            (conn.Key as SocketConnection)!.TokenSource.Cancel();
             conn.Value.Wait();
         }
 
@@ -333,15 +333,15 @@ internal class TcpServer
 
                     var id = this.serverEntityPackageId++;
                     var pkg = PackageHelper.FromProtoBuf(msg, id);
-                    var socket = conn.Socket;
+                    var socketConn = (conn as SocketConnection)!;
                     try
                     {
-                        socket.Send(pkg.ToBytes());
+                        conn.Send(pkg.ToBytes());
                     }
                     catch (Exception e)
                     {
                         Logger.Error(e, "Send msg failed.");
-                        conn.TokenSource.Cancel();
+                        socketConn.TokenSource.Cancel();
                     }
                 }
             }
@@ -350,7 +350,7 @@ internal class TcpServer
         }
     }
 
-    private Task HandleMessage(Connection conn) =>
+    private Task HandleMessage(SocketConnection conn) =>
         RpcHelper.HandleMessage(
             conn,
             () => this.stopFlag,

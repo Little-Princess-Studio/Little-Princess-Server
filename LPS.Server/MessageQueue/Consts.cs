@@ -62,6 +62,11 @@ public static class Consts
     public const string ServiceMgrToServerExchangeName = "serviceMgrToServer.exchange";
 
     /// <summary>
+    /// The name of the exchange used for communication between the service manager and gate.
+    /// </summary>
+    public const string ServiceMgrToGateExchangeName = "serviceMgrToGate.exchange";
+
+    /// <summary>
     /// Exchange name of database manager to server.
     /// </summary>
     public const string DbMgrToDbClientExchangeName = "dbmgrToDbClient.exchange";
@@ -82,6 +87,11 @@ public static class Consts
     public const string ServerToServiceMgrExchangeName = "serverToServiceMgr.exchange";
 
     /// <summary>
+    /// Exchange name of gate to service manager.
+    /// </summary>
+    public const string GateToServiceMgrExchangeName = "gateToServiceMgr.exchange";
+
+    /// <summary>
     /// Host message package routing key to server.
     /// </summary>
     /// <param name="targetName">Target name.</param>
@@ -94,6 +104,27 @@ public static class Consts
     /// <param name="targetName">Target name.</param>
     /// <returns>Routing key.</returns>
     public static string GenerateHostMessageToGatePackage(string targetName) => $"hostMessagePackage.{targetName}.toGate";
+
+    /// <summary>
+    /// Host message package routing key from service manager to server.
+    /// </summary>
+    /// <param name="targetName">Target name.</param>
+    /// <returns>Routing key.</returns>
+    public static string GenerateServiceManagerMessageToServerPackage(string targetName) => $"serviceManagerMessagePackage.{targetName}.serviceMgrToSrv";
+
+    /// <summary>
+    /// Host message package routing key from service manager to gate.
+    /// </summary>
+    /// <param name="targetName">Target name.</param>
+    /// <returns>Routing key.</returns>
+    public static string GenerateServiceManagerMessageToGatePackage(string targetName) => $"serviceManagerMessagePackage.{targetName}.serviceMgrToSrv";
+
+    /// <summary>
+    /// Host message package routing key from service manager to service.
+    /// </summary>
+    /// <param name="targetName">Target name.</param>
+    /// <returns>Routing key.</returns>
+    public static string GenerateServiceManagerMessageToServicePackage(string targetName) => $"serviceManagerMessagePackage.{targetName}.serviceMgrToSrv";
 
     /// <summary>
     /// Host message package routing key to service manager.
@@ -175,18 +206,25 @@ public static class Consts
     public static string GetRoutingKeyToGate(string targetName) => $"*.{targetName}.toGate";
 
     /// <summary>
-    /// Get routing key of Gate to observe.
+    /// Get routing key of Service to observe.
     /// </summary>
-    /// <param name="targetName">Gate name.</param>
+    /// <param name="targetName">Service name.</param>
     /// <returns>Routing key of service to observe.</returns>
     public static string GetRoutingKeyFromServiceManagerToService(string targetName) => $"*.{targetName}.toService";
 
     /// <summary>
     /// Get routing key of Server to observe.
     /// </summary>
-    /// <param name="targetName">Gate name.</param>
+    /// <param name="targetName">Server name.</param>
     /// <returns>Routing key of service to observe.</returns>
     public static string GetRoutingKeyFromServiceManagerToServer(string targetName) => $"*.{targetName}.serviceMgrToSrv";
+
+    /// <summary>
+    /// Get routing key of Gate to observe.
+    /// </summary>
+    /// <param name="targetName">Gate name.</param>
+    /// <returns>Routing key of service to observe.</returns>
+    public static string GetRoutingKeyFromServiceManagerToGate(string targetName) => $"*.{targetName}.serviceMgrToSrv";
 
     /// <summary>
     /// The routing key used to send messages to the service manager.
@@ -245,9 +283,24 @@ public static class Consts
     public static string GenerateServerQueueName(string id) => $"srv_que_{id}";
 
     /// <summary>
-    /// The name of the message queue used by the service manager service.
+    /// The name of the message queue used by the service manager.
     /// </summary>
     public const string ServiceManagerQueueName = "serviceMgr_que";
+
+    /// <summary>
+    /// The name of the message queue used by the service to service manager.
+    /// </summary>
+    public const string ServiceOfServiceManagerQueueName = "serviceOfServiceMgr_que";
+
+    /// <summary>
+    /// The name of the message queue used by the gate to service manager service.
+    /// </summary>
+    public const string GateOfServiceManagerQueueName = "gateOfServiceMgr_que";
+
+    /// <summary>
+    /// The name of the message queue used by the server to service manager.
+    /// </summary>
+    public const string ServerOfServiceManagerQueueName = "serverOfServiceMgr_que";
 
     /// <summary>
     /// The name of the message queue used to send message from service manager to host manager.
@@ -274,6 +327,13 @@ public static class Consts
     /// <param name="name">Instance name.</param>
     /// <returns>Name.</returns>
     public static string GenerateServerToServiceMgrMessagePackage(string name) => $"serverMessagePackage.{name}.srvToServiceMgr";
+
+    /// <summary>
+    /// Generate gate message package routing key to service manager.
+    /// </summary>
+    /// <param name="name">Instance name.</param>
+    /// <returns>Name.</returns>
+    public static string GenerateGateToServiceMgrMessagePackage(string name) => $"serverMessagePackage.{name}.gateToServiceMgr";
 
     /// <summary>
     /// Generate the queue name observed by database client process.
@@ -353,4 +413,14 @@ public static class Consts
     /// Routing keys of service to service manager.
     /// </summary>
     public const string RoutingKeyServiceToServiceMgr = "#.#.serviceToServiceMgr";
+
+    /// <summary>
+    /// Routing keys of gate to service manager.
+    /// </summary>
+    public const string RoutingKeyGateToServiceMgr = "#.#.gateToServiceMgr";
+
+    /// <summary>
+    /// Routing keys of server to service manager.
+    /// </summary>
+    public const string RoutingKeyServerToServiceMgr = "#.#.srvToServiceMgr";
 }
