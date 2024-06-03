@@ -153,7 +153,6 @@ public static class StartUpManager
             if (t.Exception != null)
             {
                 Logger.Error(t.Exception);
-                return;
             }
         });
     }

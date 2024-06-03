@@ -29,6 +29,23 @@ public static class RpcClientHelper
 
     private static readonly Dictionary<string, Type> EntityClassMap = RpcHelper.EntityClassMap;
 
+    private static uint rpcId;
+
+    static RpcClientHelper()
+    {
+        SocketConnection.OnGenerateRpcId = GenerateRpcId;
+    }
+
+    /// <summary>
+    /// Generate a unique rpc id of the instance.
+    /// </summary>
+    /// <returns>A unique rpc id of the instance.</returns>
+    public static uint GenerateRpcId()
+    {
+        // Interlocked.Increment(ref rpcId);
+        return rpcId++;
+    }
+
     /// <summary>
     /// Create client entity.
     /// </summary>
@@ -37,9 +54,8 @@ public static class RpcClientHelper
     /// <exception cref="Exception">Throw exception if failed to create client entity.</exception>
     public static async Task<ShadowClientEntity> CreateClientEntity(string entityClassName)
     {
-        if (EntityClassMap.ContainsKey(entityClassName))
+        if (EntityClassMap.TryGetValue(entityClassName, out var entityClass))
         {
-            var entityClass = EntityClassMap[entityClassName];
             if (entityClass.IsSubclassOf(typeof(ShadowClientEntity)))
             {
                 var obj = (Activator.CreateInstance(entityClass) as ShadowClientEntity)!;

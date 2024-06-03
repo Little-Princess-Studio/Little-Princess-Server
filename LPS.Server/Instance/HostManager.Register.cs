@@ -113,7 +113,7 @@ public partial class HostManager
             syncCmd.Args.Add(RpcHelper.GetRpcAny(RpcHelper.RpcMailBoxToPbMailBox(gateConn)));
         }
 
-        var pkg = PackageHelper.FromProtoBuf(syncCmd, 0);
+        var pkg = PackageHelper.FromProtoBuf(syncCmd, ServerGlobal.GenerateRpcId());
         var bytes = pkg.ToBytes();
 
         // to gates
@@ -161,7 +161,7 @@ public partial class HostManager
             syncCmd.Args.Add(RpcHelper.GetRpcAny(RpcHelper.RpcMailBoxToPbMailBox(serverConn)));
         }
 
-        var pkg = PackageHelper.FromProtoBuf(syncCmd, 0);
+        var pkg = PackageHelper.FromProtoBuf(syncCmd, ServerGlobal.GenerateRpcId());
         var bytes = pkg.ToBytes();
 
         // to gates
@@ -191,7 +191,7 @@ public partial class HostManager
 
         syncCmd.Args.Add(RpcHelper.GetRpcAny(RpcHelper.RpcMailBoxToPbMailBox(this.serviceManagerInfo.ServiceManagerMailBox)));
 
-        var pkg = PackageHelper.FromProtoBuf(syncCmd, 0);
+        var pkg = PackageHelper.FromProtoBuf(syncCmd, ServerGlobal.GenerateRpcId());
         var bytes = pkg.ToBytes();
 
         // to gates
@@ -321,7 +321,7 @@ public partial class HostManager
             syncCmd.Args.Add(RpcHelper.GetRpcAny(RpcHelper.RpcMailBoxToPbMailBox(connMailBox)));
         }
 
-        var pkg = PackageHelper.FromProtoBuf(syncCmd, 0);
+        var pkg = PackageHelper.FromProtoBuf(syncCmd, ServerGlobal.GenerateRpcId());
         var bytes = pkg.ToBytes();
         conn.Send(bytes);
     }
@@ -343,7 +343,7 @@ public partial class HostManager
             syncCmd.Args.Add(RpcHelper.GetRpcAny(RpcHelper.RpcMailBoxToPbMailBox(connMailBox)));
         }
 
-        var pkg = PackageHelper.FromProtoBuf(syncCmd, 0);
+        var pkg = PackageHelper.FromProtoBuf(syncCmd, ServerGlobal.GenerateRpcId());
         var bytes = pkg.ToBytes();
 
         this.messageQueueClientToOtherInstances.Publish(
@@ -446,7 +446,9 @@ public partial class HostManager
         };
 
         syncCmd.Args.Add(RpcHelper.GetRpcAny(RpcHelper.RpcMailBoxToPbMailBox(excludedMailBox)));
-        var pkg = PackageHelper.FromProtoBuf(syncCmd, 0);
+
+        // todo: use common Connection instead of identifier/connection
+        var pkg = PackageHelper.FromProtoBuf(syncCmd, ServerGlobal.GenerateRpcId());
         var bytes = pkg.ToBytes();
 
         foreach (var mb in mailBoxes)

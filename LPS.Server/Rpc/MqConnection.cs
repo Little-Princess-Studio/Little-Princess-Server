@@ -6,6 +6,7 @@
 
 namespace LPS.Server.Rpc;
 
+using System;
 using Google.Protobuf;
 using LPS.Common.Rpc;
 using LPS.Common.Rpc.InnerMessages;
@@ -16,6 +17,11 @@ using LPS.Server.MessageQueue;
 /// </summary>
 public class MqConnection : Connection
 {
+    /// <summary>
+    /// Gets or sets method to generate a unique rpc id.
+    /// </summary>
+    public static Func<uint>? OnGenerateRpcId { get; set; }
+
     private readonly MessageQueueClient client;
     private readonly string exchangeName;
     private readonly string routingKey;
@@ -47,7 +53,8 @@ public class MqConnection : Connection
     /// <inheritdoc/>
     public override void Send(IMessage message)
     {
-        var pkg = PackageHelper.FromProtoBuf(message, 0);
+        var rpcId = OnGenerateRpcId?.Invoke() ?? throw new Exception("OnGenerateRpcId is null");
+        var pkg = PackageHelper.FromProtoBuf(message, rpcId);
         this.client.Publish(pkg.ToBytes(), this.exchangeName, this.routingKey);
     }
 

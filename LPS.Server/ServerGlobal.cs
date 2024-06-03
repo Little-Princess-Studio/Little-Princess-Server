@@ -7,7 +7,10 @@
 namespace LPS.Server;
 
 using System;
+using System.Threading;
+using LPS.Common.Rpc;
 using LPS.Server.Instance;
+using LPS.Server.Rpc;
 using Newtonsoft.Json.Linq;
 
 /// <summary>
@@ -21,6 +24,8 @@ public static class ServerGlobal
     /// Gets instance type.
     /// </summary>
     public static InstanceType InstanceType => instance.InstanceType;
+
+    private static uint rpcId = 0;
 
     /// <summary>
     /// Gets the instance as Server.
@@ -130,17 +135,26 @@ public static class ServerGlobal
     /// <exception cref="Exception">ServerGlobal should not be re-initialized.</exception>
     public static void Init(IInstance instance)
     {
-        if (instance == null)
-        {
-            throw new ArgumentNullException(nameof(instance));
-        }
+        ArgumentNullException.ThrowIfNull(instance);
 
         if (ServerGlobal.instance != null)
         {
             throw new Exception("instance global can not be re-init");
         }
 
-        ServerGlobal.instance = instance!;
+        ServerGlobal.instance = instance;
+        SocketConnection.OnGenerateRpcId = GenerateRpcId;
+        MqConnection.OnGenerateRpcId = GenerateRpcId;
+    }
+
+    /// <summary>
+    /// Generate a unique rpc id of the instance.
+    /// </summary>
+    /// <returns>A unique rpc id of the instance.</returns>
+    public static uint GenerateRpcId()
+    {
+        Interlocked.Increment(ref rpcId);
+        return rpcId;
     }
 }
 

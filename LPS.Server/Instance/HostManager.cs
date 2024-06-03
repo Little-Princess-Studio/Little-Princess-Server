@@ -416,7 +416,9 @@ public partial class HostManager : IInstance
             EntityClassName = createRes.EntityClassName,
         };
 
-        var pkg = PackageHelper.FromProtoBuf(requireCreateRes, 0);
+        var pkg = PackageHelper.FromProtoBuf(requireCreateRes, ServerGlobal.GenerateRpcId());
+
+        // todo: refactor this
         sendToOriServer(pkg.ToBytes());
     }
 
@@ -435,13 +437,13 @@ public partial class HostManager : IInstance
         switch (createEntity.CreateType)
         {
             case CreateType.Local:
-                this.CreateLocalEntity(createEntity, 0, send);
+                this.CreateLocalEntity(createEntity, ServerGlobal.GenerateRpcId(), send);
                 break;
             case CreateType.Anywhere:
-                this.CreateAnywhereEntity(createEntity, 0, send);
+                this.CreateAnywhereEntity(createEntity, ServerGlobal.GenerateRpcId(), send);
                 break;
             case CreateType.Manual:
-                this.CreateManualEntity(createEntity, 0, send);
+                this.CreateManualEntity(createEntity, ServerGlobal.GenerateRpcId(), send);
                 break;
         }
     }

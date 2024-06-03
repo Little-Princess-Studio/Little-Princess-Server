@@ -38,7 +38,6 @@ public class Client
     private int port;
     private Socket? socket;
     private bool exitFlag;
-    private uint packageId;
 
     private Client()
     {
@@ -155,12 +154,12 @@ public class Client
                 var res = this.sendQueue.TryDequeue(out var msg);
                 if (res)
                 {
-                    var id = this.packageId++;
+                    var id = RpcClientHelper.GenerateRpcId();
                     var pkg = PackageHelper.FromProtoBuf(msg!, id);
-                    var socket = this.socket!;
+                    var socketToSend = this.socket!;
                     try
                     {
-                        socket.Send(pkg.ToBytes());
+                        socketToSend.Send(pkg.ToBytes());
                     }
                     catch (Exception e)
                     {

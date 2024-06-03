@@ -117,7 +117,7 @@ public partial class HostManager
         }
 
         var ping = new Common.Rpc.InnerMessages.Ping();
-        var pkg = Common.Rpc.InnerMessages.PackageHelper.FromProtoBuf(ping, 0);
+        var pkg = Common.Rpc.InnerMessages.PackageHelper.FromProtoBuf(ping, ServerGlobal.GenerateRpcId());
         var bytes = pkg.ToBytes();
 
         // broadcast to servers

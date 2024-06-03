@@ -151,11 +151,10 @@ public partial class Server
         var requirePropertyFullSyncMsg = (msg as RequirePropertyFullSync)!;
         var entityId = requirePropertyFullSyncMsg.EntityId;
 
-        if (this.localEntityDict.ContainsKey(entityId))
+        if (this.localEntityDict.TryGetValue(entityId, out var entity1))
         {
             Logger.Debug("Prepare for full sync");
-            DistributeEntity? entity = this.localEntityDict[entityId];
-            entity.FullSync((_, content) =>
+            entity1.FullSync((_, content) =>
             {
                 Logger.Debug("Full sync send back");
 
@@ -164,8 +163,7 @@ public partial class Server
                     EntityId = entityId,
                     PropertyTree = content,
                 };
-                var pkg = PackageHelper.FromProtoBuf(fullSync, id);
-                conn.Send(pkg.ToBytes());
+                conn.Send(fullSync);
             });
         }
         else
@@ -196,8 +194,7 @@ public partial class Server
                     ComponentName = componentName,
                     PropertyTree = content,
                 };
-                var pkg = PackageHelper.FromProtoBuf(compSync, id);
-                conn.Send(pkg.ToBytes());
+                conn.Send(compSync);
             });
         }
         else
