@@ -149,7 +149,7 @@ public partial class HostManager
             _ => Consts.HostMessagePackageToServiceMgrPackage);
     }
 
-    private void CheckInstanceByMailBoxAndSendPingMessage(in Common.Rpc.MailBox mailBox, byte[] bytesToSend, string exchange, Func<string, string> getRoutingKey)
+    private void CheckInstanceByMailBoxAndSendPingMessage(in Common.Rpc.MailBox mailBox, ReadOnlyMemory<byte> bytesToSend, string exchange, Func<string, string> getRoutingKey)
     {
         var id = mailBox.Id;
 

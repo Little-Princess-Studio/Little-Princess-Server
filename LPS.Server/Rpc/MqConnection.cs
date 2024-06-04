@@ -6,6 +6,7 @@
 
 namespace LPS.Server.Rpc;
 
+using System;
 using Google.Protobuf;
 using LPS.Common.Rpc;
 using LPS.Common.Rpc.InnerMessages;
@@ -52,7 +53,7 @@ public class MqConnection : Connection
     }
 
     /// <inheritdoc/>
-    public override void Send(byte[] bytes)
+    public override void Send(ReadOnlyMemory<byte> bytes)
     {
         this.client.Publish(bytes, this.exchangeName, this.routingKey);
     }

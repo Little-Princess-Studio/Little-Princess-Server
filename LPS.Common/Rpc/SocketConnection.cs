@@ -69,12 +69,12 @@ public sealed class SocketConnection : Connection
     public override void Send(IMessage message)
     {
         var pkg = PackageHelper.FromProtoBuf(message, 0);
-        this.Socket.Send(pkg.ToBytes());
+        this.Socket.Send(pkg.ToBytes().Span);
     }
 
     /// <inheritdoc/>
-    public override void Send(byte[] bytes)
+    public override void Send(ReadOnlyMemory<byte> bytes)
     {
-        this.Socket.Send(bytes);
+        this.Socket.Send(bytes.Span);
     }
 }

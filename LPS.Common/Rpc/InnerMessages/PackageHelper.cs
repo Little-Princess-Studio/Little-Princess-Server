@@ -76,7 +76,7 @@ public static class PackageHelper
         where T : IMessage<T>, new()
     {
         var parser = MessageParserWrapper<T>.Get();
-        return parser.ParseFrom(package.Body);
+        return parser.ParseFrom(package.Body.Span);
     }
 
     /// <summary>
@@ -169,23 +169,24 @@ public static class PackageHelper
     /// <summary>
     /// Get package from byte array starting at a specified position.
     /// </summary>
-    /// <param name="startPosition">The starting position of the package in the byte array.</param>
-    /// <param name="buffer">The byte array containing the package.</param>
+    /// <param name="buffer">The Span containing the package.</param>
     /// <returns>The package object.</returns>
-    public static Package GetPackage(int startPosition, byte[] buffer)
+    public static Package GetPackage(ReadOnlySpan<byte> buffer)
     {
-        int pos = startPosition;
-        var pkgLen = BitConverter.ToUInt16(buffer, pos);
+        var pos = 0;
+        var pkgLen = BitConverter.ToUInt16(buffer[pos..]);
         pos += 2;
-        var pkgId = BitConverter.ToUInt32(buffer, pos);
+        var pkgId = BitConverter.ToUInt32(buffer[pos..]);
         pos += 4;
-        var pkgVersion = BitConverter.ToUInt16(buffer, pos);
+        var pkgVersion = BitConverter.ToUInt16(buffer[pos..]);
         pos += 2;
-        var pkgType = BitConverter.ToUInt16(buffer, pos);
+        var pkgType = BitConverter.ToUInt16(buffer[pos..]);
 
         var bodyLen = pkgLen - HeaderLen;
-        var body = new byte[bodyLen];
-        Buffer.BlockCopy(buffer, startPosition + HeaderLen, body, 0, bodyLen);
+        Memory<byte> body = new byte[bodyLen];
+
+        // Buffer.BlockCopy(buffer, startPosition + HeaderLen, body, 0, bodyLen);
+        buffer[HeaderLen..(HeaderLen + bodyLen)].CopyTo(body.Span);
 
         var header = new PackageHeader(pkgLen, pkgId, pkgVersion, pkgType);
         var pkg = new Package(header, body);

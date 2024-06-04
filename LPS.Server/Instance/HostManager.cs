@@ -111,7 +111,7 @@ public partial class HostManager : IInstance
     private readonly TcpServer tcpServer;
     private readonly Random random = new();
 
-    private readonly Dictionary<uint, (uint ConnId, Action<byte[]>)>
+    private readonly Dictionary<uint, (uint ConnId, Action<ReadOnlyMemory<byte>>)>
         createDistEntityAsyncRecord = new();
 
     private readonly MessageQueueClient messageQueueClientToWebMgr;
@@ -393,7 +393,7 @@ public partial class HostManager : IInstance
         this.CommonHandleCreateDistributeEntityRes(msg, (bytes) => { conn.Send(bytes); });
     }
 
-    private void CommonHandleCreateDistributeEntityRes(IMessage msg, Action<byte[]> send)
+    private void CommonHandleCreateDistributeEntityRes(IMessage msg, Action<ReadOnlyMemory<byte>> send)
     {
         var createRes = (msg as CreateDistributeEntityRes)!;
 
@@ -426,7 +426,7 @@ public partial class HostManager : IInstance
         this.CommonHandleRequireCreateEntity(msg, (bytes) => { conn.Send(bytes); });
     }
 
-    private void CommonHandleRequireCreateEntity(IMessage msg, Action<byte[]> send)
+    private void CommonHandleRequireCreateEntity(IMessage msg, Action<ReadOnlyMemory<byte>> send)
     {
         var createEntity = (msg as RequireCreateEntity)!;
 
@@ -446,10 +446,10 @@ public partial class HostManager : IInstance
         }
     }
 
-    private void CreateLocalEntity(RequireCreateEntity createEntity, uint id, Action<byte[]> send) =>
+    private void CreateLocalEntity(RequireCreateEntity createEntity, uint id, Action<ReadOnlyMemory<byte>> send) =>
         this.CreateManualEntity(createEntity, id, send);
 
-    private void CreateManualEntity(RequireCreateEntity createEntity, uint id, Action<byte[]> send)
+    private void CreateManualEntity(RequireCreateEntity createEntity, uint id, Action<ReadOnlyMemory<byte>> send)
     {
         DbHelper.GenerateNewGlobalId().ContinueWith(task =>
         {
@@ -490,7 +490,7 @@ public partial class HostManager : IInstance
     /// <param name="createEntity">CreateEntity object.</param>
     /// <param name="id">Message id.</param>
     /// <param name="send">Send to create entity.</param>
-    private void CreateAnywhereEntity(RequireCreateEntity createEntity, uint id, Action<byte[]> send)
+    private void CreateAnywhereEntity(RequireCreateEntity createEntity, uint id, Action<ReadOnlyMemory<byte>> send)
     {
         DbHelper.GenerateNewGlobalId().ContinueWith(task =>
         {
