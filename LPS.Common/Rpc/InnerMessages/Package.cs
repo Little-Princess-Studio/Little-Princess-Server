@@ -21,14 +21,14 @@ public readonly struct Package
     /// <summary>
     /// Gets the package body.
     /// </summary>
-    public readonly Memory<byte> Body;
+    public readonly ReadOnlyMemory<byte> Body;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Package"/> struct.
     /// </summary>
     /// <param name="header">The package header.</param>
     /// <param name="body">The package body.</param>
-    public Package(in PackageHeader header, Memory<byte> body)
+    public Package(in PackageHeader header, ReadOnlyMemory<byte> body)
     {
         this.Header = header;
         this.Body = body;

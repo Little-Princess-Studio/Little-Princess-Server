@@ -160,7 +160,7 @@ public class Client
                     var socket = this.socket!;
                     try
                     {
-                        socket.Send(pkg.ToBytes());
+                        socket.Send(pkg.ToBytes().Span);
                     }
                     catch (Exception e)
                     {
