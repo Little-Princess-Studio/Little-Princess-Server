@@ -70,7 +70,7 @@ internal class ImmediateHostManagerConnectionOfGate : ImmediateManagerConnection
                     },
                     false);
 
-                this.managerConnectedEvent.Signal();
+                this.ManagerConnectedEvent.Signal();
             },
             OnDispose = self =>
             {

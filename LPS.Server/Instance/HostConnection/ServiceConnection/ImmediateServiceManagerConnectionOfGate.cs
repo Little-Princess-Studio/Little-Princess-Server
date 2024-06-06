@@ -58,7 +58,7 @@ internal class ImmediateServiceManagerConnectionOfGate : ImmediateManagerConnect
             },
             OnConnected = self =>
             {
-                this.managerConnectedEvent.Signal();
+                this.ManagerConnectedEvent.Signal();
 
                 var serviceCtl = new ServiceControl
                 {

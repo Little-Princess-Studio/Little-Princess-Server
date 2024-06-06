@@ -21,11 +21,6 @@ using LPS.Server.Rpc;
 internal abstract class ImmediateManagerConnectionBase : IManagerConnection
 {
     /// <summary>
-    /// Gets tcp client to host manager.
-    /// </summary>
-    protected TcpClient ClientToManager { get; private set; } = null!;
-
-    /// <summary>
     /// Dispatcher to dispatch message.
     /// </summary>
     protected readonly Dispatcher<IMessage> MsgDispatcher = new();
@@ -33,29 +28,31 @@ internal abstract class ImmediateManagerConnectionBase : IManagerConnection
     /// <summary>
     /// Countdown event to signal when the connection to the host manager is established.
     /// </summary>
-    protected readonly CountdownEvent managerConnectedEvent;
+    protected readonly CountdownEvent ManagerConnectedEvent;
 
     private readonly SandBox clientsPumpMsgSandBox;
     private readonly Func<bool> checkServerStopped;
+
+    private TcpClient clientToManager = null!;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ImmediateManagerConnectionBase"/> class.
     /// </summary>
     /// <param name="checkServerStopped">Check if server stopped.</param>
-    public ImmediateManagerConnectionBase(Func<bool> checkServerStopped)
+    protected ImmediateManagerConnectionBase(Func<bool> checkServerStopped)
     {
         this.checkServerStopped = checkServerStopped;
 
-        this.managerConnectedEvent = new CountdownEvent(1);
+        this.ManagerConnectedEvent = new CountdownEvent(1);
         this.clientsPumpMsgSandBox = SandBox.Create(this.PumpMessageHandler);
     }
 
     /// <inheritdoc/>
     public void Run()
     {
-        this.ClientToManager = this.GetTcpClient();
-        this.ClientToManager.Run();
-        this.managerConnectedEvent.Wait();
+        this.clientToManager = this.GetTcpClient();
+        this.clientToManager.Run();
+        this.ManagerConnectedEvent.Wait();
         this.BeforeStartPumpMessage();
         this.clientsPumpMsgSandBox.Run();
     }
@@ -63,20 +60,20 @@ internal abstract class ImmediateManagerConnectionBase : IManagerConnection
     /// <inheritdoc/>
     public void ShutDown()
     {
-        this.ClientToManager.Stop();
+        this.clientToManager.Stop();
     }
 
     /// <inheritdoc/>
     public void WaitForExit()
     {
         this.clientsPumpMsgSandBox.WaitForExit();
-        this.ClientToManager.WaitForExit();
+        this.clientToManager.WaitForExit();
     }
 
     /// <inheritdoc/>
     public void Send(IMessage message)
     {
-        this.ClientToManager.Send(message);
+        this.clientToManager.Send(message);
     }
 
     /// <inheritdoc/>
@@ -122,7 +119,7 @@ internal abstract class ImmediateManagerConnectionBase : IManagerConnection
         {
             while (!this.checkServerStopped.Invoke())
             {
-                this.ClientToManager.Pump();
+                this.clientToManager.Pump();
                 Thread.Sleep(1);
             }
         }
