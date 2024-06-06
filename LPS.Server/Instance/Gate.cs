@@ -237,7 +237,7 @@ public partial class Gate : IInstance
 
         Logger.Info("Service manager mailbox got.");
         Logger.Info("Try to connect to service manager");
-        this.ConnectToServiceManager();
+        this.ConnectToServiceManager(this.Config["use_mq_to_service_manager"]?.Value<bool>() ?? false);
 
         Logger.Info("[Startup] STEP 8: Start pumping messages from remote clients.");
         this.readyToPumpClients = true;

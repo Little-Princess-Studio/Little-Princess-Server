@@ -10,6 +10,7 @@ using System;
 using Google.Protobuf;
 using LPS.Common.Rpc.InnerMessages;
 using LPS.Server.Instance.HostConnection.HostManagerConnection;
+using LPS.Server.Instance.HostConnection.ServiceConnection;
 
 /// <summary>
 /// Each gate need maintain multiple connections from remote clients
@@ -21,14 +22,21 @@ using LPS.Server.Instance.HostConnection.HostManagerConnection;
 /// </summary>
 public partial class Gate
 {
-    private void ConnectToServiceManager()
+    private void ConnectToServiceManager(bool isMqConnection)
     {
-        this.serviceMgrConnection = new ImmediateServiceManagerConnectionOfGate(
-            this.serviceManagerMailBox.Ip,
-            this.serviceManagerMailBox.Port,
-            this.GenerateRpcId,
-            () => this.tcpGateServer!.Stopped,
-            this.entity!.MailBox);
+        if (isMqConnection)
+        {
+            this.serviceMgrConnection = new MessageQueueServiceManagerConnectionOfGate(this.Name);
+        }
+        else
+        {
+            this.serviceMgrConnection = new ImmediateServiceManagerConnectionOfGate(
+                this.serviceManagerMailBox.Ip,
+                this.serviceManagerMailBox.Port,
+                this.GenerateRpcId,
+                () => this.tcpGateServer!.Stopped,
+                this.entity!.MailBox);
+        }
 
         this.serviceMgrConnection.RegisterMessageHandler(PackageType.EntityRpc, this.HandleEntityRpc);
         this.serviceMgrConnection.RegisterMessageHandler(PackageType.EntityRpcCallBack, this.HandleEntityRpcCallBack);

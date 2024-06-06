@@ -11,6 +11,7 @@ using LPS.Common.Debug;
 using LPS.Common.Rpc;
 using LPS.Common.Rpc.InnerMessages;
 using LPS.Server.Instance.HostConnection.HostManagerConnection;
+using LPS.Server.Instance.HostConnection.ServiceConnection;
 
 /// <summary>
 /// Each server instance has connections to every gates, rpc message from server's entity will ben sent to gate and
@@ -18,14 +19,21 @@ using LPS.Server.Instance.HostConnection.HostManagerConnection;
 /// </summary>
 public partial class Server
 {
-    private void ConnectToServiceManager()
+    private void ConnectToServiceManager(bool isMqConnection)
     {
-        this.serviceMgrConnection = new ImmediateServiceManagerConnectionOfServer(
-            this.serviceManagerMailBox.Ip,
-            this.serviceManagerMailBox.Port,
-            this.GenerateRpcId,
-            () => this.tcpServer!.Stopped,
-            this.entity!.MailBox);
+        if (isMqConnection)
+        {
+            this.serviceMgrConnection = new MessageQueueServiceManagerConnectionOfServer(this.Name);
+        }
+        else
+        {
+            this.serviceMgrConnection = new ImmediateServiceManagerConnectionOfServer(
+                this.serviceManagerMailBox.Ip,
+                this.serviceManagerMailBox.Port,
+                this.GenerateRpcId,
+                () => this.tcpServer!.Stopped,
+                this.entity!.MailBox);
+        }
 
         this.serviceMgrConnection.RegisterMessageHandler(PackageType.ServiceRpcCallBack, this.HandleServiceRpcCallBack);
         this.serviceMgrConnection.Run();

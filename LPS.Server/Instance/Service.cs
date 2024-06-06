@@ -10,13 +10,13 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using Google.Protobuf;
-using Google.Protobuf.WellKnownTypes;
 using LPS.Common.Debug;
 using LPS.Common.Rpc;
 using LPS.Common.Rpc.InnerMessages;
 using LPS.Server;
 using LPS.Server.Instance.HostConnection;
 using LPS.Server.Instance.HostConnection.HostManagerConnection;
+using LPS.Server.Instance.HostConnection.ServiceConnection;
 using LPS.Server.Rpc.InnerMessages;
 using LPS.Server.Service;
 using Newtonsoft.Json.Linq;
@@ -72,10 +72,19 @@ public class Service : IInstance
     {
         this.Config = config;
 
-        this.serviceMgrConnection = new ImmediateServiceManagerConnectionOfService(
-            serviceMgrIp,
-            serviceMgrPort,
-            checkServerStopped: () => this.stopFlag);
+        bool useMqConn = this.Config["use_mq_to_service_manager"]?.Value<bool>() ?? false;
+
+        if (useMqConn)
+        {
+            this.serviceMgrConnection = new MessageQueueServiceManagerConnectionOfService(name);
+        }
+        else
+        {
+            this.serviceMgrConnection = new ImmediateServiceManagerConnectionOfService(
+                serviceMgrIp,
+                serviceMgrPort,
+                checkServerStopped: () => this.stopFlag);
+        }
 
         this.serviceMgrConnection.RegisterMessageHandler(PackageType.ServiceManagerCommand, this.ServiceManagerCommandHandler);
         this.serviceMgrConnection.RegisterMessageHandler(PackageType.ServiceRpc, this.ServiceRpcHandler);
