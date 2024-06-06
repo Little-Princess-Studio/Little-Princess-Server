@@ -27,7 +27,7 @@ public class MessageQueueServiceManagerConnectionOfService : MessageQueueManager
     protected override string GetMgrExchangeName() => Consts.ServiceToServiceMgrExchangeName;
 
     /// <inheritdoc/>
-    protected override string GetMessagePackageRoutingKeyToMgr() => Consts.GenerateServiceMessagePackage(this.Name);
+    protected override string GetMessagePackageRoutingKeyToMgr() => Consts.GenerateServiceToServiceMgrMessagePackage(this.Name);
 
     /// <inheritdoc/>
     protected override string GetMessageQueueNameToReceiveMessageFromMgr() => Consts.GenerateServiceQueueName(this.Name);

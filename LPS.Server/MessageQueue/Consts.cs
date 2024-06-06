@@ -319,7 +319,7 @@ public static class Consts
     /// </summary>
     /// <param name="name">Instance name.</param>
     /// <returns>Name.</returns>
-    public static string GenerateServiceMessagePackage(string name) => $"serviceMessagePackage.{name}.serviceToServiceMgr";
+    public static string GenerateServiceToServiceMgrMessagePackage(string name) => $"serviceMessagePackage.{name}.serviceToServiceMgr";
 
     /// <summary>
     /// Generate server message package routing key to service manager.

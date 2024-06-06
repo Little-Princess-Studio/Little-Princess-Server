@@ -24,26 +24,20 @@ public class MessageQueueServiceManagerConnectionOfGate : MessageQueueManagerCon
     }
 
     /// <inheritdoc/>
-    protected override string GetMgrExchangeName()
-    {
-        throw new System.NotImplementedException();
-    }
+    protected override string GetMgrExchangeName() => Consts.GateToServiceMgrExchangeName;
 
     /// <inheritdoc/>
-    protected override string GetMessagePackageRoutingKeyToMgr()
-    {
-        throw new System.NotImplementedException();
-    }
+    protected override string GetMessagePackageRoutingKeyToMgr() => Consts.GenerateGateToServiceMgrMessagePackage(this.Name);
 
     /// <inheritdoc/>
-    protected override string GetMessageQueueNameToReceiveMessageFromMgr()
-    {
-        throw new System.NotImplementedException();
-    }
+    protected override string GetMessageQueueNameToReceiveMessageFromMgr() => Consts.GenerateGateQueueName(this.Name);
 
     /// <inheritdoc/>
     protected override void InitializeBinding(MessageQueueClient client)
     {
-        throw new System.NotImplementedException();
+        client.BindQueueAndExchange(
+            this.GetMessageQueueNameToReceiveMessageFromMgr(),
+            Consts.ServiceMgrToGateExchangeName,
+            Consts.GetRoutingKeyFromServiceManagerToGate(this.Name));
     }
 }

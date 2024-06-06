@@ -30,7 +30,7 @@ public class MessageQueueServiceManagerConnectionOfServer : MessageQueueManagerC
     protected override string GetMessagePackageRoutingKeyToMgr() => Consts.GenerateServerToServiceMgrMessagePackage(this.Name);
 
     /// <inheritdoc/>
-    protected override string GetMessageQueueNameToReceiveMessageFromMgr() => Consts.GenerateGateQueueName(this.Name);
+    protected override string GetMessageQueueNameToReceiveMessageFromMgr() => Consts.GenerateServerQueueName(this.Name);
 
     /// <inheritdoc/>
     protected override void InitializeBinding(MessageQueueClient client)

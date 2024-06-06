@@ -33,7 +33,7 @@ public static class RpcGenericArgTypeCheckHelper
     }
 
     /// <summary>
-    /// Assert if the type if plaint type (one of int/float/string/float/MailBox).
+    /// Assert if the type is plaint type (one of int/float/string/float/MailBox).
     /// </summary>
     /// <typeparam name="T">Type to check.</typeparam>
     /// <exception cref="Exception">Throw exception if failed to check the key type.</exception>
