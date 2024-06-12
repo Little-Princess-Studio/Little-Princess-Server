@@ -9,12 +9,14 @@
         "server0" : {
             "ip": "127.0.0.1",
             "port": 12001,
-            "use_mq_to_host": true
+            "use_mq_to_host": true,
+            "use_mq_to_service_manager": true
         },
         "server1": {
             "ip": "127.0.0.1",
             "port": 12011,
-            "use_mq_to_host": true
+            "use_mq_to_host": true,
+            "use_mq_to_service_manager": false
         }
     },
 

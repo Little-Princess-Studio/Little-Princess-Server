@@ -7,7 +7,7 @@
 namespace LPS.Server.Instance.HostConnection;
 
 using System;
-using System.Threading.Tasks;
+using System.Collections.Generic;
 using Google.Protobuf;
 using LPS.Common.Debug;
 using LPS.Common.Ipc;
@@ -33,7 +33,7 @@ public abstract class MessageQueueManagerConnectionBase : IManagerConnection
     /// Initializes a new instance of the <see cref="MessageQueueManagerConnectionBase"/> class.
     /// </summary>
     /// <param name="name">Name of the connection, used to genereate message queue name.</param>
-    public MessageQueueManagerConnectionBase(string name)
+    protected MessageQueueManagerConnectionBase(string name)
     {
         this.Name = name;
         this.messageQueueClientToHostMgr = new MessageQueueClient();
@@ -47,12 +47,11 @@ public abstract class MessageQueueManagerConnectionBase : IManagerConnection
         this.messageQueueClientToHostMgr.AsProducer();
         this.messageQueueClientToHostMgr.AsConsumer();
 
-        this.messageQueueClientToHostMgr.DeclareExchange(Consts.HostMgrToServerExchangeName);
-        this.messageQueueClientToHostMgr.DeclareExchange(Consts.HostMgrToGateExchangeName);
-        this.messageQueueClientToHostMgr.DeclareExchange(Consts.HostMgrToServiceMgrExchangeName);
-        this.messageQueueClientToHostMgr.DeclareExchange(Consts.ServerToHostExchangeName);
-        this.messageQueueClientToHostMgr.DeclareExchange(Consts.GateToHostExchangeName);
-        this.messageQueueClientToHostMgr.DeclareExchange(Consts.ServiceMgrToHostExchangeName);
+        var list = this.GetDeclaringExchanges();
+        foreach (var name in list)
+        {
+            this.messageQueueClientToHostMgr.DeclareExchange(name);
+        }
 
         this.InitializeBinding(this.messageQueueClientToHostMgr);
 
@@ -110,6 +109,19 @@ public abstract class MessageQueueManagerConnectionBase : IManagerConnection
     /// <returns>Routing key.</returns>
     protected abstract string GetMessagePackageRoutingKeyToMgr();
 
+    /// <summary>
+    /// Get declaring exchange names.
+    /// </summary>
+    /// <returns>The declaring exchange names.</returns>
+    protected abstract IEnumerable<string> GetDeclaringExchanges();
+
+    /// <summary>
+    /// Check if the routingkey is acceptable for this connection.
+    /// </summary>
+    /// <param name="routingKey">Routing key.</param>
+    /// <returns>Acceptable if true otherwise false.</returns>
+    protected abstract bool CheckIfRoutingKeyAcceptable(string routingKey);
+
     private uint GenerateRpcId() => this.rpcId++;
 
     private void SendInternal(IMessage message)
@@ -125,12 +137,7 @@ public abstract class MessageQueueManagerConnectionBase : IManagerConnection
 
     private void HandleHostMgrMqMessage(ReadOnlyMemory<byte> msg, string routingKey)
     {
-        // TODO: customize the check condition in sub classes.
-        if (routingKey == Consts.GenerateHostMessageToServerPackage(this.Name) ||
-            routingKey == Consts.GenerateHostMessageToGatePackage(this.Name) ||
-            routingKey == Consts.HostMessagePackageToServiceMgrPackage ||
-            routingKey == Consts.HostBroadCastMessagePackageToServer ||
-            routingKey == Consts.HostBroadCastMessagePackageToGate)
+        if (this.CheckIfRoutingKeyAcceptable(routingKey))
         {
             var pkg = PackageHelper.GetPackageFromBytes(msg);
             var type = (PackageType)pkg.Header.Type;

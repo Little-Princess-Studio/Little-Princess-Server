@@ -38,6 +38,7 @@ public class Client
     private int port;
     private Socket? socket;
     private bool exitFlag;
+    private uint packageId;
 
     private Client()
     {
@@ -159,7 +160,7 @@ public class Client
                     var socketToSend = this.socket!;
                     try
                     {
-                        socketToSend.Send(pkg.ToBytes());
+                        socketToSend.Send(pkg.ToBytes().Span);
                     }
                     catch (Exception e)
                     {

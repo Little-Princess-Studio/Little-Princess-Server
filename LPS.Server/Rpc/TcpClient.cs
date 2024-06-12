@@ -214,7 +214,7 @@ internal class TcpClient // : IClient
 
                     try
                     {
-                        client.Socket!.Send(pkg.ToBytes());
+                        client.Socket!.Send(pkg.ToBytes().Span);
                     }
                     catch (Exception e)
                     {

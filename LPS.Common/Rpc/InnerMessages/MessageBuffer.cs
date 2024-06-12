@@ -26,7 +26,7 @@ public class MessageBuffer
 
     private int curBufLen = InitBufLength;
 
-    private byte[] buffer = new byte[InitBufLength];
+    private Memory<byte> buffer = new byte[InitBufLength];
 
     /// <summary>
     /// How to handle TCP stream raw data to Package:
@@ -47,7 +47,7 @@ public class MessageBuffer
     /// <param name="len">Length of the new package array.</param>
     /// <param name="pkg">Parsed package.</param>
     /// <returns>If succeed to receive a package from buffer, return true otherwise false.</returns>
-    public bool TryReceiveFromRaw(byte[] incomeBuffer, int len, out Package pkg)
+    public bool TryReceiveFromRaw(Span<byte> incomeBuffer, int len, out Package pkg)
     {
         if (this.tail + len > this.curBufLen)
         {
@@ -62,10 +62,11 @@ public class MessageBuffer
                     this.curBufLen <<= 1;
                 }
 
-                byte[] newBuffer = new byte[this.curBufLen];
+                Memory<byte> newBuffer = new byte[this.curBufLen];
 
                 // copy current data buf[head...tail] -> new[0...tail-head]
-                Buffer.BlockCopy(this.buffer, this.head, newBuffer, 0, this.BodyLen);
+                // Buffer.BlockCopy(this.buffer, this.head, newBuffer, 0, this.BodyLen);
+                this.buffer[this.head..this.tail].CopyTo(newBuffer);
                 this.buffer = newBuffer;
 
                 this.tail = this.BodyLen;
@@ -73,7 +74,8 @@ public class MessageBuffer
             }
             else
             {
-                Buffer.BlockCopy(this.buffer, this.head, this.buffer, 0, this.BodyLen);
+                // Buffer.BlockCopy(this.buffer, this.head, this.buffer, 0, this.BodyLen);
+                this.buffer[this.head..this.tail].CopyTo(this.buffer);
 
                 this.tail = this.BodyLen;
                 this.head = 0;
@@ -81,7 +83,9 @@ public class MessageBuffer
         }
 
         // copy incomeBuffer to buf [tail_..tail_+len]
-        Buffer.BlockCopy(incomeBuffer, 0, this.buffer, this.tail, len);
+        incomeBuffer[0..len].CopyTo(this.buffer.Span[this.tail..(this.tail + len)]);
+
+        // Buffer.BlockCopy(incomeBuffer, 0, this.buffer, this.tail, len);
         this.tail += len;
 
         if (this.BodyLen < HeaderLen)
@@ -91,12 +95,13 @@ public class MessageBuffer
         }
         else
         {
-            var pkgLen = BitConverter.ToUInt16(this.buffer, this.head);
+            var pkgBuffer = this.buffer.Span[this.head..];
+            var pkgLen = BitConverter.ToUInt16(pkgBuffer);
 
             // Logger.Debug($"bodylen={BodyLen}, pkglen={pkgLen}");
             if (this.BodyLen == pkgLen)
             {
-                pkg = PackageHelper.GetPackage(this.head, this.buffer);
+                pkg = PackageHelper.GetPackage(pkgBuffer);
                 this.head = this.tail = 0;
                 return true;
             }
@@ -107,7 +112,7 @@ public class MessageBuffer
             }
             else if (this.BodyLen > pkgLen)
             {
-                pkg = PackageHelper.GetPackage(this.head, this.buffer);
+                pkg = PackageHelper.GetPackage(pkgBuffer);
                 this.head += pkgLen;
                 return true;
             }
@@ -116,26 +121,4 @@ public class MessageBuffer
         pkg = default;
         return false;
     }
-
-/*
-    {
-        int pos = this.head;
-        var pkgLen = BitConverter.ToUInt16(this.buffer, pos);
-        pos += 2;
-        var pkgId = BitConverter.ToUInt32(this.buffer, pos);
-        pos += 4;
-        var pkgVersion = BitConverter.ToUInt16(this.buffer, pos);
-        pos += 2;
-        var pkgType = BitConverter.ToUInt16(this.buffer, pos);
-
-        var bodyLen = pkgLen - HeaderLen;
-        var body = new byte[bodyLen];
-        Buffer.BlockCopy(this.buffer, this.head + HeaderLen, body, 0, bodyLen);
-
-        var header = new PackageHeader(pkgLen, pkgId, pkgVersion, pkgType);
-        var pkg = new Package(header, body);
-
-        return pkg;
-    }
-*/
 }

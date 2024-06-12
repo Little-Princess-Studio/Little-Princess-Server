@@ -7,13 +7,15 @@
             "ip": "127.0.0.1",
             "innerip": "127.0.0.1",
             "port": 11001,
-            "use_mq_to_host": true
+            "use_mq_to_host": true,
+            "use_mq_to_service_manager": true
         },
         "gate1": {
             "ip": "127.0.0.1",
             "innerip": "127.0.0.1",
             "port": 11011,
-            "use_mq_to_host": true
+            "use_mq_to_host": true,
+            "use_mq_to_service_manager": false
         }
     },
 

@@ -58,7 +58,7 @@ internal class ImmediateHostManagerConnectionOfServiceManager : ImmediateManager
             },
             OnConnected = self =>
             {
-                this.managerConnectedEvent.Signal();
+                this.ManagerConnectedEvent.Signal();
             },
         };
 }

@@ -7,6 +7,7 @@
 namespace LPS.Server.Instance.HostConnection.HostManagerConnection;
 
 using System;
+using System.Collections.Generic;
 using LPS.Common.Debug;
 using LPS.Server.MessageQueue;
 using LPS.Server.Rpc.InnerMessages;
@@ -80,4 +81,11 @@ public class MessageQueueHostManagerConnectionOfServer : MessageQueueManagerConn
 
     /// <inheritdoc/>
     protected override string GetMessagePackageRoutingKeyToMgr() => Consts.GenerateServerMessagePackage(this.Name);
+
+    /// <inheritdoc/>
+    protected override IEnumerable<string> GetDeclaringExchanges() => [Consts.HostMgrToServerExchangeName, Consts.ServerToHostExchangeName];
+
+    /// <inheritdoc/>
+    protected override bool CheckIfRoutingKeyAcceptable(string routingKey) =>
+        routingKey == Consts.GenerateHostMessageToServerPackage(this.Name) || routingKey == Consts.HostBroadCastMessagePackageToServer;
 }

@@ -86,5 +86,5 @@ public abstract class Connection
     /// Send bytes to the remote.
     /// </summary>
     /// <param name="message">Message to send.</param>
-    public abstract void Send(byte[] message);
+    public abstract void Send(ReadOnlyMemory<byte> message);
 }

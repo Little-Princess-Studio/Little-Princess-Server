@@ -6,6 +6,7 @@
 
 namespace LPS.Server.Instance.HostConnection.ServiceConnection;
 
+using System.Collections.Generic;
 using LPS.Server.Instance.HostConnection;
 using LPS.Server.MessageQueue;
 
@@ -27,10 +28,16 @@ public class MessageQueueServiceManagerConnectionOfService : MessageQueueManager
     protected override string GetMgrExchangeName() => Consts.ServiceToServiceMgrExchangeName;
 
     /// <inheritdoc/>
-    protected override string GetMessagePackageRoutingKeyToMgr() => Consts.GenerateServiceMessagePackage(this.Name);
+    protected override string GetMessagePackageRoutingKeyToMgr() => Consts.GenerateServiceToServiceMgrMessagePackage(this.Name);
 
     /// <inheritdoc/>
     protected override string GetMessageQueueNameToReceiveMessageFromMgr() => Consts.GenerateServiceQueueName(this.Name);
+
+    /// <inheritdoc/>
+    protected override IEnumerable<string> GetDeclaringExchanges() => [Consts.ServiceToServiceMgrExchangeName, Consts.ServiceMgrToServiceExchangeName];
+
+    /// <inheritdoc/>
+    protected override bool CheckIfRoutingKeyAcceptable(string routingKey) => routingKey == Consts.GenerateServiceManagerMessageToServicePackage(this.Name);
 
     /// <inheritdoc/>
     protected override void InitializeBinding(MessageQueueClient client)

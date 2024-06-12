@@ -59,7 +59,7 @@ public class MqConnection : Connection
     }
 
     /// <inheritdoc/>
-    public override void Send(byte[] bytes)
+    public override void Send(ReadOnlyMemory<byte> bytes)
     {
         this.client.Publish(bytes, this.exchangeName, this.routingKey);
     }

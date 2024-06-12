@@ -91,7 +91,7 @@ internal class ImmediateHostManagerConnectionOfServer : ImmediateManagerConnecti
                     ConnectionID = this.onGenerateAsyncId.Invoke(),
                 });
 
-                this.managerConnectedEvent.Signal();
+                this.ManagerConnectedEvent.Signal();
             },
         };
 }

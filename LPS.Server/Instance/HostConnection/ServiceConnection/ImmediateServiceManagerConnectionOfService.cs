@@ -50,7 +50,7 @@ internal class ImmediateServiceManagerConnectionOfService : ImmediateManagerConn
             },
             OnConnected = self =>
             {
-                this.managerConnectedEvent.Signal();
+                this.ManagerConnectedEvent.Signal();
             },
             OnDispose = self =>
             {

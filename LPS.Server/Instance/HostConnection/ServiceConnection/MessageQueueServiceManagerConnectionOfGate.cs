@@ -6,6 +6,7 @@
 
 namespace LPS.Server.Instance.HostConnection.ServiceConnection;
 
+using System.Collections.Generic;
 using LPS.Server.Instance.HostConnection;
 using LPS.Server.MessageQueue;
 
@@ -24,26 +25,26 @@ public class MessageQueueServiceManagerConnectionOfGate : MessageQueueManagerCon
     }
 
     /// <inheritdoc/>
-    protected override string GetMgrExchangeName()
-    {
-        throw new System.NotImplementedException();
-    }
+    protected override string GetMgrExchangeName() => Consts.GateToServiceMgrExchangeName;
 
     /// <inheritdoc/>
-    protected override string GetMessagePackageRoutingKeyToMgr()
-    {
-        throw new System.NotImplementedException();
-    }
+    protected override string GetMessagePackageRoutingKeyToMgr() => Consts.GenerateGateToServiceMgrMessagePackage(this.Name);
 
     /// <inheritdoc/>
-    protected override string GetMessageQueueNameToReceiveMessageFromMgr()
-    {
-        throw new System.NotImplementedException();
-    }
+    protected override string GetMessageQueueNameToReceiveMessageFromMgr() => Consts.GenerateGateQueueName(this.Name);
+
+    /// <inheritdoc/>
+    protected override IEnumerable<string> GetDeclaringExchanges() => [Consts.ServiceMgrToGateExchangeName, Consts.GateToServiceMgrExchangeName];
+
+    /// <inheritdoc/>
+    protected override bool CheckIfRoutingKeyAcceptable(string routingKey) => routingKey == Consts.GenerateServiceManagerMessageToGatePackage(this.Name);
 
     /// <inheritdoc/>
     protected override void InitializeBinding(MessageQueueClient client)
     {
-        throw new System.NotImplementedException();
+        client.BindQueueAndExchange(
+            this.GetMessageQueueNameToReceiveMessageFromMgr(),
+            Consts.ServiceMgrToGateExchangeName,
+            Consts.GetRoutingKeyFromServiceManagerToGate(this.Name));
     }
 }

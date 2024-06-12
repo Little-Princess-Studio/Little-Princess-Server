@@ -21,14 +21,14 @@ public readonly struct Package
     /// <summary>
     /// Gets the package body.
     /// </summary>
-    public readonly byte[] Body;
+    public readonly ReadOnlyMemory<byte> Body;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Package"/> struct.
     /// </summary>
     /// <param name="header">The package header.</param>
     /// <param name="body">The package body.</param>
-    public Package(in PackageHeader header, byte[] body)
+    public Package(in PackageHeader header, ReadOnlyMemory<byte> body)
     {
         this.Header = header;
         this.Body = body;
@@ -38,28 +38,37 @@ public readonly struct Package
     /// Convert package object to bytes.
     /// </summary>
     /// <returns>Byte array.</returns>
-    public byte[] ToBytes()
+    public ReadOnlyMemory<byte> ToBytes()
     {
-        byte[] bytes = new byte[this.Header.Length];
+        Memory<byte> bytes = new byte[this.Header.Length];
 
-        var tmpBytes = BitConverter.GetBytes(this.Header.Length);
         int pos = 0;
-        Buffer.BlockCopy(tmpBytes, 0, bytes, pos, tmpBytes.Length);
+        ReadOnlySpan<byte> tmpBytes = BitConverter.GetBytes(this.Header.Length);
+        tmpBytes.CopyTo(bytes.Span[pos..]);
+
+        // Buffer.BlockCopy(tmpBytes, 0, bytes, pos, tmpBytes.Length);
         pos += tmpBytes.Length;
 
         tmpBytes = BitConverter.GetBytes(this.Header.ID);
-        Buffer.BlockCopy(tmpBytes, 0, bytes, pos, tmpBytes.Length);
+        tmpBytes.CopyTo(bytes.Span[pos..]);
+
+        // Buffer.BlockCopy(tmpBytes, 0, bytes, pos, tmpBytes.Length);
         pos += tmpBytes.Length;
 
         tmpBytes = BitConverter.GetBytes(this.Header.Version);
-        Buffer.BlockCopy(tmpBytes, 0, bytes, pos, tmpBytes.Length);
+        tmpBytes.CopyTo(bytes.Span[pos..]);
+
+        // Buffer.BlockCopy(tmpBytes, 0, bytes, pos, tmpBytes.Length);
         pos += tmpBytes.Length;
 
         tmpBytes = BitConverter.GetBytes(this.Header.Type);
-        Buffer.BlockCopy(tmpBytes, 0, bytes, pos, tmpBytes.Length);
+        tmpBytes.CopyTo(bytes.Span[pos..]);
+
+        // Buffer.BlockCopy(tmpBytes, 0, bytes, pos, tmpBytes.Length);
         pos += tmpBytes.Length;
 
-        Buffer.BlockCopy(this.Body, 0, bytes, pos, this.Body.Length);
+        // Buffer.BlockCopy(this.Body, 0, bytes, pos, this.Body.Length);
+        this.Body.Span.CopyTo(bytes.Span[pos..]);
 
         return bytes;
     }

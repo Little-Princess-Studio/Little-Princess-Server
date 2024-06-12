@@ -6,6 +6,7 @@
 
 namespace LPS.Server.Instance.HostConnection.HostManagerConnection;
 
+using System.Collections.Generic;
 using LPS.Server.MessageQueue;
 
 /// <summary>
@@ -16,7 +17,6 @@ public class MessageQueueHostManagerConnectionOfServiceManager : MessageQueueMan
     /// <summary>
     /// Initializes a new instance of the <see cref="MessageQueueHostManagerConnectionOfServiceManager"/> class.
     /// </summary>
-    /// <param name="name">Unique name.</param>
     public MessageQueueHostManagerConnectionOfServiceManager()
         : base("serviceMgr")
     {
@@ -27,6 +27,9 @@ public class MessageQueueHostManagerConnectionOfServiceManager : MessageQueueMan
 
     /// <inheritdoc/>
     protected override string GetMessagePackageRoutingKeyToMgr() => Consts.ServiceMgrMessagePackage;
+
+    /// <inheritdoc/>
+    protected override IEnumerable<string> GetDeclaringExchanges() => [Consts.HostMgrToServiceMgrExchangeName, Consts.ServiceMgrToHostExchangeName];
 
     /// <inheritdoc/>
     protected override string GetMessageQueueNameToReceiveMessageFromMgr() => Consts.ServiceManagerQueueName;
@@ -44,4 +47,7 @@ public class MessageQueueHostManagerConnectionOfServiceManager : MessageQueueMan
             Consts.HostMgrToServiceMgrExchangeName,
             Consts.RoutingKeyToServiceMgr);
     }
+
+    /// <inheritdoc/>
+    protected override bool CheckIfRoutingKeyAcceptable(string routingKey) => routingKey == Consts.HostMessagePackageToServiceMgrPackage;
 }
