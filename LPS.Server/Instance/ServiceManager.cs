@@ -184,114 +184,69 @@ public class ServiceManager : IInstance
 
         this.messageQueueClientToOtherInstances.Observe(
             Consts.ServerOfServiceManagerQueueName,
-            (ReadOnlyMemory<byte> msg, string routingKey) =>
-            {
-                var split = routingKey.Split('.');
-                var msgType = split[0];
-                var targetIdentifier = split[1];
-
-                switch (msgType)
-                {
-                    case "serverMessagePackage":
-                        var pkg = PackageHelper.GetPackageFromBytes(msg);
-                        var type = (PackageType)pkg.Header.Type;
-                        var protobuf = PackageHelper.GetProtoBufObjectByType(type, pkg);
-
-                        MqConnection conn;
-                        if (this.identifierToMqConnection.TryGetValue(targetIdentifier, out var value))
-                        {
-                            conn = value;
-                        }
-                        else
-                        {
-                            conn = new MqConnection(
-                                this.messageQueueClientToOtherInstances,
-                                Consts.ServiceMgrToServerExchangeName,
-                                Consts.GenerateServiceManagerMessageToServerPackage(targetIdentifier));
-                            this.identifierToMqConnection[targetIdentifier] = conn;
-                        }
-
-                        this.dispatcher.Dispatch(type, (protobuf, conn));
-                        break;
-                    default:
-                        Logger.Warn($"Unknown message type: {msgType}");
-                        break;
-                }
-            });
+            (msg, routingKey) =>
+                this.OnGotMqMessage(
+                    msg,
+                    routingKey,
+                    targetIdentifier => new MqConnection(
+                        this.messageQueueClientToOtherInstances,
+                        Consts.ServiceMgrToServerExchangeName,
+                        Consts.GenerateServiceManagerMessageToServerPackage(targetIdentifier))));
 
         this.messageQueueClientToOtherInstances.Observe(
             Consts.ServiceOfServiceManagerQueueName,
-            (ReadOnlyMemory<byte> msg, string routingKey) =>
-            {
-                var split = routingKey.Split('.');
-                var msgType = split[0];
-                var targetIdentifier = split[1];
-
-                switch (msgType)
-                {
-                    case "serverMessagePackage":
-                        var pkg = PackageHelper.GetPackageFromBytes(msg);
-                        var type = (PackageType)pkg.Header.Type;
-                        var protobuf = PackageHelper.GetProtoBufObjectByType(type, pkg);
-
-                        MqConnection conn;
-                        if (this.identifierToMqConnection.TryGetValue(targetIdentifier, out var value))
-                        {
-                            conn = value;
-                        }
-                        else
-                        {
-                            conn = new MqConnection(
-                                this.messageQueueClientToOtherInstances,
-                                Consts.ServiceMgrToServerExchangeName,
-                                Consts.GenerateServiceManagerMessageToServicePackage(targetIdentifier));
-                            this.identifierToMqConnection[targetIdentifier] = conn;
-                        }
-
-                        this.dispatcher.Dispatch(type, (protobuf, conn));
-                        break;
-                    default:
-                        Logger.Warn($"Unknown message type: {msgType}");
-                        break;
-                }
-            });
+            (msg, routingKey) =>
+                this.OnGotMqMessage(
+                    msg,
+                    routingKey,
+                    targetIdentifier => new MqConnection(
+                        this.messageQueueClientToOtherInstances,
+                        Consts.ServiceMgrToServiceExchangeName,
+                        Consts.GenerateServiceManagerMessageToServicePackage(targetIdentifier))));
 
         this.messageQueueClientToOtherInstances.Observe(
             Consts.GateOfServiceManagerQueueName,
-            (ReadOnlyMemory<byte> msg, string routingKey) =>
-            {
-                var split = routingKey.Split('.');
-                var msgType = split[0];
-                var targetIdentifier = split[1];
+            (msg, routingkey) =>
+                this.OnGotMqMessage(
+                    msg,
+                    routingkey,
+                    (targetIdentifier) =>
+                        new MqConnection(
+                            this.messageQueueClientToOtherInstances,
+                            Consts.ServiceMgrToGateExchangeName,
+                            Consts.GenerateServiceManagerMessageToGatePackage(targetIdentifier))));
+    }
 
-                switch (msgType)
+    private void OnGotMqMessage(ReadOnlyMemory<byte> msg, string routingKey, Func<string, MqConnection> onCreateConnection)
+    {
+        var split = routingKey.Split('.');
+        var msgType = split[0];
+        var targetIdentifier = split[1];
+
+        switch (msgType)
+        {
+            case "serverMessagePackage":
+                var pkg = PackageHelper.GetPackageFromBytes(msg);
+                var type = (PackageType)pkg.Header.Type;
+                var protobuf = PackageHelper.GetProtoBufObjectByType(type, pkg);
+
+                MqConnection conn;
+                if (this.identifierToMqConnection.TryGetValue(targetIdentifier, out var value))
                 {
-                    case "serverMessagePackage":
-                        var pkg = PackageHelper.GetPackageFromBytes(msg);
-                        var type = (PackageType)pkg.Header.Type;
-                        var protobuf = PackageHelper.GetProtoBufObjectByType(type, pkg);
-
-                        MqConnection conn;
-                        if (this.identifierToMqConnection.TryGetValue(targetIdentifier, out var value))
-                        {
-                            conn = value;
-                        }
-                        else
-                        {
-                            conn = new MqConnection(
-                                this.messageQueueClientToOtherInstances,
-                                Consts.ServiceMgrToServerExchangeName,
-                                Consts.GenerateServiceManagerMessageToGatePackage(targetIdentifier));
-                            this.identifierToMqConnection[targetIdentifier] = conn;
-                        }
-
-                        this.dispatcher.Dispatch(type, (protobuf, conn));
-                        break;
-                    default:
-                        Logger.Warn($"Unknown message type: {msgType}");
-                        break;
+                    conn = value;
                 }
-            });
+                else
+                {
+                    conn = onCreateConnection.Invoke(targetIdentifier);
+                    this.identifierToMqConnection[targetIdentifier] = conn;
+                }
+
+                this.dispatcher.Dispatch(type, (protobuf, conn));
+                break;
+            default:
+                Logger.Warn($"Unknown message type: {msgType}");
+                break;
+        }
     }
 
     private void RegisterServerMessageHandlers()
