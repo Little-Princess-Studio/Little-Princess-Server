@@ -204,7 +204,7 @@ public class ServiceManager : IInstance
                         }
                         else
                         {
-                            conn = MqConnection.Create(
+                            conn = new MqConnection(
                                 this.messageQueueClientToOtherInstances,
                                 Consts.ServiceMgrToServerExchangeName,
                                 Consts.GenerateServiceManagerMessageToServerPackage(targetIdentifier));
@@ -241,7 +241,7 @@ public class ServiceManager : IInstance
                         }
                         else
                         {
-                            conn = MqConnection.Create(
+                            conn = new MqConnection(
                                 this.messageQueueClientToOtherInstances,
                                 Consts.ServiceMgrToServerExchangeName,
                                 Consts.GenerateServiceManagerMessageToServicePackage(targetIdentifier));
@@ -278,7 +278,7 @@ public class ServiceManager : IInstance
                         }
                         else
                         {
-                            conn = MqConnection.Create(
+                            conn = new MqConnection(
                                 this.messageQueueClientToOtherInstances,
                                 Consts.ServiceMgrToServerExchangeName,
                                 Consts.GenerateServiceManagerMessageToGatePackage(targetIdentifier));

@@ -17,6 +17,11 @@ using LPS.Common.Rpc.InnerMessages;
 public sealed class SocketConnection : Connection
 {
     /// <summary>
+    /// Gets or sets method to generate a unique rpc id.
+    /// </summary>
+    public static Func<uint>? OnGenerateRpcId { get; set; }
+
+    /// <summary>
     /// Gets the socket of the connection.
     /// </summary>
     public Socket Socket { get; private init; } = null!;
@@ -26,25 +31,16 @@ public sealed class SocketConnection : Connection
     /// </summary>
     public CancellationTokenSource TokenSource { get; protected init; } = null!;
 
-    private SocketConnection()
-    {
-    }
-
     /// <summary>
-    /// Create a connection.
+    /// Initializes a new instance of the <see cref="SocketConnection"/> class.
     /// </summary>
     /// <param name="socket">Socket of the connection.</param>
     /// <param name="tokenSource">CancellationTokenSource of the connection used to disconnect the connection.</param>
-    /// <returns>Connection.</returns>
-    public static SocketConnection Create(Socket socket, CancellationTokenSource tokenSource)
+    public SocketConnection(Socket socket, CancellationTokenSource tokenSource)
     {
-        var newConnection = new SocketConnection
-        {
-            Status = ConnectStatus.Init,
-            Socket = socket,
-            TokenSource = tokenSource,
-        };
-        return newConnection;
+        this.Status = ConnectStatus.Init;
+        this.Socket = socket;
+        this.TokenSource = tokenSource;
     }
 
     /// <summary>
@@ -68,7 +64,8 @@ public sealed class SocketConnection : Connection
     /// <inheritdoc/>
     public override void Send(IMessage message)
     {
-        var pkg = PackageHelper.FromProtoBuf(message, 0);
+        var rpcId = OnGenerateRpcId?.Invoke() ?? throw new Exception("OnGenerateRpcId is null");
+        var pkg = PackageHelper.FromProtoBuf(message, rpcId);
         this.Socket.Send(pkg.ToBytes().Span);
     }
 

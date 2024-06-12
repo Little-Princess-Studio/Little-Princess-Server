@@ -219,7 +219,7 @@ internal class TcpServer
             Logger.Debug($"New socket got {ipEndPoint.Address}:{ipEndPoint.Port}");
 
             var cancelTokenSource = new CancellationTokenSource();
-            var conn = SocketConnection.Create(clientSocket, cancelTokenSource);
+            var conn = new SocketConnection(clientSocket, cancelTokenSource);
             conn.OnDisconnected = () =>
             {
                 Logger.Debug("Client disconnected");

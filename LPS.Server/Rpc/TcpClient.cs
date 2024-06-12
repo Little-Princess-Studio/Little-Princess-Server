@@ -274,7 +274,7 @@ internal class TcpClient // : IClient
         }
 
         var cancellationTokenSource = new CancellationTokenSource();
-        var conn = SocketConnection.Create(this.Socket, cancellationTokenSource);
+        var conn = new SocketConnection(this.Socket, cancellationTokenSource);
         conn.Connect();
 
         Logger.Info("Connect to server succ.");

@@ -27,18 +27,12 @@ public class MqConnection : Connection
     private readonly string routingKey;
 
     /// <summary>
-    /// Create a connection.
+    /// Initializes a new instance of the <see cref="MqConnection"/> class.
     /// </summary>
     /// <param name="client">Message queue client of the connection.</param>
     /// <param name="exchangeName">Exchange name of the mq client to send message.</param>
     /// <param name="routingKey">Routing key of the mq client to send message.</param>
-    /// <returns>Connection.</returns>
-    public static MqConnection Create(MessageQueueClient client, string exchangeName, string routingKey)
-    {
-        return new MqConnection(client, exchangeName, routingKey);
-    }
-
-    private MqConnection(MessageQueueClient client, string exchangeName, string routingKey)
+    public MqConnection(MessageQueueClient client, string exchangeName, string routingKey)
     {
         this.client = client;
         this.exchangeName = exchangeName;

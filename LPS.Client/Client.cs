@@ -198,7 +198,7 @@ public class Client
         this.pumpSandBox.Run();
 
         var cancellationTokenSource = new CancellationTokenSource();
-        var conn = SocketConnection.Create(this.socket, cancellationTokenSource);
+        var conn = new SocketConnection(this.socket, cancellationTokenSource);
         conn.Connect();
 
         while (!this.exitFlag)
