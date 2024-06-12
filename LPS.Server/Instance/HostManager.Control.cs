@@ -176,14 +176,6 @@ public partial class HostManager
             status.WaitingForPong = true;
             serviceMgrConn.Send(bytesToSend);
         }
-        else if (this.mailboxIdToIdentifier.TryGetValue(id, out var identifier))
-        {
-            status.WaitingForPong = true;
-            this.messageQueueClientToOtherInstances.Publish(
-                    bytesToSend,
-                    exchange,
-                    getRoutingKey.Invoke(identifier));
-        }
         else
         {
             Logger.Warn($"Cannot find connection or identifier for mailbox with {id}");
@@ -193,11 +185,6 @@ public partial class HostManager
     private void HandlePongFromImmediateConnection((IMessage Message, Connection Connection, uint RpcId) arg)
     {
         var (msg, _, _) = arg;
-        this.CommonHandlePong(msg);
-    }
-
-    private void CommonHandlePong(IMessage msg)
-    {
         var pongMsg = (msg as Pong)!;
         var mb = RpcHelper.PbMailBoxToRpcMailBox(pongMsg.SenderMailBox);
 

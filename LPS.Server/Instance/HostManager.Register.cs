@@ -27,20 +27,13 @@ using MailBox = LPS.Common.Rpc.MailBox;
 /// </summary>
 public partial class HostManager
 {
-    private void RegisterInstanceFromImmediateConnection(
+    private void RegisterInstance(
         RemoteType hostCmdFrom,
         Common.Rpc.MailBox mailBox,
         Connection conn)
     {
         conn.MailBox = mailBox;
         this.mailboxIdToConnection[mailBox.Id] = conn;
-        this.UpdateInstanceStatus(hostCmdFrom, mailBox);
-        this.BroadcastSyncMessage();
-    }
-
-    private void RegisterInstanceFromMq(RemoteType hostCmdFrom, Common.Rpc.MailBox mailBox, string targetIdentifier)
-    {
-        this.mailboxIdToIdentifier[mailBox.Id] = targetIdentifier;
         this.UpdateInstanceStatus(hostCmdFrom, mailBox);
         this.BroadcastSyncMessage();
     }
@@ -226,7 +219,7 @@ public partial class HostManager
     }
 
     // Handle Restarting
-    private void RestartInstanceFromImmediateConnection(
+    private void RestartInstance(
         RemoteType hostCmdFrom,
         Common.Rpc.MailBox mailBox,
         Connection conn)
@@ -239,20 +232,7 @@ public partial class HostManager
             hostCmdFrom,
             mailBox,
             (mb) => this.mailboxIdToConnection.Remove(mb.Id));
-        this.NotifyRestartForImmediateConn(hostCmdFrom, mailBox, conn);
-    }
-
-    private void RestartInstanceFromMq(RemoteType hostCmdFrom, Common.Rpc.MailBox mailBox, string identifier)
-    {
-        Logger.Info($"Restarting instance {hostCmdFrom} {mailBox} from mq");
-
-        this.mailboxIdToIdentifier[mailBox.Id] = identifier;
-
-        this.RemoveOldInstanceInfoAndUpdateNewInstanceInfo(
-            hostCmdFrom,
-            mailBox,
-            (mb) => this.mailboxIdToIdentifier.Remove(mb.Id));
-        this.NotifyRestartForMqConn(hostCmdFrom, mailBox, identifier);
+        this.NotifyRestart(hostCmdFrom, mailBox, conn);
     }
 
     private void RemoveOldInstanceInfoAndUpdateNewInstanceInfo(
@@ -326,34 +306,7 @@ public partial class HostManager
         conn.Send(bytes);
     }
 
-    private void SendSyncCmdToMq(
-        HostCommandType hostCommandType,
-        string identifier,
-        List<MailBox> syncMailBoxes,
-        string exchangeName,
-        Func<string, string> onGenerateRoutingKey)
-    {
-        var syncCmd = new HostCommand
-        {
-            Type = hostCommandType,
-        };
-
-        foreach (var connMailBox in syncMailBoxes)
-        {
-            syncCmd.Args.Add(RpcHelper.GetRpcAny(RpcHelper.RpcMailBoxToPbMailBox(connMailBox)));
-        }
-
-        var pkg = PackageHelper.FromProtoBuf(syncCmd, ServerGlobal.GenerateRpcId());
-        var bytes = pkg.ToBytes();
-
-        this.messageQueueClientToOtherInstances.Publish(
-            bytes,
-            exchangeName,
-            onGenerateRoutingKey(identifier),
-            true);
-    }
-
-    private void NotifyRestartForImmediateConn(RemoteType hostCmdFrom, Common.Rpc.MailBox mailBox, Connection conn)
+    private void NotifyRestart(RemoteType hostCmdFrom, Common.Rpc.MailBox mailBox, Connection conn)
     {
         switch (hostCmdFrom)
         {
@@ -385,43 +338,12 @@ public partial class HostManager
         }
     }
 
-    private void NotifyRestartForMqConn(RemoteType hostCmdFrom, Common.Rpc.MailBox mailBox, string identifier)
-    {
-        switch (hostCmdFrom)
-        {
-            case RemoteType.Server:
-                this.SendSyncCmdToMq(HostCommandType.SyncGates, identifier, this.gatesMailBoxes, Consts.HostMgrToServerExchangeName, Consts.GenerateHostMessageToServerPackage);
-                this.SendSyncCmdToMq(
-                    HostCommandType.SyncServiceManager,
-                    identifier,
-                    [this.serviceManagerInfo.ServiceManagerMailBox],
-                    Consts.HostMgrToServerExchangeName,
-                    Consts.GenerateHostMessageToServerPackage);
-                break;
-
-            case RemoteType.Gate:
-                this.SendSyncCmdToMq(HostCommandType.SyncGates, identifier, this.gatesMailBoxes, Consts.HostMgrToGateExchangeName, Consts.GenerateHostMessageToGatePackage);
-                this.SendSyncCmdToMq(HostCommandType.SyncServers, identifier, this.serversMailBoxes, Consts.HostMgrToGateExchangeName, Consts.GenerateHostMessageToGatePackage);
-                this.SendSyncCmdToMq(
-                    HostCommandType.SyncServiceManager,
-                    identifier,
-                    [this.serviceManagerInfo.ServiceManagerMailBox],
-                    Consts.HostMgrToGateExchangeName,
-                    Consts.GenerateHostMessageToGatePackage);
-                break;
-
-            default:
-                Logger.Warn($"Unknown hostCmdFrom: {hostCmdFrom}");
-                break;
-        }
-    }
-
     private void NotifyReconnect(RemoteType hostCmdFrom, Common.Rpc.MailBox mailBox)
     {
         switch (hostCmdFrom)
         {
             case RemoteType.Server:
-                this.NotifyGatesReconnect(mailBox, HostCommandType.ReconnectServer);
+                this.NotifyServersReconnect(mailBox, HostCommandType.ReconnectServer);
                 break;
             case RemoteType.Gate:
                 this.NotifyGatesReconnect(mailBox, HostCommandType.ReconnectGate);
@@ -462,22 +384,6 @@ public partial class HostManager
             {
                 conn.Send(bytes);
                 Logger.Info($"NotifyReconnect {hostCommandType} {excludedMailBox} directly to : {mb}");
-            }
-            else if (this.mailboxIdToIdentifier.TryGetValue(mb.Id, out var identifier))
-            {
-                var pair = remoteType switch
-                {
-                    RemoteType.Server => (RoutingKey: Consts.GenerateHostMessageToServerPackage(identifier), ExchangeName: Consts.HostMgrToServerExchangeName),
-                    RemoteType.Gate => (RoutingKey: Consts.GenerateHostMessageToGatePackage(identifier), ExchangeName: Consts.HostMgrToGateExchangeName),
-                    _ => throw new ArgumentOutOfRangeException(nameof(remoteType), remoteType, null),
-                };
-
-                this.messageQueueClientToOtherInstances.Publish(
-                    bytes,
-                    pair.ExchangeName,
-                    pair.RoutingKey,
-                    true);
-                Logger.Info($"NotifyReconnect {hostCommandType} {excludedMailBox} via mq with {pair} to : {mb}");
             }
             else
             {

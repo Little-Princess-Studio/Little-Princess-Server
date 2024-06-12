@@ -111,16 +111,16 @@ public partial class HostManager : IInstance
     private readonly TcpServer tcpServer;
     private readonly Random random = new();
 
-    private readonly Dictionary<uint, (uint ConnId, Action<ReadOnlyMemory<byte>>)>
+    private readonly Dictionary<uint, (uint ConnId, Connection)>
         createDistEntityAsyncRecord = new();
 
     private readonly MessageQueueClient messageQueueClientToWebMgr;
     private readonly MessageQueueClient messageQueueClientToOtherInstances;
 
     private readonly Dictionary<string, Connection> mailboxIdToConnection = new();
-    private readonly Dictionary<string, string> mailboxIdToIdentifier = new();
+    private readonly Dictionary<string, MqConnection> identifierToMqConnection = new();
 
-    private readonly Dispatcher<(IMessage Mesage, string TargetIdentifier, InstanceType OriType)> dispatcher =
+    private readonly Dispatcher<(IMessage Message, Connection Connection)> dispatcher =
         new();
 
     private readonly InstanceStatusManager instanceStatusManager = new();
@@ -200,6 +200,11 @@ public partial class HostManager : IInstance
             return Consts.GenerateHostMessageToServerPackage(identifier);
         }
 
+        if (instanceType == InstanceType.ServiceManager)
+        {
+            return Consts.HostMessagePackageToServiceMgrPackage;
+        }
+
         throw new Exception($"Invalid instanceType : {instanceType}");
     }
 
@@ -209,6 +214,7 @@ public partial class HostManager : IInstance
         {
             InstanceType.Gate => Consts.HostMgrToGateExchangeName,
             InstanceType.Server => Consts.HostMgrToServerExchangeName,
+            InstanceType.ServiceManager => Consts.HostMgrToServiceMgrExchangeName,
             _ => throw new Exception($"Invalid instance type: {instanceType}"),
         };
 
@@ -222,13 +228,8 @@ public partial class HostManager : IInstance
             (arg)
                 =>
             {
-                var (msg, targetIdentifier, instanceType) = arg;
-                this.CommonHandleCreateDistributeEntityRes(
-                    msg,
-                    bytes => this.messageQueueClientToOtherInstances!.Publish(
-                        bytes,
-                        GetExchangeName(instanceType),
-                        GenerateRoutingKey(targetIdentifier, instanceType)));
+                var (msg, conn) = arg;
+                this.HandleCreateDistributeEntityRes((msg, conn, ServerGlobal.GenerateRpcId()));
             });
 
         this.dispatcher.Register(
@@ -236,17 +237,8 @@ public partial class HostManager : IInstance
             (arg)
                 =>
             {
-                var (msg, targetIdentifier, instanceType) = arg;
-                this.CommonHandleRequireCreateEntity(
-                    msg,
-                    bytes =>
-                    {
-                        Logger.Debug($"send: {instanceType} {targetIdentifier} {GetExchangeName(instanceType)} {GenerateRoutingKey(targetIdentifier, instanceType)}");
-                        this.messageQueueClientToOtherInstances!.Publish(
-                            bytes,
-                            GetExchangeName(instanceType),
-                            GenerateRoutingKey(targetIdentifier, instanceType));
-                    });
+                var (msg, conn) = arg;
+                this.HandleRequireCreateEntity((msg, conn, ServerGlobal.GenerateRpcId()));
             });
 
         this.dispatcher.Register(
@@ -254,8 +246,8 @@ public partial class HostManager : IInstance
             (arg)
                 =>
             {
-                var (msg, targetIdentifier, _) = arg;
-                this.HandleControlCmdForMqConnection(msg, targetIdentifier);
+                var (msg, conn) = arg;
+                this.HandleControlCmdForImmediateConnection((msg, conn, ServerGlobal.GenerateRpcId()));
             });
 
         this.dispatcher.Register(
@@ -263,8 +255,8 @@ public partial class HostManager : IInstance
             (arg)
                 =>
             {
-                var (msg, _, _) = arg;
-                this.CommonHandlePong(msg);
+                var (msg, conn) = arg;
+                this.HandlePongFromImmediateConnection((msg, conn, ServerGlobal.GenerateRpcId()));
             });
     }
 
@@ -303,66 +295,68 @@ public partial class HostManager : IInstance
         this.messageQueueClientToOtherInstances.Observe(
             Consts.ServerMessageQueueName,
             (msg, routingKey) =>
-            {
-                var split = routingKey.Split('.');
-                var msgType = split[0];
-                var targetIdentifier = split[1];
-
-                switch (msgType)
-                {
-                    case "serverMessagePackage":
-                        var pkg = PackageHelper.GetPackageFromBytes(msg);
-                        var type = (PackageType)pkg.Header.Type;
-                        var protobuf = PackageHelper.GetProtoBufObjectByType(type, pkg);
-                        this.dispatcher.Dispatch(type, (protobuf, targetIdentifier, InstanceType.Server));
-                        break;
-                    default:
-                        Logger.Warn($"Unknown message type: {msgType}");
-                        break;
-                }
-            });
+                this.OnGotMqMessage(
+                    msg,
+                    routingKey,
+                    targetIdentifier => new MqConnection(
+                        this.messageQueueClientToOtherInstances,
+                        GetExchangeName(InstanceType.Server),
+                        GenerateRoutingKey(targetIdentifier, InstanceType.Server))));
 
         this.messageQueueClientToOtherInstances.Observe(
             Consts.GateMessageQueueName,
             (msg, routingKey) =>
-            {
-                var split = routingKey.Split('.');
-                var msgType = split[0];
-                var targetIdentifier = split[1];
-                switch (msgType)
-                {
-                    case "serverMessagePackage":
-                        var pkg = PackageHelper.GetPackageFromBytes(msg);
-                        var type = (PackageType)pkg.Header.Type;
-                        var protobuf = PackageHelper.GetProtoBufObjectByType(type, pkg);
-                        this.dispatcher.Dispatch(type, (protobuf, targetIdentifier, InstanceType.Gate));
-                        break;
-                    default:
-                        Logger.Warn($"Unknown message type: {msgType}");
-                        break;
-                }
-            });
+                this.OnGotMqMessage(
+                    msg,
+                    routingKey,
+                    targetIdentifier => new MqConnection(
+                        this.messageQueueClientToOtherInstances,
+                        GetExchangeName(InstanceType.Gate),
+                        GenerateRoutingKey(targetIdentifier, InstanceType.Gate))));
 
         this.messageQueueClientToOtherInstances.Observe(
             Consts.ServiceManagerMessageQueueName,
             (msg, routingKey) =>
+                this.OnGotMqMessage(
+                    msg,
+                    routingKey,
+                    targetIdentifier => new MqConnection(
+                        this.messageQueueClientToOtherInstances,
+                        GetExchangeName(InstanceType.ServiceManager),
+                        GenerateRoutingKey(targetIdentifier, InstanceType.ServiceManager))));
+    }
+
+    private void OnGotMqMessage(ReadOnlyMemory<byte> msg, string routingKey, Func<string, MqConnection> onCreateConnection)
+    {
+        {
+            var split = routingKey.Split('.');
+            var msgType = split[0];
+            var targetIdentifier = split[1];
+            switch (msgType)
             {
-                var split = routingKey.Split('.');
-                var msgType = split[0];
-                var targetIdentifier = split[1];
-                switch (msgType)
-                {
-                    case "serverMessagePackage":
-                        var pkg = PackageHelper.GetPackageFromBytes(msg);
-                        var type = (PackageType)pkg.Header.Type;
-                        var protobuf = PackageHelper.GetProtoBufObjectByType(type, pkg);
-                        this.dispatcher.Dispatch(type, (protobuf, targetIdentifier, InstanceType.ServiceManager));
-                        break;
-                    default:
-                        Logger.Warn($"Unknown message type: {msgType}");
-                        break;
-                }
-            });
+                case "serverMessagePackage":
+                    var pkg = PackageHelper.GetPackageFromBytes(msg);
+                    var type = (PackageType)pkg.Header.Type;
+                    var protobuf = PackageHelper.GetProtoBufObjectByType(type, pkg);
+
+                    MqConnection conn;
+                    if (this.identifierToMqConnection.TryGetValue(targetIdentifier, out var value))
+                    {
+                        conn = value;
+                    }
+                    else
+                    {
+                        conn = onCreateConnection.Invoke(targetIdentifier);
+                        this.identifierToMqConnection[targetIdentifier] = conn;
+                    }
+
+                    this.dispatcher.Dispatch(type, (protobuf, conn));
+                    break;
+                default:
+                    Logger.Warn($"Unknown message type: {msgType}");
+                    break;
+            }
+        }
     }
 
     private void UnregisterServerMessageHandlers()
@@ -390,11 +384,6 @@ public partial class HostManager : IInstance
     private void HandleCreateDistributeEntityRes((IMessage Message, Connection Connection, uint RpcId) arg)
     {
         var (msg, conn, _) = arg;
-        this.CommonHandleCreateDistributeEntityRes(msg, (bytes) => { conn.Send(bytes); });
-    }
-
-    private void CommonHandleCreateDistributeEntityRes(IMessage msg, Action<ReadOnlyMemory<byte>> send)
-    {
         var createRes = (msg as CreateDistributeEntityRes)!;
 
         Logger.Debug($"HandleCreateDistributeEntityRes, {createRes.Mailbox}");
@@ -406,7 +395,7 @@ public partial class HostManager : IInstance
         }
 
         this.createDistEntityAsyncRecord.Remove(createRes.ConnectionID, out var tp);
-        var (oriConnId, sendToOriServer) = tp;
+        var (oriConnId, connToSend) = tp;
 
         var requireCreateRes = new RequireCreateEntityRes
         {
@@ -416,20 +405,12 @@ public partial class HostManager : IInstance
             EntityClassName = createRes.EntityClassName,
         };
 
-        var pkg = PackageHelper.FromProtoBuf(requireCreateRes, ServerGlobal.GenerateRpcId());
-
-        // todo: refactor this
-        sendToOriServer(pkg.ToBytes());
+        connToSend.Send(requireCreateRes);
     }
 
     private void HandleRequireCreateEntity((IMessage Message, Connection Connection, uint RpcId) arg)
     {
         var (msg, conn, id) = arg;
-        this.CommonHandleRequireCreateEntity(msg, (bytes) => { conn.Send(bytes); });
-    }
-
-    private void CommonHandleRequireCreateEntity(IMessage msg, Action<ReadOnlyMemory<byte>> send)
-    {
         var createEntity = (msg as RequireCreateEntity)!;
 
         Logger.Info($"create entity: {createEntity.CreateType}, {createEntity.EntityClassName}");
@@ -437,21 +418,21 @@ public partial class HostManager : IInstance
         switch (createEntity.CreateType)
         {
             case CreateType.Local:
-                this.CreateLocalEntity(createEntity, ServerGlobal.GenerateRpcId(), send);
+                this.CreateLocalEntity(createEntity, ServerGlobal.GenerateRpcId(), conn);
                 break;
             case CreateType.Anywhere:
-                this.CreateAnywhereEntity(createEntity, ServerGlobal.GenerateRpcId(), send);
+                this.CreateAnywhereEntity(createEntity, ServerGlobal.GenerateRpcId(), conn);
                 break;
             case CreateType.Manual:
-                this.CreateManualEntity(createEntity, ServerGlobal.GenerateRpcId(), send);
+                this.CreateManualEntity(createEntity, ServerGlobal.GenerateRpcId(), conn);
                 break;
         }
     }
 
-    private void CreateLocalEntity(RequireCreateEntity createEntity, uint id, Action<ReadOnlyMemory<byte>> send) =>
-        this.CreateManualEntity(createEntity, id, send);
+    private void CreateLocalEntity(RequireCreateEntity createEntity, uint id, Connection conn) =>
+        this.CreateManualEntity(createEntity, id, conn);
 
-    private void CreateManualEntity(RequireCreateEntity createEntity, uint id, Action<ReadOnlyMemory<byte>> send)
+    private void CreateManualEntity(RequireCreateEntity createEntity, uint id, Connection conn)
     {
         DbHelper.GenerateNewGlobalId().ContinueWith(task =>
         {
@@ -478,7 +459,7 @@ public partial class HostManager : IInstance
             var pkg = PackageHelper.FromProtoBuf(entityMailBox, id);
 
             Logger.Debug($"Send CreateEntityRes to origin instance. {entityMailBox} {id} {createEntity.ConnectionID}");
-            send.Invoke(pkg.ToBytes());
+            conn.Send(pkg.ToBytes());
         });
     }
 
@@ -491,8 +472,8 @@ public partial class HostManager : IInstance
     /// </summary>
     /// <param name="createEntity">CreateEntity object.</param>
     /// <param name="id">Message id.</param>
-    /// <param name="send">Send to create entity.</param>
-    private void CreateAnywhereEntity(RequireCreateEntity createEntity, uint id, Action<ReadOnlyMemory<byte>> send)
+    /// <param name="conn">Connection to create entity.</param>
+    private void CreateAnywhereEntity(RequireCreateEntity createEntity, uint id, Connection conn)
     {
         DbHelper.GenerateNewGlobalId().ContinueWith(task =>
         {
@@ -531,22 +512,11 @@ public partial class HostManager : IInstance
             }
             else
             {
-                var targetServer = this.mailboxIdToIdentifier.GetValueOrDefault(serverMailBox.Id);
-                if (targetServer != null)
-                {
-                    this.messageQueueClientToOtherInstances.Publish(
-                        pkg.ToBytes(),
-                        Consts.HostMgrToServerExchangeName,
-                        Consts.GenerateHostMessageToServerPackage(targetServer));
-                }
-                else
-                {
-                    Logger.Warn($"Server conn {serverMailBox} not found.");
-                }
+                Logger.Warn($"Server conn {serverMailBox} not found.");
             }
 
             // record
-            this.createDistEntityAsyncRecord[connId] = (createEntity.ConnectionID, send);
+            this.createDistEntityAsyncRecord[connId] = (createEntity.ConnectionID, conn);
         });
     }
 
@@ -558,7 +528,7 @@ public partial class HostManager : IInstance
         switch (hostCmd.Message)
         {
             case ControlMessage.Ready:
-                this.RegisterInstanceFromImmediateConnection(
+                this.RegisterInstance(
                     hostCmd.From,
                     RpcHelper.PbMailBoxToRpcMailBox(hostCmd.Args[0]
                         .Unpack<Common.Rpc.InnerMessages.MailBox>()),
@@ -568,7 +538,7 @@ public partial class HostManager : IInstance
                 if (!this.isInstanceRestarting)
                 {
                     this.isInstanceRestarting = true;
-                    this.RestartInstanceFromImmediateConnection(
+                    this.RestartInstance(
                         hostCmd.From,
                         RpcHelper.PbMailBoxToRpcMailBox(hostCmd.Args[0]
                             .Unpack<Common.Rpc.InnerMessages.MailBox>()),
@@ -581,55 +551,6 @@ public partial class HostManager : IInstance
                     this.restartQueue.Enqueue(() =>
                     {
                         this.HandleControlCmdForImmediateConnection(arg);
-                    });
-                    Logger.Info("Already restarting instance, enqueue the command handler.");
-                }
-
-                break;
-            case ControlMessage.ShutDown:
-                break;
-            case ControlMessage.ReconnectEnd:
-                this.HandleReconnectEnd();
-                break;
-            case ControlMessage.WaitForReconnect:
-                Logger.Debug($"Remote {hostCmd.From} is waiting for reconnect.");
-                this.NotifyReconnect(
-                    hostCmd.From,
-                    RpcHelper.PbMailBoxToRpcMailBox(hostCmd.Args[0]
-                        .Unpack<Common.Rpc.InnerMessages.MailBox>()));
-                break;
-            default:
-                throw new ArgumentOutOfRangeException(nameof(hostCmd.Message), hostCmd.Message, null);
-        }
-    }
-
-    private void HandleControlCmdForMqConnection(IMessage msg, string targetIdentifier)
-    {
-        var hostCmd = (msg as Control)!;
-
-        MailBox mb;
-        switch (hostCmd.Message)
-        {
-            case ControlMessage.Ready:
-                mb = RpcHelper.PbMailBoxToRpcMailBox(hostCmd.Args[0]
-                    .Unpack<Common.Rpc.InnerMessages.MailBox>());
-                this.RegisterInstanceFromMq(hostCmd.From, mb, targetIdentifier);
-                break;
-            case ControlMessage.Restart:
-                if (!this.isInstanceRestarting)
-                {
-                    this.isInstanceRestarting = true;
-                    mb = RpcHelper.PbMailBoxToRpcMailBox(hostCmd.Args[0]
-                        .Unpack<Common.Rpc.InnerMessages.MailBox>());
-                    this.RestartInstanceFromMq(hostCmd.From, mb, targetIdentifier);
-                    Logger.Info("Restating instance from mq.");
-                }
-                else
-                {
-                    // todo: filter duplicate restart instance by mailbox
-                    this.restartQueue.Enqueue(() =>
-                    {
-                        this.HandleControlCmdForMqConnection(msg, targetIdentifier);
                     });
                     Logger.Info("Already restarting instance, enqueue the command handler.");
                 }

@@ -144,15 +144,15 @@ public class ServiceManager : IInstance
     private void InitializeMessageDispatcher()
     {
         this.dispatcher.Register(PackageType.ServiceRpc, arg
-            => this.HandleServiceRpc((arg.Message, arg.Connection, 0)));
+            => this.HandleServiceRpc((arg.Message, arg.Connection, ServerGlobal.GenerateRpcId())));
         this.dispatcher.Register(PackageType.ServiceRpcCallBack, arg
-            => this.HandleServiceRpcCallBack((arg.Message, arg.Connection, 0)));
+            => this.HandleServiceRpcCallBack((arg.Message, arg.Connection, ServerGlobal.GenerateRpcId())));
         this.dispatcher.Register(PackageType.ServiceControl, arg
-            => this.HandleServiceControl((arg.Message, arg.Connection, 0)));
+            => this.HandleServiceControl((arg.Message, arg.Connection, ServerGlobal.GenerateRpcId())));
         this.dispatcher.Register(PackageType.EntityRpc, arg
-            => this.HandleEntityRpc((arg.Message, arg.Connection, 0)));
+            => this.HandleEntityRpc((arg.Message, arg.Connection, ServerGlobal.GenerateRpcId())));
         this.dispatcher.Register(PackageType.EntityRpcCallBack, (arg)
-            => this.HandleEntityRpcCallBack((arg.Message, arg.Connection, 0)));
+            => this.HandleEntityRpcCallBack((arg.Message, arg.Connection, ServerGlobal.GenerateRpcId())));
     }
 
     private void InitMessageQueueClientToInstances()
