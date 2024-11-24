@@ -76,6 +76,8 @@ public class ServiceManager : IInstance
     private int unreadyServiceNum;
     private uint hostMgrConnectionIdCounter;
 
+    private bool already_notified_start_services = false;
+
     /// <summary>
     /// Initializes a new instance of the <see cref="ServiceManager"/> class.
     /// </summary>
@@ -331,12 +333,12 @@ public class ServiceManager : IInstance
             serviceRpc.ShardID = (uint)shard;
 
             var serviceMb = desc!.GetShardMailBox(shard);
-            var serviceConn = this.mailBoxToServiceConn[serviceMb];
-            if (serviceConn is not null)
+            var found = this.mailBoxToServiceConn.TryGetValue(serviceMb, out var serviceConn);
+            if (found)
             {
                 var (task, id) =
                     this.serviceRpcCallbackAsyncTaskGenerator.GenerateAsyncTask(
-                        serviceConn,
+                        senderConn,
                         5000,
                         (rpcId) => new RpcTimeOutException($"Service RPC timeout: {serviceName}:{serviceRpc.MethodName}."));
                 serviceRpc.ServiceManagerRpcId = id;
@@ -352,7 +354,7 @@ public class ServiceManager : IInstance
                     conn.Send(callback);
                 });
 
-                Logger.Debug($"Servce RPC {serviceName}:{serviceRpc.MethodName} sent to {serviceName}:{shard}");
+                Logger.Debug($"Service RPC {serviceName}:{serviceRpc.MethodName} sent to {serviceName}:{shard}");
                 serviceConn.Send(serviceRpc);
             }
             else
@@ -420,7 +422,7 @@ public class ServiceManager : IInstance
                         return;
                     }
 
-                    if (this.mailBoxToServiceConn.Count == this.desiredServiceNum)
+                    if (this.mailBoxToServiceConn.Count == this.desiredServiceNum && this.state == State.WaitForServiceInstanceRegister)
                     {
                         this.state = State.WaitForServicesRegister;
                         this.NotifyServiceInstancesToStartServices();
@@ -495,6 +497,8 @@ public class ServiceManager : IInstance
         var serviceName = RpcHelper.GetString(ctlMsg.Args[1]);
         var shard = (uint)RpcHelper.GetInt(ctlMsg.Args[2]);
 
+        Logger.Info($"Register service route: {serviceName}:{shard} to {mb}");
+
         if (this.serviceRoutingMap.ContainsKey(serviceName))
         {
             var desc = this.serviceRoutingMap[serviceName];
@@ -558,7 +562,7 @@ public class ServiceManager : IInstance
         }
 
         this.unreadyServiceNum = assignResult.Count;
-        Logger.Debug($"unreadyServiceNum: {this.unreadyServiceNum}");
+        Logger.Debug($"unreadyServiceNum: {this.unreadyServiceNum}, mailBoxToServiceConn.Count: {this.mailBoxToServiceConn.Count}");
         var idx = 0;
         foreach (var (mailbox, conn) in this.mailBoxToServiceConn)
         {
@@ -611,7 +615,7 @@ public class ServiceManager : IInstance
             cmd.Args.Add(Any.Pack(serviceDict));
 
             conn.Send(cmd);
-            Logger.Info($"Send command {cmd.Type} to service instance");
+            Logger.Info($"Send command {cmd.Type} to service instance {mailbox} idx {idx}");
         }
     }
 

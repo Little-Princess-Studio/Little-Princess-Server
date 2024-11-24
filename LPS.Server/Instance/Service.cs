@@ -180,6 +180,17 @@ public class Service : IInstance
                 }
 
                 this.serviceMap[serviceName][shardNum] = service;
+
+                if (this.serviceMbMap.ContainsKey(mailbox))
+                {
+                    var e = new Exception($"Mailbox already exists when registering service. {mailbox}");
+                    Logger.Error(e, "Mailbox already exists when registering service.");
+                }
+                else
+                {
+                    Logger.Info($"Register service with mailbox {mailbox} {service.Shard}");
+                }
+
                 this.serviceMbMap[mailbox] = service;
                 Logger.Info($"Start service {serviceName} shard {shardNum} with mailbox {mailbox}");
 
@@ -260,7 +271,7 @@ public class Service : IInstance
         }
         else
         {
-            Logger.Warn($"Service {serviceMb} can not be found.");
+            Logger.Warn($"Service {serviceMb} can not be found in service callback.");
         }
     }
 
@@ -276,7 +287,7 @@ public class Service : IInstance
         }
         else
         {
-            Logger.Warn($"Service {serviceMb} can not be found.");
+            Logger.Warn($"Service {serviceMb} can not be found in entity callback.");
         }
     }
 
