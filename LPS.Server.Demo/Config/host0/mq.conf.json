@@ -2,7 +2,7 @@
     "type": "mq",
     "subtype": "rabbitmq",
     "mqargs": {
-        "ip": "192.168.6.127",
+        "ip": "192.168.1.100",
         "port": 5672,
         "username": "guest",
         "password": "guest"
