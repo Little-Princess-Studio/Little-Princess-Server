@@ -78,6 +78,123 @@ public static class ConsoleCommands
     }
 
     /// <summary>
+    /// Benchmark: send N echo RPCs sequentially, print p50/p90/p99/max plus
+    /// success/failure counts so we can compare TCP vs KCP under net impairment.
+    /// Output line is parseable - one trailing JSON object so the test harness
+    /// can capture results without scraping logs.
+    /// </summary>
+    /// <param name="countStr">Number of echo round-trips. Default 100.</param>
+    /// <param name="timeoutMsStr">Per-RPC timeout in ms. Default 5000.</param>
+    [ConsoleCommand("send.bench")]
+    public static async void Bench(string countStr = "100", string timeoutMsStr = "5000")
+    {
+        if (!int.TryParse(countStr, out var count))
+        {
+            count = 100;
+        }
+
+        if (!int.TryParse(timeoutMsStr, out var timeoutMs))
+        {
+            timeoutMs = 5000;
+        }
+
+        Logger.Info($"[bench] start count={count} timeoutMs={timeoutMs}");
+        var latencies = new System.Collections.Generic.List<double>(count);
+        var ok = 0;
+        var fail = 0;
+        var totalStart = System.Diagnostics.Stopwatch.StartNew();
+
+        for (var i = 0; i < count; ++i)
+        {
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+            try
+            {
+                var rpcTask = ClientGlobal.ShadowClientEntity
+                    .Server
+                    .Call<string>("Echo", $"bench-{i}");
+                var winner = await Task.WhenAny(rpcTask, Task.Delay(timeoutMs));
+                if (winner != rpcTask)
+                {
+                    fail++;
+                    Logger.Warn($"[bench] timeout #{i}");
+                    continue;
+                }
+
+                await rpcTask;
+                sw.Stop();
+                latencies.Add(sw.Elapsed.TotalMilliseconds);
+                ok++;
+            }
+            catch (Exception ex)
+            {
+                fail++;
+                sw.Stop();
+                Logger.Warn($"[bench] failed #{i}: {ex.Message}");
+            }
+        }
+
+        totalStart.Stop();
+        latencies.Sort();
+
+        static double Percentile(System.Collections.Generic.List<double> sorted, double p)
+        {
+            if (sorted.Count == 0)
+            {
+                return 0;
+            }
+
+            var idx = (int)Math.Ceiling((p / 100.0) * sorted.Count) - 1;
+            idx = Math.Max(0, Math.Min(idx, sorted.Count - 1));
+            return sorted[idx];
+        }
+
+        var mean = latencies.Count > 0 ? latencies.Average() : 0;
+        var p50 = Percentile(latencies, 50);
+        var p90 = Percentile(latencies, 90);
+        var p99 = Percentile(latencies, 99);
+        var max = latencies.Count > 0 ? latencies[^1] : 0;
+        var min = latencies.Count > 0 ? latencies[0] : 0;
+
+        // Single-line JSON sentinel for harness scraping.
+        var json = new Newtonsoft.Json.Linq.JObject
+        {
+            ["bench"] = "echo",
+            ["count"] = count,
+            ["ok"] = ok,
+            ["fail"] = fail,
+            ["totalMs"] = totalStart.Elapsed.TotalMilliseconds,
+            ["min"] = min,
+            ["mean"] = mean,
+            ["p50"] = p50,
+            ["p90"] = p90,
+            ["p99"] = p99,
+            ["max"] = max,
+        };
+        Logger.Info($"[bench-result] {json.ToString(Newtonsoft.Json.Formatting.None)}");
+
+        // Also write result to a side file so the harness can capture it
+        // without scraping the stdout log (which is buffered by Start-Process
+        // RedirectStandardOutput on Windows and may not flush before exit).
+        try
+        {
+            var path = System.Environment.GetEnvironmentVariable("LPS_BENCH_RESULT_FILE");
+            if (!string.IsNullOrEmpty(path))
+            {
+                System.IO.File.WriteAllText(path, json.ToString(Newtonsoft.Json.Formatting.None));
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.Warn($"[bench] failed to write result file: {ex.Message}");
+        }
+
+        // Force flush + exit so the harness doesn't wait for the worst-case
+        // Thread.Sleep timeout in Program.Main.
+        System.Console.Out.Flush();
+        System.Environment.Exit(0);
+    }
+
+    /// <summary>
     /// Do local property check.
     /// </summary>
     [ConsoleCommand("local.check_untrusted_property")]

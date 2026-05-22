@@ -67,8 +67,55 @@ public static class Program
 
         var runIndex = Array.IndexOf(args, "--run");
         var scenarioIndex = Array.IndexOf(args, "--scenario");
+        var benchIndex = Array.IndexOf(args, "--bench");
 
-        if (runIndex != -1 && runIndex < args.Length - 1)
+        if (benchIndex != -1)
+        {
+            // Authentication first (entity must exist), then bench.
+            // Count + timeout from --bench <count> <timeoutMs> if provided.
+            var count = "100";
+            var timeoutMs = "5000";
+            if (benchIndex < args.Length - 1)
+            {
+                count = args[benchIndex + 1];
+            }
+
+            if (benchIndex < args.Length - 2)
+            {
+                timeoutMs = args[benchIndex + 2];
+            }
+
+            Logger.Info($"[AutoDebug] bench: count={count} timeoutMs={timeoutMs}");
+            try
+            {
+                CommandParser.Dispatch("send.authority");
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex, "[AutoDebug] auth failed");
+            }
+
+            Thread.Sleep(1500);
+
+            try
+            {
+                CommandParser.Dispatch($"send.bench {count} {timeoutMs}");
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex, "[AutoDebug] bench failed");
+            }
+
+            // The send.bench command is async-void; we have no awaitable
+            // handle. Estimate worst-case wait as 2x the expected sequential
+            // cost (count * mean RTT ~200ms + cushion) since most RPCs will
+            // succeed quickly even under impairment. Cap at 90s.
+            var ms = (int.Parse(count) * 400) + 15000;
+            var cap = Math.Min(90000, ms);
+            Logger.Info($"[AutoDebug] bench wait window: {cap}ms");
+            Thread.Sleep(cap);
+        }
+        else if (runIndex != -1 && runIndex < args.Length - 1)
         {
             var cmds = args[(runIndex + 1)..];
             foreach (var cmd in cmds)
