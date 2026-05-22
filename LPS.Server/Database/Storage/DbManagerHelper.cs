@@ -187,7 +187,7 @@ public static class DbManagerHelper
         List<object> arguments = new() { currentDatabase };
         for (int i = 0; i < args.Length; ++i)
         {
-            var parsed = RpcHelper.ProtoBufAnyToRpcArg(args[i], parameters[i].ParameterType)!;
+            var parsed = RpcHelper.ProtoBufAnyToRpcArg(args[i], parameters[i + 1].ParameterType)!;
             arguments.Add(parsed);
         }
 
