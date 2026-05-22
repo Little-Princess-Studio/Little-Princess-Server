@@ -15,66 +15,38 @@ using LPS.Server.Service;
 using Newtonsoft.Json.Linq;
 
 /// <summary>
-/// WebManager-facing message-queue endpoint for <see cref="Service"/>.
-/// Mirrors <see cref="Server.WebManager.cs"/>: each Service host process
-/// binds its own queue on <see cref="Consts.WebMgrExchangeName"/> with the
-/// <see cref="Consts.RoutingKeyWebManagerToServiceHost"/> filter. Only the
-/// host that owns the requested {serviceName, shard} replies.
+/// WebManager-facing endpoint for <see cref="Service"/>. Each Service host
+/// process answers per-shard detail queries; only the host whose
+/// <see cref="Service.serviceMap"/> contains <c>(serviceName, shard)</c>
+/// publishes a reply.
 /// </summary>
 public partial class Service
 {
-    private MessageQueueClient messageQueueClientToWebMgr = null!;
+    private WebMgrDispatcher webMgrDispatcher = null!;
 
     private void InitWebManagerMessageQueueClient()
     {
         Logger.Debug("Start mq client for web manager (service host).");
-        this.messageQueueClientToWebMgr = new MessageQueueClient();
-        this.messageQueueClientToWebMgr.Init();
-        this.messageQueueClientToWebMgr.AsProducer();
-        this.messageQueueClientToWebMgr.AsConsumer();
-
-        this.messageQueueClientToWebMgr.DeclareExchange(Consts.WebMgrExchangeName);
-        this.messageQueueClientToWebMgr.DeclareExchange(Consts.ServerExchangeName);
-        this.messageQueueClientToWebMgr.BindQueueAndExchange(
-            Consts.GenerateWebManagerQueueName(this.Name),
-            Consts.WebMgrExchangeName,
-            Consts.RoutingKeyWebManagerToServiceHost);
-        this.messageQueueClientToWebMgr.Observe(
-            Consts.GenerateWebManagerQueueName(this.Name),
-            this.HandleWebMgrMqMessage);
+        this.webMgrDispatcher = new WebMgrDispatcher(this.Name, this.Name);
+        this.webMgrDispatcher.ScanAndRegister(this);
+        this.webMgrDispatcher.Init(Consts.RoutingKeyWebManagerToServiceHost);
     }
 
-    private void HandleWebMgrMqMessage(string msg, string routingKey)
+    [WebMgrHandler("getServiceShardDetailedInfo.webmgr.toServiceHost")]
+    private JToken? HandleGetServiceShardDetailedInfo(JToken body)
     {
-        if (routingKey != Consts.GetServiceShardDetailedInfo)
-        {
-            return;
-        }
+        var serviceName = body["serviceName"]!.ToString();
+        var shard = body["shard"]!.ToObject<uint>();
 
-        var (msgId, json) = MessageQueueJsonBody.From(msg);
-        var serviceName = json["serviceName"]!.ToString();
-        var shard = json["shard"]!.ToObject<uint>();
-
-        // Only the host that actually owns this shard answers; everyone else
-        // stays silent (broadcast fan-out is by design).
         if (!this.serviceMap.TryGetValue(serviceName, out var shardMap)
             || !shardMap.TryGetValue(shard, out var baseService))
         {
-            return;
+            return null;
         }
 
-        var res = MessageQueueJsonBody.Create(msgId, this.BuildShardDetailedInfo(serviceName, baseService));
-        this.messageQueueClientToWebMgr.Publish(
-            res.ToJson(),
-            Consts.ServerExchangeName,
-            Consts.ServiceShardDetailedInfoRes);
+        return this.BuildShardDetailedInfo(serviceName, baseService);
     }
 
-    /// <summary>
-    /// Snapshot a single shard's identity + reflected RPC surface. Live
-    /// state inside the concrete service is not exposed yet - that would
-    /// require a virtual hook on <see cref="BaseService"/>.
-    /// </summary>
     private JObject BuildShardDetailedInfo(string serviceName, BaseService baseService)
     {
         var serviceType = baseService.GetType();

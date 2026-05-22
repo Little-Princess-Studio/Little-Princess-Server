@@ -12,66 +12,28 @@ using LPS.Server.MessageQueue;
 using Newtonsoft.Json.Linq;
 
 /// <summary>
-/// WebManager-facing message-queue endpoint for <see cref="ServiceManager"/>.
-/// Mirrors <see cref="Server.WebManager.cs"/>: a dedicated MQ client is bound
-/// to <see cref="Consts.WebMgrExchangeName"/> with the
-/// <see cref="Consts.RoutingKeyToServiceMgr"/> filter so the WebManager can
-/// poll the live service routing map without sharing a queue with any other
-/// instance kind.
+/// WebManager endpoint for <see cref="ServiceManager"/>. Owns its dedicated
+/// MQ client via <see cref="WebMgrDispatcher"/>.
 /// </summary>
 public partial class ServiceManager
 {
-    private readonly MessageQueueClient messageQueueClientToWebMgr = new();
+    private WebMgrDispatcher webMgrDispatcher = null!;
 
     private void InitWebManagerMessageQueueClient()
     {
-        Logger.Debug("Start mq client for web manager.");
-        this.messageQueueClientToWebMgr.Init();
-        this.messageQueueClientToWebMgr.AsProducer();
-        this.messageQueueClientToWebMgr.AsConsumer();
-
-        this.messageQueueClientToWebMgr.DeclareExchange(Consts.WebMgrExchangeName);
-        this.messageQueueClientToWebMgr.DeclareExchange(Consts.ServerExchangeName);
-
-        // The queue is name-scoped to this instance (mirror Server/HostManager
-        // pattern) so multiple ServiceManagers in the future do not steal
-        // each other's WebManager requests.
-        this.messageQueueClientToWebMgr.BindQueueAndExchange(
-            Consts.GenerateWebManagerQueueName(this.Name),
-            Consts.WebMgrExchangeName,
-            Consts.RoutingKeyToServiceMgr);
-
-        this.messageQueueClientToWebMgr.Observe(
-            Consts.GenerateWebManagerQueueName(this.Name),
-            this.HandleWebMgrMqMessage);
+        Logger.Debug("Start mq client for web manager (servicemanager).");
+        this.webMgrDispatcher = new WebMgrDispatcher(this.Name, this.Name);
+        this.webMgrDispatcher.ScanAndRegister(this);
+        this.webMgrDispatcher.Init(Consts.RoutingKeyToServiceMgr);
     }
 
-    private void HandleWebMgrMqMessage(string msg, string routingKey)
+    [WebMgrHandler("getServiceList.toServiceMgr")]
+    private JToken HandleGetServiceList(JToken body)
     {
-        if (routingKey != Consts.GetServiceList)
-        {
-            return;
-        }
-
-        var (msgId, _) = MessageQueueJsonBody.From(msg);
-        var res = MessageQueueJsonBody.Create(msgId, this.BuildServiceList());
-
-        this.messageQueueClientToWebMgr.Publish(
-            res.ToJson(),
-            Consts.ServerExchangeName,
-            Consts.GetServiceListRes);
+        _ = body;
+        return this.BuildServiceList();
     }
 
-    /// <summary>
-    /// Serialise the current <see cref="serviceRoutingMap"/> to a JSON object
-    /// the WebManager can render directly. Shape matches the documented
-    /// /api/web-manager/services-roster contract:
-    /// {
-    ///   serviceManager: { ip, port, hostNum },
-    ///   services: [ { name, shardCount, allShardReady, unreadyShards: [int],
-    ///                 shards: [ { shard, id, ip, port, hostNum } ] } ]
-    /// }.
-    /// </summary>
     private JObject BuildServiceList()
     {
         var services = new JArray();

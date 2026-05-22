@@ -114,7 +114,6 @@ public partial class HostManager : IInstance
     private readonly Dictionary<uint, (uint ConnId, Connection)>
         createDistEntityAsyncRecord = new();
 
-    private readonly MessageQueueClient messageQueueClientToWebMgr;
     private readonly MessageQueueClient messageQueueClientToOtherInstances;
 
     private readonly Dictionary<string, Connection> mailboxIdToConnection = new();
@@ -163,7 +162,6 @@ public partial class HostManager : IInstance
 
         this.InitializeMessageDispatcher();
 
-        this.messageQueueClientToWebMgr = new MessageQueueClient();
         this.messageQueueClientToOtherInstances = new MessageQueueClient();
 
         this.heartBeatTimer = new Timer(_ => this.HeartBeatDetect(), null, Timeout.Infinite, 2000);

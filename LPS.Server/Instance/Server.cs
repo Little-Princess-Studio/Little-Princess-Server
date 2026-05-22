@@ -72,7 +72,7 @@ public partial class Server : IInstance
     private IManagerConnection hostMgrConnection = null!;
     private IManagerConnection? serviceMgrConnection;
 
-    private MessageQueueClient? messageQueueClientToWebMgr;
+    private WebMgrDispatcher? webMgrDispatcher;
 
     private ServerEntity? entity;
     private CellEntity? defaultCell;
@@ -140,7 +140,7 @@ public partial class Server : IInstance
     public void Stop()
     {
         this.hostMgrConnection.ShutDown();
-        this.messageQueueClientToWebMgr?.ShutDown();
+        this.webMgrDispatcher?.ShutDown();
         this.tcpServer.Stop();
     }
 
@@ -221,7 +221,7 @@ public partial class Server : IInstance
         this.tcpServer.WaitForExit();
         this.serviceMgrConnection?.WaitForExit();
 
-        this.messageQueueClientToWebMgr!.ShutDown();
+        this.webMgrDispatcher!.ShutDown();
     }
 
     /// <summary>

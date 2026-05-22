@@ -141,92 +141,11 @@ public static class Consts
     /// </summary>
     public const string HostBroadCastMessagePackageToGate = "hostBroadCastMessagePackage.toGate";
 
-    /// <summary>
-    /// Routing key from web manager.
-    /// </summary>
-    public const string GetServerBasicInfo = "getServerBasicInfo.toHostMgr";
-
-    /// <summary>
-    /// The message to request server ping-pong information from the host manager.
-    /// </summary>
-    public const string GetServerPingPongInfo = "getServerPingPongInfo.toHostMgr";
-
-    /// <summary>
-    /// Request to get server detailed info.
-    /// </summary>
-    public const string GetServerDetailedInfo = "getServerDetailedInfo.webmgr.toSrv";
-
-    /// <summary>
-    /// Server detailed info res.
-    /// </summary>
-    public const string ServerDetailedInfo = "serverDetailedInfo.toWebMgr";
-
-    /// <summary>
-    /// Server count result routing key to web manager.
-    /// </summary>
-    public const string ServerBasicInfoRes = "serverBasicInfoRes.toWebMgr";
-
-    /// <summary>
-    /// The message queue response topic for getting server ping-pong information.
-    /// </summary>
-    public const string GetServerPingPongInfoRes = "getServerPingPongInfoRes.toWebMgr";
-
-    /// <summary>
-    /// Request from WebManager to HostManager: dump all tracked instances
-    /// (gates / servers / service manager / services) with their last known
-    /// ping/pong status. One round-trip; intended for the cluster overview page.
-    /// </summary>
-    public const string GetClusterOverview = "getClusterOverview.toHostMgr";
-
-    /// <summary>
-    /// HostManager -> WebManager reply for <see cref="GetClusterOverview"/>.
-    /// </summary>
-    public const string GetClusterOverviewRes = "getClusterOverviewRes.toWebMgr";
-
-    /// <summary>
-    /// Request from WebManager to ServiceManager: dump the service routing map
-    /// (every service name -> shards -> mailbox). Counterpart to
-    /// <see cref="GetClusterOverview"/>, but the data lives in ServiceManager.
-    /// </summary>
-    public const string GetServiceList = "getServiceList.toServiceMgr";
-
-    /// <summary>
-    /// ServiceManager -> WebManager reply for <see cref="GetServiceList"/>.
-    /// </summary>
-    public const string GetServiceListRes = "getServiceListRes.toWebMgr";
-
-    /// <summary>
-    /// Request from WebManager to a single Gate (filtered by id+hostNum in
-    /// the body) for that gate's live runtime state.
-    /// </summary>
-    public const string GetGateDetailedInfo = "getGateDetailedInfo.webmgr.toGate";
-
-    /// <summary>
-    /// Gate -> WebManager reply for <see cref="GetGateDetailedInfo"/>.
-    /// </summary>
-    public const string GateDetailedInfoRes = "gateDetailedInfoRes.toWebMgr";
-
-    /// <summary>
-    /// Request from WebManager to a Service host process for one shard's
-    /// live state. Body carries {serviceName, shard}; only the Service host
-    /// that owns that shard replies.
-    /// </summary>
-    public const string GetServiceShardDetailedInfo = "getServiceShardDetailedInfo.webmgr.toServiceHost";
-
-    /// <summary>
-    /// Service host -> WebManager reply for <see cref="GetServiceShardDetailedInfo"/>.
-    /// </summary>
-    public const string ServiceShardDetailedInfoRes = "serviceShardDetailedInfoRes.toWebMgr";
-
-    /// <summary>
-    /// Get all entities of server.
-    /// </summary>
-    public const string GetAllEntitiesOfServer = "getAllEntitiesOfServer.webmgr.toSrv";
-
-    /// <summary>
-    /// Result of all entities of server.
-    /// </summary>
-    public const string AllEntitiesRes = "allEntitiesRes.toWebMgr";
+    // -------------------------------------------------------------------
+    // WebManager <-> cluster request/reply routing keys are now defined as
+    // pairs in WebMgrEndpoints.cs (single source of truth). Wildcards used
+    // for queue bindings stay here.
+    // -------------------------------------------------------------------
 
     /// <summary>
     /// Routing keys to host manager.

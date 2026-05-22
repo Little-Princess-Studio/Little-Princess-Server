@@ -4,13 +4,20 @@ using Common.Debug;
 using LPS.Common.Ipc;
 using LPS.Server.MessageQueue;
 using Newtonsoft.Json.Linq;
-using ServerInfoData = ValueTuple<int, List<Newtonsoft.Json.Linq.JToken>>;
 
+/// <summary>
+/// WebManager <-> cluster RPC client. Every round-trip is described by a
+/// <see cref="WebMgrEndpoints.Endpoint"/>; the dispatch table on the cluster
+/// side knows the matching reply key, and this side filters inbound messages
+/// via <see cref="WebMgrEndpoints.ReplyKeys"/>. No hand-maintained
+/// routing-key disjunctions.
+/// </summary>
 public class ServerService
 {
-    private readonly MessageQueueClient client = new MessageQueueClient();
-    private readonly AsyncTaskGenerator<JToken> asyncTaskGeneratorForJObjectRes = new AsyncTaskGenerator<JToken>();
+    private readonly MessageQueueClient client = new();
+    private readonly AsyncTaskGenerator<JToken> asyncTaskGeneratorForJObjectRes = new();
 
+    /// <summary>Connect to the broker and start consuming WebManager replies.</summary>
     public void Init()
     {
         this.client.Init();
@@ -25,158 +32,56 @@ public class ServerService
         this.client.Observe(Consts.WebManagerQueueName, this.HandleMqMessage);
     }
 
-    /// <summary>
-    /// Get server cnt from server host manager.
-    /// </summary>
-    /// <returns>Server cnt.</returns>
-    public Task<JToken> GetServerBasicInfo()
-    {
-        return this.SendMessageWithReplay(new JObject(), Consts.GetServerBasicInfo, this.asyncTaskGeneratorForJObjectRes);
-    }
+    /// <summary>HostManager -> server count + mailboxes.</summary>
+    public Task<JToken> GetServerBasicInfo() => this.Call(WebMgrEndpoints.ServerBasicInfo, new JObject());
 
-
-    /// <summary>
-    /// Get detailed info of a server.
-    /// </summary>
-    /// <param name="serverId">Id of the server.</param>
-    /// <param name="hostNum">Hostnum of the server</param>
-    /// <returns></returns>
+    /// <summary>Server-specific detailed info.</summary>
     public Task<JToken> GetServerDetailedInfo(string serverId, int hostNum)
-    {
-        return this.SendMessageWithReplay(
-            new JObject
-            {
-                ["serverId"] = serverId,
-                ["hostNum"] = hostNum,
-            },
-            Consts.GetServerDetailedInfo,
-            this.asyncTaskGeneratorForJObjectRes);
-    }
+        => this.Call(WebMgrEndpoints.ServerDetailedInfo, new JObject { ["serverId"] = serverId, ["hostNum"] = hostNum });
 
+    /// <summary>Every entity/cell living on one server.</summary>
     public Task<JToken> GetAllEntitiesOfServer(string serverId, int hostNum)
-    {
-        return this.SendMessageWithReplay(
-            new JObject
-            {
-                ["serverId"] = serverId,
-                ["hostNum"] = hostNum,
-            },
-            Consts.GetAllEntitiesOfServer,
-            this.asyncTaskGeneratorForJObjectRes);
-    }
+        => this.Call(WebMgrEndpoints.AllEntitiesOfServer, new JObject { ["serverId"] = serverId, ["hostNum"] = hostNum });
 
-    public Task<JToken> GetAllServerPingPongInfo()
-    {
-        return this.SendMessageWithReplay(
-            new JObject(),
-            Consts.GetServerPingPongInfo,
-            this.asyncTaskGeneratorForJObjectRes);
-    }
+    /// <summary>Per-server ping/pong status from HostManager.</summary>
+    public Task<JToken> GetAllServerPingPongInfo() => this.Call(WebMgrEndpoints.ServerPingPong, new JObject());
 
-    /// <summary>
-    /// Single-shot snapshot of every instance the HostManager has registered,
-    /// suitable for rendering the cluster overview page.
-    /// </summary>
-    /// <returns>HostManager + gates + servers + serviceManagers + services.</returns>
-    public Task<JToken> GetClusterOverview()
-    {
-        return this.SendMessageWithReplay(
-            new JObject(),
-            Consts.GetClusterOverview,
-            this.asyncTaskGeneratorForJObjectRes);
-    }
+    /// <summary>HostManager-level cluster overview (gates/servers/svcmgrs/services).</summary>
+    public Task<JToken> GetClusterOverview() => this.Call(WebMgrEndpoints.ClusterOverview, new JObject());
 
-    /// <summary>
-    /// Single-shot snapshot of the ServiceManager routing map (every service
-    /// name -> shards -> mailbox). Complements <see cref="GetClusterOverview"/>
-    /// which only sees what HostManager directly registers.
-    /// </summary>
-    /// <returns>serviceManager + services[] with shard mailboxes.</returns>
-    public Task<JToken> GetServicesRoster()
-    {
-        return this.SendMessageWithReplay(
-            new JObject(),
-            Consts.GetServiceList,
-            this.asyncTaskGeneratorForJObjectRes);
-    }
+    /// <summary>ServiceManager-level service shard roster.</summary>
+    public Task<JToken> GetServicesRoster() => this.Call(WebMgrEndpoints.ServicesList, new JObject());
 
-    /// <summary>
-    /// Live runtime state of one Gate instance (connections, bound client
-    /// entities, queue depth, etc). The request is broadcast on
-    /// <see cref="Consts.RoutingKeyWebManagerToGate"/>; only the gate whose
-    /// id+hostNum match replies.
-    /// </summary>
-    /// <param name="gateId">Mailbox id of the gate (raw, not URL-encoded).</param>
-    /// <param name="hostNum">Host number of the gate.</param>
-    /// <returns>Gate detailed info JSON.</returns>
+    /// <summary>One gate's detailed runtime state.</summary>
     public Task<JToken> GetGateDetailedInfo(string gateId, int hostNum)
+        => this.Call(WebMgrEndpoints.GateDetailedInfo, new JObject { ["gateId"] = gateId, ["hostNum"] = hostNum });
+
+    /// <summary>One service shard's detailed runtime state.</summary>
+    public Task<JToken> GetServiceShardDetailedInfo(string serviceName, uint shard)
+        => this.Call(WebMgrEndpoints.ServiceShardDetailedInfo, new JObject { ["serviceName"] = serviceName, ["shard"] = shard });
+
+    private Task<JToken> Call(WebMgrEndpoints.Endpoint endpoint, JToken body)
     {
-        return this.SendMessageWithReplay(
-            new JObject
-            {
-                ["gateId"] = gateId,
-                ["hostNum"] = hostNum,
-            },
-            Consts.GetGateDetailedInfo,
-            this.asyncTaskGeneratorForJObjectRes);
+        var (task, id) = this.asyncTaskGeneratorForJObjectRes.GenerateAsyncTask();
+        var msg = MessageQueueJsonBody.Create(id, body).ToJson();
+        Logger.Debug($"[WebMgr->] {endpoint.Request} (msgId={id})");
+        this.client.Publish(msg, Consts.WebMgrExchangeName, endpoint.Request);
+        return task;
     }
 
-    /// <summary>
-    /// Live runtime state of one service shard (identified by service name +
-    /// shard index). Only the Service host process that owns the shard
-    /// replies.
-    /// </summary>
-    /// <param name="serviceName">Class name of the service (e.g. EchoService).</param>
-    /// <param name="shard">Shard index inside the service.</param>
-    /// <returns>Service shard detailed info JSON.</returns>
-    public Task<JToken> GetServiceShardDetailedInfo(string serviceName, uint shard)
-    {
-        return this.SendMessageWithReplay(
-            new JObject
-            {
-                ["serviceName"] = serviceName,
-                ["shard"] = shard,
-            },
-            Consts.GetServiceShardDetailedInfo,
-            this.asyncTaskGeneratorForJObjectRes);
-    }
-    
     private void HandleMqMessage(string msg, string routingKey)
     {
-        Logger.Debug($"message received, {msg}, {routingKey}");
-        var (rpcId, json) = MessageQueueJsonBody.From(msg);
-
-        if (routingKey is Consts.ServerBasicInfoRes
-            or Consts.ServerDetailedInfo
-            or Consts.AllEntitiesRes
-            or Consts.GetServerPingPongInfoRes
-            or Consts.GetClusterOverviewRes
-            or Consts.GetServiceListRes
-            or Consts.GateDetailedInfoRes
-            or Consts.ServiceShardDetailedInfoRes)
+        // WebMgrEndpoints.ReplyKeys is the single source of truth for "is
+        // this an answer to one of our calls?" - no more hand-rolled
+        // routing-key disjunctions to keep in sync.
+        if (!WebMgrEndpoints.ReplyKeys.Contains(routingKey))
         {
-            this.asyncTaskGeneratorForJObjectRes.ResolveAsyncTask(rpcId, json);
+            Logger.Debug($"[WebMgr<-] unknown reply routingKey={routingKey} (ignored)");
+            return;
         }
-    }
 
-    private Task<TResult> SendMessageWithReplay<TResult>(JToken body, string routingKey,
-        AsyncTaskGenerator<TResult> asyncTaskGenerator)
-    {
-        var (task, id) = asyncTaskGenerator.GenerateAsyncTask();
-        var msg = MessageQueueJsonBody.Create(id, body).ToJson();
-        this.client.Publish(msg, Consts.WebMgrExchangeName, routingKey);
-        return task;
-    }
-
-    private Task<TResult> SendMessageWithReplay<TResult, TData>(
-        JObject body,
-        string routingKey,
-        AsyncTaskGenerator<TResult, TData> asyncTaskGenerator,
-        TData data)
-    {
-        var (task, id) = asyncTaskGenerator.GenerateAsyncTask(data);
-        var msg = MessageQueueJsonBody.Create(id, body).ToJson();
-        this.client.Publish(msg, Consts.WebMgrExchangeName, routingKey);
-        return task;
+        var (rpcId, json) = MessageQueueJsonBody.From(msg);
+        Logger.Debug($"[WebMgr<-] {routingKey} (msgId={rpcId})");
+        this.asyncTaskGeneratorForJObjectRes.ResolveAsyncTask(rpcId, json);
     }
 }

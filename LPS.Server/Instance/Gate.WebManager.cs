@@ -12,69 +12,46 @@ using LPS.Server.MessageQueue;
 using Newtonsoft.Json.Linq;
 
 /// <summary>
-/// WebManager-facing message-queue endpoint for <see cref="Gate"/>.
-/// Mirrors <see cref="Server.WebManager.cs"/>: a dedicated MQ client bound
-/// to <see cref="Consts.WebMgrExchangeName"/> with the
-/// <see cref="Consts.RoutingKeyWebManagerToGate"/> filter. Replies are
-/// guarded by gateId+hostNum so other gates ignore the request.
+/// WebManager-facing endpoint for <see cref="Gate"/>. Wiring is declarative
+/// via <see cref="WebMgrHandlerAttribute"/>; the shared
+/// <see cref="WebMgrDispatcher"/> handles MQ bind / reply lookup / logging.
 /// </summary>
 public partial class Gate
 {
-    private MessageQueueClient messageQueueClientToWebMgr = null!;
+    private WebMgrDispatcher webMgrDispatcher = null!;
 
     private void InitWebManagerMessageQueueClient()
     {
         Logger.Debug("Start mq client for web manager (gate).");
-        this.messageQueueClientToWebMgr = new MessageQueueClient();
-        this.messageQueueClientToWebMgr.Init();
-        this.messageQueueClientToWebMgr.AsProducer();
-        this.messageQueueClientToWebMgr.AsConsumer();
-
-        this.messageQueueClientToWebMgr.DeclareExchange(Consts.WebMgrExchangeName);
-        this.messageQueueClientToWebMgr.DeclareExchange(Consts.ServerExchangeName);
-        this.messageQueueClientToWebMgr.BindQueueAndExchange(
-            Consts.GenerateWebManagerQueueName(this.Name),
-            Consts.WebMgrExchangeName,
-            Consts.RoutingKeyWebManagerToGate);
-        this.messageQueueClientToWebMgr.Observe(
-            Consts.GenerateWebManagerQueueName(this.Name),
-            this.HandleWebMgrMqMessage);
-    }
-
-    private void HandleWebMgrMqMessage(string msg, string routingKey)
-    {
-        if (routingKey != Consts.GetGateDetailedInfo)
-        {
-            return;
-        }
-
-        // Gate entity may not yet be created when the request arrives during
-        // very early startup - bail quietly so the operator sees a clean
-        // "no such gate" timeout rather than a NRE in the dispatcher.
-        if (this.entity is null)
-        {
-            return;
-        }
-
-        var (msgId, json) = MessageQueueJsonBody.From(msg);
-        var gateId = json["gateId"]!.ToString();
-        var hostNum = json["hostNum"]!.ToObject<int>();
-        if (gateId != this.entity.MailBox.Id || hostNum != this.entity.MailBox.HostNum)
-        {
-            return;
-        }
-
-        var res = MessageQueueJsonBody.Create(msgId, this.BuildDetailedInfo());
-        this.messageQueueClientToWebMgr.Publish(
-            res.ToJson(),
-            Consts.ServerExchangeName,
-            Consts.GateDetailedInfoRes);
+        this.webMgrDispatcher = new WebMgrDispatcher(this.Name, this.Name);
+        this.webMgrDispatcher.ScanAndRegister(this);
+        this.webMgrDispatcher.Init(Consts.RoutingKeyWebManagerToGate);
     }
 
     /// <summary>
-    /// Snapshot the live Gate state into a JSON object. Shape matches the
-    /// /api/web-manager/gate-detailed-info contract on the WebManager side.
+    /// Reply only when this gate is the addressed one (id+hostNum match).
+    /// Returning <c>null</c> tells the dispatcher to publish nothing - the
+    /// WebManager will receive the reply from whichever gate owns the
+    /// requested mailbox.
     /// </summary>
+    [WebMgrHandler("getGateDetailedInfo.webmgr.toGate")]
+    private JToken? HandleGetDetailedInfo(JToken body)
+    {
+        if (this.entity is null)
+        {
+            return null;
+        }
+
+        var gateId = body["gateId"]!.ToString();
+        var hostNum = body["hostNum"]!.ToObject<int>();
+        if (gateId != this.entity.MailBox.Id || hostNum != this.entity.MailBox.HostNum)
+        {
+            return null;
+        }
+
+        return this.BuildDetailedInfo();
+    }
+
     private JObject BuildDetailedInfo()
     {
         var serverConnections = new JArray(
