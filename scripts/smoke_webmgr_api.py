@@ -65,6 +65,7 @@ def main():
     try:
         basic = hit("server-basic-info")
         hit("all-server-ping-ping-info")
+        hit("cluster-overview")
 
         if basic and basic.get("serverInfo", {}).get("serverMailBoxes"):
             mb = basic["serverInfo"]["serverMailBoxes"][0]

@@ -83,6 +83,57 @@ public partial class HostManager : IInstance
                         Consts.ServerExchangeName,
                         Consts.GetServerPingPongInfoRes);
                 }
+                else if (routingKey == Consts.GetClusterOverview)
+                {
+                    var (msgId, _) = MessageQueueJsonBody.From(msg);
+                    this.messageQueueClientToWebMgr.Publish(
+                        MessageQueueJsonBody.Create(msgId, this.BuildClusterOverview()).ToJson(),
+                        Consts.ServerExchangeName,
+                        Consts.GetClusterOverviewRes);
+                }
             });
+    }
+
+    /// <summary>
+    /// Snapshot every instance the HostManager has registered, grouped by role,
+    /// so the WebManager UI can render a single overview page without making
+    /// N round-trips. Status values match <see cref="InstanceStatusType"/>.
+    /// </summary>
+    private JObject BuildClusterOverview()
+    {
+        // Build an instanceType -> list-of-{id,ip,port,hostNum,status,lastHeartBeat} map.
+        // Use Snapshot() to avoid iterating the live ConcurrentDictionary.
+        var byType = this.instanceStatusManager.Snapshot()
+            .GroupBy(s => s.InstanceType.ToString())
+            .ToDictionary(g => g.Key, g => g.ToList());
+
+        JArray ToArray(string key) => byType.TryGetValue(key, out var list)
+            ? new JArray(list.Select(s => new JObject
+            {
+                ["id"] = s.MailBox.Id,
+                ["ip"] = s.MailBox.Ip,
+                ["port"] = s.MailBox.Port,
+                ["hostNum"] = s.MailBox.HostNum,
+                ["status"] = (int)s.Status,
+                ["lastHeartBeat"] = s.LastHeartBeat.ToString("O"),
+            }))
+            : new JArray();
+
+        return new JObject
+        {
+            ["hostManager"] = new JObject
+            {
+                ["ip"] = this.Ip,
+                ["port"] = this.Port,
+                ["hostNum"] = this.HostNum,
+                ["desiredServerNum"] = this.DesiredServerNum,
+                ["desiredGateNum"] = this.DesiredGateNum,
+                ["status"] = this.Status.ToString(),
+            },
+            ["gates"] = ToArray(InstanceType.Gate.ToString()),
+            ["servers"] = ToArray(InstanceType.Server.ToString()),
+            ["serviceManagers"] = ToArray(InstanceType.ServiceManager.ToString()),
+            ["services"] = ToArray(InstanceType.Service.ToString()),
+        };
     }
 }

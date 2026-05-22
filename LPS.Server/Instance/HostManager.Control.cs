@@ -9,6 +9,7 @@ namespace LPS.Server.Instance;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using Google.Protobuf;
 using LPS.Common.Debug;
 using LPS.Common.Rpc;
@@ -72,6 +73,14 @@ public partial class HostManager
         public InstanceStatus GetStatus(MailBox mailBox) => this.instanceMap[mailBox];
 
         public bool HasInstance(MailBox mailBox) => this.instanceMap.ContainsKey(mailBox);
+
+        /// <summary>
+        /// Snapshot every tracked instance's status. Used by the WebManager
+        /// cluster-overview endpoint; the returned collection is a copy so
+        /// callers can iterate it without holding any internal locks.
+        /// </summary>
+        /// <returns>Snapshot.</returns>
+        public IReadOnlyCollection<InstanceStatus> Snapshot() => this.instanceMap.Values.ToList();
     }
 
     private class InstanceStatus

@@ -70,4 +70,22 @@ public class WebManagerApiController : Controller
 
         return this.Content(res.ToString());
     }
+
+    /// <summary>
+    /// One-shot snapshot of every instance the HostManager tracks, grouped by role.
+    /// Backs the WebManager cluster overview page.
+    /// </summary>
+    [HttpGet("cluster-overview")]
+    public async Task<IActionResult> ClusterOverview()
+    {
+        var overview = await this.serverService.GetClusterOverview();
+
+        var res = new JObject
+        {
+            ["res"] = "Ok",
+            ["overview"] = overview,
+        };
+
+        return this.Content(res.ToString());
+    }
 }

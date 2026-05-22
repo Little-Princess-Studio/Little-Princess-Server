@@ -148,3 +148,39 @@ export const queryLogTail = (name: string, lines: number = 200): Promise<LogTail
             return data as LogTailResponse;
         });
 };
+
+// --- Cluster overview ---------------------------------------------------
+
+export type InstanceStatusEntry = {
+    id: string;
+    ip: string;
+    port: number;
+    hostNum: number;
+    /** matches LPS.Server.Instance.InstanceStatusType */
+    status: number;
+    lastHeartBeat: string;
+};
+
+export type ClusterOverview = {
+    hostManager: {
+        ip: string;
+        port: number;
+        hostNum: number;
+        desiredServerNum: number;
+        desiredGateNum: number;
+        status: string;
+    };
+    gates: InstanceStatusEntry[];
+    servers: InstanceStatusEntry[];
+    serviceManagers: InstanceStatusEntry[];
+    services: InstanceStatusEntry[];
+};
+
+export const queryClusterOverview = (): Promise<ClusterOverview> => {
+    return fetch(`${BaseApi}/cluster-overview`, { method: 'get' })
+        .then(r => r.json())
+        .then(data => {
+            if (data['res'] !== 'Ok') throw new Error('queryClusterOverview failed');
+            return data['overview'] as ClusterOverview;
+        });
+};

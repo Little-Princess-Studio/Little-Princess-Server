@@ -172,6 +172,18 @@ public static class Consts
     public const string GetServerPingPongInfoRes = "getServerPingPongInfoRes.toWebMgr";
 
     /// <summary>
+    /// Request from WebManager to HostManager: dump all tracked instances
+    /// (gates / servers / service manager / services) with their last known
+    /// ping/pong status. One round-trip; intended for the cluster overview page.
+    /// </summary>
+    public const string GetClusterOverview = "getClusterOverview.toHostMgr";
+
+    /// <summary>
+    /// HostManager -> WebManager reply for <see cref="GetClusterOverview"/>.
+    /// </summary>
+    public const string GetClusterOverviewRes = "getClusterOverviewRes.toWebMgr";
+
+    /// <summary>
     /// Get all entities of server.
     /// </summary>
     public const string GetAllEntitiesOfServer = "getAllEntitiesOfServer.webmgr.toSrv";

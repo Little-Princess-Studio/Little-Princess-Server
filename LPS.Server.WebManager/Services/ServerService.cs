@@ -72,6 +72,19 @@ public class ServerService
             Consts.GetServerPingPongInfo,
             this.asyncTaskGeneratorForJObjectRes);
     }
+
+    /// <summary>
+    /// Single-shot snapshot of every instance the HostManager has registered,
+    /// suitable for rendering the cluster overview page.
+    /// </summary>
+    /// <returns>HostManager + gates + servers + serviceManagers + services.</returns>
+    public Task<JToken> GetClusterOverview()
+    {
+        return this.SendMessageWithReplay(
+            new JObject(),
+            Consts.GetClusterOverview,
+            this.asyncTaskGeneratorForJObjectRes);
+    }
     
     private void HandleMqMessage(string msg, string routingKey)
     {
@@ -81,7 +94,8 @@ public class ServerService
         if (routingKey is Consts.ServerBasicInfoRes
             or Consts.ServerDetailedInfo
             or Consts.AllEntitiesRes
-            or Consts.GetServerPingPongInfoRes)
+            or Consts.GetServerPingPongInfoRes
+            or Consts.GetClusterOverviewRes)
         {
             this.asyncTaskGeneratorForJObjectRes.ResolveAsyncTask(rpcId, json);
         }
