@@ -68,6 +68,24 @@ public class ServerService
     public Task<JToken> GetMetricsTimeSeries()
         => this.Call(WebMgrEndpoints.MetricsTimeSeries, new JObject());
 
+    /// <summary>
+    /// Ask HostManager to gracefully shut down one named instance. The
+    /// instance type is one of <c>Gate</c>, <c>Server</c>,
+    /// <c>ServiceManager</c>, <c>Service</c>.
+    /// </summary>
+    /// <param name="instanceType">Cluster role of the target.</param>
+    /// <param name="instanceId">MailBox id from cluster-overview.</param>
+    /// <param name="timeoutMs">Drain budget; 0 = receiver default (10s).</param>
+    public Task<JToken> ShutdownInstance(string instanceType, string instanceId, int timeoutMs)
+        => this.Call(
+            WebMgrEndpoints.ShutdownInstance,
+            new JObject
+            {
+                ["instanceType"] = instanceType,
+                ["instanceId"] = instanceId,
+                ["timeoutMs"] = timeoutMs,
+            });
+
     private Task<JToken> Call(WebMgrEndpoints.Endpoint endpoint, JToken body)
     {
         var (task, id) = this.asyncTaskGeneratorForJObjectRes.GenerateAsyncTask();

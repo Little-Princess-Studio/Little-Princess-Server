@@ -8,6 +8,7 @@ import { useCallback, useEffect, useState } from "react";
 import { css } from "styled-components";
 import { header } from "./CommonCss";
 import NavBar from "./NavBar";
+import ShutdownButton from "./ShutdownButton";
 import { ClusterOverview, InstanceStatusEntry, ServiceEntry, ServiceShardEntry, ServicesRoster, queryClusterOverview, queryServicesRoster } from "./Network";
 
 const POLL_INTERVAL_MS = 2000;
@@ -37,7 +38,13 @@ const StatusBadge: React.FunctionComponent<{ status: number }> = ({ status }) =>
 
 const formatMailbox = (e: InstanceStatusEntry) => `${e.ip}:${e.port}#${e.hostNum}`;
 
-const instanceColumns: IColumn[] = [
+// Factory: columns include a per-row "Stop" button whose instanceType is
+// fixed per section (Gate/Server/ServiceManager/Service). The button's onClick
+// fires a graceful shutdown HostCommand at the row's mailbox id.
+const buildInstanceColumns = (
+    instanceType: "Gate" | "Server" | "ServiceManager" | "Service",
+    onShutdown: () => void,
+): IColumn[] => [
     {
         key: "id", name: "Id", minWidth: 200, maxWidth: 340,
         onRender: (e: InstanceStatusEntry) => (
@@ -63,9 +70,25 @@ const instanceColumns: IColumn[] = [
             return <span>{t.toLocaleTimeString()}</span>;
         },
     },
+    {
+        key: "actions", name: "", minWidth: 320,
+        onRender: (e: InstanceStatusEntry) => (
+            <ShutdownButton
+                instanceLabel={`${instanceType} ${e.id}`}
+                instanceType={instanceType}
+                instanceId={e.id}
+                onShutdown={onShutdown}
+            />
+        ),
+    },
 ];
 
-const SectionBlock: React.FunctionComponent<{ title: string; items: InstanceStatusEntry[] }> = ({ title, items }) => (
+const SectionBlock: React.FunctionComponent<{
+    title: string;
+    items: InstanceStatusEntry[];
+    instanceType: "Gate" | "Server" | "ServiceManager" | "Service";
+    onShutdown: () => void;
+}> = ({ title, items, instanceType, onShutdown }) => (
     <div css={css`margin: 0 1em 1.5em;`}>
         <h3 css={css`margin: 0.5em 0; color: #323130;`}>
             {title} <span css={css`color: #605e5c; font-weight: 400; font-size: 14px;`}>({items.length})</span>
@@ -74,7 +97,7 @@ const SectionBlock: React.FunctionComponent<{ title: string; items: InstanceStat
             ? <div css={css`color: #a19f9d; font-style: italic; margin-left: 0.5em;`}>(no instances)</div>
             : <DetailsList
                 items={items}
-                columns={instanceColumns}
+                columns={buildInstanceColumns(instanceType, onShutdown)}
                 selectionMode={SelectionMode.none}
                 layoutMode={DetailsListLayoutMode.justified}
                 compact
@@ -82,7 +105,7 @@ const SectionBlock: React.FunctionComponent<{ title: string; items: InstanceStat
     </div>
 );
 
-const shardColumns: IColumn[] = [
+const buildShardColumns = (onShutdown: () => void): IColumn[] => [
     {
         key: "shard", name: "Shard", minWidth: 60, maxWidth: 80,
         onRender: (s: ServiceShardEntry) => (
@@ -99,9 +122,23 @@ const shardColumns: IColumn[] = [
         key: "addr", name: "Owner Address", minWidth: 150,
         onRender: (s: ServiceShardEntry) => <span>{s.ip}:{s.port}#{s.hostNum}</span>,
     },
+    {
+        key: "actions", name: "", minWidth: 320,
+        onRender: (s: ServiceShardEntry) => (
+            // Shutting down a Service via any shard id stops the whole
+            // host-process that owns that shard (one Service host = one
+            // OS process, hosting all its shards).
+            <ShutdownButton
+                instanceLabel={`Service host owning shard #${s.shard} (${s.id})`}
+                instanceType="Service"
+                instanceId={s.id}
+                onShutdown={onShutdown}
+            />
+        ),
+    },
 ];
 
-const ServicesSection: React.FunctionComponent<{ roster: ServicesRoster | undefined }> = ({ roster }) => {
+const ServicesSection: React.FunctionComponent<{ roster: ServicesRoster | undefined; onShutdown: () => void }> = ({ roster, onShutdown }) => {
     if (!roster) {
         return (
             <div css={css`margin: 0 1em 1.5em;`}>
@@ -139,7 +176,7 @@ const ServicesSection: React.FunctionComponent<{ roster: ServicesRoster | undefi
                         {svc.shards.length > 0 && (
                             <DetailsList
                                 items={svc.shards}
-                                columns={shardColumns}
+                                columns={buildShardColumns(onShutdown)}
                                 selectionMode={SelectionMode.none}
                                 layoutMode={DetailsListLayoutMode.justified}
                                 compact
@@ -218,10 +255,10 @@ const ManagerPage: React.FunctionComponent = () => {
                         </div>
                     </div>
 
-                    <SectionBlock title="Gates" items={overview.gates} />
-                    <SectionBlock title="Servers" items={overview.servers} />
-                    <SectionBlock title="Service Managers" items={overview.serviceManagers} />
-                    <ServicesSection roster={roster} />
+                    <SectionBlock title="Gates" items={overview.gates} instanceType="Gate" onShutdown={refresh} />
+                    <SectionBlock title="Servers" items={overview.servers} instanceType="Server" onShutdown={refresh} />
+                    <SectionBlock title="Service Managers" items={overview.serviceManagers} instanceType="ServiceManager" onShutdown={refresh} />
+                    <ServicesSection roster={roster} onShutdown={refresh} />
                 </>
             )}
 

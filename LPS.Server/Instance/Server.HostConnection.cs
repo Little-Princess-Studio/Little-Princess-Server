@@ -173,6 +173,47 @@ public partial class Server
         this.Stop();
     }
 
+    [HostCommandHandler(HostCommandType.ShutdownInstance)]
+    private void OnShutdownInstance(HostCommand cmd)
+    {
+        LPS.Server.MessageQueue.ProcessExitCoordinator.Schedule(
+            $"server:{this.Name}",
+            this.DrainForShutdown,
+            cmd.ShutdownTimeoutMs);
+    }
+
+    /// <summary>
+    /// Per-instance teardown invoked by ProcessExitCoordinator.
+    /// The existing <see cref="Stop"/> already covers hostMgrConnection,
+    /// webMgrDispatcher and tcpServer; we additionally close the
+    /// serviceMgrConnection here because <see cref="Stop"/> does not touch
+    /// it (Loop()'s natural exit path does, but we are short-circuiting Loop).
+    /// </summary>
+    private void DrainForShutdown()
+    {
+        Logger.Info($"[server:{this.Name}] DrainForShutdown begin.");
+
+        try
+        {
+            this.Stop();
+        }
+        catch (Exception ex)
+        {
+            Logger.Warn($"[server:{this.Name}] Stop() threw during drain: {ex.Message}");
+        }
+
+        try
+        {
+            this.serviceMgrConnection?.ShutDown();
+        }
+        catch (Exception ex)
+        {
+            Logger.Warn($"[server:{this.Name}] serviceMgrConnection ShutDown threw: {ex.Message}");
+        }
+
+        Logger.Info($"[server:{this.Name}] DrainForShutdown complete.");
+    }
+
     private async Task OnCreateEntity(Connection? gateConn, string entityClassName, string jsonDesc, Common.Rpc.MailBox mailBox)
     {
         Logger.Info($"[OnCreateEntity] Server create a new entity with mailbox {mailBox}");

@@ -69,6 +69,10 @@ public static class WebMgrEndpoints
     public static readonly Endpoint MetricsTimeSeries
         = new("getMetricsTimeSeries.toHostMgr", "getMetricsTimeSeriesRes.toWebMgr");
 
+    /// <summary>WebManager -> HostManager: request graceful shutdown of one named instance.</summary>
+    public static readonly Endpoint ShutdownInstance
+        = new("shutdownInstance.toHostMgr", "shutdownInstanceRes.toWebMgr");
+
     /// <summary>Every defined endpoint. Used for startup validation and dispatcher lookup.</summary>
     public static readonly IReadOnlyList<Endpoint> All = new[]
     {
@@ -82,6 +86,7 @@ public static class WebMgrEndpoints
         ServiceShardDetailedInfo,
         EntityPropertyDump,
         MetricsTimeSeries,
+        ShutdownInstance,
     };
 
     /// <summary>Fast request -> reply lookup. Populated once at type init.</summary>

@@ -349,3 +349,37 @@ export const queryMetricsTimeSeries = (): Promise<MetricsTimeSeries> => {
             return data['metrics'] as MetricsTimeSeries;
         });
 };
+
+// --- Instance shutdown (graceful) --------------------------------------
+//
+// Sent to HostManager. HostManager either delivers a HostCommand to the
+// target instance directly (TCP fallback to MQ for the targeted exchange)
+// or - for Service - forwards through ServiceManager as a
+// ServiceManagerCommand. The target runs its DrainForShutdown then calls
+// Environment.Exit(0) so StartupManager's auto-restart logic (which only
+// respawns on non-zero exit codes) treats the shutdown as intentional.
+//
+// instanceType is one of: 'Gate' | 'Server' | 'ServiceManager' | 'Service'.
+// 'HostManager' is rejected (would orphan the control plane).
+// timeoutMs of 0 means "use the receiver's default" (currently 10000).
+
+export type ShutdownInstanceResult = {
+    accepted: boolean;
+    transport?: string;
+    reason?: string;
+};
+
+export const shutdownInstance = (
+    instanceType: string,
+    instanceId: string,
+    timeoutMs: number = 0,
+): Promise<ShutdownInstanceResult> => {
+    const url = `${BaseApi}/shutdown-instance?instanceType=${encodeURIComponent(instanceType)}`
+        + `&instanceId=${encodeURIComponent(instanceId)}&timeoutMs=${timeoutMs}`;
+    return fetch(url, { method: 'post' })
+        .then(r => r.json())
+        .then(data => {
+            if (data['res'] !== 'Ok') throw new Error('shutdownInstance failed');
+            return data['result'] as ShutdownInstanceResult;
+        });
+};

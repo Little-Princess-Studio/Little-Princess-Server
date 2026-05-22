@@ -522,6 +522,112 @@ public partial class ServiceManager : IInstance
         {
             this.Stop();
         }
+        else if (hostCmd.Type == HostCommandType.ShutdownInstance)
+        {
+            // Two routes for ShutdownInstance:
+            //   Args.Count == 0 -> target IS this ServiceManager: drain + Exit(0).
+            //   Args[0]  (string)= target Service host id -> relay a
+            //     ServiceManagerCommand.ShutdownInstance to that Service host.
+            if (hostCmd.Args.Count == 0)
+            {
+                ProcessExitCoordinator.Schedule(
+                    $"servicemanager:{this.Name}",
+                    this.DrainForShutdown,
+                    hostCmd.ShutdownTimeoutMs);
+            }
+            else
+            {
+                this.RelayShutdownToService(hostCmd);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Relay a WebManager-initiated Service shutdown down to the right
+    /// Service host. The id in <c>hostCmd.Args[0]</c> is either the Service
+    /// host id (registered in <see cref="connectionManager"/>) OR any shard
+    /// id whose owning host we then resolve via the routing map. Sending a
+    /// shutdown to one shard is interpreted as "shut down the whole host
+    /// process that owns that shard" since the Service process model is one
+    /// host-per-OS-process.
+    /// </summary>
+    private void RelayShutdownToService(HostCommand hostCmd)
+    {
+        var targetId = RpcHelper.GetString(hostCmd.Args[0]);
+        Logger.Info($"[servicemanager:{this.Name}] Relay ShutdownInstance target={targetId} timeoutMs={hostCmd.ShutdownTimeoutMs}");
+
+        // Map shard id -> host id if the caller passed a shard id.
+        var hostId = targetId;
+        foreach (var desc in this.serviceRoutingMap.Values)
+        {
+            var shards = desc.SnapshotShards();
+            foreach (var (shardKey, shardMb) in shards)
+            {
+                if (shardMb.Id == targetId)
+                {
+                    hostId = desc.GetShardHostMailBox(shardKey).Id;
+                    Logger.Info($"[servicemanager:{this.Name}] Resolved shard id {targetId} -> host id {hostId}");
+                    break;
+                }
+            }
+        }
+
+        var cmd = new ServiceManagerCommand
+        {
+            Type = ServiceManagerCommandType.ShutdownInstance,
+            ShutdownTimeoutMs = hostCmd.ShutdownTimeoutMs,
+        };
+
+        try
+        {
+            this.connectionManager.SendMessage(
+                hostId, cmd, ServiceManagerConnectionManager.ConnectionType.Service);
+        }
+        catch (Exception ex)
+        {
+            Logger.Warn($"[servicemanager:{this.Name}] Failed to relay shutdown to service host {hostId}: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Per-instance teardown invoked by ProcessExitCoordinator.
+    /// Extends the legacy <see cref="Stop"/> (which only closes tcpServer and
+    /// hostMgrConnection) with messageQueueClientToOtherInstances and
+    /// webMgrDispatcher - both of which would otherwise leak RabbitMQ
+    /// channels at shutdown.
+    /// </summary>
+    private void DrainForShutdown()
+    {
+        Logger.Info($"[servicemanager:{this.Name}] DrainForShutdown begin.");
+
+        try
+        {
+            this.Stop();
+        }
+        catch (Exception ex)
+        {
+            Logger.Warn($"[servicemanager:{this.Name}] Stop() threw during drain: {ex.Message}");
+        }
+
+        try
+        {
+            this.messageQueueClientToOtherInstances?.ShutDown();
+        }
+        catch (Exception ex)
+        {
+            Logger.Warn($"[servicemanager:{this.Name}] messageQueueClientToOtherInstances ShutDown threw: {ex.Message}");
+        }
+
+        try
+        {
+            this.webMgrDispatcher?.ShutDown();
+        }
+        catch (Exception ex)
+        {
+            Logger.Warn($"[servicemanager:{this.Name}] webMgrDispatcher ShutDown threw: {ex.Message}");
+        }
+
+        Logger.Info($"[servicemanager:{this.Name}] DrainForShutdown complete.");
     }
 
     private uint GenerateAsyncId()

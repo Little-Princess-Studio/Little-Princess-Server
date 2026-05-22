@@ -17,6 +17,7 @@ using LPS.Server;
 using LPS.Server.Instance.HostConnection;
 using LPS.Server.Instance.HostConnection.HostManagerConnection;
 using LPS.Server.Instance.HostConnection.ServiceConnection;
+using LPS.Server.MessageQueue;
 using LPS.Server.Rpc.InnerMessages;
 using LPS.Server.Service;
 using Newtonsoft.Json.Linq;
@@ -307,6 +308,48 @@ public partial class Service : IInstance
         this.serviceMgrConnection.ShutDown();
     }
 
+    /// <summary>
+    /// Per-shard + per-host teardown invoked by ProcessExitCoordinator when
+    /// the WebManager-initiated ShutdownInstance command arrives (routed
+    /// HostManager -&gt; ServiceManager -&gt; Service via
+    /// <see cref="ServiceManagerCommandType.ShutdownInstance"/>). Stops every
+    /// BaseService shard (the legacy <see cref="Stop"/> only closes the MQ
+    /// connection to ServiceManager and never drains shards).
+    /// </summary>
+    private void DrainForShutdown()
+    {
+        Logger.Info($"[service:{this.Name}] DrainForShutdown begin.");
+
+        // Drain shards first so any in-flight RPC against a shard completes
+        // (or is rejected) before the upstream MQ link goes away.
+        foreach (var perServiceShards in this.serviceMap.Values)
+        {
+            foreach (var baseService in perServiceShards.Values)
+            {
+                try
+                {
+                    baseService.Stop();
+                    baseService.WaitForExit();
+                }
+                catch (Exception ex)
+                {
+                    Logger.Warn($"[service:{this.Name}] shard {baseService.MailBox.Id} stop threw: {ex.Message}");
+                }
+            }
+        }
+
+        try
+        {
+            this.Stop();
+        }
+        catch (Exception ex)
+        {
+            Logger.Warn($"[service:{this.Name}] Stop() threw during drain: {ex.Message}");
+        }
+
+        Logger.Info($"[service:{this.Name}] DrainForShutdown complete.");
+    }
+
     private void ServiceManagerCommandHandler(IMessage message)
     {
         var serviceMgrCmd = (message as ServiceManagerCommand)!;
@@ -326,6 +369,12 @@ public partial class Service : IInstance
                 throw new NotImplementedException();
             case ServiceManagerCommandType.AllServicesReady:
                 this.NotifyAllServiceReady();
+                break;
+            case ServiceManagerCommandType.ShutdownInstance:
+                ProcessExitCoordinator.Schedule(
+                    $"service:{this.Name}",
+                    this.DrainForShutdown,
+                    serviceMgrCmd.ShutdownTimeoutMs);
                 break;
             default:
                 break;

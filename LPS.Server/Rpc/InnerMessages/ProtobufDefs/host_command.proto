@@ -10,9 +10,14 @@ enum HostCommandType {
     SyncServiceManager = 4;
     ReconnectServer = 5;
     ReconnectGate = 6;
+    ShutdownInstance = 7;
 }
 
 message HostCommand {
     HostCommandType Type = 1;
     repeated google.protobuf.Any Args = 2;
+    // Optional timeout (milliseconds) for shutdown-style commands. Zero means
+    // "use the receiver's default" (currently 10000 ms). Receivers ignore this
+    // field for command types that do not have a drain phase.
+    int32 ShutdownTimeoutMs = 3;
 }

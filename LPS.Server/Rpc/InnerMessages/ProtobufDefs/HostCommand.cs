@@ -25,17 +25,18 @@ namespace LPS.Server.Rpc.InnerMessages {
       byte[] descriptorData = global::System.Convert.FromBase64String(
           string.Concat(
             "ChJob3N0X2NvbW1hbmQucHJvdG8SHExQUy5TZXJ2ZXIuUnBjLklubmVyTWVz",
-            "c2FnZXMaGWdvb2dsZS9wcm90b2J1Zi9hbnkucHJvdG8ibgoLSG9zdENvbW1h",
-            "bmQSOwoEVHlwZRgBIAEoDjItLkxQUy5TZXJ2ZXIuUnBjLklubmVyTWVzc2Fn",
-            "ZXMuSG9zdENvbW1hbmRUeXBlEiIKBEFyZ3MYAiADKAsyFC5nb29nbGUucHJv",
-            "dG9idWYuQW55KoUBCg9Ib3N0Q29tbWFuZFR5cGUSDwoLU3luY1NlcnZlcnMQ",
-            "ABINCglTeW5jR2F0ZXMQARIICgRPcGVuEAISCAoEU3RvcBADEhYKElN5bmNT",
-            "ZXJ2aWNlTWFuYWdlchAEEhMKD1JlY29ubmVjdFNlcnZlchAFEhEKDVJlY29u",
-            "bmVjdEdhdGUQBmIGcHJvdG8z"));
+            "c2FnZXMaGWdvb2dsZS9wcm90b2J1Zi9hbnkucHJvdG8iiQEKC0hvc3RDb21t",
+            "YW5kEjsKBFR5cGUYASABKA4yLS5MUFMuU2VydmVyLlJwYy5Jbm5lck1lc3Nh",
+            "Z2VzLkhvc3RDb21tYW5kVHlwZRIiCgRBcmdzGAIgAygLMhQuZ29vZ2xlLnBy",
+            "b3RvYnVmLkFueRIZChFTaHV0ZG93blRpbWVvdXRNcxgDIAEoBSqbAQoPSG9z",
+            "dENvbW1hbmRUeXBlEg8KC1N5bmNTZXJ2ZXJzEAASDQoJU3luY0dhdGVzEAES",
+            "CAoET3BlbhACEggKBFN0b3AQAxIWChJTeW5jU2VydmljZU1hbmFnZXIQBBIT",
+            "Cg9SZWNvbm5lY3RTZXJ2ZXIQBRIRCg1SZWNvbm5lY3RHYXRlEAYSFAoQU2h1",
+            "dGRvd25JbnN0YW5jZRAHYgZwcm90bzM="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { global::Google.Protobuf.WellKnownTypes.AnyReflection.Descriptor, },
           new pbr::GeneratedClrTypeInfo(new[] {typeof(global::LPS.Server.Rpc.InnerMessages.HostCommandType), }, null, new pbr::GeneratedClrTypeInfo[] {
-            new pbr::GeneratedClrTypeInfo(typeof(global::LPS.Server.Rpc.InnerMessages.HostCommand), global::LPS.Server.Rpc.InnerMessages.HostCommand.Parser, new[]{ "Type", "Args" }, null, null, null, null)
+            new pbr::GeneratedClrTypeInfo(typeof(global::LPS.Server.Rpc.InnerMessages.HostCommand), global::LPS.Server.Rpc.InnerMessages.HostCommand.Parser, new[]{ "Type", "Args", "ShutdownTimeoutMs" }, null, null, null, null)
           }));
     }
     #endregion
@@ -50,6 +51,7 @@ namespace LPS.Server.Rpc.InnerMessages {
     [pbr::OriginalName("SyncServiceManager")] SyncServiceManager = 4,
     [pbr::OriginalName("ReconnectServer")] ReconnectServer = 5,
     [pbr::OriginalName("ReconnectGate")] ReconnectGate = 6,
+    [pbr::OriginalName("ShutdownInstance")] ShutdownInstance = 7,
   }
 
   #endregion
@@ -91,6 +93,7 @@ namespace LPS.Server.Rpc.InnerMessages {
     public HostCommand(HostCommand other) : this() {
       type_ = other.type_;
       args_ = other.args_.Clone();
+      shutdownTimeoutMs_ = other.shutdownTimeoutMs_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -123,6 +126,23 @@ namespace LPS.Server.Rpc.InnerMessages {
       get { return args_; }
     }
 
+    /// <summary>Field number for the "ShutdownTimeoutMs" field.</summary>
+    public const int ShutdownTimeoutMsFieldNumber = 3;
+    private int shutdownTimeoutMs_;
+    /// <summary>
+    /// Optional timeout (milliseconds) for shutdown-style commands. Zero means
+    /// "use the receiver's default" (currently 10000 ms). Receivers ignore this
+    /// field for command types that do not have a drain phase.
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public int ShutdownTimeoutMs {
+      get { return shutdownTimeoutMs_; }
+      set {
+        shutdownTimeoutMs_ = value;
+      }
+    }
+
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
@@ -140,6 +160,7 @@ namespace LPS.Server.Rpc.InnerMessages {
       }
       if (Type != other.Type) return false;
       if(!args_.Equals(other.args_)) return false;
+      if (ShutdownTimeoutMs != other.ShutdownTimeoutMs) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -149,6 +170,7 @@ namespace LPS.Server.Rpc.InnerMessages {
       int hash = 1;
       if (Type != global::LPS.Server.Rpc.InnerMessages.HostCommandType.SyncServers) hash ^= Type.GetHashCode();
       hash ^= args_.GetHashCode();
+      if (ShutdownTimeoutMs != 0) hash ^= ShutdownTimeoutMs.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -172,6 +194,10 @@ namespace LPS.Server.Rpc.InnerMessages {
         output.WriteEnum((int) Type);
       }
       args_.WriteTo(output, _repeated_args_codec);
+      if (ShutdownTimeoutMs != 0) {
+        output.WriteRawTag(24);
+        output.WriteInt32(ShutdownTimeoutMs);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -187,6 +213,10 @@ namespace LPS.Server.Rpc.InnerMessages {
         output.WriteEnum((int) Type);
       }
       args_.WriteTo(ref output, _repeated_args_codec);
+      if (ShutdownTimeoutMs != 0) {
+        output.WriteRawTag(24);
+        output.WriteInt32(ShutdownTimeoutMs);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -201,6 +231,9 @@ namespace LPS.Server.Rpc.InnerMessages {
         size += 1 + pb::CodedOutputStream.ComputeEnumSize((int) Type);
       }
       size += args_.CalculateSize(_repeated_args_codec);
+      if (ShutdownTimeoutMs != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeInt32Size(ShutdownTimeoutMs);
+      }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
       }
@@ -217,6 +250,9 @@ namespace LPS.Server.Rpc.InnerMessages {
         Type = other.Type;
       }
       args_.Add(other.args_);
+      if (other.ShutdownTimeoutMs != 0) {
+        ShutdownTimeoutMs = other.ShutdownTimeoutMs;
+      }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
 
@@ -240,6 +276,10 @@ namespace LPS.Server.Rpc.InnerMessages {
             args_.AddEntriesFrom(input, _repeated_args_codec);
             break;
           }
+          case 24: {
+            ShutdownTimeoutMs = input.ReadInt32();
+            break;
+          }
         }
       }
     #endif
@@ -261,6 +301,10 @@ namespace LPS.Server.Rpc.InnerMessages {
           }
           case 18: {
             args_.AddEntriesFrom(ref input, _repeated_args_codec);
+            break;
+          }
+          case 24: {
+            ShutdownTimeoutMs = input.ReadInt32();
             break;
           }
         }

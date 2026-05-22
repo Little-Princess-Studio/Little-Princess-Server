@@ -8,9 +8,13 @@ enum ServiceManagerCommandType {
     Stop = 2;
     CreateNewServices = 3;
     AllServicesReady = 4;
+    ShutdownInstance = 5;
 }
 
 message ServiceManagerCommand {
     ServiceManagerCommandType Type = 1;
     repeated google.protobuf.Any Args = 2;
+    // Optional timeout (milliseconds) for shutdown-style commands. Zero means
+    // "use the receiver's default" (currently 10000 ms).
+    int32 ShutdownTimeoutMs = 3;
 }

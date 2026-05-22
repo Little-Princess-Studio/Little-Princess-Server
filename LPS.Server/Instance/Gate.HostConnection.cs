@@ -114,6 +114,59 @@ public partial class Gate
         this.Stop();
     }
 
+    [HostCommandHandler(HostCommandType.ShutdownInstance)]
+    private void OnShutdownInstance(HostCommand cmd)
+    {
+        ProcessExitCoordinator.Schedule(
+            $"gate:{this.Name}",
+            this.DrainForShutdown,
+            cmd.ShutdownTimeoutMs);
+    }
+
+    /// <summary>
+    /// Per-instance teardown invoked on the worker thread by
+    /// <see cref="ProcessExitCoordinator"/>. Extends the legacy
+    /// <see cref="Stop"/> with the connections the original method missed
+    /// (serviceMgrConnection, webMgrDispatcher) so nothing leaks before
+    /// Exit(0).
+    /// </summary>
+    private void DrainForShutdown()
+    {
+        Logger.Info($"[gate:{this.Name}] DrainForShutdown begin.");
+
+        // Existing Stop() handles: tcpClientsToServer + tcpClientsToOtherGate
+        // + hostMgrConnection.ShutDown + tcpGateServer.Stop.
+        try
+        {
+            this.Stop();
+        }
+        catch (Exception ex)
+        {
+            Logger.Warn($"[gate:{this.Name}] Stop() threw during drain: {ex.Message}");
+        }
+
+        // Gaps the legacy Stop() did not cover.
+        try
+        {
+            this.serviceMgrConnection?.ShutDown();
+        }
+        catch (Exception ex)
+        {
+            Logger.Warn($"[gate:{this.Name}] serviceMgrConnection ShutDown threw: {ex.Message}");
+        }
+
+        try
+        {
+            this.webMgrDispatcher?.ShutDown();
+        }
+        catch (Exception ex)
+        {
+            Logger.Warn($"[gate:{this.Name}] webMgrDispatcher ShutDown threw: {ex.Message}");
+        }
+
+        Logger.Info($"[gate:{this.Name}] DrainForShutdown complete.");
+    }
+
     private void ReconnectServer(MailBox serverMailBox)
     {
         Logger.Info($"ReconnectServer: {serverMailBox}");

@@ -158,4 +158,17 @@ public class WebManagerApiController : Controller
         var metrics = await this.serverService.GetMetricsTimeSeries();
         return this.Content(new JObject { ["res"] = "Ok", ["metrics"] = metrics }.ToString());
     }
+
+    /// <summary>
+    /// Gracefully shut down one cluster instance. The instance must drain
+    /// (close transports, finish in-flight RPCs) then call
+    /// <c>Environment.Exit(0)</c> so StartupManager's auto-restart logic
+    /// (which only respawns on non-zero exit codes) treats it as intentional.
+    /// </summary>
+    [HttpPost("shutdown-instance")]
+    public async Task<IActionResult> ShutdownInstance([FromQuery] string instanceType, [FromQuery] string instanceId, [FromQuery] int timeoutMs = 0)
+    {
+        var result = await this.serverService.ShutdownInstance(instanceType, instanceId, timeoutMs);
+        return this.Content(new JObject { ["res"] = "Ok", ["result"] = result }.ToString());
+    }
 }
