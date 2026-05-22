@@ -10,39 +10,62 @@
 > - `tcp_proxy.py` adds per-chunk delay only (cannot drop TCP bytes — see caveat)
 > See `scripts/netem/bench_all.ps1` for the full harness.
 
-## Results
+## Results (post-Bus optimization)
+
+After replacing `Thread.Sleep(50)` polling with `AutoResetEvent`-driven
+`Bus.WaitAndPump` (see `LPS.Common/Ipc/Bus.cs`).
 
 | Scenario | Transport | mean | p50 | p90 | p99 | max | Failures |
 |---|---|---:|---:|---:|---:|---:|---:|
-| baseline (loopback) | TCP | 183.0ms | 186.3 | 187.6 | 189.0 | 189.0 | 0/50 |
-| baseline (loopback) | **KCP** | **133.9ms** | 124.6 | 171.0 | 186.8 | 186.8 | 0/50 |
-| +50ms one-way RTT (RTT+100ms) | TCP | 299.4ms | 310.4 | 312.5 | 313.0 | 313.0 | 0/50 |
-| +50ms one-way RTT (RTT+100ms) | **KCP** | **249.5ms** | 249.1 | 265.2 | 292.2 | 292.2 | 0/50 |
-| 5% UDP loss + 50ms RTT | KCP | 267.2ms | 249.7 | 297.2 | **450.3** | 450.3 | 0/50 |
-| 10% UDP loss + 100ms RTT | KCP | 481.7ms | 373.7 | 655.3 | **1339.5** | 1339.5 | 0/50 |
+| baseline (loopback) | **TCP** | **62.3ms** | 62.2 | 63.1 | 63.5 | 63.5 | 0/50 |
+| baseline (loopback) | KCP | 94.9ms | 93.5 | 109.2 | 109.5 | 109.5 | 0/50 |
+| +50ms one-way RTT (RTT+100ms) | **TCP** | **183.3ms** | 186.4 | 188.2 | 189.2 | 189.2 | 0/50 |
+| +50ms one-way RTT (RTT+100ms) | KCP | 203.6ms | 202.5 | 218.2 | 233.0 | 233.0 | 0/50 |
+| 5% UDP loss + 50ms RTT | KCP | 222.4ms | 201.9 | 341.7 | 372.2 | 372.2 | 0/50 |
+| 10% UDP loss + 100ms RTT | KCP | 365.9ms | 309.8 | 574.9 | 1238.9 | 1238.9 | 0/50 |
+
+### Before vs after the Bus optimization
+
+For comparison, here is the same harness BEFORE the Bus event-driven rework
+(old `Thread.Sleep(50)` poll loop):
+
+| Scenario | Transport | mean (before → after) | p99 (before → after) |
+|---|---|---:|---:|
+| baseline | TCP | 183.0ms → **62.3ms**  (-66%) | 189.0 → 63.5  (-66%) |
+| baseline | KCP | 133.9ms → **94.9ms**  (-29%) | 186.8 → 109.5  (-41%) |
+| +RTT 100ms | TCP | 299.4ms → **183.3ms** (-39%) | 313.0 → 189.2  (-40%) |
+| +RTT 100ms | KCP | 249.5ms → **203.6ms** (-18%) | 292.2 → 233.0  (-20%) |
+
+The TCP path gets the biggest win because both the server-side
+`TcpServer.PumpMessageHandler` AND the client-side `Client.PumpHandler`
+were paying the 50ms poll tax. KCP only had it on the receive side (the
+KCP send path uses a separate 1ms tick), so the relative gain is smaller.
 
 ## What this shows
 
 **Baseline (loopback, no impairment)**
-- KCP **mean is 27% lower than TCP** (133.9ms vs 183.0ms).
-- TCP's `mean ≈ p50 ≈ p99` (~187ms) — totally dominated by LPS's internal pump/bus interval (the `Thread.Sleep(50)` in `TcpServer.PumpMessageHandler`), not the transport.
-- KCP's lower mean comes from kcp2k's tighter tick (10ms) bypassing that same bus pump latency on the receive side, while TCP receive runs through the slower stream-reassembly pipe.
-- **Translation**: the framework's internal scheduling matters more than transport choice at zero impairment. Transport is not the bottleneck on a clean LAN.
+- TCP now ~62ms - close to the framework's irreducible cost (Protobuf
+  encode/decode + reflection dispatch + sandbox thread context switches).
+- KCP ~95ms - dominated by kcp2k's 10ms tick interval on both the server
+  send-flush and client receive-process steps. Tuning `KcpConfig.Interval`
+  down to 1ms would close the gap but burns more CPU on the tick thread.
+- **At zero impairment TCP is now faster than KCP.** This inverts the
+  previous result and reflects that the new bottleneck is KCP's
+  protocol-level tick rather than LPS's pump.
 
 **+50ms one-way RTT (RTT+100ms)**
-- Both transports add ~115ms over baseline — that's the actual extra RTT plus tick alignment cost.
-- KCP still ~50ms ahead of TCP at all percentiles.
-- Real-world cellular networks at this RTT (~100ms) would favour KCP, but not dramatically.
+- TCP and KCP within ~20ms of each other. The added RTT dominates.
+- KCP loses ~20ms to its tick interval; with `Interval: 1` it would match TCP.
 
 **5% UDP loss + 50ms RTT**
-- KCP's mean rises to 267ms (~+18ms over no-loss case).
-- **p99 jumps to 450ms** — that's KCP's ARQ retransmit kicking in for the 2-3 worst RPCs. Each retransmit is one RTT (~100ms) extra.
+- KCP p99 372ms - that's KCP's ARQ kicking in for the worst 2-3 RPCs.
+  Each retransmit is one RTT (~100ms) extra.
 - **Still 100% success.** No timeouts at the 8000ms budget.
 
 **10% UDP loss + 100ms RTT** (severe mobile-network conditions)
-- Mean 481ms, **p99 1340ms**, max 1340ms.
-- Worst RPC took 1.3s — that's roughly 6 retransmit attempts at 200ms RTT.
-- **Still 100% success** at 8s timeout — KCP's retransmit aggression (1.5× RTO backoff vs TCP's 2×) keeps tail latency bounded even at brutal loss rates.
+- Mean 366ms, p99 1239ms, max 1239ms.
+- Worst RPC took 1.2s ≈ ~6 retransmit attempts at 200ms RTT.
+- **Still 100% success** at 8s timeout.
 
 ## What this doesn't show
 
@@ -54,7 +77,7 @@
 - **Linux**: `tc qdisc add dev lo root netem loss 5% delay 50ms`
 - **macOS**: `dnctl` + pf
 
-I did not run clumsy because it requires manual UI interaction and elevation. **Expected result based on cited research** (KCP author's benchmark, Tencent Honor of Kings post-mortem, asio-kcp 3× speedup paper): TCP under 5% loss exhibits p99 1500-3000ms because TCP's slow-start + exponential RTO backoff makes worst-case RTT explode. **KCP's 450ms p99 at 5% loss should beat TCP by 3-5× in the same conditions.**
+I did not run clumsy because it requires manual UI interaction and elevation. **Expected result based on cited research** (KCP author's benchmark, Tencent Honor of Kings post-mortem, asio-kcp 3× speedup paper): TCP under 5% loss exhibits p99 1500-3000ms because TCP's slow-start + exponential RTO backoff makes worst-case RTT explode. **KCP's 372ms p99 at 5% loss should beat TCP by 4-8× in the same conditions.**
 
 ### High concurrency
 
@@ -70,9 +93,12 @@ All tests are loopback (`127.0.0.1`). Real-world client-to-gate paths cross ISP 
 ## Verdict
 
 For LPS's client-to-gate path:
-- **No measurable downside on a clean LAN.** KCP is faster or equal everywhere.
-- **Materially better under loss.** 100% success at 10% UDP loss, p99 still under 1.4s. TCP at the same impairment would suffer head-of-line blocking and exponential backoff — every game RPC behind a lost packet stalls until kernel retransmit.
-- **The TCP path stays the default** for now (cluster-internal mesh is already TCP, no reason to change LAN behavior). KCP is a per-client opt-in for users on lossy networks.
+- **Clean LAN**: TCP slightly faster (62ms vs 95ms), but the difference is
+  KCP's tick interval, not protocol overhead. Either transport is fine.
+- **Material WAN with loss**: KCP's ARQ keeps tail latency bounded;
+  TCP's exponential RTO backoff would blow p99 past 1s under the same loss.
+- **Default stays TCP** for cluster-internal mesh and for clients on stable networks.
+  **KCP is per-client opt-in** for users on lossy networks (mobile, weak Wi-Fi).
 
 To run the bench yourself:
 

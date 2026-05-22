@@ -111,6 +111,11 @@ internal class TcpServer
     {
         Logger.Debug("stopped");
         this.stopFlag = true;
+
+        // Wake the pump consumer so it sees stopFlag and exits instead of
+        // staying blocked in Bus.WaitAndPump for up to 100ms.
+        this.bus.Shutdown();
+
         try
         {
             this.Socket?.Shutdown(SocketShutdown.Both);
@@ -281,19 +286,21 @@ internal class TcpServer
 
     private void PumpMessageHandler()
     {
+        // Event-driven drain - blocks on Bus.WaitAndPump until a producer
+        // (HandleMessage TCP receive loop) calls Bus.AppendMessage. The
+        // 100ms timeout is purely a stop-flag-poll safety net; under load
+        // we wake within microseconds of the first message arrival.
+        // Previously this was a Thread.Sleep(50) poll loop which added an
+        // average 25ms / worst 50ms latency tax to every received message.
         while (!this.stopFlag)
         {
             try
             {
-                this.bus.Pump();
+                this.bus.WaitAndPump(100);
             }
             catch (Exception e)
             {
                 Logger.Error(e, "Pump message failed.");
-            }
-            finally
-            {
-                Thread.Sleep(50);
             }
         }
     }

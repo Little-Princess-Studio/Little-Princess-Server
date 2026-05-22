@@ -126,6 +126,10 @@ public class Client
     public void Stop()
     {
         this.exitFlag = true;
+
+        // Wake the pump consumer so it sees exitFlag and exits rather than
+        // staying blocked in Bus.WaitAndPump for up to 100ms.
+        this.bus.Shutdown();
     }
 
     /// <summary>
@@ -146,19 +150,19 @@ public class Client
 
     private void PumpHandler()
     {
+        // Event-driven drain: blocks on Bus.WaitAndPump until a producer
+        // (TCP receive loop or KCP OnData) calls Bus.AppendMessage. The
+        // 100ms wake-up is the exit-flag-poll safety net. Was a busy-spin
+        // Thread.Sleep(1) loop which added ~0.5ms tax per message.
         while (!this.exitFlag)
         {
             try
             {
-                this.bus.Pump();
+                this.bus.WaitAndPump(100);
             }
             catch (Exception e)
             {
                 Logger.Error(e, "Pump message failed.");
-            }
-            finally
-            {
-                Thread.Sleep(1);
             }
         }
     }
