@@ -15,6 +15,7 @@ using LPS.Common.Debug;
 using LPS.Common.Rpc;
 using LPS.Common.Rpc.InnerMessages;
 using LPS.Server.Instance.HostConnection.HostManagerConnection;
+using LPS.Server.MessageQueue;
 using LPS.Server.Rpc;
 using LPS.Server.Rpc.InnerMessages;
 using MailBox = LPS.Common.Rpc.MailBox;
@@ -29,8 +30,15 @@ using MailBox = LPS.Common.Rpc.MailBox;
 /// </summary>
 public partial class Gate
 {
+    private readonly EnumDispatcher<HostCommandType, HostCommand> hostCommandDispatcher
+        = new("gate.hostCommand");
+
     private void InitHostManagerConnection(bool useMqToHostMgr, string hostManagerIp, int hostManagerPort)
     {
+        // Build the HostCommand sub-dispatcher first so it's populated by the
+        // time the first inbound HostCommand arrives.
+        this.hostCommandDispatcher.ScanAndRegister<HostCommandHandlerAttribute>(this);
+
         if (!useMqToHostMgr)
         {
             this.hostMgrConnection = new ImmediateHostManagerConnectionOfGate(
@@ -63,37 +71,47 @@ public partial class Gate
 
     private void HandleHostCommandFromHost(IMessage msg)
     {
-        var hostCmd = (msg as HostCommand)!;
-
+        var hostCmd = (HostCommand)msg;
         Logger.Info($"Handle host command, cmd type: {hostCmd.Type}");
+        this.hostCommandDispatcher.Dispatch(hostCmd.Type, hostCmd);
+    }
 
-        switch (hostCmd.Type)
-        {
-            case HostCommandType.SyncServers:
-                this.SyncServersMailBoxes(hostCmd.Args
-                    .Select(mb => RpcHelper.PbMailBoxToRpcMailBox(RpcHelper.GetMailBox(mb))).ToArray());
-                break;
-            case HostCommandType.SyncGates:
-                this.SyncOtherGatesMailBoxes(hostCmd.Args
-                    .Select(mb => RpcHelper.PbMailBoxToRpcMailBox(RpcHelper.GetMailBox(mb))).ToArray());
-                break;
-            case HostCommandType.SyncServiceManager:
-                this.SyncServiceManagerMailBox(RpcHelper.PbMailBoxToRpcMailBox(RpcHelper.GetMailBox(hostCmd.Args[0])));
-                break;
-            case HostCommandType.ReconnectServer:
-                this.ReconnectServer(RpcHelper.PbMailBoxToRpcMailBox(RpcHelper.GetMailBox(hostCmd.Args[0])));
-                break;
-            case HostCommandType.ReconnectGate:
-                this.ReconnectGate(RpcHelper.PbMailBoxToRpcMailBox(RpcHelper.GetMailBox(hostCmd.Args[0])));
-                break;
-            case HostCommandType.Open:
-                break;
-            case HostCommandType.Stop:
-                this.Stop();
-                break;
-            default:
-                throw new ArgumentOutOfRangeException();
-        }
+    [HostCommandHandler(HostCommandType.SyncServers)]
+    private void OnSyncServers(HostCommand cmd)
+        => this.SyncServersMailBoxes(cmd.Args
+            .Select(mb => RpcHelper.PbMailBoxToRpcMailBox(RpcHelper.GetMailBox(mb))).ToArray());
+
+    [HostCommandHandler(HostCommandType.SyncGates)]
+    private void OnSyncGates(HostCommand cmd)
+        => this.SyncOtherGatesMailBoxes(cmd.Args
+            .Select(mb => RpcHelper.PbMailBoxToRpcMailBox(RpcHelper.GetMailBox(mb))).ToArray());
+
+    [HostCommandHandler(HostCommandType.SyncServiceManager)]
+    private void OnSyncServiceManager(HostCommand cmd)
+        => this.SyncServiceManagerMailBox(RpcHelper.PbMailBoxToRpcMailBox(RpcHelper.GetMailBox(cmd.Args[0])));
+
+    [HostCommandHandler(HostCommandType.ReconnectServer)]
+    private void OnReconnectServer(HostCommand cmd)
+        => this.ReconnectServer(RpcHelper.PbMailBoxToRpcMailBox(RpcHelper.GetMailBox(cmd.Args[0])));
+
+    [HostCommandHandler(HostCommandType.ReconnectGate)]
+    private void OnReconnectGate(HostCommand cmd)
+        => this.ReconnectGate(RpcHelper.PbMailBoxToRpcMailBox(RpcHelper.GetMailBox(cmd.Args[0])));
+
+    [HostCommandHandler(HostCommandType.Open)]
+    private void OnOpen(HostCommand cmd)
+    {
+        // Currently a no-op marker - HostManager broadcasts Open once the
+        // cluster has reached steady state. Kept as a handler so the
+        // dispatcher does not log a "no handler" warning.
+        _ = cmd;
+    }
+
+    [HostCommandHandler(HostCommandType.Stop)]
+    private void OnStop(HostCommand cmd)
+    {
+        _ = cmd;
+        this.Stop();
     }
 
     private void ReconnectServer(MailBox serverMailBox)

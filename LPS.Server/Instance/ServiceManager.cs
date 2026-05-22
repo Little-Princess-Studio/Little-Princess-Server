@@ -154,6 +154,11 @@ public partial class ServiceManager : IInstance
             => this.HandleEntityRpc((arg.Message, arg.Connection, ServerGlobal.GenerateRpcId())));
         this.dispatcher.Register(PackageType.EntityRpcCallBack, (arg)
             => this.HandleEntityRpcCallBack((arg.Message, arg.Connection, ServerGlobal.GenerateRpcId())));
+
+        // Sub-dispatchers for the ServiceControl payload's two-level switch
+        // (ServiceControlMessage -> [optional] ServiceRemoteType).
+        this.serviceControlDispatcher.ScanAndRegister<ServiceControlHandlerAttribute>(this);
+        this.serviceControlReadyDispatcher.ScanAndRegister<ServiceControlReadyHandlerAttribute>(this);
     }
 
     private void InitMessageQueueClientToInstances()
@@ -226,7 +231,14 @@ public partial class ServiceManager : IInstance
 
         switch (msgType)
         {
+            // Service->ServiceMgr uses `serviceMessagePackage.{name}.serviceToServiceMgr`
+            // while Server/Gate->ServiceMgr both use `serverMessagePackage.{name}.{src}ToServiceMgr`.
+            // Both prefixes carry the same PackageHelper-framed payload; the
+            // routing key prefix is purely an audit-trail discriminator.
+            // Treating them as a single case unblocks the MQ transport for
+            // Service instances (previously silently dropped on `default:`).
             case "serverMessagePackage":
+            case "serviceMessagePackage":
                 var pkg = PackageHelper.GetPackageFromBytes(msg);
                 var type = (PackageType)pkg.Header.Type;
                 var protobuf = PackageHelper.GetProtoBufObjectByType(type, pkg);
@@ -245,7 +257,7 @@ public partial class ServiceManager : IInstance
                 this.dispatcher.Dispatch(type, (protobuf, conn));
                 break;
             default:
-                Logger.Warn($"Unknown message type: {msgType}");
+                Logger.Warn($"Unknown message type prefix on ServiceManager MQ: {msgType} (routingKey={routingKey})");
                 break;
         }
     }
@@ -379,72 +391,94 @@ public partial class ServiceManager : IInstance
         this.serviceRpcCallbackAsyncTaskGenerator.ResolveAsyncTask(serviceMgrRpcId, (callback, send));
     }
 
+    private readonly EnumDispatcher<ServiceControlMessage, (ServiceControl Ctl, Connection Conn)> serviceControlDispatcher
+        = new("servicemanager.serviceControl", warnOnMissing: false);
+
+    private readonly EnumDispatcher<ServiceRemoteType, (ServiceControl Ctl, Connection Conn)> serviceControlReadyDispatcher
+        = new("servicemanager.serviceControl.Ready");
+
     private void HandleServiceControl((IMessage Message, Connection Connection, uint RpcId) tuple)
     {
         var (msg, conn, _) = tuple;
         var ctl = (ServiceControl)msg;
-        switch (ctl.Message)
-        {
-            case ServiceControlMessage.Ready:
-                this.HandleServiceControlReady(ctl, conn);
-                break;
-            case ServiceControlMessage.ServiceReady:
-                if (!this.CheckStateIn(State.WaitForServicesRegister))
-                {
-                    break;
-                }
-
-                this.RegisterServiceRoute(ctl);
-                break;
-            case ServiceControlMessage.Restarted:
-                break;
-            case ServiceControlMessage.ShutDown:
-                break;
-        }
+        this.serviceControlDispatcher.Dispatch(ctl.Message, (ctl, conn));
     }
 
-    private void HandleServiceControlReady(ServiceControl ctlMsg, Connection conn)
+    [ServiceControlHandler(ServiceControlMessage.Ready)]
+    private void OnServiceControlReady((ServiceControl Ctl, Connection Conn) arg)
     {
-        if (ctlMsg.From == ServiceRemoteType.Service)
+        // Two-level routing: ServiceControlMessage -> ServiceRemoteType.
+        // The inner dispatcher mirrors the outer one for full symmetry.
+        this.serviceControlReadyDispatcher.Dispatch(arg.Ctl.From, arg);
+    }
+
+    [ServiceControlHandler(ServiceControlMessage.ServiceReady)]
+    private void OnServiceControlServiceReady((ServiceControl Ctl, Connection Conn) arg)
+    {
+        if (!this.CheckStateIn(State.WaitForServicesRegister))
         {
-            if (!this.CheckStateIn(State.WaitForServiceInstanceRegister))
+            return;
+        }
+
+        this.RegisterServiceRoute(arg.Ctl);
+    }
+
+    [ServiceControlHandler(ServiceControlMessage.Restarted)]
+    private void OnServiceControlRestarted((ServiceControl Ctl, Connection Conn) arg)
+    {
+        // Placeholder - kept so the dispatcher knows about the case explicitly
+        // and does not log warnings when a Service announces a restart.
+        _ = arg;
+    }
+
+    [ServiceControlHandler(ServiceControlMessage.ShutDown)]
+    private void OnServiceControlShutDown((ServiceControl Ctl, Connection Conn) arg)
+    {
+        // Placeholder - graceful service shutdown is currently a no-op here;
+        // tracking removal happens lazily when the next ping fails.
+        _ = arg;
+    }
+
+    [ServiceControlReadyHandler(ServiceRemoteType.Service)]
+    private void OnServiceReadyFromService((ServiceControl Ctl, Connection Conn) arg)
+    {
+        if (!this.CheckStateIn(State.WaitForServiceInstanceRegister))
+        {
+            return;
+        }
+
+        _ = this.GenerateMailBoxForService(arg.Ctl, arg.Conn)
+            .ContinueWith(t =>
             {
-                return;
-            }
-
-            _ = this.GenerateMailBoxForService(ctlMsg, conn)
-                .ContinueWith(t =>
+                if (t.Exception != null)
                 {
-                    if (t.Exception != null)
-                    {
-                        Logger.Error(t.Exception, $"Failed to generate mailbox for service.");
-                        return;
-                    }
+                    Logger.Error(t.Exception, $"Failed to generate mailbox for service.");
+                    return;
+                }
 
-                    if (this.mailBoxToServiceConn.Count == this.desiredServiceNum && this.state == State.WaitForServiceInstanceRegister)
-                    {
-                        this.state = State.WaitForServicesRegister;
-                        this.NotifyServiceInstancesToStartServices();
-                    }
-                });
-        }
-        else if (ctlMsg.From == ServiceRemoteType.Gate)
-        {
-            Logger.Info($"Gate {ctlMsg.Args[0].Unpack<Common.Rpc.InnerMessages.MailBox>()} is ready.");
-            var mb = ctlMsg.Args[0].Unpack<Common.Rpc.InnerMessages.MailBox>();
-            this.connectionManager.RegisterConnection(conn, ServiceManagerConnectionManager.ConnectionType.Gate, mb.ID);
-        }
-        else if (ctlMsg.From == ServiceRemoteType.Server)
-        {
-            Logger.Info($"Server {ctlMsg.Args[0].Unpack<Common.Rpc.InnerMessages.MailBox>()} is ready.");
-            var mb = ctlMsg.Args[0].Unpack<Common.Rpc.InnerMessages.MailBox>();
-            this.connectionManager.RegisterConnection(conn, ServiceManagerConnectionManager.ConnectionType.Server, mb.ID);
-        }
-        else
-        {
-            var e = new Exception($"Invalid service remote type {ctlMsg.From}.");
-            Logger.Error(e);
-        }
+                if (this.mailBoxToServiceConn.Count == this.desiredServiceNum
+                    && this.state == State.WaitForServiceInstanceRegister)
+                {
+                    this.state = State.WaitForServicesRegister;
+                    this.NotifyServiceInstancesToStartServices();
+                }
+            });
+    }
+
+    [ServiceControlReadyHandler(ServiceRemoteType.Gate)]
+    private void OnServiceReadyFromGate((ServiceControl Ctl, Connection Conn) arg)
+    {
+        var mb = arg.Ctl.Args[0].Unpack<Common.Rpc.InnerMessages.MailBox>();
+        Logger.Info($"Gate {mb} is ready.");
+        this.connectionManager.RegisterConnection(arg.Conn, ServiceManagerConnectionManager.ConnectionType.Gate, mb.ID);
+    }
+
+    [ServiceControlReadyHandler(ServiceRemoteType.Server)]
+    private void OnServiceReadyFromServer((ServiceControl Ctl, Connection Conn) arg)
+    {
+        var mb = arg.Ctl.Args[0].Unpack<Common.Rpc.InnerMessages.MailBox>();
+        Logger.Info($"Server {mb} is ready.");
+        this.connectionManager.RegisterConnection(arg.Conn, ServiceManagerConnectionManager.ConnectionType.Server, mb.ID);
     }
 
     private void InitHostManagerConnection(string hostManagerIp, int hostManagerPort, bool useMqToHostMgr)

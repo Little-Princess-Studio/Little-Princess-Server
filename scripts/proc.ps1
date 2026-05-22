@@ -83,8 +83,8 @@ function StatusOne([string]$name) {
 $targets = if ($target -eq '' -or $target -eq 'all') { @('cluster','webmgr') } else { @($target) }
 
 switch ($action) {
-    'stop'    { $targets | ForEach-Object { StopOne $_ } }
-    'start'   { $targets | ForEach-Object { StartOne $_ } }
-    'restart' { $targets | ForEach-Object { StopOne $_; Start-Sleep -Milliseconds 1500; StartOne $_ } }
-    'status'  { $targets | ForEach-Object { StatusOne $_ } }
+    'stop'    { foreach ($t in $targets) { StopOne $t } }
+    'start'   { foreach ($t in $targets) { StartOne $t } }
+    'restart' { foreach ($t in $targets) { StopOne $t }; Start-Sleep -Milliseconds 1500; foreach ($t in $targets) { StartOne $t } }
+    'status'  { foreach ($t in $targets) { StatusOne $t } }
 }

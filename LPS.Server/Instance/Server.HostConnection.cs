@@ -16,6 +16,7 @@ using LPS.Common.Rpc;
 using LPS.Common.Rpc.InnerMessages;
 using LPS.Server.Entity;
 using LPS.Server.Instance.HostConnection.HostManagerConnection;
+using LPS.Server.MessageQueue;
 using LPS.Server.Rpc;
 using LPS.Server.Rpc.InnerMessages;
 
@@ -25,8 +26,13 @@ using LPS.Server.Rpc.InnerMessages;
 /// </summary>
 public partial class Server
 {
+    private readonly EnumDispatcher<HostCommandType, HostCommand> hostCommandDispatcher
+        = new("server.hostCommand", warnOnMissing: false);
+
     private void InitHostManagerConnection(bool useMqToHostMgr, string hostManagerIp, int hostManagerPort)
     {
+        this.hostCommandDispatcher.ScanAndRegister<HostCommandHandlerAttribute>(this);
+
         if (!useMqToHostMgr)
         {
             this.hostMgrConnection = new ImmediateHostManagerConnectionOfServer(
@@ -141,23 +147,30 @@ public partial class Server
 
     private void HandleHostCommand(IMessage msg)
     {
-        var hostCmd = (msg as HostCommand)!;
-
+        var hostCmd = (HostCommand)msg;
         Logger.Debug($"Sync gates or service manager from host manager. {hostCmd.Type} {hostCmd.Args.Count}");
-        switch (hostCmd.Type)
-        {
-            case HostCommandType.SyncGates:
-                this.gatesMailBoxesRegisteredEvent = new CountdownEvent(hostCmd.Args.Count);
-                this.waitForSyncGatesEvent.Signal(1);
-                break;
-            case HostCommandType.SyncServiceManager:
-                this.serviceManagerMailBox = RpcHelper.PbMailBoxToRpcMailBox(RpcHelper.GetMailBox(hostCmd.Args[0]));
-                this.waitForSyncServiceManagerEvent.Signal(1);
-                break;
-            case HostCommandType.Stop:
-                this.Stop();
-                break;
-        }
+        this.hostCommandDispatcher.Dispatch(hostCmd.Type, hostCmd);
+    }
+
+    [HostCommandHandler(HostCommandType.SyncGates)]
+    private void OnSyncGates(HostCommand cmd)
+    {
+        this.gatesMailBoxesRegisteredEvent = new CountdownEvent(cmd.Args.Count);
+        this.waitForSyncGatesEvent.Signal(1);
+    }
+
+    [HostCommandHandler(HostCommandType.SyncServiceManager)]
+    private void OnSyncServiceManager(HostCommand cmd)
+    {
+        this.serviceManagerMailBox = RpcHelper.PbMailBoxToRpcMailBox(RpcHelper.GetMailBox(cmd.Args[0]));
+        this.waitForSyncServiceManagerEvent.Signal(1);
+    }
+
+    [HostCommandHandler(HostCommandType.Stop)]
+    private void OnStop(HostCommand cmd)
+    {
+        _ = cmd;
+        this.Stop();
     }
 
     private async Task OnCreateEntity(Connection? gateConn, string entityClassName, string jsonDesc, Common.Rpc.MailBox mailBox)
