@@ -586,6 +586,7 @@ public static class StartupManager
 
         Logger.Debug($"Startup DbManager {name} at {ip}:{port}");
         var databaseManager = new DbManager(
+            name,
             ip,
             port,
             hostnum,

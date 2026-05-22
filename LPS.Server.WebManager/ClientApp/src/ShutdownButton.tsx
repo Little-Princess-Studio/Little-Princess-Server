@@ -35,7 +35,7 @@ export type ShutdownButtonProps = {
     /** Display name (used in confirm dialog). */
     instanceLabel: string;
     /** Cluster role - matches HostManager's InstanceType enum. */
-    instanceType: "Gate" | "Server" | "ServiceManager" | "Service";
+    instanceType: "Gate" | "Server" | "ServiceManager" | "Service" | "DbManager";
     /** MailBox id of the target. */
     instanceId: string;
     /** Optional: invoked after a successful shutdown (e.g. to navigate back). */

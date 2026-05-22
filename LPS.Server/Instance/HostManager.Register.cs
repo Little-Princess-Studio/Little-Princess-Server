@@ -60,6 +60,8 @@ public partial class HostManager
                 this.instanceStatusManager.Register(mailBox, InstanceType.ServiceManager);
                 break;
             case RemoteType.Dbmanager:
+                Logger.Info($"dbmanager ready {mailBox}");
+                this.instanceStatusManager.Register(mailBox, InstanceType.DbManager);
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(hostCmdFrom), hostCmdFrom, null);

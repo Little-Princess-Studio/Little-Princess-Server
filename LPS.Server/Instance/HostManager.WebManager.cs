@@ -196,6 +196,13 @@ public partial class HostManager : IInstance
             case "Service":
                 // For Service we route to ServiceManager (Args[0] = service host id).
                 return (Consts.HostMgrToServiceMgrExchangeName, Consts.HostMessagePackageToServiceMgrPackage);
+            case "DbManager":
+                // DbManager always connects via immediate TCP (no MQ exchange
+                // exists from HostMgr -> DbMgr). If the direct-TCP send in the
+                // caller did not find a live connection there is nothing else
+                // we can do - report unsupported so the caller surfaces the
+                // failure to WebManager instead of silently dropping.
+                return (null, null);
             default:
                 return (null, null);
         }
@@ -237,6 +244,7 @@ public partial class HostManager : IInstance
             ["servers"] = ToArray(InstanceType.Server.ToString()),
             ["serviceManagers"] = ToArray(InstanceType.ServiceManager.ToString()),
             ["services"] = ToArray(InstanceType.Service.ToString()),
+            ["dbManagers"] = ToArray(InstanceType.DbManager.ToString()),
         };
     }
 }

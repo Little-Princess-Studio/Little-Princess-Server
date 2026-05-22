@@ -174,6 +174,8 @@ export type ClusterOverview = {
     servers: InstanceStatusEntry[];
     serviceManagers: InstanceStatusEntry[];
     services: InstanceStatusEntry[];
+    /** Optional - present only if a DbManager has registered with HostManager. */
+    dbManagers?: InstanceStatusEntry[];
 };
 
 export const queryClusterOverview = (): Promise<ClusterOverview> => {

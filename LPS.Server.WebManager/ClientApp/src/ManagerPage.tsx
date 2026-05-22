@@ -48,7 +48,7 @@ const formatMailbox = (e: InstanceStatusEntry) => `${e.ip}:${e.port}#${e.hostNum
 // fixed per section (Gate/Server/ServiceManager/Service). The button's onClick
 // fires a graceful shutdown HostCommand at the row's mailbox id.
 const buildInstanceColumns = (
-    instanceType: "Gate" | "Server" | "ServiceManager" | "Service",
+    instanceType: "Gate" | "Server" | "ServiceManager" | "Service" | "DbManager",
     onShutdown: () => void,
 ): IColumn[] => [
     {
@@ -92,7 +92,7 @@ const buildInstanceColumns = (
 const SectionBlock: React.FunctionComponent<{
     title: string;
     items: InstanceStatusEntry[];
-    instanceType: "Gate" | "Server" | "ServiceManager" | "Service";
+    instanceType: "Gate" | "Server" | "ServiceManager" | "Service" | "DbManager";
     onShutdown: () => void;
 }> = ({ title, items, instanceType, onShutdown }) => (
     <div css={css`margin: 0 1em 1.5em;`}>
@@ -469,6 +469,9 @@ const ManagerPage: React.FunctionComponent = () => {
                     <SectionBlock title="Gates" items={overview.gates} instanceType="Gate" onShutdown={refresh} />
                     <SectionBlock title="Servers" items={overview.servers} instanceType="Server" onShutdown={refresh} />
                     <SectionBlock title="Service Managers" items={overview.serviceManagers} instanceType="ServiceManager" onShutdown={refresh} />
+                    {overview.dbManagers && overview.dbManagers.length > 0 && (
+                        <SectionBlock title="Db Managers" items={overview.dbManagers} instanceType="DbManager" onShutdown={refresh} />
+                    )}
                     <ServicesSection roster={roster} onShutdown={refresh} />
                 </>
             )}

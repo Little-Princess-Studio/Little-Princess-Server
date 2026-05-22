@@ -16,6 +16,7 @@ using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
 using LPS.Common.Debug;
 using LPS.Common.Rpc;
+using LPS.Common.Rpc.InnerMessages;
 using LPS.Server.Database;
 using LPS.Server.Database.Storage.MongoDb;
 using LPS.Server.MessageQueue;
@@ -53,9 +54,12 @@ public class DbManager : IInstance
     // We only use mq to handle db request from other instances.
     private readonly MessageQueueClient messageQueueClientToOtherInstance;
 
+    private readonly EnumDispatcher<HostCommandType, HostCommand> hostCommandDispatcher;
+
     /// <summary>
     /// Initializes a new instance of the <see cref="DbManager"/> class.
     /// </summary>
+    /// <param name="name">Instance name (used as MailBox.Id and supervisor key).</param>
     /// <param name="ip">Ip.</param>
     /// <param name="port">Port.</param>
     /// <param name="hostNum">Hostnum.</param>
@@ -66,6 +70,7 @@ public class DbManager : IInstance
     /// <param name="databaseApiProviderNamespace">Namespace of DatabaseApiProvider.</param>
     /// <param name="config">Config of the instance.</param>
     public DbManager(
+        string name,
         string ip,
         int port,
         int hostNum,
@@ -79,14 +84,50 @@ public class DbManager : IInstance
         this.Ip = ip;
         this.Port = port;
         this.HostNum = hostNum;
-        this.Name = "hostmgr";
+
+        // Earlier revisions hardcoded Name = "hostmgr" because DbManager never
+        // talked to HostManager beyond opening a TCP socket. Now we register
+        // properly via Control.Ready, so a real per-instance name is required
+        // (it becomes the routing key suffix and the MailBox.Id).
+        this.Name = name;
         this.Config = config;
+
+        // Sub-dispatcher for HostCommand handlers (e.g. ShutdownInstance) -
+        // same pattern Gate and Server use on their hostMgrConnection.
+        this.hostCommandDispatcher = new EnumDispatcher<HostCommandType, HostCommand>(
+            $"dbmanager.{name}.hostCommand", warnOnMissing: false);
+        this.hostCommandDispatcher.ScanAndRegister<HostCommandHandlerAttribute>(this);
 
         this.messageQueueClientToOtherInstance = new MessageQueueClient();
         this.clientToHostManager = new TcpClient(
             hostManagerIp,
             hostManagerPort,
-            new ConcurrentQueue<(TcpClient, IMessage, bool)>());
+            new ConcurrentQueue<(TcpClient, IMessage, bool)>())
+        {
+            // Notify HostManager once the TCP socket is up: send the same
+            // Control.Ready handshake every other instance kind uses. This
+            // adds DbManager to instanceStatusManager so it appears in the
+            // cluster-overview API + WebManager UI alongside Gates/Servers.
+            OnConnected = client =>
+            {
+                var mailBox = new Common.Rpc.MailBox(this.Name, this.Ip, this.Port, this.HostNum);
+                var regCtl = new Control
+                {
+                    From = RemoteType.Dbmanager,
+                    Message = ControlMessage.Ready,
+                };
+                regCtl.Args.Add(RpcHelper.GetRpcAny(RpcHelper.RpcMailBoxToPbMailBox(mailBox)));
+                client.Send(regCtl, false);
+                Logger.Info($"[dbmanager:{this.Name}] Sent Control.Ready to HostManager.");
+            },
+        };
+
+        // Receive PackageType.HostCommand on the TcpClient so HostManager
+        // can target this DbManager for ShutdownInstance (and future
+        // commands). Mirrors Gate/Server's hostMgrConnection.
+        this.clientToHostManager.RegisterMessageHandler(
+            PackageType.HostCommand,
+            arg => this.HandleHostCommandFromHost(arg.Message));
 
         // TODO: init mongodb by type full name.
         if (databaseInfo.DbType == "mongodb")
@@ -131,9 +172,96 @@ public class DbManager : IInstance
         this.InitMqClient();
         this.clientToHostManager.Run();
 
+        // Pump the TcpClient's inbound queue on a background thread so
+        // HostCommand messages from HostManager (notably ShutdownInstance)
+        // actually reach the registered handlers. TcpClient itself only
+        // enqueues - dispatch requires an external Pump caller. Gate has
+        // an equivalent clientsPumpMsgSandBox; for DbManager a single
+        // upstream connection is enough so we inline the loop here.
+        var pumpThread = new System.Threading.Thread(() =>
+        {
+            try
+            {
+                while (true)
+                {
+                    this.clientToHostManager.Pump();
+                    System.Threading.Thread.Sleep(1);
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Warn($"[dbmanager:{this.Name}] pump thread stopped: {ex.Message}");
+            }
+        })
+        {
+            IsBackground = true,
+            Name = $"dbmanager-{this.Name}-pump",
+        };
+        pumpThread.Start();
+
         this.clientToHostManager.WaitForExit();
         this.messageQueueClientToOtherInstance.ShutDown();
         Logger.Debug("DbManager Exit.");
+    }
+
+    private void HandleHostCommandFromHost(IMessage msg)
+    {
+        var hostCmd = (HostCommand)msg;
+        Logger.Info($"[dbmanager:{this.Name}] Handle host command, cmd type: {hostCmd.Type}");
+        this.hostCommandDispatcher.Dispatch(hostCmd.Type, hostCmd);
+    }
+
+    [HostCommandHandler(HostCommandType.ShutdownInstance)]
+    private void OnShutdownInstance(HostCommand cmd)
+    {
+        ProcessExitCoordinator.Schedule(
+            $"dbmanager:{this.Name}",
+            this.DrainForShutdown,
+            cmd.ShutdownTimeoutMs);
+    }
+
+    [HostCommandHandler(HostCommandType.Stop)]
+    private void OnStop(HostCommand cmd)
+    {
+        _ = cmd;
+        this.Stop();
+    }
+
+    /// <summary>
+    /// Per-instance teardown invoked by <see cref="ProcessExitCoordinator"/>
+    /// when WebManager requests a graceful shutdown. Closes the upstream MQ
+    /// link (Db API consumer) and the HostManager TCP socket, then lets
+    /// ProcessExitCoordinator call <c>Environment.Exit(0)</c> so
+    /// StartupManager treats it as intentional and does not respawn.
+    /// </summary>
+    private void DrainForShutdown()
+    {
+        Logger.Info($"[dbmanager:{this.Name}] DrainForShutdown begin.");
+
+        try
+        {
+            // Shut down the MQ consumer first so no new DB requests land
+            // while we are tearing the storage layer down. In-flight async
+            // HandleDbApiPackage / HandleDbInnerApiPackage tasks are fire-
+            // and-forget today; if stronger drain semantics are needed they
+            // can be added behind a SemaphoreSlim in a follow-up.
+            this.messageQueueClientToOtherInstance?.ShutDown();
+        }
+        catch (Exception ex)
+        {
+            Logger.Warn($"[dbmanager:{this.Name}] MQ ShutDown threw: {ex.Message}");
+        }
+
+        try
+        {
+            this.clientToHostManager?.Stop();
+        }
+        catch (Exception ex)
+        {
+            Logger.Warn($"[dbmanager:{this.Name}] clientToHostManager Stop threw: {ex.Message}");
+        }
+
+        Logger.Info($"[dbmanager:{this.Name}] DrainForShutdown complete.");
     }
 
     private void InitMqClient()
