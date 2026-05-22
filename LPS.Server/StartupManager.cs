@@ -82,11 +82,60 @@ public static class StartupManager
     public static Func<SubProcessStartupInfo, string> OnGetStartupArgumentsString = null!;
 
     private static readonly HashSet<string> AliveProcesses = new HashSet<string>();
+    private static readonly object AliveProcessesLock = new();
+    private static readonly Dictionary<string, Process> SubProcessHandles = new();
 
     /// <summary>
     /// Gets or sets a value indicating whether to redirect sub-process outputs to the main process console.
     /// </summary>
     public static bool RedirectSubprocessOutput { get; set; } = false;
+
+    /// <summary>
+    /// Gets a value indicating whether the launcher is in the process of shutting down. When true,
+    /// the auto-restart-on-nonzero-exit logic in <see cref="Process.Exited"/> is suppressed.
+    /// </summary>
+    public static bool IsShuttingDown { get; private set; }
+
+    /// <summary>
+    /// Signals graceful shutdown: stop the auto-restart loop and kill all alive subprocesses.
+    /// Safe to call multiple times.
+    /// </summary>
+    public static void ShutdownAll()
+    {
+        if (IsShuttingDown)
+        {
+            return;
+        }
+
+        IsShuttingDown = true;
+        Logger.Info("[StartupManager] Shutdown signal received, killing all subprocesses.");
+
+        Process[] handles;
+        lock (AliveProcessesLock)
+        {
+            handles = SubProcessHandles.Values.ToArray();
+        }
+
+        foreach (var p in handles)
+        {
+            try
+            {
+                if (!p.HasExited)
+                {
+                    p.Kill(entireProcessTree: true);
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Warn($"[StartupManager] Failed to kill subprocess: {ex.Message}");
+            }
+        }
+
+        lock (AliveProcessesLock)
+        {
+            AliveProcesses.Clear();
+        }
+    }
 
     /// <summary>
     /// Startup a process via config file.
@@ -175,9 +224,17 @@ public static class StartupManager
     public static void WatchAllSubProcesses()
     {
         Logger.Info("Start watching all sub processes");
-        while (AliveProcesses.Count > 0)
+        while (true)
         {
-            Thread.Sleep(10000);
+            lock (AliveProcessesLock)
+            {
+                if (AliveProcesses.Count == 0)
+                {
+                    break;
+                }
+            }
+
+            Thread.Sleep(1000);
         }
 
         Logger.Info("All sub processes exited, exit watching process");
@@ -327,16 +384,35 @@ public static class StartupManager
         };
         process.Exited += (sender, e) =>
         {
+            lock (AliveProcessesLock)
+            {
+                SubProcessHandles.Remove(name);
+            }
+
+            if (IsShuttingDown)
+            {
+                Logger.Info($"subprocess {name} exited during shutdown, skip restart.");
+                lock (AliveProcessesLock)
+                {
+                    AliveProcesses.Remove(name);
+                }
+
+                return;
+            }
+
             var exitCode = process.ExitCode;
             if (exitCode != 0)
             {
-                Logger.Warn("subprocess exited with unexpected code, restart it, exitcode: {exitCode}");
+                Logger.Warn($"subprocess {name} exited with unexpected code {exitCode}, restart it.");
                 StartSubProcess(type, name, confFilePath, binaryPath, hotreload, true);
             }
             else
             {
                 Logger.Info($"subprocess {name} exited with expected code, exitcode: {exitCode}");
-                AliveProcesses.Remove(name);
+                lock (AliveProcessesLock)
+                {
+                    AliveProcesses.Remove(name);
+                }
             }
         };
 
@@ -358,7 +434,11 @@ public static class StartupManager
             };
         }
 
-        AliveProcesses.Add(name);
+        lock (AliveProcessesLock)
+        {
+            AliveProcesses.Add(name);
+            SubProcessHandles[name] = process;
+        }
 
         process.Start();
 

@@ -99,6 +99,7 @@ public static class Startup
                     if (opts.Headless)
                     {
                         StartupManager.RedirectSubprocessOutput = true;
+                        StartStdinShutdownListener();
                     }
 
                     StartupByDefault(opts.HotReload == 1);
@@ -137,5 +138,46 @@ public static class Startup
         StartupManager.FromConfig("Config/host0/dbmanager.conf.json", hotreload, false);
         StartupManager.FromConfig("Config/host0/service.conf.json", hotreload, false);
         StartupManager.WatchAllSubProcesses();
+    }
+
+    /// <summary>
+    /// In headless mode the launcher cannot rely on Ctrl-C from a TTY; the orchestrator
+    /// (e.g. verify_e2e.py) instead writes the line "shutdown" to stdin. This background
+    /// thread listens for that line and triggers a graceful kill of every subprocess so
+    /// auto-restart does not fire.
+    /// </summary>
+    private static void StartStdinShutdownListener()
+    {
+        var t = new Thread(() =>
+        {
+            try
+            {
+                while (true)
+                {
+                    var line = Console.In.ReadLine();
+                    if (line is null)
+                    {
+                        // stdin closed -> parent went away -> also shut down.
+                        StartupManager.ShutdownAll();
+                        return;
+                    }
+
+                    if (line.Trim().Equals("shutdown", StringComparison.OrdinalIgnoreCase))
+                    {
+                        StartupManager.ShutdownAll();
+                        return;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Warn($"Stdin shutdown listener stopped: {ex.Message}");
+            }
+        })
+        {
+            IsBackground = true,
+            Name = "stdin-shutdown-listener",
+        };
+        t.Start();
     }
 }
