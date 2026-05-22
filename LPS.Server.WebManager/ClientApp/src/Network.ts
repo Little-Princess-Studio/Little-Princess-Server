@@ -101,3 +101,50 @@ export const queryAllServerPingPongInfo = (): Promise<ServerPingPingInfo> => {
         throw new Error('queryAllServerPingPongInfo failed');
     });
 }
+
+// --- Logs ---------------------------------------------------------------
+
+export type LogFileEntry = {
+    name: string;
+    fileName: string;
+    sizeBytes: number;
+    lastWriteUtc: string;
+};
+
+export type LogListResponse = {
+    logsDirectory: string;
+    exists: boolean;
+    logs: LogFileEntry[];
+};
+
+export const queryLogList = (): Promise<LogListResponse> => {
+    return fetch(`${BaseApi}/logs/list`, { method: 'get' })
+        .then(r => r.json())
+        .then(data => {
+            if (data['res'] !== 'Ok') throw new Error('queryLogList failed');
+            return {
+                logsDirectory: data['logsDirectory'],
+                exists: data['exists'],
+                logs: data['logs'] as LogFileEntry[],
+            };
+        });
+};
+
+export type LogTailResponse = {
+    name: string;
+    fileName: string;
+    totalSize: number;
+    returnedLines: number;
+    truncated: boolean;
+    lines: string[];
+};
+
+export const queryLogTail = (name: string, lines: number = 200): Promise<LogTailResponse> => {
+    const url = `${BaseApi}/logs/tail?name=${encodeURIComponent(name)}&lines=${lines}`;
+    return fetch(url, { method: 'get' })
+        .then(r => r.json())
+        .then(data => {
+            if (data['res'] !== 'Ok') throw new Error(data['error'] ?? 'queryLogTail failed');
+            return data as LogTailResponse;
+        });
+};

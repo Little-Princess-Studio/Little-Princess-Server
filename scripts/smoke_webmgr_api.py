@@ -72,6 +72,11 @@ def main():
             host = mb["hostNum"]
             hit(f"single-server-info?serverId={sid}&hostNum={host}")
             hit(f"all-entities?serverId={sid}&hostNum={host}")
+
+        log_list = hit("logs/list")
+        if log_list and log_list.get("logs"):
+            for entry in log_list["logs"][:2]:
+                hit(f"logs/tail?name={urllib.parse.quote(entry['name'])}&lines=5")
     finally:
         print("--- cleanup ---")
         try:

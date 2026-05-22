@@ -2,6 +2,7 @@ import styled, { css } from 'styled-components'
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import ManagerPage from './ManagerPage';
 import ServerPage from './ServerPage';
+import LogsPage from './LogsPage';
 import { initializeIcons } from '@fluentui/react/lib/Icons';
 
 initializeIcons("https://static2.sharepointonline.com/files/fabric/assets/icons/");
@@ -18,6 +19,10 @@ const router = createBrowserRouter([
   {
     path: "/server",
     element: <ServerPage></ServerPage>
+  },
+  {
+    path: "/logs",
+    element: <LogsPage></LogsPage>
   },
 ]);
 
