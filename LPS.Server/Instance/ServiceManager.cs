@@ -76,8 +76,6 @@ public class ServiceManager : IInstance
     private int unreadyServiceNum;
     private uint hostMgrConnectionIdCounter;
 
-    private bool already_notified_start_services = false;
-
     /// <summary>
     /// Initializes a new instance of the <see cref="ServiceManager"/> class.
     /// </summary>
