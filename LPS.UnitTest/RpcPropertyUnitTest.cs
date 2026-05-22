@@ -406,6 +406,20 @@ public class RpcPropertyUnitTest
         Assert.Equal(1, clearCnt);
     }
 
+    /// <summary>
+    /// Tests that slicing a ReadOnlySequence correctly advances the first span offset.
+    /// </summary>
+    [Fact]
+    public void TestReadOnlySequenceSlicing()
+    {
+        byte[] raw = new byte[] { 10, 0, 1, 2, 3, 4, 5, 6, 7, 8, 20, 0, 11, 12, 13, 14, 15, 16, 17, 18 };
+        var seq = new System.Buffers.ReadOnlySequence<byte>(raw);
+        Assert.Equal(10, System.BitConverter.ToUInt16(seq.FirstSpan));
+
+        var seq2 = seq.Slice(10);
+        Assert.Equal(20, System.BitConverter.ToUInt16(seq2.FirstSpan));
+    }
+
     private static bool CheckReferred(RpcPropertyContainer? container)
     {
         if (container == null)

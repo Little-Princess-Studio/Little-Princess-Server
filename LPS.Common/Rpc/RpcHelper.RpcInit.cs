@@ -757,49 +757,60 @@ public static partial class RpcHelper
     {
         var cancelTokenSource = conn.TokenSource;
 
-        while (conn.Status == ConnectStatus.Connected && !stopCondition.Invoke())
+        try
         {
-            var result = await reader.ReadAsync(cancelTokenSource.Token);
-            var buffer = result.Buffer;
-
-            while (buffer.Length >= PackageHeader.Size)
+            while (conn.Status == ConnectStatus.Connected && !stopCondition.Invoke())
             {
-                var pkgLen = GetPackageLength(ref buffer);
+                var result = await reader.ReadAsync(cancelTokenSource.Token);
+                var buffer = result.Buffer;
 
-                if (buffer.Length >= pkgLen)
+                while (buffer.Length >= PackageHeader.Size)
                 {
-                    var bytesToParse = buffer.Slice(buffer.Start, pkgLen);
+                    var pkgLen = GetPackageLength(ref buffer);
 
-                    var pkg = PackageHelper.GetPackage(
-                        ref bytesToParse);
+                    if (buffer.Length >= pkgLen)
+                    {
+                        var bytesToParse = buffer.Slice(buffer.Start, pkgLen);
 
-                    PackageType type = (PackageType)pkg.Header.Type;
-                    var pb = PackageHelper.GetProtoBufObjectByType(type, pkg);
-                    var arg = (pb, conn, pkg.Header.ID);
-                    var msg = new Message(type, arg);
-                    onGotMessage(msg);
-                    buffer = buffer.Slice(bytesToParse.End);
+                        var pkg = PackageHelper.GetPackage(
+                            ref bytesToParse);
+
+                        PackageType type = (PackageType)pkg.Header.Type;
+                        var pb = PackageHelper.GetProtoBufObjectByType(type, pkg);
+                        var arg = (pb, conn, pkg.Header.ID);
+                        var msg = new Message(type, arg);
+                        onGotMessage(msg);
+                        buffer = buffer.Slice(bytesToParse.End);
+                    }
+                    else
+                    {
+                        break;
+                    }
                 }
-                else
+
+                reader.AdvanceTo(buffer.Start, buffer.End);
+                if (result.IsCompleted)
                 {
                     break;
                 }
             }
-
-            reader.AdvanceTo(buffer.Start, buffer.End);
-            if (result.IsCompleted)
-            {
-                break;
-            }
         }
-
-        await reader.CompleteAsync();
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Exception in ReadPipeAsync");
+            conn.TokenSource.Cancel();
+            throw;
+        }
+        finally
+        {
+            await reader.CompleteAsync();
+        }
 
         static ushort GetPackageLength(ref ReadOnlySequence<byte> buffer)
         {
-            var bytesToParse = buffer.Slice(buffer.Start, 2).FirstSpan;
-            var pkgLen = BitConverter.ToUInt16(bytesToParse);
-            return pkgLen;
+            var reader = new SequenceReader<byte>(buffer);
+            reader.TryReadLittleEndian(out short pkgLen);
+            return (ushort)pkgLen;
         }
     }
 

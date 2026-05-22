@@ -1,4 +1,4 @@
-﻿// -----------------------------------------------------------------------
+// -----------------------------------------------------------------------
 // <copyright file="PackageHelper.cs" company="Little Princess Studio">
 // Copyright (c) Little Princess Studio. All rights reserved.
 // </copyright>
@@ -197,32 +197,26 @@ public static class PackageHelper
     /// <summary>
     /// Parses a sequence of bytes to create a new <see cref="Package"/> object.
     /// </summary>
-    /// <param name="sequenceToParse">The sequence of bytes to parse.</param>
+    /// <param name="sequenceToParse">The sequence of bytes to parse. Must contain at least one full package.</param>
     /// <returns>A new <see cref="Package"/> object.</returns>
     public static Package GetPackage(ref ReadOnlySequence<byte> sequenceToParse)
     {
-        int pos = 0;
-        var buffer = sequenceToParse.Slice(pos).FirstSpan;
-        var pkgLen = BitConverter.ToUInt16(buffer);
+        var reader = new SequenceReader<byte>(sequenceToParse);
 
-        pos += 2;
-        buffer = sequenceToParse.Slice(pos).FirstSpan;
-        var pkgId = BitConverter.ToUInt32(buffer);
+        reader.TryReadLittleEndian(out short pkgLenSigned);
+        reader.TryReadLittleEndian(out int pkgIdSigned);
+        reader.TryReadLittleEndian(out short pkgVersionSigned);
+        reader.TryReadLittleEndian(out short pkgTypeSigned);
 
-        pos += 4;
-        buffer = sequenceToParse.Slice(pos).FirstSpan;
-        var pkgVersion = BitConverter.ToUInt16(buffer);
-
-        pos += 2;
-        buffer = sequenceToParse.Slice(pos).FirstSpan;
-        var pkgType = BitConverter.ToUInt16(buffer);
+        var pkgLen = (ushort)pkgLenSigned;
+        var pkgId = (uint)pkgIdSigned;
+        var pkgVersion = (ushort)pkgVersionSigned;
+        var pkgType = (ushort)pkgTypeSigned;
 
         var bodyLen = pkgLen - HeaderLen;
         var body = sequenceToParse.Slice(HeaderLen, bodyLen).ToArray();
 
         var header = new PackageHeader(pkgLen, pkgId, pkgVersion, pkgType);
-        var pkg = new Package(header, body);
-
-        return pkg;
+        return new Package(header, body);
     }
 }
