@@ -1,4 +1,16 @@
-const BaseApi = "https://localhost:7087/api/web-manager";
+// API base URL.
+//   - In dev (SPA proxy at https://localhost:44403) we hit the ASP.NET host
+//     directly because the SPA proxy passes Cookie/Auth through but does not
+//     rewrite the API path.
+//   - In a published build the SPA is served from the same origin as the API,
+//     so a relative URL is correct.
+//   - Override via REACT_APP_API_BASE if you need to point at a different host
+//     (e.g. when running against a staging cluster).
+const BaseApi =
+    process.env.REACT_APP_API_BASE ??
+    (process.env.NODE_ENV === "development"
+        ? "https://localhost:7087/api/web-manager"
+        : "/api/web-manager");
 
 export type ServerMailBox = {
     id: string;
