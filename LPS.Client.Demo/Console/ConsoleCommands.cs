@@ -171,7 +171,21 @@ public static class ConsoleCommands
     [ConsoleCommand("send.player_ping")]
     public static async void Ping(string content)
     {
-        await (ClientGlobal.ShadowClientEntity as Player)!.Ping(content);
+        try
+        {
+            if (ClientGlobal.ShadowClientEntity is not Player player)
+            {
+                Logger.Warn(
+                    $"[send.player_ping] current entity is {ClientGlobal.ShadowClientEntity?.GetType().Name ?? "null"}, expected Player. Did login complete?");
+                return;
+            }
+
+            await player.Ping(content);
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "[send.player_ping] failed");
+        }
     }
 
     /// <summary>
