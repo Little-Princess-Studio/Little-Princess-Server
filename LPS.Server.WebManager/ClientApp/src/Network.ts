@@ -184,3 +184,40 @@ export const queryClusterOverview = (): Promise<ClusterOverview> => {
             return data['overview'] as ClusterOverview;
         });
 };
+
+// --- Services roster (ServiceManager) ----------------------------------
+
+export type ServiceShardEntry = {
+    shard: number;
+    id: string;
+    ip: string;
+    port: number;
+    hostNum: number;
+};
+
+export type ServiceEntry = {
+    name: string;
+    shardCount: number;
+    allShardReady: boolean;
+    unreadyShards: number[];
+    shards: ServiceShardEntry[];
+};
+
+export type ServicesRoster = {
+    serviceManager: {
+        name: string;
+        ip: string;
+        port: number;
+        hostNum: number;
+    };
+    services: ServiceEntry[];
+};
+
+export const queryServicesRoster = (): Promise<ServicesRoster> => {
+    return fetch(`${BaseApi}/services-roster`, { method: 'get' })
+        .then(r => r.json())
+        .then(data => {
+            if (data['res'] !== 'Ok') throw new Error('queryServicesRoster failed');
+            return data['roster'] as ServicesRoster;
+        });
+};

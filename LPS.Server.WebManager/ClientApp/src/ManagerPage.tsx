@@ -8,7 +8,7 @@ import { useCallback, useEffect, useState } from "react";
 import { css } from "styled-components";
 import { header } from "./CommonCss";
 import NavBar from "./NavBar";
-import { ClusterOverview, InstanceStatusEntry, queryClusterOverview } from "./Network";
+import { ClusterOverview, InstanceStatusEntry, ServiceEntry, ServiceShardEntry, ServicesRoster, queryClusterOverview, queryServicesRoster } from "./Network";
 
 const POLL_INTERVAL_MS = 2000;
 
@@ -82,16 +82,93 @@ const SectionBlock: React.FunctionComponent<{ title: string; items: InstanceStat
     </div>
 );
 
+const shardColumns: IColumn[] = [
+    {
+        key: "shard", name: "Shard", minWidth: 60, maxWidth: 80,
+        onRender: (s: ServiceShardEntry) => (
+            <span css={css`font-weight: 600;`}>#{s.shard}</span>
+        ),
+    },
+    {
+        key: "id", name: "Entity Id", minWidth: 200, maxWidth: 340,
+        onRender: (s: ServiceShardEntry) => (
+            <span css={css`font-family: Consolas, monospace; font-size: 12px;`}>{s.id}</span>
+        ),
+    },
+    {
+        key: "addr", name: "Owner Address", minWidth: 150,
+        onRender: (s: ServiceShardEntry) => <span>{s.ip}:{s.port}#{s.hostNum}</span>,
+    },
+];
+
+const ServicesSection: React.FunctionComponent<{ roster: ServicesRoster | undefined }> = ({ roster }) => {
+    if (!roster) {
+        return (
+            <div css={css`margin: 0 1em 1.5em;`}>
+                <h3 css={css`margin: 0.5em 0; color: #323130;`}>Service Shards</h3>
+                <div css={css`color: #a19f9d; font-style: italic; margin-left: 0.5em;`}>
+                    (ServiceManager unreachable or not deployed)
+                </div>
+            </div>
+        );
+    }
+
+    const totalShards = roster.services.reduce((acc, s) => acc + s.shardCount, 0);
+
+    return (
+        <div css={css`margin: 0 1em 1.5em;`}>
+            <h3 css={css`margin: 0.5em 0; color: #323130;`}>
+                Service Shards
+                <span css={css`color: #605e5c; font-weight: 400; font-size: 14px;`}>
+                    &nbsp;({roster.services.length} services / {totalShards} shards
+                    &nbsp;via&nbsp; {roster.serviceManager.name} {roster.serviceManager.ip}:{roster.serviceManager.port})
+                </span>
+            </h3>
+            {roster.services.length === 0
+                ? <div css={css`color: #a19f9d; font-style: italic; margin-left: 0.5em;`}>(no services registered)</div>
+                : roster.services.map((svc: ServiceEntry) => (
+                    <div key={svc.name} css={css`margin: 0.5em 0 1em; padding: 0.5em 0.75em; border-left: 3px solid ${svc.allShardReady ? "#107c10" : "#ca5010"}; background: #faf9f8; border-radius: 2px;`}>
+                        <div css={css`font-weight: 600; margin-bottom: 4px;`}>
+                            {svc.name}
+                            <span css={css`color: #605e5c; font-weight: 400; font-size: 12px; margin-left: 8px;`}>
+                                {svc.allShardReady
+                                    ? `all ${svc.shardCount} shards ready`
+                                    : `${svc.shards.length}/${svc.shardCount} ready · waiting on shard(s) ${svc.unreadyShards.join(", ")}`}
+                            </span>
+                        </div>
+                        {svc.shards.length > 0 && (
+                            <DetailsList
+                                items={svc.shards}
+                                columns={shardColumns}
+                                selectionMode={SelectionMode.none}
+                                layoutMode={DetailsListLayoutMode.justified}
+                                compact
+                            />
+                        )}
+                    </div>
+                ))}
+        </div>
+    );
+};
+
 const ManagerPage: React.FunctionComponent = () => {
     const [overview, setOverview] = useState<ClusterOverview | undefined>(undefined);
+    const [roster, setRoster] = useState<ServicesRoster | undefined>(undefined);
     const [autoRefresh, setAutoRefresh] = useState<boolean>(true);
     const [error, setError] = useState<string | undefined>(undefined);
     const [lastFetch, setLastFetch] = useState<Date | undefined>(undefined);
 
     const refresh = useCallback(async () => {
         try {
-            const o = await queryClusterOverview();
-            setOverview(o);
+            // Two RPCs in parallel: HostManager has gates/servers/svcmgrs,
+            // ServiceManager has the service shard roster. We render both
+            // even if the roster call fails (cluster may have no ServiceMgr).
+            const [o, rRes] = await Promise.allSettled([
+                queryClusterOverview(),
+                queryServicesRoster(),
+            ]);
+            if (o.status === "fulfilled") setOverview(o.value); else throw o.reason;
+            setRoster(rRes.status === "fulfilled" ? rRes.value : undefined);
             setLastFetch(new Date());
             setError(undefined);
         } catch (e: any) {
@@ -144,7 +221,7 @@ const ManagerPage: React.FunctionComponent = () => {
                     <SectionBlock title="Gates" items={overview.gates} />
                     <SectionBlock title="Servers" items={overview.servers} />
                     <SectionBlock title="Service Managers" items={overview.serviceManagers} />
-                    <SectionBlock title="Services" items={overview.services} />
+                    <ServicesSection roster={roster} />
                 </>
             )}
 

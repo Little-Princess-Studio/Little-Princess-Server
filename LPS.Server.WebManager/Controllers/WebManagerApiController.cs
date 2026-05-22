@@ -88,4 +88,23 @@ public class WebManagerApiController : Controller
 
         return this.Content(res.ToString());
     }
+
+    /// <summary>
+    /// Snapshot of the ServiceManager routing map. HostManager does not see
+    /// individual service shards (it only tracks the ServiceManager itself),
+    /// so this is a separate round-trip that pairs with cluster-overview.
+    /// </summary>
+    [HttpGet("services-roster")]
+    public async Task<IActionResult> ServicesRoster()
+    {
+        var roster = await this.serverService.GetServicesRoster();
+
+        var res = new JObject
+        {
+            ["res"] = "Ok",
+            ["roster"] = roster,
+        };
+
+        return this.Content(res.ToString());
+    }
 }

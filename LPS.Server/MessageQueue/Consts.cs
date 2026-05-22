@@ -184,6 +184,18 @@ public static class Consts
     public const string GetClusterOverviewRes = "getClusterOverviewRes.toWebMgr";
 
     /// <summary>
+    /// Request from WebManager to ServiceManager: dump the service routing map
+    /// (every service name -> shards -> mailbox). Counterpart to
+    /// <see cref="GetClusterOverview"/>, but the data lives in ServiceManager.
+    /// </summary>
+    public const string GetServiceList = "getServiceList.toServiceMgr";
+
+    /// <summary>
+    /// ServiceManager -> WebManager reply for <see cref="GetServiceList"/>.
+    /// </summary>
+    public const string GetServiceListRes = "getServiceListRes.toWebMgr";
+
+    /// <summary>
     /// Get all entities of server.
     /// </summary>
     public const string GetAllEntitiesOfServer = "getAllEntitiesOfServer.webmgr.toSrv";

@@ -33,7 +33,7 @@ using Newtonsoft.Json.Linq;
 /// <summary>
 /// Represents a service instance, which contains multiple LPS service instance.
 /// </summary>
-public class ServiceManager : IInstance
+public partial class ServiceManager : IInstance
 {
     /// <inheritdoc/>
     public InstanceType InstanceType => InstanceType.ServiceManager;
@@ -119,6 +119,7 @@ public class ServiceManager : IInstance
         this.InitializeMessageDispatcher();
         this.InitHostManagerConnection(hostManagerIp, hostManagerPort, useMqToHostMgr);
         this.InitConnectionManager();
+        this.InitWebManagerMessageQueueClient();
     }
 
     /// <inheritdoc/>
@@ -682,6 +683,23 @@ public class ServiceManager : IInstance
         private readonly Dictionary<uint, Common.Rpc.MailBox> shardToMbMap = new();
 
         private HashSet<uint>? unreadyShards;
+
+        /// <summary>
+        /// Snapshot of currently-registered shard -> mailbox bindings.
+        /// Returns a fresh copy; callers may iterate without lock concerns
+        /// because the dispatcher serialises mutation onto the message thread.
+        /// </summary>
+        public IReadOnlyDictionary<uint, Common.Rpc.MailBox> SnapshotShards()
+            => new Dictionary<uint, Common.Rpc.MailBox>(this.shardToMbMap);
+
+        /// <summary>
+        /// Snapshot of shards still waiting for their owning service instance
+        /// to call back. Empty when AllShardReady is true.
+        /// </summary>
+        public IReadOnlyCollection<uint> SnapshotUnreadyShards()
+            => this.unreadyShards is null
+                ? Array.Empty<uint>()
+                : new HashSet<uint>(this.unreadyShards);
 
         public ServiceRoutingMapDescriptor(IEnumerable<uint> shards)
         {

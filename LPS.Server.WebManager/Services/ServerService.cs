@@ -85,6 +85,20 @@ public class ServerService
             Consts.GetClusterOverview,
             this.asyncTaskGeneratorForJObjectRes);
     }
+
+    /// <summary>
+    /// Single-shot snapshot of the ServiceManager routing map (every service
+    /// name -> shards -> mailbox). Complements <see cref="GetClusterOverview"/>
+    /// which only sees what HostManager directly registers.
+    /// </summary>
+    /// <returns>serviceManager + services[] with shard mailboxes.</returns>
+    public Task<JToken> GetServicesRoster()
+    {
+        return this.SendMessageWithReplay(
+            new JObject(),
+            Consts.GetServiceList,
+            this.asyncTaskGeneratorForJObjectRes);
+    }
     
     private void HandleMqMessage(string msg, string routingKey)
     {
@@ -95,7 +109,8 @@ public class ServerService
             or Consts.ServerDetailedInfo
             or Consts.AllEntitiesRes
             or Consts.GetServerPingPongInfoRes
-            or Consts.GetClusterOverviewRes)
+            or Consts.GetClusterOverviewRes
+            or Consts.GetServiceListRes)
         {
             this.asyncTaskGeneratorForJObjectRes.ResolveAsyncTask(rpcId, json);
         }
