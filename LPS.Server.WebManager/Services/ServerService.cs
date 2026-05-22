@@ -78,7 +78,10 @@ public class ServerService
         Logger.Debug($"message received, {msg}, {routingKey}");
         var (rpcId, json) = MessageQueueJsonBody.From(msg);
 
-        if (routingKey is Consts.ServerBasicInfoRes or Consts.ServerDetailedInfo or Consts.AllEntitiesRes)
+        if (routingKey is Consts.ServerBasicInfoRes
+            or Consts.ServerDetailedInfo
+            or Consts.AllEntitiesRes
+            or Consts.GetServerPingPongInfoRes)
         {
             this.asyncTaskGeneratorForJObjectRes.ResolveAsyncTask(rpcId, json);
         }
