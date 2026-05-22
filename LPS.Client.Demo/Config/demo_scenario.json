@@ -1,0 +1,18 @@
+[
+  {
+    "command": "send.authority",
+    "waitMs": 5000
+  },
+  {
+    "command": "send.login",
+    "waitMs": 3000
+  },
+  {
+    "command": "send.player_ping hello",
+    "waitMs": 1000
+  },
+  {
+    "command": "local.check_player_property",
+    "waitMs": 500
+  }
+]

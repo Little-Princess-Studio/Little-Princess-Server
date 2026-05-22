@@ -84,6 +84,11 @@ public static class StartupManager
     private static readonly HashSet<string> AliveProcesses = new HashSet<string>();
 
     /// <summary>
+    /// Gets or sets a value indicating whether to redirect sub-process outputs to the main process console.
+    /// </summary>
+    public static bool RedirectSubprocessOutput { get; set; } = false;
+
+    /// <summary>
     /// Startup a process via config file.
     /// </summary>
     /// <param name="path">Config file path.</param>
@@ -307,6 +312,14 @@ public static class StartupManager
         }
 
         // var process = Process.Start(procStartInfo);
+        if (RedirectSubprocessOutput)
+        {
+            procStartInfo.UseShellExecute = false;
+            procStartInfo.CreateNoWindow = true;
+            procStartInfo.RedirectStandardOutput = true;
+            procStartInfo.RedirectStandardError = true;
+        }
+
         var process = new Process
         {
             StartInfo = procStartInfo,
@@ -327,9 +340,33 @@ public static class StartupManager
             }
         };
 
+        if (RedirectSubprocessOutput)
+        {
+            process.OutputDataReceived += (sender, e) =>
+            {
+                if (e.Data != null)
+                {
+                    Console.WriteLine($"[{name}] {e.Data}");
+                }
+            };
+            process.ErrorDataReceived += (sender, e) =>
+            {
+                if (e.Data != null)
+                {
+                    Console.Error.WriteLine($"[{name} ERROR] {e.Data}");
+                }
+            };
+        }
+
         AliveProcesses.Add(name);
 
         process.Start();
+
+        if (RedirectSubprocessOutput)
+        {
+            process.BeginOutputReadLine();
+            process.BeginErrorReadLine();
+        }
     }
 
     private static string GetBinPath()

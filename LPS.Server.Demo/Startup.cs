@@ -38,6 +38,9 @@ public static class Startup
     {
         [Option('h', "hotreload", Required = false, HelpText = "Set if hot reload enabled.")]
         public int HotReload { get; set; }
+
+        [Option("headless", Required = false, HelpText = "Run subprocesses headlessly by redirecting output.")]
+        public bool Headless { get; set; }
     }
 
     /// <summary>
@@ -93,6 +96,11 @@ public static class Startup
                 {
                     Logger.Init("startup");
                     Logger.Info($"Start up by default, hotreload = {opts.HotReload}");
+                    if (opts.Headless)
+                    {
+                        StartupManager.RedirectSubprocessOutput = true;
+                    }
+
                     StartupByDefault(opts.HotReload == 1);
                     Logger.Info("Start up succ");
                     return true;
