@@ -5,11 +5,11 @@
   },
   {
     "command": "send.login",
-    "waitMs": 3000
+    "waitMs": 8000
   },
   {
     "command": "send.player_ping hello",
-    "waitMs": 1000
+    "waitMs": 2000
   },
   {
     "command": "local.check_player_property",
