@@ -137,6 +137,12 @@ public static class Startup
         StartupManager.FromConfig("Config/host0/server.conf.json", hotreload, false);
         StartupManager.FromConfig("Config/host0/dbmanager.conf.json", hotreload, false);
         StartupManager.FromConfig("Config/host0/service.conf.json", hotreload, false);
+
+        // Start the supervisor HTTP after FromConfig has registered every
+        // subprocess's spawn spec, so /supervisor/status reports the full
+        // roster from the first request onward.
+        Supervisor.Start();
+
         StartupManager.WatchAllSubProcesses();
     }
 

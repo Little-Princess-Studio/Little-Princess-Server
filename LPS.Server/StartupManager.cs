@@ -86,6 +86,30 @@ public static class StartupManager
     private static readonly Dictionary<string, Process> SubProcessHandles = new();
 
     /// <summary>
+    /// Persistent record of how each known subprocess was originally spawned,
+    /// so callers (the embedded supervisor HTTP endpoint, WebManager) can
+    /// restart or re-spawn by name without re-parsing the config file.
+    /// Keyed by instance name (same key used in <see cref="AliveProcesses"/>).
+    /// </summary>
+    private static readonly Dictionary<string, SubProcessSpawnSpec> SpawnSpecs = new();
+
+    private readonly struct SubProcessSpawnSpec
+    {
+        public readonly string Type;
+        public readonly string ConfFilePath;
+        public readonly string BinaryPath;
+        public readonly bool Hotreload;
+
+        public SubProcessSpawnSpec(string type, string confFilePath, string binaryPath, bool hotreload)
+        {
+            this.Type = type;
+            this.ConfFilePath = confFilePath;
+            this.BinaryPath = binaryPath;
+            this.Hotreload = hotreload;
+        }
+    }
+
+    /// <summary>
     /// Gets or sets a value indicating whether to redirect sub-process outputs to the main process console.
     /// </summary>
     public static bool RedirectSubprocessOutput { get; set; } = false;
@@ -226,12 +250,14 @@ public static class StartupManager
         Logger.Info("Start watching all sub processes");
         while (true)
         {
-            lock (AliveProcessesLock)
+            // The supervisor (LPS.Server.Demo.Supervisor) may stop every
+            // subprocess and later restart them. We must NOT exit the
+            // launcher just because the alive set is empty - that would
+            // tear the supervisor HTTP down too. Only exit on an explicit
+            // ShutdownAll signal.
+            if (IsShuttingDown)
             {
-                if (AliveProcesses.Count == 0)
-                {
-                    break;
-                }
+                break;
             }
 
             Thread.Sleep(1000);
@@ -317,6 +343,14 @@ public static class StartupManager
     {
         Logger.Info($"startup {name}");
 
+        // Remember the spawn spec so the supervisor surface (StartInstance /
+        // RestartInstance) can re-spawn the same process later without having
+        // to re-read its config from disk.
+        lock (AliveProcessesLock)
+        {
+            SpawnSpecs[name] = new SubProcessSpawnSpec(type, confFilePath, binaryPath, hotreload);
+        }
+
         var startUpArgumentsString =
             OnGetStartupArgumentsString(new SubProcessStartupInfo(type, name, confFilePath, binaryPath, isRestart));
 
@@ -397,6 +431,25 @@ public static class StartupManager
                     AliveProcesses.Remove(name);
                 }
 
+                return;
+            }
+
+            // Supervisor-initiated stop: suppress auto-restart regardless of
+            // exit code, then clear the guard so subsequent natural crashes
+            // do trigger restart.
+            bool deliberate;
+            lock (AliveProcessesLock)
+            {
+                deliberate = DeliberatelyStopping.Remove(name);
+                if (deliberate)
+                {
+                    AliveProcesses.Remove(name);
+                }
+            }
+
+            if (deliberate)
+            {
+                Logger.Info($"subprocess {name} exited (supervisor-stopped), skip restart.");
                 return;
             }
 
@@ -753,4 +806,213 @@ public static class StartupManager
 
         service.Loop();
     }
+
+    // ------------------------------------------------------------------
+    // Supervisor API - public surface used by the embedded HTTP supervisor
+    // (LPS.Server.Demo) to drive cluster-level and per-instance lifecycle
+    // operations on behalf of the WebManager.
+    // ------------------------------------------------------------------
+
+    /// <summary>
+    /// A snapshot row of one tracked subprocess, returned by
+    /// <see cref="GetSubProcessStatus"/>. Used by the supervisor HTTP layer
+    /// to render Cluster Overview rows with start/stop affordances.
+    /// </summary>
+    public readonly record struct SubProcessStatus(string Name, string Type, bool Alive, int Pid, bool HasExited);
+
+    /// <summary>
+    /// Snapshot of every subprocess this launcher has ever spawned, marked
+    /// alive/dead based on whether <see cref="AliveProcesses"/> still
+    /// contains them. Dead rows are kept so the UI can offer a "Start" button
+    /// for them after a graceful shutdown.
+    /// </summary>
+    public static IReadOnlyList<SubProcessStatus> GetSubProcessStatus()
+    {
+        lock (AliveProcessesLock)
+        {
+            var rows = new List<SubProcessStatus>(SpawnSpecs.Count);
+            foreach (var (name, spec) in SpawnSpecs)
+            {
+                SubProcessHandles.TryGetValue(name, out var proc);
+                var alive = AliveProcesses.Contains(name);
+                var pid = proc is { HasExited: false } ? proc.Id : -1;
+                var hasExited = proc?.HasExited ?? true;
+                rows.Add(new SubProcessStatus(name, spec.Type, alive, pid, hasExited));
+            }
+
+            return rows;
+        }
+    }
+
+    /// <summary>
+    /// (Re)spawn one named subprocess. If a process with the same name is
+    /// currently alive this is a no-op (use <see cref="RestartInstance"/> for
+    /// that). The spawn spec must have been recorded by a previous boot
+    /// (i.e. <see cref="FromConfig"/> was called for this name at startup) -
+    /// the supervisor never invents new instances out of thin air.
+    /// </summary>
+    /// <returns>true if a new process was spawned, false otherwise.</returns>
+    public static bool StartInstance(string name)
+    {
+        SubProcessSpawnSpec spec;
+        lock (AliveProcessesLock)
+        {
+            if (AliveProcesses.Contains(name))
+            {
+                Logger.Info($"[supervisor] StartInstance({name}) ignored - already alive.");
+                return false;
+            }
+
+            if (!SpawnSpecs.TryGetValue(name, out spec))
+            {
+                Logger.Warn($"[supervisor] StartInstance({name}) rejected - no spawn spec on record.");
+                return false;
+            }
+        }
+
+        StartSubProcess(spec.Type, name, spec.ConfFilePath, spec.BinaryPath, spec.Hotreload, false);
+        return true;
+    }
+
+    /// <summary>
+    /// Force-kill one subprocess (entire process tree). Bypasses the graceful
+    /// drain path; use only when the in-band ShutdownInstance HostCommand
+    /// fails or the target is unresponsive. <see cref="IsShuttingDown"/> is
+    /// NOT toggled, so other instances remain auto-restartable.
+    /// </summary>
+    public static bool StopInstance(string name)
+    {
+        Process? proc;
+        lock (AliveProcessesLock)
+        {
+            if (!SubProcessHandles.TryGetValue(name, out proc))
+            {
+                return false;
+            }
+        }
+
+        try
+        {
+            if (!proc.HasExited)
+            {
+                // Mark name as "shutting down" by removing from AliveProcesses
+                // BEFORE killing, so the Exited handler's restart branch sees
+                // a non-zero exit but skips restart for THIS one name via the
+                // dedicated guard below.
+                lock (AliveProcessesLock)
+                {
+                    DeliberatelyStopping.Add(name);
+                }
+
+                proc.Kill(entireProcessTree: true);
+                Logger.Info($"[supervisor] StopInstance({name}) killed pid={proc.Id}.");
+            }
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Logger.Warn($"[supervisor] StopInstance({name}) failed: {ex.Message}");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Kill the subprocess (if alive) and spawn a fresh one with the recorded
+    /// spec. The original auto-restart loop is NOT used here because it
+    /// fires only on non-zero exit; supervisor restarts are deliberate and
+    /// must always succeed.
+    /// </summary>
+    public static bool RestartInstance(string name)
+    {
+        StopInstance(name);
+
+        // Wait briefly for the process to die so port bindings clear before
+        // the replacement comes up. The Kill itself is synchronous on Win,
+        // but the OS may keep the TCP socket in TIME_WAIT - the per-instance
+        // bind code is robust to this so a short wait is sufficient.
+        var deadline = DateTime.UtcNow.AddSeconds(5);
+        while (DateTime.UtcNow < deadline)
+        {
+            lock (AliveProcessesLock)
+            {
+                if (!AliveProcesses.Contains(name) && !SubProcessHandles.ContainsKey(name))
+                {
+                    break;
+                }
+            }
+
+            Thread.Sleep(100);
+        }
+
+        return StartInstance(name);
+    }
+
+    /// <summary>
+    /// Force-stop every subprocess but do NOT mark the launcher itself as
+    /// shutting down. Used by the supervisor's "cluster stop" endpoint so a
+    /// subsequent "cluster start" can re-spawn everything in the same
+    /// launcher process.
+    /// </summary>
+    public static void StopAllInstances()
+    {
+        Process[] procs;
+        string[] names;
+        lock (AliveProcessesLock)
+        {
+            procs = SubProcessHandles.Values.ToArray();
+            names = SubProcessHandles.Keys.ToArray();
+            foreach (var n in names)
+            {
+                DeliberatelyStopping.Add(n);
+            }
+        }
+
+        foreach (var p in procs)
+        {
+            try
+            {
+                if (!p.HasExited)
+                {
+                    p.Kill(entireProcessTree: true);
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Warn($"[supervisor] StopAllInstances kill failed: {ex.Message}");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Re-spawn every recorded instance that is currently dead. Used by the
+    /// supervisor's "cluster start" endpoint after a prior stop. Returns the
+    /// count of processes actually started.
+    /// </summary>
+    public static int StartAllInstances()
+    {
+        string[] names;
+        lock (AliveProcessesLock)
+        {
+            names = SpawnSpecs.Keys.ToArray();
+        }
+
+        var started = 0;
+        foreach (var n in names)
+        {
+            if (StartInstance(n))
+            {
+                started++;
+            }
+        }
+
+        return started;
+    }
+
+    /// <summary>
+    /// Set of names the supervisor is intentionally stopping. The
+    /// Process.Exited handler consults this and skips its auto-restart
+    /// branch even on non-zero exits when the name is present.
+    /// </summary>
+    private static readonly HashSet<string> DeliberatelyStopping = new();
 }

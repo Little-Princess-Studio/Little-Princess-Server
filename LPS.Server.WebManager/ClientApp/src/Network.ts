@@ -383,3 +383,65 @@ export const shutdownInstance = (
             return data['result'] as ShutdownInstanceResult;
         });
 };
+
+// --- Supervisor (LPS.Server.Demo launcher) ------------------------------
+//
+// The supervisor lives in the launcher process (port 7090 by default) and
+// owns the OS-process registry. It can spawn/kill instances by name and
+// drive cluster-wide start/stop/restart. WebManager talks to it DIRECTLY
+// (CORS-enabled) rather than proxying through ASP.NET because the launcher
+// must remain reachable even when WebManager is down (e.g. user wants to
+// restart WebManager itself via the supervisor in a future iteration).
+//
+// Override via REACT_APP_SUPERVISOR_BASE if the launcher runs on a
+// different host.
+
+const SupervisorBase =
+    process.env.REACT_APP_SUPERVISOR_BASE ?? 'http://localhost:7090/supervisor';
+
+export type SupervisorInstance = {
+    name: string;
+    type: string;
+    alive: boolean;
+    pid: number;
+    hasExited: boolean;
+};
+
+export type SupervisorStatus = {
+    instances: SupervisorInstance[];
+};
+
+export const querySupervisorStatus = (): Promise<SupervisorStatus> => {
+    return fetch(`${SupervisorBase}/status`)
+        .then(r => r.json())
+        .then(data => {
+            if (data['res'] !== 'Ok') throw new Error('querySupervisorStatus failed');
+            return { instances: data['instances'] as SupervisorInstance[] };
+        });
+};
+
+const supervisorPost = (path: string): Promise<any> =>
+    fetch(`${SupervisorBase}${path}`, { method: 'POST' })
+        .then(r => r.json())
+        .then(data => {
+            if (data['res'] !== 'Ok') throw new Error(`${path} failed`);
+            return data;
+        });
+
+export const clusterStart = (): Promise<{ startedCount: number }> =>
+    supervisorPost('/cluster/start');
+
+export const clusterStop = (): Promise<{ stopped: boolean }> =>
+    supervisorPost('/cluster/stop');
+
+export const clusterRestart = (): Promise<{ startedCount: number }> =>
+    supervisorPost('/cluster/restart');
+
+export const instanceStart = (name: string): Promise<{ name: string; started: boolean }> =>
+    supervisorPost(`/instance/${encodeURIComponent(name)}/start`);
+
+export const instanceStop = (name: string): Promise<{ name: string; stopped: boolean }> =>
+    supervisorPost(`/instance/${encodeURIComponent(name)}/stop`);
+
+export const instanceRestart = (name: string): Promise<{ name: string; restarted: boolean }> =>
+    supervisorPost(`/instance/${encodeURIComponent(name)}/restart`);

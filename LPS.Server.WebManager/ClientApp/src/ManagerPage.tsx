@@ -3,13 +3,19 @@
 // One-shot fetch of every instance HostManager tracks, plus 2s polling.
 // -----------------------------------------------------------------------
 
-import { Stack, MessageBar, MessageBarType, Toggle, DefaultButton, IColumn, DetailsList, SelectionMode, DetailsListLayoutMode, Icon } from "@fluentui/react";
+import { Stack, MessageBar, MessageBarType, Toggle, DefaultButton, PrimaryButton, IColumn, DetailsList, SelectionMode, DetailsListLayoutMode, Icon, Spinner, SpinnerSize, Dialog, DialogType, DialogFooter } from "@fluentui/react";
 import { useCallback, useEffect, useState } from "react";
 import { css } from "styled-components";
 import { header } from "./CommonCss";
 import NavBar from "./NavBar";
 import ShutdownButton from "./ShutdownButton";
-import { ClusterOverview, InstanceStatusEntry, ServiceEntry, ServiceShardEntry, ServicesRoster, queryClusterOverview, queryServicesRoster } from "./Network";
+import {
+    ClusterOverview, InstanceStatusEntry, ServiceEntry, ServiceShardEntry, ServicesRoster,
+    queryClusterOverview, queryServicesRoster,
+    SupervisorInstance, querySupervisorStatus,
+    clusterStart, clusterStop, clusterRestart,
+    instanceStart, instanceStop, instanceRestart,
+} from "./Network";
 
 const POLL_INTERVAL_MS = 2000;
 
@@ -188,24 +194,223 @@ const ServicesSection: React.FunctionComponent<{ roster: ServicesRoster | undefi
     );
 };
 
+// ---------------- Phase 2/3: Supervisor control surface ----------------
+
+// Cluster-wide control bar. Each button confirms (start is benign and
+// skipped), then fires the matching /supervisor/cluster/* endpoint and
+// nudges onChange so the parent re-polls.
+const ClusterControlBar: React.FunctionComponent<{ onChange: () => void }> = ({ onChange }) => {
+    const [pending, setPending] = useState<string | undefined>(undefined);
+    const [confirm, setConfirm] = useState<"stop" | "restart" | undefined>(undefined);
+    const [error, setError] = useState<string | undefined>(undefined);
+    const [success, setSuccess] = useState<string | undefined>(undefined);
+
+    const showSuccess = (msg: string) => {
+        setSuccess(msg);
+        window.setTimeout(() => setSuccess(undefined), 4000);
+    };
+
+    const doStart = useCallback(async () => {
+        setPending("start"); setError(undefined);
+        try {
+            const r = await clusterStart();
+            showSuccess(`Started ${r.startedCount} instance(s).`);
+            onChange();
+        } catch (e: any) {
+            setError(`cluster/start failed: ${e.message ?? e}`);
+        } finally { setPending(undefined); }
+    }, [onChange]);
+
+    const doStop = useCallback(async () => {
+        setConfirm(undefined); setPending("stop"); setError(undefined);
+        try {
+            await clusterStop();
+            showSuccess("All instances killed.");
+            onChange();
+        } catch (e: any) {
+            setError(`cluster/stop failed: ${e.message ?? e}`);
+        } finally { setPending(undefined); }
+    }, [onChange]);
+
+    const doRestart = useCallback(async () => {
+        setConfirm(undefined); setPending("restart"); setError(undefined);
+        try {
+            const r = await clusterRestart();
+            showSuccess(`Restarted ${r.startedCount} instance(s).`);
+            onChange();
+        } catch (e: any) {
+            setError(`cluster/restart failed: ${e.message ?? e}`);
+        } finally { setPending(undefined); }
+    }, [onChange]);
+
+    return (
+        <>
+            <Stack horizontal wrap tokens={{ childrenGap: 8 }} verticalAlign="center"
+                css={css`margin: 0 1em 0.5em; padding: 0.6em 0.9em; background: #fff4ce; border-left: 4px solid #ffaa44; border-radius: 2px;`}>
+                <span css={css`font-weight: 600; color: #323130;`}>
+                    <Icon iconName="PowerButton" css={css`margin-right: 4px;`} />
+                    Cluster Control
+                </span>
+                <PrimaryButton text="Start All" iconProps={{ iconName: "Play" }}
+                    disabled={pending !== undefined} onClick={doStart} />
+                <DefaultButton text="Restart All" iconProps={{ iconName: "Refresh" }}
+                    disabled={pending !== undefined} onClick={() => setConfirm("restart")} />
+                <DefaultButton text="Stop All" iconProps={{ iconName: "Stop" }}
+                    disabled={pending !== undefined} onClick={() => setConfirm("stop")}
+                    styles={{
+                        root: { background: "#d83b01", borderColor: "#a4262c", color: "white" },
+                        rootHovered: { background: "#a4262c", borderColor: "#a4262c", color: "white" },
+                        rootDisabled: { background: "#e1bbb1", borderColor: "#c9a597", color: "#f3f2f1" },
+                    }} />
+                {pending && <Spinner size={SpinnerSize.small} label={`cluster/${pending}…`} />}
+                {success && <MessageBar messageBarType={MessageBarType.success} isMultiline={false}>{success}</MessageBar>}
+                {error && <MessageBar messageBarType={MessageBarType.error} isMultiline={false}
+                    onDismiss={() => setError(undefined)}>{error}</MessageBar>}
+            </Stack>
+
+            <Dialog
+                hidden={confirm === undefined}
+                onDismiss={() => setConfirm(undefined)}
+                dialogContentProps={{
+                    type: DialogType.normal,
+                    title: confirm === "stop" ? "Stop the entire cluster?" : "Restart the entire cluster?",
+                    subText: confirm === "stop"
+                        ? "Every subprocess (HostManager, Gates, Servers, Service Manager, Services, DbManager) will be force-killed. The supervisor remains running so you can Start them again."
+                        : "Every subprocess will be force-killed and then respawned with the same config. Expect ~10s of unavailability.",
+                }}
+                modalProps={{ isBlocking: true }}
+            >
+                <DialogFooter>
+                    <DefaultButton text="Cancel" onClick={() => setConfirm(undefined)} />
+                    <PrimaryButton
+                        text={confirm === "stop" ? "Stop everything" : "Restart everything"}
+                        onClick={confirm === "stop" ? doStop : doRestart}
+                        styles={{
+                            root: { background: "#d83b01", borderColor: "#a4262c" },
+                            rootHovered: { background: "#a4262c", borderColor: "#a4262c" },
+                        }}
+                    />
+                </DialogFooter>
+            </Dialog>
+        </>
+    );
+};
+
+// Per-process registry of every subprocess the launcher knows about. Names
+// here (gate0, server1, dbmanager, ...) are the supervisor's primary key
+// and are distinct from the mailbox.id used in the Cluster Overview tables.
+// Dead rows stay visible so the user can press Start on them.
+const ProcessSupervisorSection: React.FunctionComponent<{
+    instances: SupervisorInstance[];
+    onChange: () => void;
+}> = ({ instances, onChange }) => {
+    const [pendingName, setPendingName] = useState<string | undefined>(undefined);
+    const [error, setError] = useState<string | undefined>(undefined);
+
+    const wrap = useCallback(async (name: string, fn: () => Promise<unknown>) => {
+        setPendingName(name); setError(undefined);
+        try { await fn(); onChange(); }
+        catch (e: any) { setError(`action on ${name} failed: ${e.message ?? e}`); }
+        finally { setPendingName(undefined); }
+    }, [onChange]);
+
+    const columns: IColumn[] = [
+        { key: "name", name: "Name", minWidth: 130, maxWidth: 180,
+          onRender: (i: SupervisorInstance) =>
+            <span css={css`font-family:Consolas,monospace;font-weight:600;`}>{i.name}</span> },
+        { key: "type", name: "Type", minWidth: 90, maxWidth: 130,
+          onRender: (i: SupervisorInstance) => <span>{i.type}</span> },
+        { key: "pid", name: "PID", minWidth: 60, maxWidth: 80,
+          onRender: (i: SupervisorInstance) => i.alive
+            ? <span>{i.pid}</span>
+            : <span css={css`color:#a19f9d;`}>—</span> },
+        { key: "alive", name: "Status", minWidth: 90,
+          onRender: (i: SupervisorInstance) => (
+            <span css={css`display:inline-block;padding:2px 8px;border-radius:10px;color:white;font-size:12px;font-weight:600;background:${i.alive ? "#107c10" : "#605e5c"};`}>
+                {i.alive ? "Alive" : "Stopped"}
+            </span>
+          ) },
+        { key: "actions", name: "", minWidth: 320,
+          onRender: (i: SupervisorInstance) => (
+            <Stack horizontal tokens={{ childrenGap: 6 }}>
+                {!i.alive && (
+                    <PrimaryButton text="Start" iconProps={{ iconName: "Play" }}
+                        disabled={pendingName !== undefined}
+                        onClick={() => wrap(i.name, () => instanceStart(i.name))} />
+                )}
+                {i.alive && (
+                    <>
+                        <DefaultButton text="Restart" iconProps={{ iconName: "Refresh" }}
+                            disabled={pendingName !== undefined}
+                            onClick={() => wrap(i.name, () => instanceRestart(i.name))} />
+                        <DefaultButton text="Kill" iconProps={{ iconName: "Cancel" }}
+                            disabled={pendingName !== undefined}
+                            onClick={() => wrap(i.name, () => instanceStop(i.name))}
+                            styles={{
+                                root: { background: "#a4262c", borderColor: "#751c20", color: "white" },
+                                rootHovered: { background: "#751c20", borderColor: "#751c20", color: "white" },
+                            }} />
+                    </>
+                )}
+                {pendingName === i.name && <Spinner size={SpinnerSize.small} />}
+            </Stack>
+          ) },
+    ];
+
+    return (
+        <div css={css`margin: 0 1em 1.5em;`}>
+            <h3 css={css`margin: 0.5em 0; color: #323130;`}>
+                Process Supervisor
+                <span css={css`color:#605e5c;font-weight:400;font-size:14px;margin-left:8px;`}>
+                    ({instances.filter(i => i.alive).length}/{instances.length} alive
+                    &nbsp;·&nbsp; force-kill / spawn by name via launcher on :7090)
+                </span>
+            </h3>
+            {error && (
+                <MessageBar messageBarType={MessageBarType.error} onDismiss={() => setError(undefined)}>
+                    {error}
+                </MessageBar>
+            )}
+            <DetailsList
+                items={instances}
+                columns={columns}
+                selectionMode={SelectionMode.none}
+                layoutMode={DetailsListLayoutMode.justified}
+                compact
+            />
+            <div css={css`color:#605e5c;font-size:12px;margin-top:6px;`}>
+                Note: <b>Kill</b> is a hard SIGKILL (no drain). For a graceful shutdown
+                use the per-instance <b>Stop</b> button in the Cluster Overview tables
+                below (sends a HostCommand for in-band drain). <b>Restart</b> here is
+                kill + re-spawn — also hard.
+            </div>
+        </div>
+    );
+};
+
 const ManagerPage: React.FunctionComponent = () => {
     const [overview, setOverview] = useState<ClusterOverview | undefined>(undefined);
     const [roster, setRoster] = useState<ServicesRoster | undefined>(undefined);
+    const [supervisor, setSupervisor] = useState<SupervisorInstance[]>([]);
     const [autoRefresh, setAutoRefresh] = useState<boolean>(true);
     const [error, setError] = useState<string | undefined>(undefined);
     const [lastFetch, setLastFetch] = useState<Date | undefined>(undefined);
 
     const refresh = useCallback(async () => {
         try {
-            // Two RPCs in parallel: HostManager has gates/servers/svcmgrs,
-            // ServiceManager has the service shard roster. We render both
-            // even if the roster call fails (cluster may have no ServiceMgr).
-            const [o, rRes] = await Promise.allSettled([
+            // Three RPCs in parallel: HostManager (gates/servers/svcmgrs),
+            // ServiceManager (shard roster), Supervisor (OS-level process
+            // registry on port 7090). Render whatever succeeds; the
+            // Supervisor section degrades gracefully if the launcher's HTTP
+            // is unreachable (e.g. running an older build).
+            const [o, rRes, sRes] = await Promise.allSettled([
                 queryClusterOverview(),
                 queryServicesRoster(),
+                querySupervisorStatus(),
             ]);
             if (o.status === "fulfilled") setOverview(o.value); else throw o.reason;
             setRoster(rRes.status === "fulfilled" ? rRes.value : undefined);
+            setSupervisor(sRes.status === "fulfilled" ? sRes.value.instances : []);
             setLastFetch(new Date());
             setError(undefined);
         } catch (e: any) {
@@ -235,10 +440,16 @@ const ManagerPage: React.FunctionComponent = () => {
                 )}
             </Stack>
 
+            <ClusterControlBar onChange={refresh} />
+
             {error && (
                 <MessageBar messageBarType={MessageBarType.error} css={css`margin: 0 1em;`}>
                     {error}
                 </MessageBar>
+            )}
+
+            {supervisor.length > 0 && (
+                <ProcessSupervisorSection instances={supervisor} onChange={refresh} />
             )}
 
             {overview && (

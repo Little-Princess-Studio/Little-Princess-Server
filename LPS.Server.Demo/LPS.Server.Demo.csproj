@@ -16,6 +16,12 @@
         <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       </PackageReference>
       <AdditionalFiles Include="../stylecop.json" />
+      <!-- Embedded HTTP supervisor (Phase 2): WebManager POSTs cluster/instance
+           lifecycle commands to this launcher on port 7090. Using a framework
+           reference avoids dragging Kestrel into LPS.Server (which must stay a
+           pure library) while keeping the supervisor co-located with
+           StartupManager which owns the subprocess registry. -->
+      <FrameworkReference Include="Microsoft.AspNetCore.App" />
     </ItemGroup>
 
     <ItemGroup>
