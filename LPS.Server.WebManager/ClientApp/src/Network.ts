@@ -221,3 +221,77 @@ export const queryServicesRoster = (): Promise<ServicesRoster> => {
             return data['roster'] as ServicesRoster;
         });
 };
+
+// --- Gate detailed info -------------------------------------------------
+
+export type GateMailBox = {
+    id: string;
+    ip: string;
+    port: number;
+    hostNum: number;
+};
+
+export type GateConnectionEntry = GateMailBox;
+
+export type GateClientEntityEntry = {
+    entityId: string;
+    mailbox: GateMailBox;
+};
+
+export type GateDetailedInfo = {
+    name: string;
+    mailbox: GateMailBox;
+    serviceManager: GateMailBox;
+    counters: {
+        serverConnections: number;
+        gateConnections: number;
+        clientEntities: number;
+        pendingClientAuths: number;
+        sendQueueDepth: number;
+        readyToPumpClients: boolean;
+    };
+    serverConnections: GateConnectionEntry[];
+    gateConnections: GateConnectionEntry[];
+    clientEntities: GateClientEntityEntry[];
+};
+
+export const queryGateDetailedInfo = (gateId: string, hostNum: number): Promise<GateDetailedInfo> => {
+    const url = `${BaseApi}/gate-detailed-info?gateId=${encodeURIComponent(gateId)}&hostNum=${hostNum}`;
+    return fetch(url, { method: 'get' })
+        .then(r => r.json())
+        .then(data => {
+            if (data['res'] !== 'Ok') throw new Error('queryGateDetailedInfo failed');
+            return data['gate'] as GateDetailedInfo;
+        });
+};
+
+// --- Service shard detailed info ---------------------------------------
+
+export type ServiceShardRpcParam = { name: string; type: string };
+export type ServiceShardRpcMethod = {
+    name: string;
+    authority: string;
+    returnType: string;
+    parameters: ServiceShardRpcParam[];
+};
+
+export type ServiceShardDetailedInfo = {
+    serviceName: string;
+    serviceClass: string;
+    shard: number;
+    typeId: number;
+    shardMailbox: GateMailBox;
+    hostMailbox: { name: string; ip: string; port: number; hostNum: number };
+    coLocatedShards: { serviceName: string; shard: number; shardId: string }[];
+    rpcMethods: ServiceShardRpcMethod[];
+};
+
+export const queryServiceShardDetailedInfo = (serviceName: string, shard: number): Promise<ServiceShardDetailedInfo> => {
+    const url = `${BaseApi}/service-shard-detailed-info?serviceName=${encodeURIComponent(serviceName)}&shard=${shard}`;
+    return fetch(url, { method: 'get' })
+        .then(r => r.json())
+        .then(data => {
+            if (data['res'] !== 'Ok') throw new Error('queryServiceShardDetailedInfo failed');
+            return data['shard'] as ServiceShardDetailedInfo;
+        });
+};

@@ -99,6 +99,47 @@ public class ServerService
             Consts.GetServiceList,
             this.asyncTaskGeneratorForJObjectRes);
     }
+
+    /// <summary>
+    /// Live runtime state of one Gate instance (connections, bound client
+    /// entities, queue depth, etc). The request is broadcast on
+    /// <see cref="Consts.RoutingKeyWebManagerToGate"/>; only the gate whose
+    /// id+hostNum match replies.
+    /// </summary>
+    /// <param name="gateId">Mailbox id of the gate (raw, not URL-encoded).</param>
+    /// <param name="hostNum">Host number of the gate.</param>
+    /// <returns>Gate detailed info JSON.</returns>
+    public Task<JToken> GetGateDetailedInfo(string gateId, int hostNum)
+    {
+        return this.SendMessageWithReplay(
+            new JObject
+            {
+                ["gateId"] = gateId,
+                ["hostNum"] = hostNum,
+            },
+            Consts.GetGateDetailedInfo,
+            this.asyncTaskGeneratorForJObjectRes);
+    }
+
+    /// <summary>
+    /// Live runtime state of one service shard (identified by service name +
+    /// shard index). Only the Service host process that owns the shard
+    /// replies.
+    /// </summary>
+    /// <param name="serviceName">Class name of the service (e.g. EchoService).</param>
+    /// <param name="shard">Shard index inside the service.</param>
+    /// <returns>Service shard detailed info JSON.</returns>
+    public Task<JToken> GetServiceShardDetailedInfo(string serviceName, uint shard)
+    {
+        return this.SendMessageWithReplay(
+            new JObject
+            {
+                ["serviceName"] = serviceName,
+                ["shard"] = shard,
+            },
+            Consts.GetServiceShardDetailedInfo,
+            this.asyncTaskGeneratorForJObjectRes);
+    }
     
     private void HandleMqMessage(string msg, string routingKey)
     {
@@ -110,7 +151,9 @@ public class ServerService
             or Consts.AllEntitiesRes
             or Consts.GetServerPingPongInfoRes
             or Consts.GetClusterOverviewRes
-            or Consts.GetServiceListRes)
+            or Consts.GetServiceListRes
+            or Consts.GateDetailedInfoRes
+            or Consts.ServiceShardDetailedInfoRes)
         {
             this.asyncTaskGeneratorForJObjectRes.ResolveAsyncTask(rpcId, json);
         }

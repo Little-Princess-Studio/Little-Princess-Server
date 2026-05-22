@@ -3,27 +3,23 @@ import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import ManagerPage from './ManagerPage';
 import ServerPage from './ServerPage';
 import LogsPage from './LogsPage';
+import GatesPage from './Gates';
+import GateDetailPage from './GateDetailPage';
+import ServicePage from './ServicePage';
+import ServiceShardDetailPage from './ServiceShardDetailPage';
 import { initializeIcons } from '@fluentui/react/lib/Icons';
 
 initializeIcons("https://static2.sharepointonline.com/files/fabric/assets/icons/");
 
 const router = createBrowserRouter([
-  {
-    path: "/",
-    element: <ManagerPage></ManagerPage>,
-  },
-  {
-    path: "/manager",
-    element: <ManagerPage></ManagerPage>,
-  },
-  {
-    path: "/server",
-    element: <ServerPage></ServerPage>
-  },
-  {
-    path: "/logs",
-    element: <LogsPage></LogsPage>
-  },
+  { path: "/", element: <ManagerPage></ManagerPage> },
+  { path: "/manager", element: <ManagerPage></ManagerPage> },
+  { path: "/server", element: <ServerPage></ServerPage> },
+  { path: "/gate", element: <GatesPage></GatesPage> },
+  { path: "/gate/:gateId/:hostNum", element: <GateDetailPage></GateDetailPage> },
+  { path: "/service", element: <ServicePage></ServicePage> },
+  { path: "/service/:serviceName/:shard", element: <ServiceShardDetailPage></ServiceShardDetailPage> },
+  { path: "/logs", element: <LogsPage></LogsPage> },
 ]);
 
 function App() {

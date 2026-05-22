@@ -177,6 +177,10 @@ public partial class Gate : IInstance
         this.hostMgrConnection.Run();
         Logger.Debug("Host manager connected.");
 
+        // Bind the WebManager MQ client as early as host-mgr is up so the
+        // admin UI can introspect the gate even before clients arrive.
+        this.InitWebManagerMessageQueueClient();
+
         this.clientsPumpMsgSandBox.Run();
         Logger.Info("[Startup] STEP 2: create gate entity.");
         this.localEntityGeneratedEvent.Wait();

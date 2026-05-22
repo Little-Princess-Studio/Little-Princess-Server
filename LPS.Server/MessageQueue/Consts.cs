@@ -196,6 +196,29 @@ public static class Consts
     public const string GetServiceListRes = "getServiceListRes.toWebMgr";
 
     /// <summary>
+    /// Request from WebManager to a single Gate (filtered by id+hostNum in
+    /// the body) for that gate's live runtime state.
+    /// </summary>
+    public const string GetGateDetailedInfo = "getGateDetailedInfo.webmgr.toGate";
+
+    /// <summary>
+    /// Gate -> WebManager reply for <see cref="GetGateDetailedInfo"/>.
+    /// </summary>
+    public const string GateDetailedInfoRes = "gateDetailedInfoRes.toWebMgr";
+
+    /// <summary>
+    /// Request from WebManager to a Service host process for one shard's
+    /// live state. Body carries {serviceName, shard}; only the Service host
+    /// that owns that shard replies.
+    /// </summary>
+    public const string GetServiceShardDetailedInfo = "getServiceShardDetailedInfo.webmgr.toServiceHost";
+
+    /// <summary>
+    /// Service host -> WebManager reply for <see cref="GetServiceShardDetailedInfo"/>.
+    /// </summary>
+    public const string ServiceShardDetailedInfoRes = "serviceShardDetailedInfoRes.toWebMgr";
+
+    /// <summary>
     /// Get all entities of server.
     /// </summary>
     public const string GetAllEntitiesOfServer = "getAllEntitiesOfServer.webmgr.toSrv";
@@ -214,6 +237,19 @@ public static class Consts
     /// Routing keys of web manager to server.
     /// </summary>
     public const string RoutingKeyWebManagerToServer = "#.webmgr.toSrv";
+
+    /// <summary>
+    /// Routing keys of web manager to gate. Mirrors
+    /// <see cref="RoutingKeyWebManagerToServer"/> so each Gate process can
+    /// observe a single queue for all WebManager-originated requests.
+    /// </summary>
+    public const string RoutingKeyWebManagerToGate = "#.webmgr.toGate";
+
+    /// <summary>
+    /// Routing keys of web manager to a Service host process (each Service
+    /// instance owns 1..N service shards).
+    /// </summary>
+    public const string RoutingKeyWebManagerToServiceHost = "#.webmgr.toServiceHost";
 
     /// <summary>
     /// Get routing key of server to observe.

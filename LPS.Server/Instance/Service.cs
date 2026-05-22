@@ -24,7 +24,7 @@ using Newtonsoft.Json.Linq;
 /// <summary>
 /// Represents a service instance, which contains multiple LPS service instance.
 /// </summary>
-public class Service : IInstance
+public partial class Service : IInstance
 {
     /// <inheritdoc/>
     public InstanceType InstanceType => InstanceType.Service;
@@ -97,11 +97,15 @@ public class Service : IInstance
         this.HostNum = hostNum;
     }
 
-   /// <inheritdoc/>
+    /// <inheritdoc/>
     public void Loop()
     {
         Logger.Debug($"Service {this.Name} is running.");
         this.serviceMgrConnection.Run();
+
+        // Bind the WebManager MQ client so the admin UI can introspect this
+        // Service host process even before any service shard is registered.
+        this.InitWebManagerMessageQueueClient();
 
         Logger.Debug($"Service {this.Name} register self.");
         this.RegisterSelfToServiceManager();

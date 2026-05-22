@@ -107,4 +107,39 @@ public class WebManagerApiController : Controller
 
         return this.Content(res.ToString());
     }
+
+    /// <summary>
+    /// Live runtime state of one Gate instance. Backs the Gate detail page.
+    /// </summary>
+    [HttpGet("gate-detailed-info")]
+    public async Task<IActionResult> GateDetailedInfo(string gateId, int hostNum)
+    {
+        var info = await this.serverService.GetGateDetailedInfo(gateId, hostNum);
+
+        var res = new JObject
+        {
+            ["res"] = "Ok",
+            ["gate"] = info,
+        };
+
+        return this.Content(res.ToString());
+    }
+
+    /// <summary>
+    /// Live runtime state of one service shard. Backs the service shard
+    /// detail page.
+    /// </summary>
+    [HttpGet("service-shard-detailed-info")]
+    public async Task<IActionResult> ServiceShardDetailedInfo(string serviceName, uint shard)
+    {
+        var info = await this.serverService.GetServiceShardDetailedInfo(serviceName, shard);
+
+        var res = new JObject
+        {
+            ["res"] = "Ok",
+            ["shard"] = info,
+        };
+
+        return this.Content(res.ToString());
+    }
 }
