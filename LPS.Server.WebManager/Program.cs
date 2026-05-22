@@ -14,7 +14,15 @@ builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(builder =>
     {
-        builder.WithOrigins("https://localhost:7087", "https://localhost:44403");
+        // Allow the standalone CRA dev server (npm start, port 3000) to call
+        // this backend during local development. SpaProxy origins kept for the
+        // legacy launchSettings.json profile.
+        builder.WithOrigins(
+                "http://localhost:3000",
+                "https://localhost:7087",
+                "https://localhost:44403")
+            .AllowAnyHeader()
+            .AllowAnyMethod();
     });
 });
 
@@ -37,7 +45,12 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseCors();
-app.UseHttpsRedirection();
+// HTTPS redirect interferes with the CRA dev server (http://localhost:3000)
+// calling our http://localhost:7088 backend - skip it outside Production.
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 app.UseStaticFiles();
 app.UseRouting();
 
