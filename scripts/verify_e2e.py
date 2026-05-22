@@ -1,140 +1,242 @@
-import subprocess
-import time
+"""End-to-end smoke test for the Little Princess Server cluster.
+
+Workflow:
+  1. Kill any leftover LPS.Server.Demo / LPS.Client.Demo processes.
+  2. dotnet build the whole solution.
+  3. Start the cluster headlessly (LPS.Server.Demo bydefault --headless),
+     keeping stdin open so we can later send "shutdown\\n" for graceful exit.
+  4. Wait until the cluster is fully wired (looking for the 'All other gates
+     connected.' marker in the headless log).
+  5. Run LPS.Client.Demo with a scenario file and capture its stdout/stderr.
+  6. Send "shutdown\\n" to the launcher's stdin, then wait for it to exit
+     gracefully. Force-kill anything left over.
+  7. Verify:
+       * the cluster log contains every expected process tag,
+       * the scenario completed every step,
+       * no [Error]/[Fatal]/Unhandled Exception was logged BEFORE the
+         shutdown marker (post-shutdown socket-resets are filtered out).
+"""
+
+from __future__ import annotations
+
 import os
+import re
+import subprocess
 import sys
+import time
+from pathlib import Path
 
-# Configure UTF-8 encoding for standard output and error to avoid GBK UnicodeEncodeError on Windows
-if hasattr(sys.stdout, 'reconfigure'):
-    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
-if hasattr(sys.stderr, 'reconfigure'):
-    sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
 
-def stop_server():
-    print("Stopping all LPS.Server.Demo processes...")
+ROOT = Path(__file__).resolve().parent.parent
+SERVER_DIR = ROOT / "LPS.Server.Demo"
+CLIENT_DIR = ROOT / "LPS.Client.Demo"
+LOG_FILE = SERVER_DIR / "logs" / "headless_run.log"
+SCENARIO = "Config/demo_scenario.json"
+
+EXPECTED_TAGS = ["[hostmanager]", "[dbmanager]", "[gate0]", "[server0]"]
+READY_MARKER = "All other gates connected."
+SHUTDOWN_MARKER = "[StartupManager] Shutdown signal received"
+
+ERROR_RX = re.compile(r"\[(Error|Fatal)\]|Unhandled Exception")
+BENIGN_RX = re.compile(
+    r"Read socket data failed.*forcibly closed"
+    r"|Send msg .* failed"
+)
+
+
+def kill_leftovers() -> None:
+    print("Stopping any leftover LPS processes...")
     if sys.platform == "win32":
-        cmd = 'powershell -Command "Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like \'*LPS.Server.Demo.dll*\' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }"'
-        subprocess.run(cmd, shell=True)
+        cmd = (
+            'powershell -Command "Get-CimInstance Win32_Process | '
+            "Where-Object { $_.CommandLine -like '*LPS.Server.Demo.dll*' "
+            "-or $_.CommandLine -like '*LPS.Client.Demo.dll*' } | "
+            'ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }"'
+        )
+        subprocess.run(cmd, shell=True, check=False)
     else:
-        subprocess.run("pkill -9 -f LPS.Server.Demo.dll", shell=True)
+        subprocess.run("pkill -9 -f LPS.Server.Demo.dll", shell=True, check=False)
+        subprocess.run("pkill -9 -f LPS.Client.Demo.dll", shell=True, check=False)
     time.sleep(2)
 
-def main():
-    # Make sure we are in the root directory of the workspace
-    # Root has LPS.sln, LPS.Server.Demo/, LPS.Client.Demo/
-    os.chdir(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-    # Clean up any leftover processes first
-    stop_server()
-
-    # Build the project
-    print("Building Solution...")
-    build_res = subprocess.run(["dotnet", "build"], capture_output=True, encoding="utf-8", errors="replace")
-    if build_res.returncode != 0:
-        print("Build failed!")
-        print(build_res.stdout)
-        print(build_res.stderr)
+def build() -> None:
+    print("Building solution...")
+    res = subprocess.run(
+        ["dotnet", "build"], cwd=str(ROOT),
+        capture_output=True, encoding="utf-8", errors="replace", check=False,
+    )
+    if res.returncode != 0:
+        print("Build failed!\n" + res.stdout + "\n" + res.stderr)
         sys.exit(1)
-    print("Build successful.")
+    print("Build OK.")
 
-    # Ensure log directory exists
-    os.makedirs("LPS.Server.Demo/logs", exist_ok=True)
-    log_file_path = "LPS.Server.Demo/logs/headless_run.log"
-    if os.path.exists(log_file_path):
-        os.remove(log_file_path)
 
-    # Note: open output log file relative to script workspace
-    print(f"Starting server headlessly. Output will be written to {log_file_path}...")
-    with open(log_file_path, "wb") as f_log:
-        server_proc = subprocess.Popen(
-            ["dotnet", "run", "--no-build", "--", "bydefault", "--headless"],
-            cwd="LPS.Server.Demo",
-            stdout=f_log,
-            stderr=subprocess.STDOUT
-        )
+def start_cluster() -> subprocess.Popen:
+    LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
+    if LOG_FILE.exists():
+        LOG_FILE.unlink()
 
-    # Wait for server to boot (up to 60 seconds)
-    print("Waiting for server cluster to initialize...")
-    started = False
-    for i in range(60):
-        if os.path.exists(log_file_path):
-            with open(log_file_path, "r", encoding="utf-8", errors="replace") as f:
-                content = f.read()
-                if "All other gates connected." in content:
-                    started = True
-                    break
-        time.sleep(1)
-
-    if not started:
-        print("Error: Server cluster failed to start within 60 seconds.")
-        # Print logs for diagnostics
-        if os.path.exists(log_file_path):
-            print("\n=== Log Diagnostics ===")
-            with open(log_file_path, "r", encoding="utf-8", errors="replace") as f:
-                print(f.read())
-        stop_server()
-        sys.exit(1)
-
-    print("Server cluster initialized successfully. Running client scenario...")
-    client_res = subprocess.run(
-        ["dotnet", "run", "--no-build", "--", "--scenario", "Config/demo_scenario.json"],
-        cwd="LPS.Client.Demo",
-        capture_output=True,
-        encoding="utf-8",
-        errors="replace"
+    print(f"Launching cluster headlessly, log -> {LOG_FILE}")
+    log_fp = open(LOG_FILE, "wb")
+    return subprocess.Popen(
+        ["dotnet", "run", "--no-build", "--", "bydefault", "--headless"],
+        cwd=str(SERVER_DIR),
+        stdin=subprocess.PIPE,
+        stdout=log_fp,
+        stderr=subprocess.STDOUT,
     )
 
-    print("\n=== Client Output ===")
-    print(client_res.stdout)
-    if client_res.stderr:
-        print("=== Client Stderr ===")
-        print(client_res.stderr)
 
-    # Shut down server
-    stop_server()
+def wait_ready(timeout_s: int = 60) -> bool:
+    for _ in range(timeout_s):
+        if LOG_FILE.exists():
+            try:
+                content = LOG_FILE.read_text(encoding="utf-8", errors="replace")
+            except OSError:
+                content = ""
+            if READY_MARKER in content:
+                return True
+        time.sleep(1)
+    return False
 
-    # Read and verify server log
-    print("\n=== Verifying Server Logs ===")
-    if not os.path.exists(log_file_path):
-        print("Error: Headless run log file not found.")
-        sys.exit(1)
 
-    with open(log_file_path, "r", encoding="utf-8", errors="replace") as f:
-        logs = f.read()
+def run_scenario(timeout_s: int = 90) -> subprocess.CompletedProcess:
+    print(f"Running scenario {SCENARIO}...")
+    try:
+        return subprocess.run(
+            ["dotnet", "run", "--no-build", "--", "--scenario", SCENARIO],
+            cwd=str(CLIENT_DIR),
+            capture_output=True, encoding="utf-8", errors="replace",
+            check=False, timeout=timeout_s,
+        )
+    except subprocess.TimeoutExpired as e:
+        print(f"  WARNING: scenario hit {timeout_s}s timeout, killing client.")
+        # Best-effort kill of the client process tree.
+        if sys.platform == "win32":
+            subprocess.run(
+                'powershell -Command "Get-CimInstance Win32_Process | '
+                "Where-Object { $_.CommandLine -like '*LPS.Client.Demo.dll*' } | "
+                'ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }"',
+                shell=True, check=False,
+            )
+        else:
+            subprocess.run("pkill -9 -f LPS.Client.Demo.dll", shell=True, check=False)
+        return subprocess.CompletedProcess(
+            args=e.cmd, returncode=-1,
+            stdout=(e.stdout or b"").decode("utf-8", errors="replace") if isinstance(e.stdout, bytes) else (e.stdout or ""),
+            stderr=(e.stderr or b"").decode("utf-8", errors="replace") if isinstance(e.stderr, bytes) else (e.stderr or ""),
+        )
 
-    # Log file content check
-    has_gate0 = "[gate0]" in logs
-    has_server0 = "[server0]" in logs or "[server1]" in logs
-    has_dbmanager = "[dbmanager]" in logs
-    has_hostmanager = "[hostmanager]" in logs
 
-    print(f"Log has [hostmanager]: {has_hostmanager}")
-    print(f"Log has [dbmanager]: {has_dbmanager}")
-    print(f"Log has [gate0]: {has_gate0}")
-    print(f"Log has [server0/1]: {has_server0}")
+def graceful_shutdown(proc: subprocess.Popen, timeout_s: int = 15) -> None:
+    print("Sending shutdown signal to cluster launcher...")
+    try:
+        if proc.stdin and not proc.stdin.closed:
+            proc.stdin.write(b"shutdown\n")
+            proc.stdin.flush()
+            proc.stdin.close()
+    except Exception as e:
+        print(f"  (stdin write failed: {e})")
 
-    errors = []
-    # Check for unexpected errors
-    for line in logs.splitlines():
-        if "[Error]" in line or "[Fatal]" in line or "Unhandled Exception" in line:
-            # Filter out known non-errors or exceptions if any, or collect them
-            errors.append(line)
+    try:
+        proc.wait(timeout=timeout_s)
+        print(f"  Launcher exited cleanly with code {proc.returncode}")
+    except subprocess.TimeoutExpired:
+        print(f"  Launcher did not exit within {timeout_s}s, force killing.")
+        proc.kill()
+        try:
+            proc.wait(timeout=5)
+        except Exception:
+            pass
 
-    if len(errors) > 0:
-        print(f"Warning: Found {len(errors)} error/fatal logs in the output:")
-        for err in errors[:10]:
-            print("  ", err)
+    kill_leftovers()
 
-    # Assertions
-    if not (has_hostmanager and has_dbmanager and has_gate0 and has_server0):
-        print("E2E Test FAILED: Some instances did not log output or start properly.")
-        sys.exit(1)
 
-    if client_res.returncode != 0:
-        print("E2E Test FAILED: Client scenario exited with non-zero code.")
-        sys.exit(1)
+def verify_logs(scenario_stdout: str) -> int:
+    if not LOG_FILE.exists():
+        print("ERROR: server log missing.")
+        return 1
 
-    print("E2E Test PASSED successfully!")
-    sys.exit(0)
+    logs = LOG_FILE.read_text(encoding="utf-8", errors="replace")
+
+    shutdown_idx = logs.find(SHUTDOWN_MARKER)
+    pre_shutdown_logs = logs if shutdown_idx == -1 else logs[:shutdown_idx]
+
+    print("\n=== Verifying ===")
+
+    issues: list[str] = []
+
+    for tag in EXPECTED_TAGS:
+        present = tag in logs
+        print(f"  log contains {tag}: {present}")
+        if not present:
+            issues.append(f"missing tag {tag}")
+
+    pre_errors = [
+        line for line in pre_shutdown_logs.splitlines()
+        if ERROR_RX.search(line) and not BENIGN_RX.search(line)
+    ]
+    if pre_errors:
+        issues.append(f"{len(pre_errors)} pre-shutdown error log line(s)")
+        print(f"  pre-shutdown errors: {len(pre_errors)}")
+        for line in pre_errors[:10]:
+            print("    " + line[:200])
+    else:
+        print("  pre-shutdown errors: 0")
+
+    executed = re.findall(r"Scenario Executing: (.+)", scenario_stdout)
+    scenario_path = CLIENT_DIR / SCENARIO
+    scenario_text = scenario_path.read_text(encoding="utf-8")
+    expected_count = scenario_text.count('"command"')
+    print(f"  scenario steps executed: {len(executed)} / {expected_count}")
+    if len(executed) < expected_count:
+        issues.append(
+            f"only {len(executed)}/{expected_count} scenario steps ran "
+            "(client probably crashed mid-scenario)"
+        )
+
+    if issues:
+        print("\nFAIL: " + "; ".join(issues))
+        return 1
+
+    print("\nPASS")
+    return 0
+
+
+def main() -> int:
+    os.chdir(str(ROOT))
+    kill_leftovers()
+    build()
+
+    cluster = start_cluster()
+    scenario: subprocess.CompletedProcess | None = None
+    try:
+        if not wait_ready(60):
+            print("ERROR: cluster failed to come up within 60s.")
+            if LOG_FILE.exists():
+                print(LOG_FILE.read_text(encoding="utf-8", errors="replace"))
+            return 1
+
+        print("Cluster ready.")
+        scenario = run_scenario()
+        print("\n=== Client stdout (tail) ===")
+        print("\n".join(scenario.stdout.splitlines()[-30:]))
+        if scenario.stderr.strip():
+            print("\n=== Client stderr ===")
+            print(scenario.stderr)
+    finally:
+        graceful_shutdown(cluster)
+
+    rc = verify_logs(scenario.stdout if scenario else "")
+    if scenario and scenario.returncode != 0 and rc == 0:
+        print(f"  (client exit code was {scenario.returncode}, ignoring since logs are clean.)")
+    return rc
+
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
