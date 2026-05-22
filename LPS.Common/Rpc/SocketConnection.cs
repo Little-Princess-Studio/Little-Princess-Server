@@ -17,11 +17,6 @@ using LPS.Common.Rpc.InnerMessages;
 public sealed class SocketConnection : Connection
 {
     /// <summary>
-    /// Gets or sets method to generate a unique rpc id.
-    /// </summary>
-    public static Func<uint>? OnGenerateRpcId { get; set; }
-
-    /// <summary>
     /// Gets the socket of the connection.
     /// </summary>
     public Socket Socket { get; private init; } = null!;
@@ -64,7 +59,7 @@ public sealed class SocketConnection : Connection
     /// <inheritdoc/>
     public override void Send(IMessage message)
     {
-        var rpcId = OnGenerateRpcId?.Invoke() ?? throw new Exception("OnGenerateRpcId is null");
+        var rpcId = Connection.OnGenerateRpcId?.Invoke() ?? throw new Exception("OnGenerateRpcId is null");
         var pkg = PackageHelper.FromProtoBuf(message, rpcId);
         this.Socket.Send(pkg.ToBytes().Span);
     }

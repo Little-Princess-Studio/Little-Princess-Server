@@ -79,6 +79,14 @@ public partial class Gate : IInstance
 
     private readonly TcpServer tcpGateServer;
 
+    /// <summary>
+    /// Optional KCP listener. Present when <c>kcp_port</c> is set in the
+    /// gate config (Phase 1 of the UDP-transport rollout). Shares the same
+    /// PackageType dispatcher set as <see cref="tcpGateServer"/> so client
+    /// behaviour is identical regardless of which port the client used.
+    /// </summary>
+    private readonly KcpServerNetwork? kcpGateServer;
+
     private readonly bool isRestart;
 
     private IManagerConnection hostMgrConnection = null!;
@@ -118,6 +126,7 @@ public partial class Gate : IInstance
     /// <param name="useMqToHostMgr">If use message queue to build connection with host manager.</param>
     /// <param name="config">Config of the instance.</param>
     /// <param name="isRestart">If this instance restarting.</param>
+    /// <param name="kcpPort">Optional UDP port for KCP listener. 0 disables.</param>
     public Gate(
         string name,
         string ip,
@@ -129,7 +138,8 @@ public partial class Gate : IInstance
         (string InnerIp, string Ip, int Port)[] otherGates,
         bool useMqToHostMgr,
         JToken config,
-        bool isRestart)
+        bool isRestart,
+        int kcpPort = 0)
     {
         this.Name = name;
         this.Ip = ip;
@@ -144,6 +154,17 @@ public partial class Gate : IInstance
             OnInit = this.RegisterMessageFromServerAndOtherGateHandlers,
             OnDispose = this.UnregisterMessageFromServerAndOtherGateHandlers,
         };
+
+        if (kcpPort > 0)
+        {
+            // The KCP listener accepts game clients only (no other-gate /
+            // server mesh traffic). Mirror exactly the client-facing
+            // handler set the TCP server uses - Authentication, EntityRpc,
+            // EntityRpcCallBack, RequirePropertyFullSync,
+            // RequireComponentSync, Control.
+            this.kcpGateServer = new KcpServerNetwork(ip, kcpPort);
+            this.RegisterClientMessageHandlersOn(this.kcpGateServer);
+        }
 
         this.localEntityGeneratedEvent = new CountdownEvent(1);
         this.waitForSyncServiceManagerEvent = new CountdownEvent(1);
@@ -168,6 +189,7 @@ public partial class Gate : IInstance
         });
         this.hostMgrConnection.ShutDown();
         this.tcpGateServer.Stop();
+        this.kcpGateServer?.Stop();
     }
 
     /// <inheritdoc/>
@@ -211,6 +233,14 @@ public partial class Gate : IInstance
             Logger.Info("[Startup] STEP 5: Startup gate's tcp server.");
             Logger.Info($"Start gate at {this.Ip}:{this.Port}");
             this.tcpGateServer.Run();
+
+            // KCP listener (when configured) runs in parallel and shares
+            // the same PackageType handler set wired in the ctor.
+            if (this.kcpGateServer is not null)
+            {
+                Logger.Info($"Start gate KCP at {this.Ip}:{this.kcpGateServer.Port}");
+                this.kcpGateServer.Run();
+            }
         }
 
         Logger.Info("[Startup] STEP 6: Start tcp clients to connect to servers and other gates.");
@@ -342,6 +372,11 @@ public partial class Gate : IInstance
         Logger.Info("[Restart] STEP 3: Startup gate's tcp server.");
         Logger.Info($"Start gate at {this.Ip}:{this.Port}");
         this.tcpGateServer.Run();
+        if (this.kcpGateServer is not null)
+        {
+            Logger.Info($"Start gate KCP at {this.Ip}:{this.kcpGateServer.Port}");
+            this.kcpGateServer.Run();
+        }
 
         // wait for reconnecting from gate
         regCtl = new Control

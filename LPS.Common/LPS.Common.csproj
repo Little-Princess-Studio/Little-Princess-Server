@@ -6,7 +6,20 @@
     <Nullable>enable</Nullable>
     <CodeAnalysisRuleSet>../Default.ruleset</CodeAnalysisRuleSet>
     <LangVersion>12</LangVersion>
+    <!--
+      ThirdParty/ contains vendored sources (kcp2k) that are NOT first-party
+      code. Skip StyleCop analyzers on them so we do not have to fight
+      upstream's formatting. License notices stay in LICENSE.kcp2k.
+    -->
+    <NoWarn>$(NoWarn);SA0001</NoWarn>
   </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Exclude vendored kcp2k from StyleCop's analyzer pass via the
+         .editorconfig that lives under ThirdParty/. The .cs files still
+         compile, but the analyzers don't complain about Mirror's style. -->
+    <None Include="ThirdParty\.editorconfig" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Google.Protobuf" Version="3.19.1" />

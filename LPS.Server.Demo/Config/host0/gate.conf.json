@@ -7,6 +7,10 @@
             "ip": "127.0.0.1",
             "innerip": "127.0.0.1",
             "port": 11001,
+            // KCP port on the same gate. Optional - if absent, KCP listener
+            // is not started. Clients pick the transport via their own
+            // config; the gate accepts both simultaneously.
+            "kcp_port": 11002,
             "use_mq_to_host": true,
             "use_mq_to_service_manager": true
         },
@@ -14,6 +18,7 @@
             "ip": "127.0.0.1",
             "innerip": "127.0.0.1",
             "port": 11011,
+            "kcp_port": 11012,
             "use_mq_to_host": true,
             "use_mq_to_service_manager": false
         }

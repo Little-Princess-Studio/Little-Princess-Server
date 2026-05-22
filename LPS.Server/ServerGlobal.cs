@@ -143,7 +143,7 @@ public static class ServerGlobal
         }
 
         ServerGlobal.instance = instance;
-        SocketConnection.OnGenerateRpcId = GenerateRpcId;
+        Connection.OnGenerateRpcId = GenerateRpcId;
         MqConnection.OnGenerateRpcId = GenerateRpcId;
     }
 

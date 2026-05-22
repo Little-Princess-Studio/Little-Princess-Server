@@ -622,6 +622,11 @@ public static class StartupManager
         var port = Convert.ToInt32(gateInfo["port"]!.ToString());
         var useMqToHost = Convert.ToBoolean(gateInfo["use_mq_to_host"]!.ToString());
 
+        // KCP port is optional. Value of 0 (or missing field) disables KCP
+        // and the gate listens TCP-only. Both listeners share the same
+        // PackageType handler set, so any client transport works equally.
+        var kcpPort = gateInfo["kcp_port"]?.ToObject<int>() ?? 0;
+
         var hostMgrConf = GetJson(json["hostmanager_conf"]!.ToString())!;
         var hostnum = Convert.ToInt32(hostMgrConf["hostnum"]!.ToString());
         var hostManagerIp = hostMgrConf["ip"]!.ToString();
@@ -649,7 +654,7 @@ public static class StartupManager
 
         #endregion
 
-        Logger.Debug($"Startup Gate {name} at {ip}:{port}, use mq: {useMqToHost}");
+        Logger.Debug($"Startup Gate {name} at {ip}:{port}, kcpPort={kcpPort}, use mq: {useMqToHost}");
         var gate = new Gate(
             name,
             ip,
@@ -661,7 +666,8 @@ public static class StartupManager
             otherGates,
             useMqToHost,
             json,
-            restart);
+            restart,
+            kcpPort);
 
         ServerGlobal.Init(gate);
 

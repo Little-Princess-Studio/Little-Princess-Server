@@ -47,6 +47,25 @@ public partial class Gate
         this.tcpGateServer.UnregisterMessageHandler(PackageType.Control, this.HandleControlMessageFromTcpClient);
     }
 
+    /// <summary>
+    /// Bind the same client-facing PackageType handlers
+    /// (Authentication / EntityRpc / EntityRpcCallBack /
+    /// RequirePropertyFullSync / RequireComponentSync / Control) onto a
+    /// secondary KCP transport. Used by Phase 1 of the UDP rollout so a
+    /// client connecting over UDP+KCP sees identical Gate behaviour to a
+    /// TCP client.
+    /// </summary>
+    /// <param name="kcp">The kcp2k-backed transport.</param>
+    private void RegisterClientMessageHandlersOn(LPS.Server.Rpc.KcpServerNetwork kcp)
+    {
+        kcp.RegisterMessageHandler(PackageType.Authentication, this.HandleAuthenticationFromTcpClient);
+        kcp.RegisterMessageHandler(PackageType.EntityRpc, this.HandleEntityRpcFromTcpClient);
+        kcp.RegisterMessageHandler(PackageType.EntityRpcCallBack, this.HandleEntityRpcCallBackFromTcpClient);
+        kcp.RegisterMessageHandler(PackageType.RequirePropertyFullSync, this.HandleRequireFullSyncFromTcpClient);
+        kcp.RegisterMessageHandler(PackageType.RequireComponentSync, this.HandleRequireComponentSyncFromTcpClient);
+        kcp.RegisterMessageHandler(PackageType.Control, this.HandleControlMessageFromTcpClient);
+    }
+
     private void HandleControlMessageFromTcpClient((IMessage Message, Connection Connection, uint RpcId) obj)
     {
         if (!this.remoteGatesReadyEvent!.IsSet)
@@ -77,10 +96,8 @@ public partial class Gate
 
     private void HandleAuthenticationFromTcpClient((IMessage Message, Connection Connection, uint RpcId) arg)
     {
-        var (msg, conn0, _) = arg;
+        var (msg, conn, _) = arg;
         var auth = (msg as Authentication)!;
-
-        var conn = (conn0 as SocketConnection)!;
 
         // TODO: Cache the rsa object
         var decryptedData = DecryptedCiphertext(auth);
@@ -117,7 +134,15 @@ public partial class Gate
         {
             Logger.Warn("Auth failed");
             conn.Disconnect();
-            conn.TokenSource.Cancel();
+
+            // SocketConnection additionally cancels the receive token to
+            // tear down the per-client SandBox; KCP connections close
+            // entirely through kcp2k.Disconnect() inside conn.Disconnect()
+            // so no extra step is needed.
+            if (conn is SocketConnection socketConn)
+            {
+                socketConn.TokenSource.Cancel();
+            }
         }
     }
 

@@ -29,14 +29,39 @@ public static class Program
     {
         CommandParser.ScanCommands("LPS.Client.Demo");
 
+        // Parse --transport tcp|kcp + optional --port override so the demo
+        // can validate either gate listener without recompiling.
+        var transport = ClientTransport.Tcp;
+        var port = 11001;
+        var transportIdx = Array.IndexOf(args, "--transport");
+        if (transportIdx >= 0 && transportIdx < args.Length - 1)
+        {
+            var t = args[transportIdx + 1].ToLowerInvariant();
+            if (t == "kcp")
+            {
+                transport = ClientTransport.Kcp;
+                port = 11002;
+            }
+        }
+
+        var portIdx = Array.IndexOf(args, "--port");
+        if (portIdx >= 0 && portIdx < args.Length - 1
+            && int.TryParse(args[portIdx + 1], out var parsed))
+        {
+            port = parsed;
+        }
+
+        Logger.Info($"[Client] transport={transport} port={port}");
+
         StartUpManager.Init(
             "127.0.0.1",
-            11001,
+            port,
             "LPS.Client.Demo.Entity",
             "LPS.Client.Demo.Entity.RpcProperty",
             "LPS.Client.Demo.Entity.RpcStub",
             () => ClientGlobal.ShadowClientEntity,
-            entity => ClientGlobal.ShadowClientEntity = entity);
+            entity => ClientGlobal.ShadowClientEntity = entity,
+            transport);
 
         StartUpManager.StartClient();
 

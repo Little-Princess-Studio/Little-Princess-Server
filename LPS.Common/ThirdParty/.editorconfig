@@ -1,0 +1,4 @@
+# kcp2k is vendored upstream source. Skip every StyleCop / analyzer rule on this subtree.
+[*.cs]
+generated_code = true
+dotnet_analyzer_diagnostic.severity = none

@@ -37,6 +37,15 @@ public enum ConnectStatus
 public abstract class Connection
 {
     /// <summary>
+    /// Gets or sets the global hook used to generate a fresh outbound RPC id
+    /// whenever a transport sends an <see cref="IMessage"/>. Lives here on the
+    /// base class (rather than on a transport subclass) so every Connection
+    /// implementation - TCP, KCP, future QUIC - shares the same ID space.
+    /// Set once at process startup by ServerGlobal / Client startup.
+    /// </summary>
+    public static Func<uint>? OnGenerateRpcId { get; set; }
+
+    /// <summary>
     /// Gets or sets the status of the connection status.
     /// </summary>
     public ConnectStatus Status { get; protected set; }

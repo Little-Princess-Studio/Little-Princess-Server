@@ -32,6 +32,7 @@ public static class StartUpManager
     /// <param name="rpcStubInterfaceNamespace">The namespaces to scan rpc stub interfaces.</param>
     /// <param name="getShadowEntity">Function to get current client shadow entity.</param>
     /// <param name="onCreateShadowEntity">Callback when shadow entity created.</param>
+    /// <param name="transport">Transport to use. Defaults to TCP.</param>
     public static void Init(
         string ip,
         int port,
@@ -39,7 +40,8 @@ public static class StartUpManager
         string rpcPropertyNamespace,
         string rpcStubInterfaceNamespace,
         Func<ShadowClientEntity> getShadowEntity,
-        Action<ShadowClientEntity> onCreateShadowEntity)
+        Action<ShadowClientEntity> onCreateShadowEntity,
+        ClientTransport transport = ClientTransport.Tcp)
     {
         getShadowEntityCallBack = getShadowEntity;
         createShadowEntityCallBack = onCreateShadowEntity;
@@ -53,7 +55,7 @@ public static class StartUpManager
             new[] { rpcStubInterfaceNamespace },
             extraAssemblies);
 
-        Client.Instance.Init(ip, port);
+        Client.Instance.Init(ip, port, transport);
 
         Client.Instance.RegisterMessageHandler(PackageType.ClientCreateEntity, HandleClientCreateEntity);
         Client.Instance.RegisterMessageHandler(PackageType.EntityRpc, HandleEntityRpc);
