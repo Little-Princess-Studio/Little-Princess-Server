@@ -41,6 +41,17 @@ public static class Startup
 
         [Option("headless", Required = false, HelpText = "Run subprocesses headlessly by redirecting output.")]
         public bool Headless { get; set; }
+
+        // Override the config root so QA scripts can boot an alternate cluster
+        // layout (e.g. Config/host0_immediate/ for testing the Immediate*Connection
+        // reconnect path) without forking proc.ps1 or duplicating Startup.cs.
+        // The default keeps existing scripts/proc.ps1 callers unchanged.
+        [Option(
+            "config-dir",
+            Required = false,
+            Default = "Config/host0/",
+            HelpText = "Directory containing the per-instance .conf.json files. Default: Config/host0/")]
+        public string ConfigDir { get; set; }
     }
 
     /// <summary>
@@ -95,14 +106,14 @@ public static class Startup
                 (ByDefaultOptions opts) =>
                 {
                     Logger.Init("startup");
-                    Logger.Info($"Start up by default, hotreload = {opts.HotReload}");
+                    Logger.Info($"Start up by default, hotreload = {opts.HotReload}, config-dir = {opts.ConfigDir}");
                     if (opts.Headless)
                     {
                         StartupManager.RedirectSubprocessOutput = true;
                         StartStdinShutdownListener();
                     }
 
-                    StartupByDefault(opts.HotReload == 1);
+                    StartupByDefault(opts.HotReload == 1, opts.ConfigDir);
                     Logger.Info("Start up succ");
                     return true;
                 },
@@ -130,13 +141,13 @@ public static class Startup
         Thread.Sleep(10000);
     }
 
-    private static void StartupByDefault(bool hotreload)
+    private static void StartupByDefault(bool hotreload, string configDir)
     {
-        StartupManager.FromConfig("Config/host0/hostmanager.conf.json", hotreload, false);
-        StartupManager.FromConfig("Config/host0/gate.conf.json", hotreload, false);
-        StartupManager.FromConfig("Config/host0/server.conf.json", hotreload, false);
-        StartupManager.FromConfig("Config/host0/dbmanager.conf.json", hotreload, false);
-        StartupManager.FromConfig("Config/host0/service.conf.json", hotreload, false);
+        StartupManager.FromConfig(System.IO.Path.Combine(configDir, "hostmanager.conf.json"), hotreload, false);
+        StartupManager.FromConfig(System.IO.Path.Combine(configDir, "gate.conf.json"), hotreload, false);
+        StartupManager.FromConfig(System.IO.Path.Combine(configDir, "server.conf.json"), hotreload, false);
+        StartupManager.FromConfig(System.IO.Path.Combine(configDir, "dbmanager.conf.json"), hotreload, false);
+        StartupManager.FromConfig(System.IO.Path.Combine(configDir, "service.conf.json"), hotreload, false);
 
         // Start the supervisor HTTP after FromConfig has registered every
         // subprocess's spawn spec, so /supervisor/status reports the full

@@ -1,0 +1,24 @@
+{
+    "type": "dbmanager",
+
+    "ip": "127.0.0.1",
+    "port": 13001,
+    "hostnum": 2222,
+    
+    "database": {
+        "dbtype": "mongodb",
+        "dbconfig": {
+            "ip": "192.168.1.100",
+            "port": 27017,
+            "username": "",
+            "password": "",
+            "defaultdb": "demo"
+        }
+    },
+
+    "db_api_provider_namespace": "LPS.Server.Demo.Logic.DbApi",
+
+    "hostmanager_conf": "Config/host0_immediate/hostmanager.conf.json",
+    "mq_conf": "Config/host0_immediate/mq.conf.json",
+    "globalcache_conf": "Config/host0_immediate/globalcache.conf.json"
+}

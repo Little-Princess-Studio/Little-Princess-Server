@@ -73,6 +73,8 @@ public enum HostStatus
 /// </summary>
 public partial class HostManager : IInstance
 {
+    private static readonly TimeSpan RestartDedupWindow = TimeSpan.FromSeconds(1);
+
     /// <inheritdoc/>
     public InstanceType InstanceType => InstanceType.HostManager;
 
@@ -126,12 +128,17 @@ public partial class HostManager : IInstance
 
     private readonly Timer heartBeatTimer;
 
-    private readonly Queue<Action> restartQueue = new();
+    // Per-mailbox dedup window for Control.Restart. Previously a single
+    // global bool (isInstanceRestarting) blocked all restart events while one
+    // was in flight, which made reconnect-driven restart-registrations from
+    // different instances race against each other. The window suppresses
+    // identical duplicates (TCP retransmits or a misbehaving client sending
+    // Restart twice) without serializing distinct instances.
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, DateTime> lastRestartAt = new();
 
     private (bool ServicManagerReady, Common.Rpc.MailBox ServiceManagerMailBox) serviceManagerInfo = (false, default);
 
     private uint createEntityCnt;
-    private bool isInstanceRestarting;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="HostManager"/> class.
@@ -534,24 +541,42 @@ public partial class HostManager : IInstance
                     conn);
                 break;
             case ControlMessage.Restart:
-                if (!this.isInstanceRestarting)
                 {
-                    this.isInstanceRestarting = true;
-                    this.RestartInstance(
-                        hostCmd.From,
-                        RpcHelper.PbMailBoxToRpcMailBox(hostCmd.Args[0]
-                            .Unpack<Common.Rpc.InnerMessages.MailBox>()),
-                        conn);
-                    Logger.Info("Restating instance from immediate connection.");
-                }
-                else
-                {
-                    // todo: filter duplicate restart instance by mailbox
-                    this.restartQueue.Enqueue(() =>
+                    var restartMb = RpcHelper.PbMailBoxToRpcMailBox(hostCmd.Args[0]
+                        .Unpack<Common.Rpc.InnerMessages.MailBox>());
+
+                    // Per-mailbox dedup. Different instances may restart-register
+                    // concurrently (reconnect from gate0 and dbmanager hit us in
+                    // the same millisecond); we only want to suppress identical
+                    // re-deliveries from the SAME instance within the window.
+                    var now = DateTime.UtcNow;
+                    var allow = true;
+                    this.lastRestartAt.AddOrUpdate(
+                        restartMb.Id,
+                        _ => now,
+                        (_, prev) =>
+                        {
+                            if (now - prev < RestartDedupWindow)
+                            {
+                                allow = false;
+                                return prev;
+                            }
+
+                            return now;
+                        });
+
+                    if (!allow)
                     {
-                        this.HandleControlCmdForImmediateConnection(arg);
-                    });
-                    Logger.Info("Already restarting instance, enqueue the command handler.");
+                        Logger.Info(
+                            $"[host] Suppressed duplicate Control.Restart from {hostCmd.From} {restartMb.Id} " +
+                            $"(within {RestartDedupWindow.TotalMilliseconds:F0} ms window).");
+                        break;
+                    }
+
+                    Logger.Info(
+                        $"[host] restart-registering {hostCmd.From} {restartMb.Id} " +
+                        $"replacing connection via Control.Restart.");
+                    this.RestartInstance(hostCmd.From, restartMb, conn);
                 }
 
                 break;
@@ -574,21 +599,9 @@ public partial class HostManager : IInstance
 
     private void HandleReconnectEnd()
     {
-        if (this.isInstanceRestarting)
-        {
-            if (this.restartQueue.Count == 0)
-            {
-                this.isInstanceRestarting = false;
-            }
-            else
-            {
-                var handler = this.restartQueue.Dequeue();
-                handler.Invoke();
-            }
-        }
-        else
-        {
-            Logger.Warn("ReconnectEnd received but no instance is restarting.");
-        }
+        // Legacy hook from the previous single-restart-at-a-time queue model.
+        // Per-mailbox dedup (lastRestartAt) replaced the queue; ReconnectEnd
+        // is now informational only - the dedup window expires on a timer.
+        Logger.Debug("ReconnectEnd received (informational; dedup window auto-expires).");
     }
 }

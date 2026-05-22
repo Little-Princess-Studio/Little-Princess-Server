@@ -274,14 +274,40 @@ public partial class HostManager
                 this.UpdateInstanceStatus(hostCmdFrom, mailBox);
                 break;
             case RemoteType.ServiceManager:
-                oldMb = this.serviceManagerInfo.ServiceManagerMailBox;
-                this.instanceStatusManager.Unregister(oldMb);
+                // Guard the dereference: on first reconnect after a HostManager
+                // restart the serviceManagerInfo tuple may still be (false, default)
+                // because the ServiceManager hasn't registered yet. Fall through
+                // to the plain registration path in UpdateInstanceStatus.
+                if (this.serviceManagerInfo.ServicManagerReady)
+                {
+                    oldMb = this.serviceManagerInfo.ServiceManagerMailBox;
+                    this.instanceStatusManager.Unregister(oldMb);
+                    onRemoveOldMailBoxInfo(oldMb);
+                }
 
-                onRemoveOldMailBoxInfo(oldMb);
                 this.serviceManagerInfo = (true, mailBox);
                 this.UpdateInstanceStatus(hostCmdFrom, mailBox);
                 break;
             case RemoteType.Dbmanager:
+                // The DbManager is tracked only in mailboxIdToConnection and
+                // instanceStatusManager (no dbManagerMailBoxes list exists).
+                // For restart-registration, unregister the prior status entry
+                // (if any) and re-register via UpdateInstanceStatus. The
+                // mailboxIdToConnection re-key already happened in
+                // RestartInstance (line 231). onRemoveOldMailBoxInfo will
+                // re-delete that entry for the OLD MailBox.Id if it differs;
+                // when the name is the same (typical for supervisor restart)
+                // the new entry was already overwritten in place.
+                var prior = this.instanceStatusManager.Snapshot()
+                    .FirstOrDefault(s =>
+                        s.InstanceType == InstanceType.DbManager && s.MailBox.Id == mailBox.Id);
+                if (prior is not null)
+                {
+                    this.instanceStatusManager.Unregister(prior.MailBox);
+                    onRemoveOldMailBoxInfo(prior.MailBox);
+                }
+
+                this.UpdateInstanceStatus(hostCmdFrom, mailBox);
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(hostCmdFrom), hostCmdFrom, null);
@@ -333,6 +359,18 @@ public partial class HostManager
                     [this.serviceManagerInfo.ServiceManagerMailBox]);
                 break;
             }
+
+            // DbManager and ServiceManager don't need sync broadcasts to peers
+            // on restart - they're leaf nodes from the gates/servers' POV.
+            // Gates/servers either learn about a replaced ServiceManager via
+            // the SyncServiceManager broadcast inside RegisterInstance ->
+            // BroadcastSyncMessage, or talk to DbManager via the well-known
+            // routing key suffix. Acknowledge silently so we don't log a
+            // spurious "Unsupported restarting type" warning every time a
+            // DbManager / ServiceManager reconnects.
+            case RemoteType.Dbmanager:
+            case RemoteType.ServiceManager:
+                break;
 
             default:
                 Logger.Warn($"Unsupported restarting type: {hostCmdFrom}");

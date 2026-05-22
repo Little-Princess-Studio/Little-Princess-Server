@@ -1,0 +1,13 @@
+{
+    "type": "hostmanager",
+    "hostnum": 1111,
+    "ip": "127.0.0.1",
+    "port": 10001,
+
+    "gate_num": 2,
+    "server_num": 2,
+
+    "mq_conf": "Config/host0_immediate/mq.conf.json",
+    "globalcache_conf": "Config/host0_immediate/globalcache.conf.json"
+}
+

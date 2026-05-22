@@ -26,4 +26,4 @@ InnerMessages/ProtobufDefs/        # *.proto SOURCE + generated *.cs (HostComman
 - Do NOT skip `RpcProtobufDefs.Initialize()` at process boot — `PackageHelper` lookups will throw.
 - Do NOT hand-edit generated `ProtobufDefs/*.cs` — they have no copyright header by design (regen overwrites).
 - Do NOT rename `Protocal` → `Protocol` without coordinating: 3 files + interface name + many call sites.
-- TODO from README: `TcpClient.cs` lacks reconnect + send-queue SandBox. Don't add half-fixes.
+- `TcpClient` has a built-in reconnect state machine with exponential backoff (1, 2, 4, 8, 16, 30 s cap, ±20% jitter). Call sites distinguish first connect (`OnConnected`) from subsequent reconnects (`OnReconnected`). Use `OnReconnected` to re-send non-idempotent handshakes like `Control{Restart}` (which hits `HostManager.Register.cs:223` `RestartInstance`). Do NOT re-fire `RequireCreateEntity` on reconnect; it signals one-shot `localEntityGeneratedEvent` which has already been consumed. Do NOT re-Signal CountdownEvents in `OnReconnected`.

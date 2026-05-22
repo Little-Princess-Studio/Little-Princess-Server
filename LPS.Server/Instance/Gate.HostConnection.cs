@@ -45,7 +45,8 @@ public partial class Gate
                 hostManagerIp,
                 hostManagerPort,
                 this.GenerateRpcId,
-                () => this.tcpGateServer.Stopped);
+                () => this.tcpGateServer.Stopped,
+                () => this.entity?.MailBox);
         }
         else
         {
@@ -197,6 +198,12 @@ public partial class Gate
                 this.UnregisterGateMessageHandlers(idx);
             },
             OnConnected = this.NotifyServerReady,
+
+            // On reconnect (Server crashed + supervisor respawn), re-send
+            // Control.Ready so the Server side rebuilds its gate connection
+            // entry. The Server's HandleControl{Ready, From=Gate} just
+            // re-keys its gate-connection map by mailbox - idempotent.
+            OnReconnected = this.NotifyServerReady,
             MailBox = serverMailBox,
         };
 
@@ -237,6 +244,21 @@ public partial class Gate
                 };
                 regCtl.Args.Add(RpcHelper.GetRpcAny(RpcHelper.RpcMailBoxToPbMailBox(this.entity!.MailBox)));
                 self.Send(regCtl);
+            },
+
+            // On reconnect to the peer gate, re-announce Ready. Receiving
+            // gate just keeps a mailbox-keyed registry of peer gates; re-Ready
+            // overwrites the entry - idempotent.
+            OnReconnected = self =>
+            {
+                var regCtl = new Control
+                {
+                    From = RemoteType.Gate,
+                    Message = ControlMessage.Ready,
+                };
+                regCtl.Args.Add(RpcHelper.GetRpcAny(RpcHelper.RpcMailBoxToPbMailBox(this.entity!.MailBox)));
+                self.Send(regCtl);
+                Logger.Info($"[gate->gate] Reconnected to {gateMailBox}; re-sent Control.Ready.");
             },
             OnDispose = self =>
             {
@@ -342,6 +364,15 @@ public partial class Gate
             var client = new TcpClient(otherGateInnerIp, otherGatePort, this.sendQueue)
             {
                 OnConnected = _ => this.allOtherGatesConnectedEvent.Signal(),
+
+                // On reconnect to peer gate during initial-sync window, do NOT
+                // re-Signal the CountdownEvent (it's one-shot; double-signal
+                // throws). The peer gate already has us in its registry from
+                // ReconnectGate's announce; nothing to do here.
+                OnReconnected = self =>
+                {
+                    Logger.Info($"[gate->gate sync] Reconnected to {mb}; no re-announce needed.");
+                },
                 OnDispose = self =>
                 {
                     this.tcpClientsToOtherGate.Remove(self);
@@ -384,6 +415,16 @@ public partial class Gate
                 {
                     this.NotifyServerReady(self);
                     this.allServersConnectedEvent.Signal();
+                },
+
+                // On reconnect during/after initial-sync window: re-send
+                // NotifyServerReady (idempotent per ReconnectServer rationale),
+                // but do NOT re-Signal allServersConnectedEvent (one-shot
+                // CountdownEvent already consumed).
+                OnReconnected = self =>
+                {
+                    this.NotifyServerReady(self);
+                    Logger.Info($"[gate->server sync] Reconnected to {mb}; re-sent Control.Ready.");
                 },
                 MailBox = mb,
             };

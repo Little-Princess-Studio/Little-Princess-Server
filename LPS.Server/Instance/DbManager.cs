@@ -120,6 +120,25 @@ public class DbManager : IInstance
                 client.Send(regCtl, false);
                 Logger.Info($"[dbmanager:{this.Name}] Sent Control.Ready to HostManager.");
             },
+
+            // On socket loss + reconnect (e.g. HostManager crashed and was
+            // respawned by the supervisor), re-announce ourselves via
+            // Control.Restart. HostManager's restart path
+            // (HostManager.Register.cs:223 RestartInstance) evicts the old
+            // mailboxIdToConnection entry and re-broadcasts the new connection
+            // - the same machinery used for explicit instance restarts.
+            OnReconnected = client =>
+            {
+                var mailBox = new Common.Rpc.MailBox(this.Name, this.Ip, this.Port, this.HostNum);
+                var restartCtl = new Control
+                {
+                    From = RemoteType.Dbmanager,
+                    Message = ControlMessage.Restart,
+                };
+                restartCtl.Args.Add(RpcHelper.GetRpcAny(RpcHelper.RpcMailBoxToPbMailBox(mailBox)));
+                client.Send(restartCtl, false);
+                Logger.Info($"[dbmanager:{this.Name}] Reconnected; sent Control.Restart to HostManager.");
+            },
         };
 
         // Receive PackageType.HostCommand on the TcpClient so HostManager

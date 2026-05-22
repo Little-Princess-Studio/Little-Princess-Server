@@ -1,0 +1,34 @@
+{
+    "type": "gate",
+    "protocal": "tcp",
+
+    "gates": {
+        "gate0" : {
+            "ip": "127.0.0.1",
+            "innerip": "127.0.0.1",
+            "port": 11001,
+            // KCP port on the same gate. Optional - if absent, KCP listener
+            // is not started. Clients pick the transport via their own
+            // config; the gate accepts both simultaneously.
+            "kcp_port": 11002,
+            // host0_immediate test variant: gate0 uses TCP (ImmediateHostManagerConnectionOfGate)
+            // so the reconnect integration test exercises that code path.
+            "use_mq_to_host": false,
+            "use_mq_to_service_manager": true
+        },
+        "gate1": {
+            "ip": "127.0.0.1",
+            "innerip": "127.0.0.1",
+            "port": 11011,
+            "kcp_port": 11012,
+            "use_mq_to_host": true,
+            "use_mq_to_service_manager": false
+        }
+    },
+
+    "hostmanager_conf": "Config/host0_immediate/hostmanager.conf.json",
+    "server_conf": "Config/host0_immediate/server.conf.json",
+    "mq_conf": "Config/host0_immediate/mq.conf.json",
+    "globalcache_conf": "Config/host0_immediate/globalcache.conf.json"
+}
+

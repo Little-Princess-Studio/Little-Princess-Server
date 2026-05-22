@@ -39,7 +39,8 @@ public partial class Server
                 hostManagerIp,
                 hostManagerPort,
                 this.GenerateRpcId,
-                () => this.tcpServer!.Stopped);
+                () => this.tcpServer!.Stopped,
+                () => this.entity?.MailBox);
         }
         else
         {

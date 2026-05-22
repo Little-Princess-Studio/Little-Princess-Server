@@ -43,4 +43,4 @@ Naming = `{Transport}{TargetRole}ConnectionOf{SourceRole}`. Transport chosen per
 - Do NOT instantiate `Immediate*` or `MessageQueue*` connection classes from outside `Instance/` — go through the instance class's HostConnection partial.
 - Do NOT add direct field access between Gate↔Server — everything via Mailbox+RPC or InnerMessages.
 - Do NOT block in message handlers — push to SandBox/dispatch queue.
-- README TODO: `HostManager` doesn't filter duplicate restart instances — fix carefully, the dedup key is non-obvious.
+- HostManager dedups `Control.Restart` per-mailbox-id within a 1 s window (`HostManager.cs` `RestartDedupWindow` + `lastRestartAt`). Concurrent restart-registrations from different instances (driven by `TcpClient.OnReconnected`) no longer serialize through a global bool.
