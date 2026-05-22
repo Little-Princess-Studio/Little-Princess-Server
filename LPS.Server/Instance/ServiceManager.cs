@@ -343,8 +343,13 @@ public partial class ServiceManager : IInstance
 
             serviceRpc.ShardID = (uint)shard;
 
+            // The shard's own mailbox carries its unique id (used at the
+            // receiving end to dispatch into the right BaseService instance),
+            // but to find the live MQ/TCP connection we must look up by the
+            // host-process mailbox - that's what mailBoxToServiceConn is keyed by.
             var serviceMb = desc!.GetShardMailBox(shard);
-            var found = this.mailBoxToServiceConn.TryGetValue(serviceMb, out var serviceConn);
+            var hostMb = desc!.GetShardHostMailBox(shard);
+            var found = this.mailBoxToServiceConn.TryGetValue(hostMb, out var serviceConn);
             if (found)
             {
                 var (task, id) =
@@ -526,16 +531,21 @@ public partial class ServiceManager : IInstance
 
     private void RegisterServiceRoute(ServiceControl ctlMsg)
     {
-        var mb = RpcHelper.PbMailBoxToRpcMailBox(RpcHelper.GetMailBox(ctlMsg.Args[0]));
+        var shardMb = RpcHelper.PbMailBoxToRpcMailBox(RpcHelper.GetMailBox(ctlMsg.Args[0]));
         var serviceName = RpcHelper.GetString(ctlMsg.Args[1]);
         var shard = (uint)RpcHelper.GetInt(ctlMsg.Args[2]);
 
-        Logger.Info($"Register service route: {serviceName}:{shard} to {mb}");
+        // Service.cs now sends the host-process mailbox as args[3] so we can
+        // keep the per-host connection lookup intact while also tracking the
+        // per-shard mailbox (which carries the shard's own unique id).
+        var hostMb = RpcHelper.PbMailBoxToRpcMailBox(RpcHelper.GetMailBox(ctlMsg.Args[3]));
+
+        Logger.Info($"Register service route: {serviceName}:{shard} shard={shardMb} host={hostMb}");
 
         if (this.serviceRoutingMap.ContainsKey(serviceName))
         {
             var desc = this.serviceRoutingMap[serviceName];
-            desc.RegisterShard(shard, mb);
+            desc.RegisterShard(shard, shardMb, hostMb);
             if (desc.AllShardReady)
             {
                 --this.unreadyServiceNum;
@@ -715,13 +725,12 @@ public partial class ServiceManager : IInstance
         public bool AllShardReady => this.unreadyShards is null;
 
         private readonly Dictionary<uint, Common.Rpc.MailBox> shardToMbMap = new();
+        private readonly Dictionary<uint, Common.Rpc.MailBox> shardToHostMbMap = new();
 
         private HashSet<uint>? unreadyShards;
 
         /// <summary>
         /// Snapshot of currently-registered shard -> mailbox bindings.
-        /// Returns a fresh copy; callers may iterate without lock concerns
-        /// because the dispatcher serialises mutation onto the message thread.
         /// </summary>
         public IReadOnlyDictionary<uint, Common.Rpc.MailBox> SnapshotShards()
             => new Dictionary<uint, Common.Rpc.MailBox>(this.shardToMbMap);
@@ -741,9 +750,18 @@ public partial class ServiceManager : IInstance
             this.ShardCount = shards.Count();
         }
 
+        /// <summary>Per-shard unique mailbox (each shard has its own id).</summary>
         public Common.Rpc.MailBox GetShardMailBox(uint shard) => this.shardToMbMap[shard];
 
-        public void RegisterShard(uint shard, Common.Rpc.MailBox mb)
+        /// <summary>
+        /// Host-process mailbox that owns the shard. Used as the key into
+        /// <see cref="ServiceManager.mailBoxToServiceConn"/> to find the live
+        /// connection to send RPCs through. Distinct from the shard mailbox
+        /// since a single Service host hosts multiple shards.
+        /// </summary>
+        public Common.Rpc.MailBox GetShardHostMailBox(uint shard) => this.shardToHostMbMap[shard];
+
+        public void RegisterShard(uint shard, Common.Rpc.MailBox shardMb, Common.Rpc.MailBox hostMb)
         {
             if (this.unreadyShards != null && this.unreadyShards.Contains(shard))
             {
@@ -752,7 +770,8 @@ public partial class ServiceManager : IInstance
 
             if (!this.shardToMbMap.ContainsKey(shard))
             {
-                this.shardToMbMap[shard] = mb;
+                this.shardToMbMap[shard] = shardMb;
+                this.shardToHostMbMap[shard] = hostMb;
             }
             else
             {

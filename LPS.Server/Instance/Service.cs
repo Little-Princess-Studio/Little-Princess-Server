@@ -212,9 +212,16 @@ public partial class Service : IInstance
                         Message = ServiceControlMessage.ServiceReady,
                     };
 
-                    msg.Args.Add(RpcHelper.GetRpcAny(RpcHelper.RpcMailBoxToPbMailBox(this.mailBox)));
+                    // The shard mailbox carries the per-shard id (so each
+                    // shard is uniquely addressable across the cluster). We
+                    // also send the host-process mailbox (this.mailBox) so
+                    // ServiceManager can keep its host-keyed connection map
+                    // intact while still recording the distinct shard id in
+                    // the routing descriptor.
+                    msg.Args.Add(RpcHelper.GetRpcAny(RpcHelper.RpcMailBoxToPbMailBox(mailbox)));
                     msg.Args.Add(RpcHelper.GetRpcAny(serviceName));
                     msg.Args.Add(RpcHelper.GetRpcAny((int)shardNum));
+                    msg.Args.Add(RpcHelper.GetRpcAny(RpcHelper.RpcMailBoxToPbMailBox(this.mailBox)));
 
                     Logger.Info($"Service shard {serviceName} {shardNum} notify ready.");
                     this.serviceMgrConnection.Send(msg);
