@@ -4,11 +4,18 @@
 // -----------------------------------------------------------------------
 import { Stack, MessageBar, MessageBarType, Toggle } from "@fluentui/react";
 import { useCallback, useEffect, useState } from "react";
-import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { CartesianGrid, Line, LineChart as LineChartRaw, ResponsiveContainer as ResponsiveContainerRaw, Tooltip, XAxis, YAxis } from "recharts";
 import { css } from "styled-components";
 import { header } from "./CommonCss";
 import NavBar from "./NavBar";
 import { MetricsTimeSeries, TsPoint, queryMetricsTimeSeries } from "./Network";
+
+// Cast away the React-18-vs-recharts-2.x children typing mismatch
+// (recharts ships React-element children but @types/react 18 wants ReactNode).
+// Using `any`-props is intentional - the raw recharts types reject our
+// JSX children at the type level even though they work at runtime.
+const ResponsiveContainer = ResponsiveContainerRaw as unknown as React.FC<any>;
+const LineChart = LineChartRaw as unknown as React.FC<any>;
 
 const timeFmt = (t: number) => new Date(t).toLocaleTimeString([], { minute: "2-digit", second: "2-digit" });
 
