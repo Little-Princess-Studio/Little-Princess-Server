@@ -47,6 +47,7 @@ const NavBar: React.FunctionComponent<INavBarProp> = (props: INavBarProp) => {
         { title: "Gates", onClicked: (index) => { navigate("/gate") } },
         { title: "Services", onClicked: (index) => { navigate("/service") } },
         { title: "Logs", onClicked: (index) => { navigate("/logs") } },
+        { title: "Metrics", onClicked: (index) => { navigate("/metrics") } },
     ];
 
     const navigate = useNavigate();

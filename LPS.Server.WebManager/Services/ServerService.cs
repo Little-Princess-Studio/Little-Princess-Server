@@ -60,6 +60,14 @@ public class ServerService
     public Task<JToken> GetServiceShardDetailedInfo(string serviceName, uint shard)
         => this.Call(WebMgrEndpoints.ServiceShardDetailedInfo, new JObject { ["serviceName"] = serviceName, ["shard"] = shard });
 
+    /// <summary>Full RpcProperty tree dump for one entity (Server-side).</summary>
+    public Task<JToken> GetEntityPropertyDump(string entityId)
+        => this.Call(WebMgrEndpoints.EntityPropertyDump, new JObject { ["entityId"] = entityId });
+
+    /// <summary>Time-series metrics ring buffers from HostManager.</summary>
+    public Task<JToken> GetMetricsTimeSeries()
+        => this.Call(WebMgrEndpoints.MetricsTimeSeries, new JObject());
+
     private Task<JToken> Call(WebMgrEndpoints.Endpoint endpoint, JToken body)
     {
         var (task, id) = this.asyncTaskGeneratorForJObjectRes.GenerateAsyncTask();

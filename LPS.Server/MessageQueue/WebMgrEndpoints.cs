@@ -61,6 +61,14 @@ public static class WebMgrEndpoints
     public static readonly Endpoint ServiceShardDetailedInfo
         = new("getServiceShardDetailedInfo.webmgr.toServiceHost", "serviceShardDetailedInfoRes.toWebMgr");
 
+    /// <summary>Server -> WebManager: full RpcProperty dump for a single entity.</summary>
+    public static readonly Endpoint EntityPropertyDump
+        = new("getEntityPropertyDump.webmgr.toSrv", "entityPropertyDumpRes.toWebMgr");
+
+    /// <summary>HostManager -> WebManager: time-series metrics (ping success, entity counts).</summary>
+    public static readonly Endpoint MetricsTimeSeries
+        = new("getMetricsTimeSeries.toHostMgr", "getMetricsTimeSeriesRes.toWebMgr");
+
     /// <summary>Every defined endpoint. Used for startup validation and dispatcher lookup.</summary>
     public static readonly IReadOnlyList<Endpoint> All = new[]
     {
@@ -72,6 +80,8 @@ public static class WebMgrEndpoints
         AllEntitiesOfServer,
         GateDetailedInfo,
         ServiceShardDetailedInfo,
+        EntityPropertyDump,
+        MetricsTimeSeries,
     };
 
     /// <summary>Fast request -> reply lookup. Populated once at type init.</summary>

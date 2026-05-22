@@ -175,6 +175,7 @@ public partial class HostManager : IInstance
 
         this.InitMessageQueueClientToInstances();
         this.InitMessageQueueClientToWebManager();
+        this.StartMetricsCollector();
 
         this.tcpServer.WaitForExit();
     }

@@ -17,6 +17,10 @@ $env:BROWSER = "none"
 $env:HTTPS = "false"
 $env:PORT = "3000"
 $env:REACT_APP_API_BASE = "http://localhost:7088/api/web-manager"
+# CRA's source-map-loader chokes on recharts v2.13's stale sourcemap references
+# to es-toolkit/compat (recharts ships ES6 with maps that point at deps it no
+# longer pulls in). Disabling sourcemaps avoids the noise; we keep TS errors via tsc.
+$env:GENERATE_SOURCEMAP = "false"
 
 if (-not (Test-Path node_modules)) {
     Write-Host ">> first run: installing npm deps (2-3 min)..." -ForegroundColor Yellow

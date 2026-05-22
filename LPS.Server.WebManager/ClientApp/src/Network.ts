@@ -295,3 +295,57 @@ export const queryServiceShardDetailedInfo = (serviceName: string, shard: number
             return data['shard'] as ServiceShardDetailedInfo;
         });
 };
+
+// --- Entity property dump ----------------------------------------------
+
+export type EntityPropertyEntry = {
+    name: string;
+    setting: string;
+    containerType: string;
+    value: any;
+};
+
+export type EntityPropertyDump = {
+    entityId: string;
+    entityClassName: string;
+    mailbox: { id: string; ip: string; port: number; hostNum: number };
+    cellEntityId: string;
+    isFrozen: boolean;
+    isDestroyed: boolean;
+    properties: EntityPropertyEntry[];
+};
+
+export const queryEntityPropertyDump = (entityId: string): Promise<EntityPropertyDump> => {
+    const url = `${BaseApi}/entity-property-dump?entityId=${encodeURIComponent(entityId)}`;
+    return fetch(url, { method: 'get' })
+        .then(r => r.json())
+        .then(data => {
+            if (data['res'] !== 'Ok') throw new Error('queryEntityPropertyDump failed');
+            return data['entity'] as EntityPropertyDump;
+        });
+};
+
+// --- Time-series metrics -----------------------------------------------
+
+export type TsPoint = { t: number; v: number };
+
+export type MetricsTimeSeries = {
+    series: {
+        aliveGates: TsPoint[];
+        aliveServers: TsPoint[];
+        aliveServiceManagers: TsPoint[];
+        aliveServices: TsPoint[];
+        pingSuccessRate: TsPoint[];
+    };
+    intervalMs: number;
+    capacity: number;
+};
+
+export const queryMetricsTimeSeries = (): Promise<MetricsTimeSeries> => {
+    return fetch(`${BaseApi}/metrics-time-series`, { method: 'get' })
+        .then(r => r.json())
+        .then(data => {
+            if (data['res'] !== 'Ok') throw new Error('queryMetricsTimeSeries failed');
+            return data['metrics'] as MetricsTimeSeries;
+        });
+};

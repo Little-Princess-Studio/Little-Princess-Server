@@ -7,6 +7,8 @@ import GatesPage from './Gates';
 import GateDetailPage from './GateDetailPage';
 import ServicePage from './ServicePage';
 import ServiceShardDetailPage from './ServiceShardDetailPage';
+import EntityDetailPage from './EntityDetailPage';
+import MetricsPage from './MetricsPage';
 import { initializeIcons } from '@fluentui/react/lib/Icons';
 
 initializeIcons("https://static2.sharepointonline.com/files/fabric/assets/icons/");
@@ -19,6 +21,8 @@ const router = createBrowserRouter([
   { path: "/gate/:gateId/:hostNum", element: <GateDetailPage></GateDetailPage> },
   { path: "/service", element: <ServicePage></ServicePage> },
   { path: "/service/:serviceName/:shard", element: <ServiceShardDetailPage></ServiceShardDetailPage> },
+  { path: "/entity/:entityId", element: <EntityDetailPage></EntityDetailPage> },
+  { path: "/metrics", element: <MetricsPage></MetricsPage> },
   { path: "/logs", element: <LogsPage></LogsPage> },
 ]);
 

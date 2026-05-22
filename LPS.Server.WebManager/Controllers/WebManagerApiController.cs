@@ -142,4 +142,20 @@ public class WebManagerApiController : Controller
 
         return this.Content(res.ToString());
     }
+
+    /// <summary>Full RpcProperty dump for one entity.</summary>
+    [HttpGet("entity-property-dump")]
+    public async Task<IActionResult> EntityPropertyDump(string entityId)
+    {
+        var dump = await this.serverService.GetEntityPropertyDump(entityId);
+        return this.Content(new JObject { ["res"] = "Ok", ["entity"] = dump }.ToString());
+    }
+
+    /// <summary>Time-series metrics from HostManager.</summary>
+    [HttpGet("metrics-time-series")]
+    public async Task<IActionResult> MetricsTimeSeries()
+    {
+        var metrics = await this.serverService.GetMetricsTimeSeries();
+        return this.Content(new JObject { ["res"] = "Ok", ["metrics"] = metrics }.ToString());
+    }
 }

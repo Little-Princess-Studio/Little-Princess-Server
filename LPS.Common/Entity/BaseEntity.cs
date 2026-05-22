@@ -42,6 +42,16 @@ public abstract class BaseEntity : ITypeIdSupport,
     protected Dictionary<string, RpcProperty>? PropertyTree => this.propertyTree;
 
     /// <summary>
+    /// Read-only snapshot of the entity's RpcProperty tree for introspection
+    /// (admin tools / WebManager dump). Returns the live dictionary cast to
+    /// <see cref="IReadOnlyDictionary{TKey, TValue}"/> - callers MUST NOT
+    /// mutate properties through it. Null until <see cref="SetPropertyTree"/>
+    /// has run (i.e. before <c>RpcHelper.BuildPropertyTree</c> finishes).
+    /// </summary>
+    /// <returns>Read-only property tree or null if not yet built.</returns>
+    public IReadOnlyDictionary<string, RpcProperty>? GetPropertyTreeReadOnly() => this.propertyTree;
+
+    /// <summary>
     /// Gets or sets the dictionary of components associated with this entity.
     /// </summary>
     protected ReadOnlyDictionary<uint, ComponentBase> Components { get; set; } = null!;

@@ -63,11 +63,25 @@ function StopOne([string]$name) {
 function StartOne([string]$name) {
     $spec = $specs[$name]
     "" | Set-Content -LiteralPath $spec.log -Encoding utf8
-    $p = Start-Process -FilePath $spec.exe -ArgumentList $spec.args -WorkingDirectory $spec.cwd `
-            -RedirectStandardOutput $spec.log -RedirectStandardError "$($spec.log).err" `
-            -PassThru -WindowStyle Hidden
-    $p.Id | Set-Content -LiteralPath $spec.pid_
-    Write-Host "[$name] started pid=$($p.Id) log=$($spec.log)"
+
+    # Use cmd.exe to fully detach + redirect stdout/stderr via shell, so this
+    # parent shell holds NO handle on the child's stdio. Without this opencode's
+    # bash tool blocks waiting for stdio pipes to close even though the script
+    # itself completed.
+    $logEsc = $spec.log -replace '"', '""'
+    $argLine = ($spec.args | ForEach-Object { if ($_ -match '\s') { "`"$_`"" } else { $_ } }) -join ' '
+    $cmd = "/c start """" /B `"$($spec.exe)`" $argLine > `"$logEsc`" 2>&1"
+
+    $p = Start-Process -FilePath "cmd.exe" -ArgumentList $cmd `
+            -WorkingDirectory $spec.cwd -WindowStyle Hidden -PassThru
+    # The cmd /c wrapper exits immediately; find the real dotnet child.
+    Start-Sleep -Milliseconds 400
+    $real = Get-CimInstance Win32_Process -Filter "Name='$([System.IO.Path]::GetFileName($spec.exe)).exe' OR Name='$([System.IO.Path]::GetFileName($spec.exe))'" `
+        | Where-Object { $_.CommandLine -and $_.CommandLine -like "*$($spec.args[-1])*" } `
+        | Sort-Object CreationDate -Descending | Select-Object -First 1
+    $realPid = if ($real) { $real.ProcessId } else { $p.Id }
+    $realPid | Set-Content -LiteralPath $spec.pid_
+    Write-Host "[$name] started pid=$realPid log=$($spec.log)"
 }
 
 function StatusOne([string]$name) {

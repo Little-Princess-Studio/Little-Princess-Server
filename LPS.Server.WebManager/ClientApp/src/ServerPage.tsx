@@ -1,8 +1,9 @@
-import { Stack, DetailsList, IColumn, SelectionMode, DetailsListLayoutMode, CommandBar, ICommandBarItemProps, SearchBox, Dropdown, IDropdownOption, Separator, IconButton, Toggle } from "@fluentui/react";
+import { Stack, DetailsList, IColumn, SelectionMode, DetailsListLayoutMode, CommandBar, ICommandBarItemProps, SearchBox, Dropdown, IDropdownOption, Separator, IconButton, Toggle, DefaultButton } from "@fluentui/react";
 import { css } from "styled-components";
 import { header } from "./CommonCss";
 import NavBar from "./NavBar";
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { copyAndSort } from './Utils';
 import { mailBoxToString, queryEntities, queryServerBasicInfo, querySingleServerInfo, ServerInfo, ServerMailBox } from "./Network";
 
@@ -31,6 +32,7 @@ const commandBarItems: ICommandBarItemProps[] = [
 ];
 
 const ServerPage: React.FunctionComponent = () => {
+    const navigate = useNavigate();
     const onColumnClick = (_ev: React.MouseEvent<HTMLElement>, column: IColumn): void => {
         const { columns, items } = serverlistState;
         const newColumns: IColumn[] = columns.slice();
@@ -201,6 +203,18 @@ const ServerPage: React.FunctionComponent = () => {
             onRender: (item: IEntityInfo) => {
                 return <div>{item.cellEntityId}</div>
             }
+        },
+        {
+            key: "actions",
+            name: "",
+            minWidth: 90,
+            onRender: (item: IEntityInfo) => (
+                <DefaultButton
+                    text="Properties"
+                    iconProps={{ iconName: "OpenInNewTab" }}
+                    onClick={() => navigate(`/entity/${encodeURIComponent(item.id)}`)}
+                />
+            ),
         }
     ];
 
