@@ -162,9 +162,17 @@ public abstract class RpcProperty
     public RpcPropertyContainer Value { get; protected set; }
 
     /// <summary>
-    /// Gets a value indicating whether this property is a shadow property (readonly/sync-only property).
+    /// Gets a value indicating whether this property is a shadow property
+    /// (read-only / sync-only). True when either:
+    /// (a) the property's <see cref="RpcPropertySetting.Shadow"/> flag is set
+    /// at declaration time (the historical client-side mechanism); OR
+    /// (b) the owning <see cref="BaseEntity"/> is itself in shadow mode
+    /// (<c>Owner.IsShadow == true</c>) - the server-side mechanism added when
+    /// an entire entity is instantiated as a shadow of an ori on another server.
+    /// In either case any attempt to mutate the underlying value throws.
     /// </summary>
-    public bool IsShadowProperty => this.Setting.HasFlag(RpcPropertySetting.Shadow);
+    public bool IsShadowProperty =>
+        this.Setting.HasFlag(RpcPropertySetting.Shadow) || (this.Owner?.IsShadow ?? false);
 
     /// <summary>
     /// Gets a value indicating whether this property should sync to remote shadow property.

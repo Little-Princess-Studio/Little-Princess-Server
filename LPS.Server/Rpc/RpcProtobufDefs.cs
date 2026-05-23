@@ -51,6 +51,11 @@ public static class RpcProtobufDefs
         RegisterProtobufDef<EntityRpcCallBack>(PackageType.EntityRpcCallBack);
         RegisterProtobufDef<Ping>(PackageType.Ping);
         RegisterProtobufDef<Pong>(PackageType.Pong);
+        RegisterProtobufDef<RequireCreateShadowEntity>(PackageType.RequireCreateShadowEntity);
+        RegisterProtobufDef<CreateShadowEntity>(PackageType.CreateShadowEntity);
+        RegisterProtobufDef<RequireCreateShadowEntityRes>(PackageType.RequireCreateShadowEntityRes);
+        RegisterProtobufDef<RequireDestroyShadowEntity>(PackageType.RequireDestroyShadowEntity);
+        RegisterProtobufDef<DestroyShadowEntity>(PackageType.DestroyShadowEntity);
 
         #endregion
 

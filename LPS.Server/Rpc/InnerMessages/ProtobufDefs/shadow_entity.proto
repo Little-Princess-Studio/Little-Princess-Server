@@ -1,0 +1,46 @@
+syntax = "proto3";
+import "mailbox.proto";
+package LPS.Server.Rpc.InnerMessages;
+
+// ori-server -> Gate. Request creation of a shadow on a specific server.
+// Carries request_id so ori-server's CreateShadowEntity API
+// (which returns Task<MailBox>) can correlate the eventual Res back via
+// AsyncTaskGenerator<MailBox>.
+message RequireCreateShadowEntity {
+  LPS.Common.Rpc.InnerMessages.MailBox OriMailBox = 1;
+  string TargetServerName = 2;
+  string EntityClassName = 3;
+  uint32 RequestId = 4;
+}
+
+// Gate -> target shadow-server. Tells target to instantiate a shadow.
+// shadow_mailbox is pre-computed by Gate using the derived-Id scheme
+// (oriId + "@shadow@" + target_server_name).
+message CreateShadowEntity {
+  LPS.Common.Rpc.InnerMessages.MailBox OriMailBox = 1;
+  LPS.Common.Rpc.InnerMessages.MailBox ShadowMailBox = 2;
+  string EntityClassName = 3;
+}
+
+// target shadow-server -> Gate -> ori-server. Confirms construction.
+// On ok=true, ori-server resolves the awaiting AsyncTaskGenerator and
+// then emits a PropertyFullSync so the shadow gets seed state.
+message RequireCreateShadowEntityRes {
+  LPS.Common.Rpc.InnerMessages.MailBox OriMailBox = 1;
+  LPS.Common.Rpc.InnerMessages.MailBox ShadowMailBox = 2;
+  uint32 RequestId = 3;
+  bool Ok = 4;
+  string Error = 5;
+}
+
+// ori-server -> Gate. Per-target destroy request (carries shadow_mailbox
+// so Gate can prune exactly one subscription entry).
+message RequireDestroyShadowEntity {
+  LPS.Common.Rpc.InnerMessages.MailBox OriMailBox = 1;
+  LPS.Common.Rpc.InnerMessages.MailBox ShadowMailBox = 2;
+}
+
+// Gate -> target shadow-server. Tells target to destroy its local shadow.
+message DestroyShadowEntity {
+  LPS.Common.Rpc.InnerMessages.MailBox ShadowMailBox = 1;
+}

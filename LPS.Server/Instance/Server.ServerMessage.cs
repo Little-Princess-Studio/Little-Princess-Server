@@ -28,6 +28,11 @@ public partial class Server
         this.tcpServer.RegisterMessageHandler(PackageType.RequirePropertyFullSync, this.HandleRequirePropertyFullSync);
         this.tcpServer.RegisterMessageHandler(PackageType.RequireComponentSync, this.HandleRequireComponentSync);
         this.tcpServer.RegisterMessageHandler(PackageType.Control, this.HandleControl);
+        this.tcpServer.RegisterMessageHandler(PackageType.CreateShadowEntity, this.HandleCreateShadowEntity);
+        this.tcpServer.RegisterMessageHandler(PackageType.RequireCreateShadowEntityRes, this.HandleRequireCreateShadowEntityRes);
+        this.tcpServer.RegisterMessageHandler(PackageType.DestroyShadowEntity, this.HandleDestroyShadowEntity);
+        this.tcpServer.RegisterMessageHandler(PackageType.PropertySyncCommandList, this.HandlePropertySyncCommandListForShadow);
+        this.tcpServer.RegisterMessageHandler(PackageType.PropertyFullSync, this.HandlePropertyFullSyncForShadow);
     }
 
     private void UnregisterServerMessageHandlers()
@@ -41,6 +46,11 @@ public partial class Server
             PackageType.RequireComponentSync,
             this.HandleRequireComponentSync);
         this.tcpServer.UnregisterMessageHandler(PackageType.Control, this.HandleControl);
+        this.tcpServer.UnregisterMessageHandler(PackageType.CreateShadowEntity, this.HandleCreateShadowEntity);
+        this.tcpServer.UnregisterMessageHandler(PackageType.RequireCreateShadowEntityRes, this.HandleRequireCreateShadowEntityRes);
+        this.tcpServer.UnregisterMessageHandler(PackageType.DestroyShadowEntity, this.HandleDestroyShadowEntity);
+        this.tcpServer.UnregisterMessageHandler(PackageType.PropertySyncCommandList, this.HandlePropertySyncCommandListForShadow);
+        this.tcpServer.UnregisterMessageHandler(PackageType.PropertyFullSync, this.HandlePropertyFullSyncForShadow);
     }
 
     // how server handle entity rpc
@@ -50,6 +60,26 @@ public partial class Server
         var entityRpc = (msg as EntityRpc)!;
 
         var targetMailBox = entityRpc.EntityMailBox;
+
+        // D1 enforcement: shadow entities never accept RPC. If the target
+        // MailBox.Id is a known local shadow, send back an EntityRpcCallBack
+        // carrying an exception payload so the caller's await fails fast
+        // instead of silently dispatching to a stale property tree.
+        // The shadow id format includes Server.ShadowIdInfix (@shadow@), so
+        // an early shape check + registry lookup is cheap.
+        if (Server.IsShadowId(targetMailBox.ID)
+            && this.localShadowEntities.ContainsKey(targetMailBox.ID))
+        {
+            Logger.Warn(
+                $"[Server:{this.Name}] Rejected RPC to shadow {targetMailBox.ID}.{entityRpc.MethodName} - shadows do not accept RPC (plan D1).");
+            var rejectCb = new EntityRpcCallBack
+            {
+                TargetMailBox = entityRpc.SenderMailBox,
+                RpcID = entityRpc.RpcID,
+            };
+            this.tcpServer.Send(rejectCb, this.GateConnections[0]);
+            return;
+        }
 
         if (this.entity!.MailBox.CompareOnlyID(targetMailBox))
         {

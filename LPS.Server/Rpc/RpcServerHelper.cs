@@ -34,27 +34,30 @@ public static class RpcServerHelper
     /// <exception cref="Exception">Throw exception if failed to create entity.</exception>
     public static async Task<DistributeEntity> CreateEntityLocally(string entityClassName, string desc)
     {
-        if (EntityClassMap.ContainsKey(entityClassName))
-        {
-            var entityClass = EntityClassMap[entityClassName];
-            if (entityClass.IsSubclassOf(typeof(DistributeEntity)))
-            {
-                var obj = (Activator.CreateInstance(entityClass, desc) as DistributeEntity)!;
-                await obj.InitComponents();
-                RpcHelper.BuildPropertyTree(
-                    obj,
-                    AllowedRpcPropertyGenTypes,
-                    typeof(RpcPlaintProperty<>),
-                    typeof(RpcComplexProperty<>),
-                    true);
-                return obj;
-            }
+        return await CreateEntityLocallyInternal(entityClassName, desc, asShadow: false);
+    }
 
-            throw new Exception(
-                $"Invalid class {entityClassName}, only DistributeEntity and its subclass can be created by CreateEntityLocally.");
-        }
-
-        throw new Exception($"Invalid entity class name {entityClassName}");
+    /// <summary>
+    /// Create a local entity in shadow mode. The returned entity:
+    /// (a) has <see cref="LPS.Common.Entity.BaseEntity.IsShadow"/> set to true
+    ///     BEFORE its RpcProperty tree is built, so the property tree picks up
+    ///     the shadow flag via <see cref="LPS.Common.Rpc.RpcProperty.RpcProperty.IsShadowProperty"/>
+    ///     (which now consults <c>Owner.IsShadow</c>);
+    /// (b) silently rejects any RpcProperty mutation (setter throws);
+    /// (c) is expected to receive PropertySyncCommandList / PropertyFullSync
+    ///     messages from the Gate (forwarded from the ori-server) and apply
+    ///     them via the existing sync application path.
+    ///
+    /// The same class definitions used for ori entities (e.g. <c>Player</c>,
+    /// <c>Untrusted</c>) are reused as shadows - no shadow-specific subclass
+    /// hierarchy is required.
+    /// </summary>
+    /// <param name="entityClassName">Entity class name (same registry as ori).</param>
+    /// <param name="desc">Description string to construct the entity.</param>
+    /// <returns>DistributeEntity in shadow mode.</returns>
+    public static async Task<DistributeEntity> CreateShadowEntityLocally(string entityClassName, string desc)
+    {
+        return await CreateEntityLocallyInternal(entityClassName, desc, asShadow: true);
     }
 
     /// <summary>
@@ -106,6 +109,45 @@ public static class RpcServerHelper
             {
                 var obj = (Activator.CreateInstance(entityClass, null) as DistributeEntity)!;
                 obj.MailBox = entityMailBox;
+                RpcHelper.BuildPropertyTree(
+                    obj,
+                    AllowedRpcPropertyGenTypes,
+                    typeof(RpcPlaintProperty<>),
+                    typeof(RpcComplexProperty<>),
+                    true);
+                return obj;
+            }
+
+            throw new Exception(
+                $"Invalid class {entityClassName}, only DistributeEntity and its subclass can be created by CreateEntityLocally.");
+        }
+
+        throw new Exception($"Invalid entity class name {entityClassName}");
+    }
+
+    private static async Task<DistributeEntity> CreateEntityLocallyInternal(
+        string entityClassName,
+        string desc,
+        bool asShadow)
+    {
+        if (EntityClassMap.ContainsKey(entityClassName))
+        {
+            var entityClass = EntityClassMap[entityClassName];
+            if (entityClass.IsSubclassOf(typeof(DistributeEntity)))
+            {
+                var obj = (Activator.CreateInstance(entityClass, desc) as DistributeEntity)!;
+
+                // CRITICAL ORDER: flip IsShadow BEFORE InitComponents + BuildPropertyTree.
+                // RpcProperty.IsShadowProperty consults Owner.IsShadow lazily, so as long
+                // as Owner is set before any setter runs, the guard is effective. But
+                // flipping after the tree is built risks an InitComponents-time setter
+                // succeeding then suddenly failing post-flip.
+                if (asShadow)
+                {
+                    obj.IsShadow = true;
+                }
+
+                await obj.InitComponents();
                 RpcHelper.BuildPropertyTree(
                     obj,
                     AllowedRpcPropertyGenTypes,

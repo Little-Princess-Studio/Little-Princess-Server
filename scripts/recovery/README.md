@@ -29,6 +29,25 @@ HostManager. Kills `hostmanager`, asserts HostMgr logs both
 `restart-registering Gate ...` and `restart-registering Server ...` — the
 Immediate path's `OnReconnected -> Control{Restart}` round-trip.
 
+### `assert_shadow_sync.ps1` — server-side shadow entity (v1 MVP)
+
+Exercises the server-side shadow entity flow added in commit (see
+`.sisyphus/plans/server-shadow-entity-v1.md`). Boots default cluster,
+runs a `LPS.Client.Demo` instance through `send.authority` -> `send.login`
+-> `send.debug_shadow <name>`, then asserts via cluster log lines that:
+- Ori-server received the `DebugCreateShadowAndMutate` RPC and initiated
+  `RequireCreateShadowEntity`.
+- Gate routed `CreateShadowEntity` to the peer server.
+- Peer (shadow) server created the local shadow.
+- Ori-server received `RequireCreateShadowEntityRes` and emitted
+  `PropertyFullSync` (R2 Option B seed-after-create).
+- Peer server applied the `PropertyFullSync` to its local shadow (logs
+  `Seeded shadow ... from PropertyFullSync`).
+
+Requires `Player.DebugCreateShadowAndMutate` and `send.debug_shadow`
+console command (QA-only, defined in `LPS.Server.Demo/Logic/Entity/Player.cs`
+and `LPS.Client.Demo/Console/ConsoleCommands.cs`).
+
 ## Why two scripts?
 
 The default `host0/` config uses MQ for inner mesh traffic (`use_mq_to_host`
@@ -41,6 +60,7 @@ A separate config + script is necessary to cover those code paths.
 # From repo root, infra running (rabbitmq + redis + mongo):
 pwsh scripts/recovery/kill_and_assert_reconnect.ps1            # default config
 pwsh scripts/recovery/kill_and_assert_reconnect_immediate.ps1  # immediate config
+pwsh scripts/recovery/assert_shadow_sync.ps1                   # server-side shadow entity (v1 MVP)
 ```
 
 Each script exits:

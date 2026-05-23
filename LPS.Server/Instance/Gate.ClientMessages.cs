@@ -46,11 +46,32 @@ public partial class Gate
             this.HandleComponentSyncFromServer(client, arg);
         this.tcpClientsActions[(serverIdx, PackageType.ComponentSync)] = ComponentSync;
 
+        // Shadow-entity inbound messages (per-server TcpClient bus). The Server
+        // initiates RequireCreateShadowEntity / RequireDestroyShadowEntity on
+        // its inbound socket (Server.tcpServer.Send(req, gateConn)) which
+        // round-trips back to THIS Gate's per-server TcpClient bus. Register
+        // here, not on tcpGateServer (which is the listening side for Client
+        // and other-Gate connections, not for Server replies).
+        void RequireCreateShadow((IMessage Message, Connection Connection, uint RpcId) arg) =>
+            this.HandleRequireCreateShadowEntityFromServer(client, arg);
+        this.tcpClientsActions[(serverIdx, PackageType.RequireCreateShadowEntity)] = RequireCreateShadow;
+
+        void RequireCreateShadowRes((IMessage Message, Connection Connection, uint RpcId) arg) =>
+            this.HandleRequireCreateShadowEntityResFromServer(client, arg);
+        this.tcpClientsActions[(serverIdx, PackageType.RequireCreateShadowEntityRes)] = RequireCreateShadowRes;
+
+        void RequireDestroyShadow((IMessage Message, Connection Connection, uint RpcId) arg) =>
+            this.HandleRequireDestroyShadowEntityFromServer(client, arg);
+        this.tcpClientsActions[(serverIdx, PackageType.RequireDestroyShadowEntity)] = RequireDestroyShadow;
+
         client.RegisterMessageHandler(PackageType.EntityRpc, EntityRpcHandler);
         client.RegisterMessageHandler(PackageType.EntityRpcCallBack, EntityRpcCallBackHandler);
         client.RegisterMessageHandler(PackageType.PropertyFullSync, PropertyFullSync);
         client.RegisterMessageHandler(PackageType.PropertySyncCommandList, PropSyncCommandList);
         client.RegisterMessageHandler(PackageType.ComponentSync, ComponentSync);
+        client.RegisterMessageHandler(PackageType.RequireCreateShadowEntity, RequireCreateShadow);
+        client.RegisterMessageHandler(PackageType.RequireCreateShadowEntityRes, RequireCreateShadowRes);
+        client.RegisterMessageHandler(PackageType.RequireDestroyShadowEntity, RequireDestroyShadow);
 
         Logger.Info($"client {serverIdx} registered msg");
     }
@@ -78,6 +99,18 @@ public partial class Gate
         client.UnregisterMessageHandler(
             PackageType.ComponentSync,
             this.tcpClientsActions[(idx, PackageType.ComponentSync)]);
+
+        client.UnregisterMessageHandler(
+            PackageType.RequireCreateShadowEntity,
+            this.tcpClientsActions[(idx, PackageType.RequireCreateShadowEntity)]);
+
+        client.UnregisterMessageHandler(
+            PackageType.RequireCreateShadowEntityRes,
+            this.tcpClientsActions[(idx, PackageType.RequireCreateShadowEntityRes)]);
+
+        client.UnregisterMessageHandler(
+            PackageType.RequireDestroyShadowEntity,
+            this.tcpClientsActions[(idx, PackageType.RequireDestroyShadowEntity)]);
     }
 
     private void HandleComponentSyncFromServer(TcpClient client, (IMessage Message, Connection Connection, uint RpcId) arg)
@@ -89,6 +122,16 @@ public partial class Gate
 
         Logger.Info("send componentSync to client");
         this.RedirectMsgToClientEntity(componentSync.EntityId, msg);
+
+        // Server-shadow fan-out for component sync.
+        var subs = this.GetShadowSubscriptions(componentSync.EntityId);
+        if (subs is not null)
+        {
+            foreach (var sub in subs.Keys)
+            {
+                sub.Send(componentSync, false);
+            }
+        }
     }
 
     private void HandlePropertySyncCommandListFromServer(
@@ -102,8 +145,20 @@ public partial class Gate
                     $" {propertySyncCommandList.EntityId}" +
                     $" {propertySyncCommandList.PropType}");
 
-        // TODO: Redirect to shadow entity on server
+        // Existing path: deliver to the owning client (untouched).
         this.RedirectMsgToClientEntity(propertySyncCommandList.EntityId, propertySyncCommandList);
+
+        // Server-shadow fan-out: forward to any peer servers that hold a
+        // shadow of this ori entity (plan D4 routing). Subscription registry
+        // lives on Gate per plan D8 (see Gate.ShadowMessages.cs).
+        var subs = this.GetShadowSubscriptions(propertySyncCommandList.EntityId);
+        if (subs is not null)
+        {
+            foreach (var sub in subs.Keys)
+            {
+                sub.Send(propertySyncCommandList, false);
+            }
+        }
     }
 
     private void HandleEntityRpcFromServer(TcpClient client, object arg)
@@ -133,6 +188,18 @@ public partial class Gate
 
         Logger.Info("send fullSync to client");
         this.RedirectMsgToClientEntity(fullSync.EntityId, msg);
+
+        // Server-shadow fan-out for full sync (plan R2 Option B: ori-server
+        // emits PropertyFullSync right after RequireCreateShadowEntityRes;
+        // shadow-server's HandlePropertyFullSyncForShadow applies it).
+        var subs = this.GetShadowSubscriptions(fullSync.EntityId);
+        if (subs is not null)
+        {
+            foreach (var sub in subs.Keys)
+            {
+                sub.Send(fullSync, false);
+            }
+        }
     }
 
     private void RedirectMsgToEntityOnServer(string entityId, IMessage msg)

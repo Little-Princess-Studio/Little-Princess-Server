@@ -100,6 +100,40 @@ public class Player : ServerClientEntity
         this.playerStub.NotifyPrintMessageFromServer("Notification from server, player properties updated.");
     }
 
+    /// <summary>
+    /// QA-only: create a shadow of this Player on the other server in the
+    /// cluster ("server0" creates on "server1" and vice versa), then mutate
+    /// our Name property to a known value. The integration test
+    /// (scripts/recovery/assert_shadow_sync.ps1) tails the cluster log to
+    /// observe the shadow-server applying the sync.
+    /// </summary>
+    /// <param name="newName">New Name value to publish via the shadow path.</param>
+    /// <returns>String describing what was done (for visibility in the test).</returns>
+    [RpcMethod(Authority.ClientOnly)]
+    public async Task<string> DebugCreateShadowAndMutate(string newName)
+    {
+        var oriServer = LPS.Server.ServerGlobal.Server;
+
+        // Compute peer server's MailBox. In the default host0 config:
+        // server0 = 127.0.0.1:12001, server1 = 127.0.0.1:12011. Whichever
+        // server we're on, target the other one.
+        var peerPort = oriServer.Port == 12001 ? 12011 : 12001;
+        var peerMb = new MailBox(string.Empty, oriServer.Ip, peerPort, oriServer.HostNum);
+
+        Logger.Info($"[DebugShadow] ori={this.MailBox} on {oriServer.Name}, creating shadow on {peerMb.Ip}:{peerMb.Port}.");
+        var shadowMb = await oriServer.CreateShadowEntity(this.MailBox, peerMb, nameof(Player));
+        Logger.Info($"[DebugShadow] shadow created at {shadowMb}. Mutating Name -> {newName}.");
+
+        // Mutation: this triggers PropertySyncCommandList -> Gate -> fan-out
+        // to subscribed shadow (the one we just created).
+        this.Name.Val = newName;
+
+        // Brief pause so the TimeCircle has a chance to flush. v1: ~25ms tick.
+        await Task.Delay(150);
+
+        return $"shadow={shadowMb.Id} mutated_name={newName}";
+    }
+
     /// <inheritdoc/>
     protected override async Task OnMigratedIn(MailBox originMailBox, string migrateInfo, Dictionary<string, string>? extraInfo)
     {

@@ -24,7 +24,7 @@ using MailBox = LPS.Common.Rpc.MailBox;
 /// <summary>
 /// BaseEntity class.
 /// </summary>
-public abstract class BaseEntity : ITypeIdSupport,
+public abstract partial class BaseEntity : ITypeIdSupport,
     IRougamo<ComplexTypeRpcPropertyGetterMo>,
     IRougamo<ComplexTypeRpcPropertySetterMo>,
     IRougamo<PlaintTypeRpcPropertyGetterMo>,
@@ -75,10 +75,30 @@ public abstract class BaseEntity : ITypeIdSupport,
     public bool IsDestroyed { get; protected set; }
 
     /// <summary>
+    /// Gets or sets a value indicating whether this entity is a shadow entity.
+    /// <para>
+    /// Shadow entities receive property syncs from their "ori" (the original
+    /// entity living on another server or the client) but cannot mutate their
+    /// own RpcProperty values. Any attempt to set a property's value on a
+    /// shadow throws <see cref="System.InvalidOperationException"/>.
+    /// </para>
+    /// <para>
+    /// Shadows also reject inbound RPC: the server-side dispatcher checks this
+    /// flag and replies with an <c>RpcException</c> before invoking the method.
+    /// Callers should address the ori MailBox directly for any RPC.
+    /// </para>
+    /// <para>
+    /// Set during construction by <c>RpcServerHelper.CreateEntity(..., asShadow: true)</c>
+    /// on the server side, and by the client's shadow entity factory on the client side.
+    /// </para>
+    /// </summary>
+    public bool IsShadow { get; set; }
+
+    /// <summary>
     /// Gets or sets a value indicating whether this entity is frozen.
     /// If an entity is frozen, it can only send rpc to client.
     /// </summary>
-    public bool IsFrozen { get; protected set; }
+    public bool IsFrozen { get; set; }
 
     /// <summary>
     /// Sets the entity RPC send handler.

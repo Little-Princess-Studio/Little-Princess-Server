@@ -306,6 +306,57 @@ public static class ConsoleCommands
     }
 
     /// <summary>
+    /// QA-only: drive the server-side shadow entity flow.
+    /// Server-side CreateShadowEntity + mutate ori property.
+    /// </summary>
+    /// <param name="newName">New Name value to publish via shadow path.</param>
+    [ConsoleCommand("send.debug_shadow")]
+    public static async void DebugShadow(string newName)
+    {
+        try
+        {
+            // Login is async; this command may race with the login transition.
+            // Poll up to 10s for the shadow entity to become a Player.
+            var deadline = DateTime.UtcNow.AddSeconds(10);
+            Player? player = null;
+            while (DateTime.UtcNow < deadline)
+            {
+                player = ClientGlobal.ShadowClientEntity as Player;
+                if (player is not null)
+                {
+                    break;
+                }
+
+                await Task.Delay(200);
+            }
+
+            if (player is null)
+            {
+                Logger.Warn(
+                    $"[send.debug_shadow] current entity is {ClientGlobal.ShadowClientEntity?.GetType().Name ?? "null"} after 10s wait, expected Player.");
+                Environment.Exit(1);
+                return;
+            }
+
+            var res = await player.DebugCreateShadowAndMutate(newName);
+            Logger.Info($"[send.debug_shadow] result: {res}");
+
+            var resultFile = Environment.GetEnvironmentVariable("LPS_DEBUG_SHADOW_RESULT_FILE");
+            if (!string.IsNullOrEmpty(resultFile))
+            {
+                await System.IO.File.WriteAllTextAsync(resultFile, res);
+            }
+
+            Environment.Exit(0);
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "[send.debug_shadow] failed");
+            Environment.Exit(1);
+        }
+    }
+
+    /// <summary>
     /// Call service echo.
     /// </summary>
     /// <param name="msg">Echo message.</param>

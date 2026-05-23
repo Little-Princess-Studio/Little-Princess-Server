@@ -174,5 +174,10 @@ public enum PackageType
     EntityRpcCallBack = 20,
     Ping = 21,
     Pong = 22,
+    RequireCreateShadowEntity = 23,
+    CreateShadowEntity = 24,
+    RequireCreateShadowEntityRes = 25,
+    RequireDestroyShadowEntity = 26,
+    DestroyShadowEntity = 27,
 #pragma warning restore SA1602
 }

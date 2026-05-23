@@ -75,10 +75,26 @@ public class Player : ShadowClientEntity, IPlayerClientStub
         return ValueTask.CompletedTask;
     }
 
+    /// <summary>
     /// <inheritdoc/>
     public ValueTask PrintMessageFromServer(string msg)
     {
         Logger.Info($"[Player] notification from server: {msg}");
         return ValueTask.CompletedTask;
+    }
+
+    /// <summary>
+    /// QA-only: trigger the server-side <c>DebugCreateShadowAndMutate</c>
+    /// flow that creates a Player shadow on the peer server and mutates
+    /// the ori's Name property. Used by
+    /// <c>scripts/recovery/assert_shadow_sync.ps1</c>.
+    /// </summary>
+    /// <param name="newName">Name value to publish via the shadow path.</param>
+    /// <returns>ValueTask wrapping the server's diagnostic string.</returns>
+    public async ValueTask<string> DebugCreateShadowAndMutate(string newName)
+    {
+        var res = await this.Server.Call<string>("DebugCreateShadowAndMutate", newName);
+        Logger.Debug($"[DebugShadow]: {res}");
+        return res;
     }
 }
